@@ -26,6 +26,22 @@ export const DEFAULT_LOCATION_PING_INTERVAL_MINUTES = 5
  */
 export const MAX_ACCEPTABLE_LOCATION_ACCURACY_METERS = 100
 
+/** The only geofence radii a super admin can choose between (spec). */
+export const ALLOWED_CHECKIN_RADII_METERS = [50, 100, 300] as const
+
+/** Whether a visit auto-checks-out when the user moves outside the geofence. */
+export const DEFAULT_AUTO_CHECKOUT_ENABLED = true
+
+/** Working-hour window (Asia/Phnom_Penh), "HH:MM". */
+export const DEFAULT_WORK_START_TIME = '08:00'
+export const DEFAULT_WORK_END_TIME = '17:00'
+
+/** How many minutes before work_start_time a clock-in is still allowed. */
+export const DEFAULT_ALLOW_EARLY_CLOCKIN_MINUTES = 15
+
+/** How many minutes after work_end_time before an open attendance is auto clocked out. */
+export const DEFAULT_AUTO_CLOCKOUT_GRACE_MINUTES = 60
+
 /** Standardised flags used across attendance, visits, fleet, and reports. */
 export const FLAGS = {
   UNASSIGNED_VISIT: 'UNASSIGNED_VISIT',
@@ -33,6 +49,7 @@ export const FLAGS = {
   LOCATION_UNAVAILABLE: 'LOCATION_UNAVAILABLE',
   AUTO_CHECKOUT_OUTSIDE_RADIUS: 'AUTO_CHECKOUT_OUTSIDE_RADIUS',
   AUTO_CHECKOUT_CLOCK_OUT: 'AUTO_CHECKOUT_CLOCK_OUT',
+  AUTO_CHECKOUT_WORKING_HOURS_END: 'AUTO_CHECKOUT_WORKING_HOURS_END',
   TRACKING_INTERRUPTED: 'TRACKING_INTERRUPTED',
 } as const
 

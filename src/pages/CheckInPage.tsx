@@ -53,6 +53,10 @@ export function CheckInPage() {
         </div>
       )}
 
+      {journey.lastAutoClockOut && (
+        <AutoClockOutBanner clockOutAt={journey.lastAutoClockOut.clock_out_at} onDismiss={journey.clearAutoClockOutNotice} />
+      )}
+
       {journey.lastAutoCheckout && (
         <AutoCheckoutBanner
           reason={journey.lastAutoCheckout.reason}
@@ -156,6 +160,23 @@ function Stat({ label, value }: { label: string; value: string }) {
     <div className="px-1">
       <p className="text-sm font-semibold text-neutral-900">{value}</p>
       <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-neutral-400">{label}</p>
+    </div>
+  )
+}
+
+function AutoClockOutBanner({ clockOutAt, onDismiss }: { clockOutAt: string | null; onDismiss: () => void }) {
+  return (
+    <div className="mx-4 mt-4 flex animate-slide-down items-start gap-3 rounded-xl bg-status-warn/10 p-4 md:mx-8">
+      <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-status-warn" />
+      <div className="flex-1 text-sm">
+        <p className="font-semibold text-status-warn">Auto Clock Out</p>
+        <p className="mt-0.5 text-neutral-700">
+          You were clocked out automatically at {clockOutAt ? formatTime(clockOutAt) : 'end of day'} -- past working hours.
+        </p>
+      </div>
+      <button onClick={onDismiss} aria-label="Dismiss" className="text-neutral-400 tap-target">
+        <X className="h-4 w-4" />
+      </button>
     </div>
   )
 }

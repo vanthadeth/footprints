@@ -5,7 +5,7 @@ import { visitsService, type VisitOutcomeDetails } from '@/features/visits/visit
 import { locationService } from '@/features/location/locationService'
 import { LocationError } from '@/features/location/types'
 import { useAppSettings } from '@/hooks/useAppSettings'
-import { startOfTodayIso } from '@/lib/datetime'
+import { isPastTimeOfDay, startOfTodayIso } from '@/lib/datetime'
 import { haptic } from '@/lib/haptic'
 import { deriveAttendanceStatus, deriveVisitStatus } from './stateMachine'
 import type { AttendanceRow, JourneyState, VisitRow } from './types'
@@ -21,6 +21,7 @@ interface UseJourneyResult extends JourneyState {
   startVisit: (customerId: string | null) => Promise<void>
   endVisit: (details?: VisitOutcomeDetails) => Promise<void>
   clearAutoCheckoutNotice: () => void
+  clearAutoClockOutNotice: () => void
   refresh: () => void
 }
 
@@ -39,6 +40,7 @@ export function useJourney(): UseJourneyResult {
   const [openVisit, setOpenVisit] = useState<VisitRow | null>(null)
   const [todaysVisits, setTodaysVisits] = useState<VisitRow[]>([])
   const [lastAutoCheckout, setLastAutoCheckout] = useState<JourneyState['lastAutoCheckout']>(null)
+  const [lastAutoClockOut, setLastAutoClockOut] = useState<JourneyState['lastAutoClockOut']>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -111,6 +113,51 @@ export function useJourney(): UseJourneyResult {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- re-arm only when the open visit identity or interval changes
   }, [openVisit?.id, settings.locationPingIntervalMinutes])
 
+  // End-of-day enforcement: while clocked in, periodically check whether
+  // the device clock suggests we're past work_end_time + the admin's grace
+  // period, and if so ask the server to auto clock out (it re-validates
+  // against its own clock and the live settings before acting -- see
+  // attendanceService.enforceWorkingHours). Only fetches a location fix
+  // once the cheap client-side check trips, so this doesn't poll GPS all
+  // day the way the visit ping does.
+  useEffect(() => {
+    if (!openAttendance || openAttendance.clock_out_at) return
+
+    const intervalMs = settings.locationPingIntervalMinutes * 60_000
+    let cancelled = false
+
+    async function check() {
+      if (!isPastTimeOfDay(settings.workEndTime, settings.autoClockoutGraceMinutes)) return
+      try {
+        const reading = await locationService.getCurrentPosition({ timeout: 20_000 })
+        if (cancelled) return
+        const result = await attendanceService.enforceWorkingHours({
+          latitude: reading.latitude,
+          longitude: reading.longitude,
+          accuracy: reading.accuracy,
+        })
+        if (cancelled || !result.autoClockedOut || !result.attendance) return
+        haptic('warning')
+        setOpenAttendance(result.attendance)
+        setLastAutoClockOut(result.attendance)
+        if (result.autoCheckedOutVisit) {
+          setOpenVisit(null)
+          setLastAutoCheckout({ reason: 'clock_out', visit: result.autoCheckedOutVisit })
+          setTodaysVisits((prev) => prev.map((v) => (v.id === result.autoCheckedOutVisit!.id ? result.autoCheckedOutVisit! : v)))
+        }
+      } catch {
+        // Same tolerance as the visit ping -- a missed check just retries next interval.
+      }
+    }
+
+    const timer = setInterval(check, intervalMs)
+    return () => {
+      cancelled = true
+      clearInterval(timer)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-arm only when the open attendance identity or these settings change
+  }, [openAttendance?.id, openAttendance?.clock_out_at, settings.locationPingIntervalMinutes, settings.workEndTime, settings.autoClockoutGraceMinutes])
+
   async function withBusyGuard(action: () => Promise<void>) {
     if (busyRef.current) return
     busyRef.current = true
@@ -154,6 +201,7 @@ export function useJourney(): UseJourneyResult {
     openAttendance,
     openVisit,
     lastAutoCheckout,
+    lastAutoClockOut,
     todaysVisits,
     loading,
     busy,
@@ -211,6 +259,7 @@ export function useJourney(): UseJourneyResult {
       }),
 
     clearAutoCheckoutNotice: () => setLastAutoCheckout(null),
+    clearAutoClockOutNotice: () => setLastAutoClockOut(null),
     refresh: () => setNonce((n) => n + 1),
   }
 }

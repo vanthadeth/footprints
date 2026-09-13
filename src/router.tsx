@@ -16,6 +16,7 @@ import { MenuPage } from '@/pages/MenuPage'
 // every user pays for just to see the Check In screen.
 const FootprintsPage = lazy(() => import('@/pages/FootprintsPage').then((m) => ({ default: m.FootprintsPage })))
 const FleetPage = lazy(() => import('@/pages/FleetPage').then((m) => ({ default: m.FleetPage })))
+const SettingsPage = lazy(() => import('@/features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })))
 
 function PageFallback() {
   return (
@@ -70,6 +71,14 @@ export const router = createBrowserRouter([
       },
       { path: '/profile', element: <ProfilePage /> },
       { path: '/menu', element: <MenuPage /> },
+      {
+        path: '/settings',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <SettingsPage />
+          </Suspense>
+        ),
+      },
     ],
   },
   { path: '/', element: <Navigate to="/welcome" replace /> },

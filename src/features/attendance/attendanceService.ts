@@ -91,4 +91,29 @@ export const attendanceService = {
     const result = data as { attendance: AttendanceRow; auto_checked_out_visit: VisitRow | null }
     return { attendance: result.attendance, autoCheckedOutVisit: result.auto_checked_out_visit }
   },
+
+  /**
+   * Called periodically (see useJourney) once the device clock suggests
+   * we're past work_end_time + the admin's grace period. No selfie -- this
+   * is a system action, not a person confirming they're leaving -- but a
+   * fresh location fix is still required (never fabricate one). The server
+   * re-validates the time against its own clock and the live settings
+   * before actually closing anything out.
+   */
+  async enforceWorkingHours(
+    payload: ClockPayload
+  ): Promise<{ autoClockedOut: boolean; attendance: AttendanceRow | null; autoCheckedOutVisit: VisitRow | null }> {
+    const { data, error } = await supabase.rpc('enforce_working_hours', {
+      p_latitude: payload.latitude,
+      p_longitude: payload.longitude,
+      p_accuracy: payload.accuracy,
+    })
+    if (error) throw error
+    const result = data as { auto_clocked_out: boolean; attendance: AttendanceRow | null; auto_checked_out_visit: VisitRow | null }
+    return {
+      autoClockedOut: result.auto_clocked_out,
+      attendance: result.attendance ?? null,
+      autoCheckedOutVisit: result.auto_checked_out_visit ?? null,
+    }
+  },
 }

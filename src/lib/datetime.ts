@@ -84,6 +84,37 @@ export function formatDate(iso: string | null, timezone: string = APP_TIMEZONE):
   )
 }
 
+/**
+ * Is "now" at or past `timeOfDay` (a "HH:MM" or "HH:MM:SS" string, as
+ * app_settings.work_end_time comes back from Postgres) plus a grace period?
+ * This is only ever used client-side to decide WHETHER to bother asking for
+ * a location fix and calling enforce_working_hours -- the server re-checks
+ * against its own clock before actually auto-clocking anyone out, so a
+ * wrong device clock here costs at most one wasted or delayed check, never
+ * an incorrect write (rule #65: never trust the client clock for the
+ * decision itself).
+ */
+export function isPastTimeOfDay(
+  timeOfDay: string,
+  graceMinutes: number = 0,
+  timezone: string = APP_TIMEZONE,
+  now: Date = new Date()
+): boolean {
+  const [h, m] = timeOfDay.split(':').map(Number)
+  const thresholdMinutes = h * 60 + m + graceMinutes
+
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: false,
+  }).formatToParts(now)
+  const hour = Number(parts.find((p) => p.type === 'hour')!.value) % 24
+  const minute = Number(parts.find((p) => p.type === 'minute')!.value)
+
+  return hour * 60 + minute >= thresholdMinutes
+}
+
 export function formatDuration(ms: number): string {
   if (ms < 0) ms = 0
   const totalMinutes = Math.round(ms / 60_000)

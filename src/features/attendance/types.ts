@@ -16,4 +16,6 @@ export interface JourneyState {
   openVisit: VisitRow | null
   /** Set right after an auto check-out so the UI can surface why. */
   lastAutoCheckout: { reason: 'outside_radius' | 'clock_out'; visit: VisitRow } | null
+  /** Set right after the working-hours auto-clock-out fires. */
+  lastAutoClockOut: AttendanceRow | null
 }

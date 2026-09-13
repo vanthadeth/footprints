@@ -8,6 +8,7 @@ const TITLES: Record<string, string> = {
   '/fleet': 'Fleet',
   '/profile': 'Profile',
   '/menu': 'Menu',
+  '/settings': 'Settings',
 }
 
 /**

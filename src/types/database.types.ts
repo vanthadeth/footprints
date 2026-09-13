@@ -16,6 +16,9 @@ export type Database = {
     Tables: {
       app_settings: {
         Row: {
+          allow_early_clockin_minutes: number
+          auto_checkout_enabled: boolean
+          auto_clockout_grace_minutes: number
           checkin_radius_m: number
           daily_active_hours: number | null
           daily_visit_target: number | null
@@ -29,8 +32,13 @@ export type Database = {
           weekly_active_hours: number | null
           weekly_visit_target: number | null
           weekly_working_hours: number | null
+          work_end_time: string
+          work_start_time: string
         }
         Insert: {
+          allow_early_clockin_minutes?: number
+          auto_checkout_enabled?: boolean
+          auto_clockout_grace_minutes?: number
           checkin_radius_m?: number
           daily_active_hours?: number | null
           daily_visit_target?: number | null
@@ -44,8 +52,13 @@ export type Database = {
           weekly_active_hours?: number | null
           weekly_visit_target?: number | null
           weekly_working_hours?: number | null
+          work_end_time?: string
+          work_start_time?: string
         }
         Update: {
+          allow_early_clockin_minutes?: number
+          auto_checkout_enabled?: boolean
+          auto_clockout_grace_minutes?: number
           checkin_radius_m?: number
           daily_active_hours?: number | null
           daily_visit_target?: number | null
@@ -59,6 +72,8 @@ export type Database = {
           weekly_active_hours?: number | null
           weekly_visit_target?: number | null
           weekly_working_hours?: number | null
+          work_end_time?: string
+          work_start_time?: string
         }
         Relationships: [
           {
@@ -79,6 +94,7 @@ export type Database = {
       }
       attendance: {
         Row: {
+          auto_clocked_out: boolean
           clock_in_accuracy_m: number | null
           clock_in_at: string
           clock_in_latitude: number
@@ -96,6 +112,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          auto_clocked_out?: boolean
           clock_in_accuracy_m?: number | null
           clock_in_at?: string
           clock_in_latitude: number
@@ -113,6 +130,7 @@ export type Database = {
           user_id?: string
         }
         Update: {
+          auto_clocked_out?: boolean
           clock_in_accuracy_m?: number | null
           clock_in_at?: string
           clock_in_latitude?: number
@@ -2445,6 +2463,7 @@ export type Database = {
           p_selfie_path: string
         }
         Returns: {
+          auto_clocked_out: boolean
           clock_in_accuracy_m: number | null
           clock_in_at: string
           clock_in_latitude: number
@@ -2500,6 +2519,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      enforce_working_hours: {
+        Args: { p_accuracy?: number; p_latitude: number; p_longitude: number }
+        Returns: Json
       }
       ensure_my_cart: { Args: never; Returns: string }
       my_modules: {

@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ChevronRight, LogOut, Settings, HelpCircle, MapPin, Info, Shield } from 'lucide-react'
 import { InfoSheet } from '@/components/InfoSheet'
 import { LocationPermissionSheet } from '@/features/location/LocationPermissionSheet'
 import { useAuth } from '@/features/auth/AuthContext'
+import { useProfile } from '@/features/auth/useProfile'
 import { haptic } from '@/lib/haptic'
 
 const APP_VERSION = import.meta.env.VITE_APP_VERSION ?? '0.1.0'
@@ -19,8 +21,21 @@ const ITEMS: { key: Exclude<SheetKey, null>; icon: typeof Settings; label: strin
 
 export function MenuPage() {
   const { signOut } = useAuth()
+  const { profile } = useProfile()
+  const navigate = useNavigate()
   const [signingOut, setSigningOut] = useState(false)
   const [openSheet, setOpenSheet] = useState<SheetKey>(null)
+  const isSystemAdmin = profile?.role_name === 'System Admin'
+
+  function handleItemPress(key: Exclude<SheetKey, null>) {
+    // A System Admin gets the real global-settings screen; everyone else
+    // still sees the placeholder sheet below.
+    if (key === 'settings' && isSystemAdmin) {
+      navigate('/settings')
+      return
+    }
+    setOpenSheet(key)
+  }
 
   return (
     <div className="mx-auto max-w-lg md:max-w-2xl">
@@ -29,7 +44,7 @@ export function MenuPage() {
           {ITEMS.map((item, i) => (
             <button
               key={item.label}
-              onClick={() => setOpenSheet(item.key)}
+              onClick={() => handleItemPress(item.key)}
               className={`flex w-full items-center gap-3 px-4 py-3.5 text-left text-sm font-medium text-neutral-800 tap-target ${
                 i > 0 ? 'border-t border-neutral-100' : ''
               }`}
