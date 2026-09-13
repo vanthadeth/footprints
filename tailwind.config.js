@@ -15,8 +15,13 @@ export default {
           500: '#0f6e4f',
           600: '#0b5940',
           700: '#08432f',
+          // Hero-card background (dashboard, journey header) -- dark enough
+          // for white text at AA contrast, still readably "our green" rather
+          // than a neutral black.
+          900: '#052018',
         },
         earth: {
+          50: '#faf1e4',
           400: '#b48a5a',
           500: '#96703f',
         },
