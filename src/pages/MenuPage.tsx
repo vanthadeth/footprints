@@ -1,0 +1,88 @@
+import { useState } from 'react'
+import { ChevronRight, LogOut, Settings, HelpCircle, MapPin, Info, Shield } from 'lucide-react'
+import { PageHeader } from '@/components/PageHeader'
+import { InfoSheet } from '@/components/InfoSheet'
+import { LocationPermissionSheet } from '@/features/location/LocationPermissionSheet'
+import { useAuth } from '@/features/auth/AuthContext'
+import { haptic } from '@/lib/haptic'
+
+const APP_VERSION = import.meta.env.VITE_APP_VERSION ?? '0.1.0'
+
+type SheetKey = 'settings' | 'help' | 'location' | 'about' | 'privacy' | null
+
+const ITEMS: { key: Exclude<SheetKey, null>; icon: typeof Settings; label: string }[] = [
+  { key: 'settings', icon: Settings, label: 'Settings' },
+  { key: 'help', icon: HelpCircle, label: 'Help' },
+  { key: 'location', icon: MapPin, label: 'Location Permission' },
+  { key: 'about', icon: Info, label: 'About Footprints' },
+  { key: 'privacy', icon: Shield, label: 'Privacy' },
+]
+
+export function MenuPage() {
+  const { signOut } = useAuth()
+  const [signingOut, setSigningOut] = useState(false)
+  const [openSheet, setOpenSheet] = useState<SheetKey>(null)
+
+  return (
+    <div className="mx-auto max-w-lg md:max-w-2xl">
+      <PageHeader title="Menu" />
+
+      <div className="px-4 md:px-8">
+        <div className="overflow-hidden rounded-xl2 bg-white shadow-card">
+          {ITEMS.map((item, i) => (
+            <button
+              key={item.label}
+              onClick={() => setOpenSheet(item.key)}
+              className={`flex w-full items-center gap-3 px-4 py-3.5 text-left text-sm font-medium text-neutral-800 tap-target ${
+                i > 0 ? 'border-t border-neutral-100' : ''
+              }`}
+            >
+              <item.icon className="h-5 w-5 text-neutral-400" aria-hidden />
+              <span className="flex-1">{item.label}</span>
+              <ChevronRight className="h-4 w-4 text-neutral-300" aria-hidden />
+            </button>
+          ))}
+        </div>
+
+        <button
+          disabled={signingOut}
+          onClick={async () => {
+            haptic('light')
+            setSigningOut(true)
+            await signOut()
+          }}
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl2 bg-white py-3.5 text-sm font-semibold text-status-danger shadow-card tap-target disabled:opacity-60"
+        >
+          <LogOut className="h-4 w-4" aria-hidden />
+          {signingOut ? 'Logging out…' : 'Logout'}
+        </button>
+
+        <p className="mt-6 pb-6 text-center text-xs text-neutral-400">Footprints v{APP_VERSION}</p>
+      </div>
+
+      <InfoSheet open={openSheet === 'settings'} onClose={() => setOpenSheet(null)} title="Settings">
+        <p>Personal app settings will live here in a future update.</p>
+      </InfoSheet>
+
+      <InfoSheet open={openSheet === 'help'} onClose={() => setOpenSheet(null)} title="Help">
+        <p>Need help using Footprints? Contact your supervisor or HIG IT support.</p>
+      </InfoSheet>
+
+      <LocationPermissionSheet open={openSheet === 'location'} onClose={() => setOpenSheet(null)} />
+
+      <InfoSheet open={openSheet === 'about'} onClose={() => setOpenSheet(null)} title="About Footprints">
+        <p className="font-medium text-neutral-900">Footprints, by HIG</p>
+        <p>Journal your sales journey — attendance, customer visits, and your working day, all in one place.</p>
+        <p className="text-xs text-neutral-400">Version {APP_VERSION}</p>
+      </InfoSheet>
+
+      <InfoSheet open={openSheet === 'privacy'} onClose={() => setOpenSheet(null)} title="Privacy">
+        <p>
+          Footprints records your clock-in/out selfies, GPS location, and customer visit activity as part of your
+          employment with HIG. This data is visible to you, your supervisors, and system administrators, and is used
+          only for attendance verification, visit tracking, and management reporting.
+        </p>
+      </InfoSheet>
+    </div>
+  )
+}

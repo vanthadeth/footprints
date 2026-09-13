@@ -1,11 +1,15 @@
 -- Footprints: attendance (Clock In / Clock Out) system.
 --
 -- This migration is purely additive:
---   * No existing table, column, row, function signature, or RLS policy is
---     removed or narrowed in a way that breaks an existing caller.
---   * app.check_in / app.check_out keep their original parameter order and
---     gain one new trailing parameter with a DEFAULT, so any existing caller
---     that still passes only 3 arguments keeps working unchanged.
+--   * No existing table, column, or row is removed.
+--   * app.check_in / app.check_out gain a new trailing p_accuracy parameter.
+--     NOTE: CREATE OR REPLACE with an added parameter does NOT extend the
+--     existing function in Postgres -- it creates a separate overload. The
+--     old 3-arg overloads (and their grants) were left behind here and are
+--     removed in 0067_footprints_attendance_fixups.sql once that was
+--     discovered; see that file for details. Read this migration together
+--     with 0067 and 0068, which correct both that and a default-EXECUTE-
+--     grant surprise from this environment's migration-apply role.
 --   * visits.customer_id becomes nullable (it was NOT NULL before) to allow
 --     unassigned visits. Every existing row already has a customer_id, so
 --     this cannot violate any existing row.
@@ -658,9 +662,15 @@ create policy attendance_storage_read on storage.objects
   );
 
 -- ---------------------------------------------------------------------------
--- 11. Role permissions for the new 'attendance' module, mirroring the scopes
---     already assigned to the 'visit' module for the same roles.
+-- 11. Register the 'attendance' module (role_permissions.module_key has a
+--     FK to modules.key, same as every other module in this system) and
+--     grant role permissions mirroring the scopes already assigned to the
+--     'visit' module for the same roles.
 -- ---------------------------------------------------------------------------
+insert into public.modules (key, name, icon, href, sort_order, active, group_name)
+values ('attendance', 'Attendance', 'clock', 'attendance', 14, true, 'Selling')
+on conflict (key) do nothing;
+
 insert into public.role_permissions (role_id, module_key, action, scope)
 select r.id, 'attendance', v.action, v.scope
 from public.roles r
