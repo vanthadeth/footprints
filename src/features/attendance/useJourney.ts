@@ -117,6 +117,12 @@ export function useJourney(): UseJourneyResult {
     setBusy(true)
     setError(null)
     try {
+      // Fail fast and honestly rather than let a write hang or silently
+      // queue -- we never want the UI to suggest a clock-in/check-in
+      // succeeded when it hasn't actually reached the server (spec §46).
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        throw new Error("You're offline. Please reconnect and try again.")
+      }
       await action()
     } catch (e) {
       haptic('error')

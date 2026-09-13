@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { MapPin, Footprints as FootprintsIcon, Truck, User, Menu as MenuIcon } from 'lucide-react'
 import { haptic } from '@/lib/haptic'
+import { OfflineBanner } from '@/components/OfflineBanner'
 
 const TABS = [
   { to: '/check-in', label: 'Check In', icon: MapPin },
@@ -18,6 +19,7 @@ const TABS = [
 export function AppLayout() {
   return (
     <div className="flex min-h-dvh flex-col bg-neutral-50 md:flex-row">
+      <OfflineBanner />
       <nav
         className="hidden shrink-0 flex-col gap-1 border-r border-neutral-200 bg-white p-3 md:flex md:w-56"
         aria-label="Primary"
