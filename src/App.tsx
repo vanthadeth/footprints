@@ -1,20 +1,27 @@
 import { RouterProvider } from 'react-router-dom'
 import { AuthProvider } from '@/features/auth/AuthContext'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { ThemeToggle } from '@/components/ThemeToggle'
 import { ConfigErrorPage } from '@/pages/ConfigErrorPage'
 import { isSupabaseConfigured } from '@/lib/supabase'
 import { router } from './router'
 
 export function App() {
-  if (!isSupabaseConfigured) {
-    return <ConfigErrorPage />
-  }
-
   return (
-    <ErrorBoundary>
-      <AuthProvider>
-        <RouterProvider router={router} />
-      </AuthProvider>
-    </ErrorBoundary>
+    <>
+      {/* Rendered once here (not per-page) so light/dark works everywhere,
+          including the config-error screen below. */}
+      <ThemeToggle />
+
+      {!isSupabaseConfigured ? (
+        <ConfigErrorPage />
+      ) : (
+        <ErrorBoundary>
+          <AuthProvider>
+            <RouterProvider router={router} />
+          </AuthProvider>
+        </ErrorBoundary>
+      )}
+    </>
   )
 }

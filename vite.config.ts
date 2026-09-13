@@ -13,7 +13,7 @@ export default defineConfig({
         name: 'Footprints, by HIG',
         short_name: 'Footprints',
         description: 'Journal your sales journey.',
-        theme_color: '#0f6e4f',
+        theme_color: '#1668b8',
         background_color: '#f7f7f5',
         display: 'standalone',
         orientation: 'portrait',
