@@ -14,6 +14,17 @@ export interface LocationPingResult {
   visit: VisitRow | null
 }
 
+/** The visit-outcome fields captured by the visit record form, all optional at the RPC level (check_out only overwrites a field when it's actually passed -- see the COALESCE in app._close_visit). */
+export interface VisitOutcomeDetails {
+  visitTypeId?: string | null
+  visitStatusId?: string | null
+  orderStatusId?: string | null
+  paymentStatusId?: string | null
+  /** ISO timestamp. */
+  nextAppointment?: string | null
+  remarks?: string | null
+}
+
 /**
  * Customer visit (Check In / Check Out) writes. Like attendanceService,
  * this only shapes RPC calls -- no geofence logic lives here, that's all
@@ -50,12 +61,29 @@ export const visitsService = {
     return data
   },
 
-  async checkOut(visitId: string, latitude: number, longitude: number, accuracy: number): Promise<VisitRow> {
+  async checkOut(
+    visitId: string,
+    latitude: number,
+    longitude: number,
+    accuracy: number,
+    details?: VisitOutcomeDetails
+  ): Promise<VisitRow> {
     const { data, error } = await supabase.rpc('check_out', {
       p_visit: visitId,
       p_latitude: latitude,
       p_longitude: longitude,
       p_accuracy: accuracy,
+      // `?? undefined` rather than passing a possible `null` straight
+      // through -- the generated types mark these as optional `string`
+      // (they have SQL DEFAULTs, so the key can be omitted), not
+      // `string | null`, even though Postgres itself is fine with an
+      // explicit NULL for uuid/text/timestamptz params.
+      p_visit_type_id: details?.visitTypeId ?? undefined,
+      p_visit_status_id: details?.visitStatusId ?? undefined,
+      p_order_status_id: details?.orderStatusId ?? undefined,
+      p_payment_status_id: details?.paymentStatusId ?? undefined,
+      p_next_appointment: details?.nextAppointment ?? undefined,
+      p_remarks: details?.remarks ?? undefined,
     })
     if (error) throw error
     return data

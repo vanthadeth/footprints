@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { attendanceService } from './attendanceService'
-import { visitsService } from '@/features/visits/visitsService'
+import { visitsService, type VisitOutcomeDetails } from '@/features/visits/visitsService'
 import { locationService } from '@/features/location/locationService'
 import { LocationError } from '@/features/location/types'
 import { useAppSettings } from '@/hooks/useAppSettings'
@@ -19,7 +19,7 @@ interface UseJourneyResult extends JourneyState {
   clockIn: (selfieBlob: Blob) => Promise<void>
   clockOut: (selfieBlob: Blob) => Promise<void>
   startVisit: (customerId: string | null) => Promise<void>
-  endVisit: () => Promise<void>
+  endVisit: (details?: VisitOutcomeDetails) => Promise<void>
   clearAutoCheckoutNotice: () => void
   refresh: () => void
 }
@@ -200,11 +200,11 @@ export function useJourney(): UseJourneyResult {
         haptic('success')
       }),
 
-    endVisit: () =>
+    endVisit: (details?: VisitOutcomeDetails) =>
       withBusyGuard(async () => {
         if (!openVisit) return
         const reading = await requireLocation()
-        const visit = await visitsService.checkOut(openVisit.id, reading.latitude, reading.longitude, reading.accuracy)
+        const visit = await visitsService.checkOut(openVisit.id, reading.latitude, reading.longitude, reading.accuracy, details)
         setOpenVisit(null)
         setTodaysVisits((prev) => prev.map((v) => (v.id === visit.id ? visit : v)))
         haptic('success')

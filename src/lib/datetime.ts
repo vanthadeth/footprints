@@ -77,6 +77,13 @@ export function timeAgo(iso: string, now: number = Date.now()): string {
   return `${days}d ago`
 }
 
+export function formatDate(iso: string | null, timezone: string = APP_TIMEZONE): string {
+  if (!iso) return '—'
+  return new Intl.DateTimeFormat('en-GB', { timeZone: timezone, weekday: 'short', day: 'numeric', month: 'short' }).format(
+    new Date(iso)
+  )
+}
+
 export function formatDuration(ms: number): string {
   if (ms < 0) ms = 0
   const totalMinutes = Math.round(ms / 60_000)

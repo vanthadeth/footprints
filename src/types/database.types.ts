@@ -2390,7 +2390,13 @@ export type Database = {
           p_accuracy?: number
           p_latitude: number
           p_longitude: number
+          p_next_appointment?: string
+          p_order_status_id?: string
+          p_payment_status_id?: string
+          p_remarks?: string
           p_visit: string
+          p_visit_status_id?: string
+          p_visit_type_id?: string
         }
         Returns: {
           attendance_id: string | null

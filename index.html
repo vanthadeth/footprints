@@ -3,42 +3,31 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <!-- Matches the app's actual light-mode background (bg-neutral-50 in
-         index.css) so the status bar/browser chrome blends into the page.
-         Kept in sync with the current theme by src/lib/theme.ts and the
-         pre-paint script below. -->
-    <meta name="theme-color" content="#fafafa" />
+    <!-- Fixed brand-blue status bar/browser chrome, always -- deliberately
+         NOT theme-dependent (see src/lib/theme.ts). -->
+    <meta name="theme-color" content="#1668b8" />
     <meta name="description" content="Footprints, by HIG — journal your sales journey." />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <!-- iOS ignores theme-color for the actual status bar and only offers
+         default/black/black-translucent -- "black" is the closest fixed
+         dark bar with white status text; brand blue is exact on Android. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="Footprints" />
     <title>Footprints, by HIG</title>
     <script>
       // Runs before first paint so a dark-preferring/previously-toggled
-      // visitor never sees a flash of the light theme (or the wrong status
-      // bar color). Keep in sync with src/lib/theme.ts (same storage key,
-      // fallback logic, and colors -- #0a0a0a here is that file's
-      // STATUS_BAR_COLOR.dark, matching index.css's dark:bg-neutral-950).
+      // visitor never sees a flash of the light theme. Keep in sync with
+      // src/lib/theme.ts (same storage key + fallback logic). Status bar
+      // colors are static above, not touched here -- they don't change
+      // with theme.
       try {
         var t = localStorage.getItem('footprints-theme')
         if (t !== 'light' && (t === 'dark' || matchMedia('(prefers-color-scheme: dark)').matches)) {
           document.documentElement.classList.add('dark')
           document.documentElement.style.colorScheme = 'dark'
-          // Remove + reinsert rather than setAttribute -- some Android/
-          // Chrome versions only re-read theme-color on DOM insertion, not
-          // on an existing tag's attribute changing (src/lib/theme.ts's
-          // setThemeColor does the same for the later in-app toggle).
-          document.querySelectorAll('meta[name="theme-color"]').forEach(function (el) {
-            el.remove()
-          })
-          var meta = document.createElement('meta')
-          meta.setAttribute('name', 'theme-color')
-          meta.setAttribute('content', '#0a0a0a')
-          document.head.appendChild(meta)
-          document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')?.setAttribute('content', 'black-translucent')
         }
       } catch (e) {}
     </script>
