@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { haptic } from '@/lib/haptic'
-import logo from '@/assets/logo-full.png'
+import { LogoFull } from '@/components/Logo'
 
 const SLIDES = [
   {
@@ -44,7 +44,7 @@ export function WelcomePage() {
   return (
     <div className="flex min-h-dvh flex-col items-center bg-gradient-to-b from-brand-50 to-neutral-50 px-6 safe-top safe-bottom dark:from-neutral-900 dark:to-neutral-950">
       <div className="flex flex-1 flex-col items-center justify-center text-center">
-        <img src={logo} alt="Footprints, by HIG" className="mb-4 h-20 w-20 drop-shadow-sm" />
+        <LogoFull alt="Footprints, by HIG" className="mb-4 h-20 w-20 drop-shadow-sm" />
         <h1 className="text-2xl font-semibold text-neutral-900">Footprints</h1>
         <p className="mt-1 text-sm font-medium text-brand-600">by HIG</p>
         <p className="mt-3 max-w-xs text-sm text-neutral-500">Journal your sales journey.</p>
