@@ -1,4 +1,5 @@
-import { User } from 'lucide-react'
+import { ChevronRight, Menu as MenuIcon, Truck, User } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { PageHeader } from '@/components/PageHeader'
 import { useProfile } from '@/features/auth/useProfile'
 
@@ -34,6 +35,26 @@ export function ProfilePage() {
         ) : (
           <p className="text-sm text-neutral-500">We couldn't load your profile.</p>
         )}
+
+        {/* Fleet/Menu moved off the (now 3-item) bottom bar -- Profile is
+            where they live now. Fleet is shown to everyone; the my_team
+            RPC it reads from is RBAC-scoped server-side and simply comes
+            back empty for anyone with no reports, same as before. */}
+        <div className="mt-4 overflow-hidden rounded-xl2 bg-white shadow-card">
+          <Link to="/fleet" className="flex items-center gap-3 px-4 py-3.5 text-left text-sm font-medium text-neutral-800 tap-target">
+            <Truck className="h-5 w-5 text-neutral-400" aria-hidden />
+            <span className="flex-1">Fleet</span>
+            <ChevronRight className="h-4 w-4 text-neutral-300" aria-hidden />
+          </Link>
+          <Link
+            to="/menu"
+            className="flex items-center gap-3 border-t border-neutral-100 px-4 py-3.5 text-left text-sm font-medium text-neutral-800 tap-target"
+          >
+            <MenuIcon className="h-5 w-5 text-neutral-400" aria-hidden />
+            <span className="flex-1">Menu</span>
+            <ChevronRight className="h-4 w-4 text-neutral-300" aria-hidden />
+          </Link>
+        </div>
       </div>
     </div>
   )

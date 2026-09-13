@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AlertTriangle, Building2, Camera, ChevronRight, Footprints as FootprintsIcon, MapPinCheck, X } from 'lucide-react'
-import { useJourney } from '@/features/attendance/useJourney'
+import { useJourneyContext } from '@/features/attendance/JourneyContext'
 import { JourneyTimeline } from '@/features/attendance/JourneyTimeline'
 import { SelfieCaptureSheet } from '@/features/attendance/SelfieCaptureSheet'
 import { StartVisitSheet } from '@/features/visits/StartVisitSheet'
@@ -13,7 +13,7 @@ import { useProfile } from '@/features/auth/useProfile'
 type PendingAction = 'clock-in' | 'clock-out' | null
 
 export function CheckInPage() {
-  const journey = useJourney()
+  const journey = useJourneyContext()
   const { profile } = useProfile()
   const [pendingAction, setPendingAction] = useState<PendingAction>(null)
   const [showStartVisit, setShowStartVisit] = useState(false)
