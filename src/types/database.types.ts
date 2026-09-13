@@ -2529,6 +2529,17 @@ export type Database = {
         }[]
       }
       my_pin_is_set: { Args: never; Returns: boolean }
+      my_team: {
+        Args: never
+        Returns: {
+          full_name: string
+          id: string
+          manager_id: string
+          photo_path: string
+          position: string
+          role_name: string
+        }[]
+      }
       my_views: {
         Args: never
         Returns: {
