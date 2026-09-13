@@ -25,7 +25,17 @@
         if (t !== 'light' && (t === 'dark' || matchMedia('(prefers-color-scheme: dark)').matches)) {
           document.documentElement.classList.add('dark')
           document.documentElement.style.colorScheme = 'dark'
-          document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#0a0a0a')
+          // Remove + reinsert rather than setAttribute -- some Android/
+          // Chrome versions only re-read theme-color on DOM insertion, not
+          // on an existing tag's attribute changing (src/lib/theme.ts's
+          // setThemeColor does the same for the later in-app toggle).
+          document.querySelectorAll('meta[name="theme-color"]').forEach(function (el) {
+            el.remove()
+          })
+          var meta = document.createElement('meta')
+          meta.setAttribute('name', 'theme-color')
+          meta.setAttribute('content', '#0a0a0a')
+          document.head.appendChild(meta)
           document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')?.setAttribute('content', 'black-translucent')
         }
       } catch (e) {}
