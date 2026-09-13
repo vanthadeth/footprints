@@ -13,11 +13,13 @@ export default defineConfig({
         name: 'Footprints, by HIG',
         short_name: 'Footprints',
         description: 'Journal your sales journey.',
-        // Fixed dark-gray status bar/OS chrome, independent of the app's
-        // own light/dark theme (see src/lib/theme.ts and index.html).
-        theme_color: '#171717',
-        // Splash screen while the app loads -- matches the light-mode page
-        // background so it blends into first paint either way.
+        // Matches the app's actual light-mode background (bg-neutral-50 in
+        // index.css) so the OS-level chrome/splash screen blends into the
+        // page instead of showing as a distinct colored strip/flash. (This
+        // manifest value is a single static fallback -- the live in-app
+        // status bar color still tracks the current theme via
+        // src/lib/theme.ts and index.html.)
+        theme_color: '#fafafa',
         background_color: '#fafafa',
         display: 'standalone',
         orientation: 'portrait',
