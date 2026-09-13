@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react'
 import { Moon, Sun } from 'lucide-react'
-import { applyTheme, getInitialTheme, type Theme } from '@/lib/theme'
+import { useTheme } from '@/lib/ThemeContext'
 import { haptic } from '@/lib/haptic'
 
 /**
@@ -9,17 +8,13 @@ import { haptic } from '@/lib/haptic'
  * (z-40) and bottom sheets (z-50) so it never fights either for attention.
  */
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>(() => getInitialTheme())
-
-  useEffect(() => {
-    applyTheme(theme)
-  }, [theme])
+  const { theme, toggleTheme } = useTheme()
 
   return (
     <button
       onClick={() => {
         haptic('light')
-        setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
+        toggleTheme()
       }}
       aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
       style={{ top: 'calc(0.75rem + env(safe-area-inset-top))' }}
