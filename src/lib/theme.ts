@@ -19,16 +19,15 @@ export function getInitialTheme(): Theme {
  * theme-color meta tag (so the phone's status bar/browser chrome matches),
  * then persists the choice so it survives a reload.
  *
- * Dark mode's theme-color is `#171717` (neutral-900, the same dark-gray
- * card surface used everywhere else) rather than the brand-900 navy used
- * for hero cards -- the status bar sits above the page background, which
- * is dark gray/near-black, not navy, so a navy bar looked like a mismatched
- * seam at the top of the screen.
+ * theme-color is `#171717` (neutral-900, the same dark-gray card surface
+ * used everywhere else) in both modes, matching the static default in
+ * index.html -- kept as one value rather than switching to brand blue for
+ * light mode, so the status bar doesn't change shade on every toggle.
  */
 export function applyTheme(theme: Theme) {
   document.documentElement.classList.toggle('dark', theme === 'dark')
   document.documentElement.style.colorScheme = theme
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#171717' : '#1668b8')
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#171717')
   // iOS home-screen installs read this at launch, not live, but keeping it
   // in sync means a relaunch after toggling picks up the right one instead
   // of a stale light/dark status bar style.
