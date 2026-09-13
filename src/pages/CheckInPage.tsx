@@ -21,7 +21,6 @@ export function CheckInPage() {
   const customerNames = useCustomerNames(journey.todaysVisits.map((v) => v.customer_id))
 
   const firstName = profile?.full_name?.split(' ')[0]
-  const initial = profile?.full_name?.trim()?.[0]?.toUpperCase() ?? '·'
 
   async function handleSelfie(blob: Blob) {
     if (pendingAction === 'clock-in') await journey.clockIn(blob)
@@ -49,18 +48,11 @@ export function CheckInPage() {
 
   return (
     <div className="mx-auto max-w-lg pb-6 md:max-w-2xl">
-      <div className="flex items-center justify-between px-4 pt-5 safe-top md:px-8">
+      <div className="px-4 pt-4 md:px-8">
         <p className="text-sm text-neutral-500">
           {greeting()}
           {firstName ? `, ${firstName}` : ''}
         </p>
-        <Link
-          to="/profile"
-          aria-label="Profile"
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-50 text-sm font-semibold text-brand-700 tap-target"
-        >
-          {initial}
-        </Link>
       </div>
 
       {journey.error && (

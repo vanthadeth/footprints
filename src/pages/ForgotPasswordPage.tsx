@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { haptic } from '@/lib/haptic'
+import { ThemeToggle } from '@/components/ThemeToggle'
 
 export function ForgotPasswordPage() {
   const { requestPasswordReset } = useAuth()
@@ -30,6 +31,7 @@ export function ForgotPasswordPage() {
 
   return (
     <div className="flex min-h-dvh flex-col justify-center bg-neutral-50 px-6 safe-top safe-bottom">
+      <ThemeToggle />
       <div className="mx-auto w-full max-w-sm animate-fade-in-up">
         <button
           onClick={() => navigate(-1)}

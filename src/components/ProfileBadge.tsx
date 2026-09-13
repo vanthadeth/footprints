@@ -1,0 +1,128 @@
+import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Globe, LogOut, Settings, User, UserRound } from 'lucide-react'
+import { BottomSheet } from '@/components/BottomSheet'
+import { LanguagePicker } from '@/components/LanguagePicker'
+import { useProfile } from '@/features/auth/useProfile'
+import { useAvatarUrl } from '@/features/auth/useAvatarUrl'
+import { useAuth } from '@/features/auth/AuthContext'
+import { haptic } from '@/lib/haptic'
+
+/** Avatar button in the title bar; opens a small account dropdown (Profile, Language, Setting, Logout). */
+export function ProfileBadge() {
+  const { profile } = useProfile()
+  const avatarUrl = useAvatarUrl(profile?.photo_path)
+  const { signOut } = useAuth()
+  const navigate = useNavigate()
+  const [open, setOpen] = useState(false)
+  const [showLanguage, setShowLanguage] = useState(false)
+  const rootRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function onPointerDown(e: PointerEvent) {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  const initial = profile?.full_name?.trim()?.[0]?.toUpperCase()
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        onClick={() => {
+          haptic('light')
+          setOpen((v) => !v)
+        }}
+        aria-label="Account menu"
+        aria-expanded={open}
+        className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-brand-50 text-sm font-semibold text-brand-700 tap-target dark:bg-brand-500/15 dark:text-brand-300"
+      >
+        {avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : initial || <User className="h-4 w-4" aria-hidden />}
+      </button>
+
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 top-full z-20 mt-2 w-52 origin-top-right animate-pop-in rounded-xl2 border border-neutral-200 bg-white py-1.5 shadow-card dark:border-neutral-700"
+        >
+          <MenuItem
+            icon={UserRound}
+            label="Profile"
+            onClick={() => {
+              setOpen(false)
+              navigate('/profile')
+            }}
+          />
+          <MenuItem
+            icon={Globe}
+            label="Language"
+            onClick={() => {
+              setOpen(false)
+              setShowLanguage(true)
+            }}
+          />
+          <MenuItem
+            icon={Settings}
+            label="Setting"
+            onClick={() => {
+              setOpen(false)
+              navigate('/menu')
+            }}
+          />
+          <div className="my-1 border-t border-neutral-100 dark:border-neutral-800" />
+          <MenuItem
+            icon={LogOut}
+            label="Logout"
+            tone="danger"
+            onClick={() => {
+              setOpen(false)
+              haptic('light')
+              signOut()
+            }}
+          />
+        </div>
+      )}
+
+      <BottomSheet open={showLanguage} onClose={() => setShowLanguage(false)} title="Language">
+        <div className="p-4">
+          <LanguagePicker onSelect={() => setShowLanguage(false)} />
+        </div>
+      </BottomSheet>
+    </div>
+  )
+}
+
+function MenuItem({
+  icon: Icon,
+  label,
+  onClick,
+  tone = 'default',
+}: {
+  icon: typeof User
+  label: string
+  onClick: () => void
+  tone?: 'default' | 'danger'
+}) {
+  return (
+    <button
+      role="menuitem"
+      onClick={onClick}
+      className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium tap-target ${
+        tone === 'danger' ? 'text-status-danger' : 'text-neutral-700 dark:text-neutral-200'
+      }`}
+    >
+      <Icon className="h-4 w-4" aria-hidden />
+      {label}
+    </button>
+  )
+}

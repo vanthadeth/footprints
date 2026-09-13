@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ChevronRight, Download, LogOut, Menu as MenuIcon, Moon, Truck } from 'lucide-react'
-import { PageHeader } from '@/components/PageHeader'
 import { StatTile } from '@/components/StatTile'
+import { LanguagePicker } from '@/components/LanguagePicker'
 import { useProfile } from '@/features/auth/useProfile'
 import { useAuth } from '@/features/auth/AuthContext'
 import { AvatarPicker } from '@/features/auth/AvatarPicker'
@@ -10,7 +10,6 @@ import { useJourneyContext } from '@/features/attendance/JourneyContext'
 import { computeJourneyStats } from '@/features/attendance/journeyStats'
 import type { DayJourney } from '@/features/attendance/useJourneyHistory'
 import { useTheme } from '@/lib/ThemeContext'
-import { LANGUAGES, getInitialLanguage, setLanguage, type Language } from '@/lib/language'
 import { useInstallPrompt } from '@/hooks/useInstallPrompt'
 import { formatDuration, formatTime } from '@/lib/datetime'
 import { haptic } from '@/lib/haptic'
@@ -27,9 +26,7 @@ export function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-lg pb-6 md:max-w-2xl">
-      <PageHeader title="Profile" />
-
-      <div className="px-4 md:px-8">
+      <div className="px-4 pt-4 md:px-8">
         {loading ? (
           <div className="animate-pulse rounded-xl2 bg-neutral-100 p-6" />
         ) : profile && session ? (
@@ -172,7 +169,6 @@ function SummaryStat({ label, value }: { label: string; value: string }) {
 
 function PreferencesSection() {
   const { theme, toggleTheme } = useTheme()
-  const [language, setLanguageState] = useState<Language>(() => getInitialLanguage())
   const install = useInstallPrompt()
 
   return (
@@ -201,27 +197,8 @@ function PreferencesSection() {
       </div>
 
       <div className="border-t border-neutral-100 px-4 py-3.5">
-        <p className="text-sm font-medium text-neutral-800">Language</p>
-        <div className="mt-2.5 grid grid-cols-2 gap-2">
-          {LANGUAGES.map((l) => (
-            <button
-              key={l.code}
-              onClick={() => {
-                haptic('light')
-                setLanguage(l.code)
-                setLanguageState(l.code)
-              }}
-              className={`rounded-lg border px-3 py-2 text-sm font-medium tap-target ${
-                language === l.code ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-neutral-200 text-neutral-700'
-              }`}
-            >
-              {l.nativeLabel}
-            </button>
-          ))}
-        </div>
-        <p className="mt-2 text-xs text-neutral-400">
-          {language === 'km' ? 'ភាសាខ្មែរនឹងមកដល់ឆាប់ៗនេះ' : 'Full Khmer translation is coming soon -- this saves your preference for now.'}
-        </p>
+        <p className="mb-2.5 text-sm font-medium text-neutral-800">Language</p>
+        <LanguagePicker />
       </div>
 
       {install.canInstall && (

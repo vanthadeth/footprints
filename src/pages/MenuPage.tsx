@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { ChevronRight, LogOut, Settings, HelpCircle, MapPin, Info, Shield } from 'lucide-react'
-import { PageHeader } from '@/components/PageHeader'
 import { InfoSheet } from '@/components/InfoSheet'
 import { LocationPermissionSheet } from '@/features/location/LocationPermissionSheet'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -25,9 +24,7 @@ export function MenuPage() {
 
   return (
     <div className="mx-auto max-w-lg md:max-w-2xl">
-      <PageHeader title="Menu" />
-
-      <div className="px-4 md:px-8">
+      <div className="px-4 pt-4 md:px-8">
         <div className="overflow-hidden rounded-xl2 bg-white shadow-card">
           {ITEMS.map((item, i) => (
             <button

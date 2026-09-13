@@ -2,8 +2,8 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { MapPin, Clock, Footprints as FootprintsIcon, Truck, User, Menu as MenuIcon } from 'lucide-react'
 import { haptic } from '@/lib/haptic'
 import { OfflineBanner } from '@/components/OfflineBanner'
+import { TitleBar } from '@/components/TitleBar'
 import { JourneyProvider, useJourneyContext } from '@/features/attendance/JourneyContext'
-import { LogoIcon } from '@/components/Logo'
 
 /** Desktop keeps the full set of destinations as a vertical rail -- screen space isn't the constraint there that it is on a phone's bottom bar. */
 const DESKTOP_TABS = [
@@ -30,14 +30,18 @@ export function AppLayout() {
         <OfflineBanner />
         <DesktopSidebar />
 
-        <main className="flex-1 pb-[calc(4.75rem+env(safe-area-inset-bottom))] md:pb-0">
-          {/* Keying by path remounts this div on every tab switch, which
-              restarts the fade-in-up animation -- a lightweight stand-in
-              for a real route-transition library. */}
-          <div key={location.pathname} className="animate-fade-in-up">
-            <Outlet />
-          </div>
-        </main>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <TitleBar />
+
+          <main className="flex-1 pb-[calc(4.75rem+env(safe-area-inset-bottom))] md:pb-0">
+            {/* Keying by path remounts this div on every tab switch, which
+                restarts the fade-in-up animation -- a lightweight stand-in
+                for a real route-transition library. */}
+            <div key={location.pathname} className="animate-fade-in-up">
+              <Outlet />
+            </div>
+          </main>
+        </div>
 
         <MobileTabBar />
       </div>
@@ -51,13 +55,10 @@ function DesktopSidebar() {
 
   return (
     <nav
-      className="hidden shrink-0 flex-col gap-1 border-r border-neutral-200 bg-white p-3 md:flex md:w-56"
+      className="hidden shrink-0 flex-col gap-1 border-r border-neutral-200 bg-white p-3 pt-4 md:flex md:w-56"
       aria-label="Primary"
     >
-      <div className="mb-4 flex items-center gap-2 px-2 pt-2">
-        <LogoIcon className="h-7 w-7" />
-        <span className="text-lg font-semibold text-brand-600">Footprints</span>
-      </div>
+      {/* No logo/brand block here -- TitleBar (to the right) already shows it, alongside the current page's title. */}
       {DESKTOP_TABS.map((tab) => (
         <NavLink
           key={tab.to}

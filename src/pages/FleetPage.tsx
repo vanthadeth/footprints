@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Truck } from 'lucide-react'
-import { PageHeader } from '@/components/PageHeader'
 import { EmptyState } from '@/components/EmptyState'
 import { useFleet } from '@/features/fleet/useFleet'
 import { FleetOverview } from '@/features/fleet/FleetOverview'
@@ -22,9 +21,8 @@ export function FleetPage() {
 
   return (
     <div className="mx-auto max-w-lg pb-6 md:max-w-5xl">
-      <PageHeader title="Fleet" subtitle="Team status and locations" />
-
-      <div className="px-4 md:px-8">
+      <div className="px-4 pt-4 md:px-8">
+        <p className="mb-3 text-sm text-neutral-500">Team status and locations</p>
         <div className="mb-4 flex gap-1 overflow-x-auto rounded-full bg-neutral-100 p-1">
           {TABS.map((t) => (
             <button

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Footprints as FootprintsIcon, ChevronDown, ChevronUp } from 'lucide-react'
+import { ChevronDown, ChevronUp, Footprints as FootprintsIcon } from 'lucide-react'
 import { EmptyState } from '@/components/EmptyState'
 import { StatTile } from '@/components/StatTile'
 import { DateRangeFilter } from '@/components/DateRangeFilter'
@@ -26,14 +26,11 @@ export function FootprintsPage() {
 
   return (
     <div className="mx-auto max-w-lg pb-6 md:max-w-3xl">
-      <div className="relative mx-4 mt-5 overflow-hidden rounded-xl2 bg-brand-900 p-5 shadow-card safe-top md:mx-8">
+      <div className="relative mx-4 mt-4 overflow-hidden rounded-xl2 bg-brand-900 p-5 shadow-card md:mx-8">
         <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/5" />
-        <div className="relative flex items-start justify-between gap-3">
+        <div className="relative flex items-center justify-between gap-3">
           <div>
-            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-white/50">
-              <FootprintsIcon className="h-3.5 w-3.5" /> Footprints
-            </p>
-            <p className="mt-1 text-xl font-semibold text-white">{range.label}</p>
+            <p className="text-xl font-semibold text-white">{range.label}</p>
             <p className="mt-0.5 text-sm text-white/60">Your journey history</p>
           </div>
           <DateRangeFilter value={range} onChange={setRange} tone="dark" />

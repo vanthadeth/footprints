@@ -1,9 +1,11 @@
 import { AlertTriangle } from 'lucide-react'
+import { ThemeToggle } from '@/components/ThemeToggle'
 
 /** Shown instead of a blank page when required env vars are missing -- see src/lib/supabase.ts. */
 export function ConfigErrorPage() {
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-neutral-50 px-6 text-center safe-top safe-bottom">
+      <ThemeToggle />
       <div className="flex h-14 w-14 items-center justify-center rounded-full bg-status-danger/10 text-status-danger">
         <AlertTriangle className="h-7 w-7" />
       </div>
