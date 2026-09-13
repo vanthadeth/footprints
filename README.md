@@ -13,12 +13,30 @@ This repository is under active development. See open pull requests for
 current progress.
 
 - **Backend**: reuses the existing Supabase project (auth, users, roles,
-  customers, visits). A proposed additive migration adding the missing
-  attendance (Clock In / Clock Out) layer lives in
-  `supabase/migrations/0066_footprints_attendance.sql` — see that file's
-  header comment for details. It has not been applied to the live database
-  yet.
+  customers, visits). `supabase/migrations/0066-0068` add the attendance
+  (Clock In / Clock Out) layer that was missing, plus location-ping
+  monitoring and unassigned-visit support — see those files' header
+  comments for details. **Applied to the live database.**
 - **Frontend**: React + TypeScript + Vite, PWA-installable, mobile-first.
+  Welcome → Login → bottom-nav shell (Check In / Footprints / Fleet /
+  Profile / Menu) is wired up; Check In implements the full Clock In/Out +
+  Check In/Out flow (real-time selfie capture, GPS + accuracy, auto
+  check-out on clock-out and on radius breach, journey timeline). Fleet,
+  Footprints history/map, dashboard, and reports are not built yet.
+
+### Running locally
+
+```bash
+npm install
+cp .env.example .env.local   # fill in VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY
+npm run dev
+```
+
+Other scripts: `npm run build`, `npm run typecheck`, `npm run lint`, `npm test`.
+
+The PWA icons under `public/icons/` and `public/apple-touch-icon.png` are
+flat placeholder squares generated for a valid manifest — swap them for a
+real designed icon before shipping.
 
 ## Two independent systems
 
