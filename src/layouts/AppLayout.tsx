@@ -3,7 +3,7 @@ import { MapPin, Clock, Footprints as FootprintsIcon, Truck, User, Menu as MenuI
 import { haptic } from '@/lib/haptic'
 import { OfflineBanner } from '@/components/OfflineBanner'
 import { JourneyProvider, useJourneyContext } from '@/features/attendance/JourneyContext'
-import logo from '@/assets/logo-icon.png'
+import { LogoIcon } from '@/components/Logo'
 
 /** Desktop keeps the full set of destinations as a vertical rail -- screen space isn't the constraint there that it is on a phone's bottom bar. */
 const DESKTOP_TABS = [
@@ -48,7 +48,7 @@ function DesktopSidebar() {
       aria-label="Primary"
     >
       <div className="mb-4 flex items-center gap-2 px-2 pt-2">
-        <img src={logo} alt="" className="h-7 w-7" />
+        <LogoIcon className="h-7 w-7" />
         <span className="text-lg font-semibold text-brand-600">Footprints</span>
       </div>
       {DESKTOP_TABS.map((tab) => (

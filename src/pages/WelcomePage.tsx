@@ -42,7 +42,7 @@ export function WelcomePage() {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col items-center bg-gradient-to-b from-brand-50 to-neutral-50 px-6 safe-top safe-bottom">
+    <div className="flex min-h-dvh flex-col items-center bg-gradient-to-b from-brand-50 to-neutral-50 px-6 safe-top safe-bottom dark:from-neutral-900 dark:to-neutral-950">
       <div className="flex flex-1 flex-col items-center justify-center text-center">
         <img src={logo} alt="Footprints, by HIG" className="mb-4 h-20 w-20 drop-shadow-sm" />
         <h1 className="text-2xl font-semibold text-neutral-900">Footprints</h1>
@@ -76,7 +76,7 @@ export function WelcomePage() {
               aria-label={`Slide ${i + 1}`}
               onClick={() => goTo(i)}
               className={`h-1.5 rounded-full transition-all tap-target ${
-                active === i ? 'w-6 bg-brand-500' : 'w-1.5 bg-neutral-300'
+                active === i ? 'w-6 bg-brand-500' : 'w-1.5 bg-neutral-300 dark:bg-neutral-700'
               }`}
             />
           ))}

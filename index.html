@@ -4,18 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#1668b8" />
-    <script>
-      // Runs before first paint so a dark-preferring/previously-toggled
-      // visitor never sees a flash of the light theme. Keep in sync with
-      // src/lib/theme.ts (same storage key + fallback logic).
-      try {
-        var t = localStorage.getItem('footprints-theme')
-        if (t !== 'light' && (t === 'dark' || matchMedia('(prefers-color-scheme: dark)').matches)) {
-          document.documentElement.classList.add('dark')
-          document.documentElement.style.colorScheme = 'dark'
-        }
-      } catch (e) {}
-    </script>
     <meta name="description" content="Footprints, by HIG — journal your sales journey." />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -24,6 +12,22 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Footprints" />
     <title>Footprints, by HIG</title>
+    <script>
+      // Runs before first paint so a dark-preferring/previously-toggled
+      // visitor never sees a flash of the light theme (or the wrong status
+      // bar color). Placed after the meta tags above so they already exist
+      // in the DOM when this queries them. Keep in sync with
+      // src/lib/theme.ts (same storage key, fallback logic, and colors).
+      try {
+        var t = localStorage.getItem('footprints-theme')
+        if (t !== 'light' && (t === 'dark' || matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark')
+          document.documentElement.style.colorScheme = 'dark'
+          document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#171717')
+          document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')?.setAttribute('content', 'black-translucent')
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>
