@@ -1,8 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronDown, ChevronRight, ChevronUp, Download, Globe, LogOut, Moon, type LucideIcon } from 'lucide-react'
-import { BottomSheet } from '@/components/BottomSheet'
-import { LanguagePicker } from '@/components/LanguagePicker'
 import { useProfile } from '@/features/auth/useProfile'
 import { useAuth } from '@/features/auth/AuthContext'
 import { AvatarPicker } from '@/features/auth/AvatarPicker'
@@ -10,7 +8,7 @@ import { useJourneyContext } from '@/features/attendance/JourneyContext'
 import { computeJourneyStats } from '@/features/attendance/journeyStats'
 import type { DayJourney } from '@/features/attendance/useJourneyHistory'
 import { useTheme } from '@/lib/ThemeContext'
-import { LANGUAGES, getInitialLanguage } from '@/lib/language'
+import { getInitialLanguage, setLanguage } from '@/lib/language'
 import { useInstallPrompt } from '@/hooks/useInstallPrompt'
 import { formatDuration, formatTime } from '@/lib/datetime'
 import { haptic } from '@/lib/haptic'
@@ -181,8 +179,6 @@ function PreferencesSection() {
   const { theme, toggleTheme } = useTheme()
   const install = useInstallPrompt()
   const [language, setLanguageState] = useState(() => getInitialLanguage())
-  const [showLanguage, setShowLanguage] = useState(false)
-  const languageLabel = LANGUAGES.find((l) => l.code === language)?.nativeLabel ?? 'English'
 
   return (
     <div className="mt-3 overflow-hidden rounded-xl2 bg-white shadow-card">
@@ -200,11 +196,11 @@ function PreferencesSection() {
               haptic('light')
               toggleTheme()
             }}
-            className={`relative h-6 w-11 rounded-full transition-colors ${theme === 'dark' ? 'bg-brand-500' : 'bg-neutral-200'}`}
+            className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${theme === 'dark' ? 'bg-brand-500' : 'bg-neutral-200'}`}
           >
             <span
-              className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-                theme === 'dark' ? 'translate-x-[22px]' : 'translate-x-0.5'
+              className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                theme === 'dark' ? 'translate-x-5' : 'translate-x-0'
               }`}
             />
           </button>
@@ -214,15 +210,25 @@ function PreferencesSection() {
       <PrefRow
         icon={Globe}
         label="Language"
-        onClick={() => {
-          haptic('light')
-          setShowLanguage(true)
-        }}
         control={
-          <span className="flex items-center gap-1 text-sm text-neutral-500">
-            {languageLabel}
-            <ChevronRight className="h-4 w-4" aria-hidden />
-          </span>
+          <div className="flex rounded-full bg-neutral-100 p-0.5 dark:bg-neutral-800">
+            {(['km', 'en'] as const).map((code) => (
+              <button
+                key={code}
+                onClick={() => {
+                  haptic('light')
+                  setLanguage(code)
+                  setLanguageState(code)
+                }}
+                aria-pressed={language === code}
+                className={`rounded-full px-2.5 py-1 text-xs font-semibold tap-target ${
+                  language === code ? 'bg-white text-brand-700 shadow-sm dark:bg-neutral-700 dark:text-brand-300' : 'text-neutral-500'
+                }`}
+              >
+                {code === 'km' ? 'KH' : 'EN'}
+              </button>
+            ))}
+          </div>
         }
       />
 
@@ -241,17 +247,6 @@ function PreferencesSection() {
       {install.needsIosInstructions && (
         <PrefRow icon={Download} label="Install App" sub='Tap Share, then "Add to Home Screen"' />
       )}
-
-      <BottomSheet open={showLanguage} onClose={() => setShowLanguage(false)} title="Language">
-        <div className="p-4">
-          <LanguagePicker
-            onSelect={(l) => {
-              setLanguageState(l)
-              setShowLanguage(false)
-            }}
-          />
-        </div>
-      </BottomSheet>
     </div>
   )
 }
