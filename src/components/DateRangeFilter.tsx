@@ -13,7 +13,16 @@ const PRESETS: { key: Exclude<DateRangePreset, 'custom'>; label: string }[] = [
 ]
 
 /** Reusable date filter (spec §41) used by Footprints and Reports alike. */
-export function DateRangeFilter({ value, onChange }: { value: DateRange; onChange: (range: DateRange) => void }) {
+export function DateRangeFilter({
+  value,
+  onChange,
+  tone = 'light',
+}: {
+  value: DateRange
+  onChange: (range: DateRange) => void
+  /** 'dark' matches the trigger to a dark hero card background; 'light' (default) sits on a white/neutral page. */
+  tone?: 'light' | 'dark'
+}) {
   const [open, setOpen] = useState(false)
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
@@ -22,9 +31,11 @@ export function DateRangeFilter({ value, onChange }: { value: DateRange; onChang
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-3.5 py-2 text-sm font-medium text-neutral-700 tap-target"
+        className={`flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-medium tap-target ${
+          tone === 'dark' ? 'border-white/15 bg-white/10 text-white' : 'border-neutral-200 bg-white text-neutral-700'
+        }`}
       >
-        <Calendar className="h-4 w-4 text-neutral-400" />
+        <Calendar className={`h-4 w-4 ${tone === 'dark' ? 'text-white/50' : 'text-neutral-400'}`} />
         {value.label}
       </button>
 

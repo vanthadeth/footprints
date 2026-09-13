@@ -7,6 +7,10 @@
     color-scheme: light;
   }
 
+  html.dark {
+    color-scheme: dark;
+  }
+
   html,
   body,
   #root {
@@ -14,7 +18,7 @@
   }
 
   body {
-    @apply bg-neutral-50 text-neutral-900 antialiased;
+    @apply bg-neutral-50 text-neutral-900 antialiased dark:bg-neutral-950 dark:text-neutral-50;
     /* One-handed mobile use: no accidental text selection on controls,
        no blue tap-highlight flash, momentum scrolling on iOS. */
     -webkit-tap-highlight-color: transparent;
@@ -36,5 +40,92 @@
   .tap-target {
     min-height: 44px;
     min-width: 44px;
+  }
+}
+
+/*
+ * Dark-mode retrofit.
+ *
+ * The app's components consistently reuse the same small set of neutral/
+ * brand/earth utility classes for "card surface", "page background",
+ * "heading text", "body text", "border", etc. Rather than hand-adding a
+ * `dark:` variant next to every one of those classes across ~30 files
+ * (easy to miss one and end up with an inconsistent page), we remap that
+ * fixed vocabulary once, here, scoped to `html.dark`. A handful of
+ * *intentionally* always-dark elements (bg-neutral-900 buttons, the
+ * bg-brand-900 hero cards and their white/5-10 decorations, plain
+ * text-white on those) are deliberately left out -- they already look
+ * right in both themes and shouldn't move.
+ */
+@layer utilities {
+  /* Plain color values throughout (not @apply) -- several of these pairs
+     (e.g. text-neutral-400 <-> text-neutral-500) are mutual remaps, which
+     Tailwind's @apply rejects as a circular dependency even though the
+     selectors themselves target different elements. */
+  html.dark .bg-white {
+    background-color: #171717; /* neutral-900 */
+  }
+  html.dark .bg-white\/95 {
+    background-color: rgb(23 23 23 / 0.95); /* neutral-900 */
+  }
+  html.dark .bg-neutral-50 {
+    background-color: #0a0a0a; /* neutral-950 */
+  }
+  html.dark .bg-neutral-100 {
+    background-color: #262626; /* neutral-800 */
+  }
+  html.dark .text-neutral-900 {
+    color: #fafafa; /* neutral-50 */
+  }
+  html.dark .text-neutral-800 {
+    color: #f5f5f5; /* neutral-100 */
+  }
+  html.dark .text-neutral-700 {
+    color: #e5e5e5; /* neutral-200 */
+  }
+  html.dark .text-neutral-600 {
+    color: #d4d4d4; /* neutral-300 */
+  }
+  html.dark .text-neutral-500 {
+    color: #a3a3a3; /* neutral-400 */
+  }
+  html.dark .text-neutral-400 {
+    color: #737373; /* neutral-500 */
+  }
+  html.dark .text-neutral-300 {
+    color: #525252; /* neutral-600 */
+  }
+  html.dark .border-neutral-50 {
+    border-color: #262626; /* neutral-800 */
+  }
+  html.dark .border-neutral-100 {
+    border-color: #262626; /* neutral-800 */
+  }
+  html.dark .border-neutral-200 {
+    border-color: #404040; /* neutral-700 */
+  }
+  html.dark .border-neutral-300 {
+    border-color: #525252; /* neutral-600 */
+  }
+  html.dark .bg-brand-50 {
+    background-color: rgb(22 104 184 / 0.15); /* brand-500 tint */
+  }
+  html.dark .text-brand-700 {
+    color: #cfe4f6; /* brand-100 */
+  }
+  html.dark .text-brand-600 {
+    color: #3d8bd4; /* brand-400 */
+  }
+  html.dark .text-brand-500 {
+    color: #3d8bd4; /* brand-400 */
+  }
+  html.dark .border-brand-200 {
+    border-color: #404040; /* neutral-700 */
+  }
+  html.dark .bg-earth-50 {
+    background-color: rgb(150 112 63 / 0.2); /* earth-500 tint */
+  }
+  html.dark .text-earth-500 {
+    color: #b48a5a; /* earth-400 */
   }
 }

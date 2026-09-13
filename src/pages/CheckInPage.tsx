@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { AlertTriangle, Building2, Camera, MapPinCheck, X } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { AlertTriangle, Building2, Camera, ChevronRight, Footprints as FootprintsIcon, MapPinCheck, X } from 'lucide-react'
 import { useJourney } from '@/features/attendance/useJourney'
 import { JourneyTimeline } from '@/features/attendance/JourneyTimeline'
 import { SelfieCaptureSheet } from '@/features/attendance/SelfieCaptureSheet'
 import { StartVisitSheet } from '@/features/visits/StartVisitSheet'
+import { ProgressRing } from '@/components/ProgressRing'
 import { useCustomerNames } from '@/features/customers/useCustomerNames'
 import { greeting, formatDuration, formatTime } from '@/lib/datetime'
 import { useProfile } from '@/features/auth/useProfile'
@@ -19,6 +21,7 @@ export function CheckInPage() {
   const customerNames = useCustomerNames(journey.todaysVisits.map((v) => v.customer_id))
 
   const firstName = profile?.full_name?.split(' ')[0]
+  const initial = profile?.full_name?.trim()?.[0]?.toUpperCase() ?? '·'
 
   async function handleSelfie(blob: Blob) {
     if (pendingAction === 'clock-in') await journey.clockIn(blob)
@@ -41,10 +44,23 @@ export function CheckInPage() {
     )
   }
 
+  const isClockedIn = journey.attendance === 'CLOCKED_IN'
+  const isDayComplete = journey.attendance === 'CLOCKED_OUT'
+
   return (
     <div className="mx-auto max-w-lg pb-6 md:max-w-2xl">
-      <div className="px-4 pt-5 safe-top md:px-8">
-        <p className="text-sm text-neutral-500">{greeting()}{firstName ? `, ${firstName}` : ''}</p>
+      <div className="flex items-center justify-between px-4 pt-5 safe-top md:px-8">
+        <p className="text-sm text-neutral-500">
+          {greeting()}
+          {firstName ? `, ${firstName}` : ''}
+        </p>
+        <Link
+          to="/profile"
+          aria-label="Profile"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-50 text-sm font-semibold text-brand-700 tap-target"
+        >
+          {initial}
+        </Link>
       </div>
 
       {journey.error && (
@@ -64,25 +80,70 @@ export function CheckInPage() {
         />
       )}
 
-      <div className="mx-4 mt-4 rounded-xl2 bg-white p-5 shadow-card md:mx-8">
-        <p className="text-3xl font-semibold tabular-nums text-neutral-900">
-          {journey.openAttendance ? formatTime(journey.openAttendance.clock_in_at) : '--:--'}
-        </p>
-        <p
-          className={`mt-1 text-sm font-semibold ${
-            journey.attendance === 'CLOCKED_IN' ? 'text-status-working' : journey.attendance === 'CLOCKED_OUT' ? 'text-status-off' : 'text-neutral-400'
-          }`}
-        >
-          {journey.attendance === 'CLOCKED_IN' && 'WORKING'}
-          {journey.attendance === 'CLOCKED_OUT' && 'DAY COMPLETE'}
-          {journey.attendance === 'NOT_CLOCKED_IN' && 'NOT CLOCKED IN'}
-        </p>
-        {journey.attendance === 'CLOCKED_IN' && journey.openAttendance && (
-          <p className="mt-0.5 text-xs text-neutral-400">Clocked In since {formatTime(journey.openAttendance.clock_in_at)}</p>
+      {/* Hero: today's attendance status, always the first thing you see and act on. */}
+      <div className="relative mx-4 mt-4 overflow-hidden rounded-xl2 bg-brand-900 p-5 shadow-card md:mx-8">
+        <div className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full bg-white/5" />
+        <div className="pointer-events-none absolute -bottom-12 -left-6 h-28 w-28 rounded-full bg-white/5" />
+
+        <div className="relative flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-wide text-white/50">Attendance</p>
+            <p className="mt-1 truncate text-xl font-semibold text-white">
+              {isClockedIn && 'Clocked In'}
+              {isDayComplete && 'Day Complete'}
+              {journey.attendance === 'NOT_CLOCKED_IN' && 'Not Clocked In'}
+            </p>
+            <p className="mt-1 text-sm text-white/60">
+              {isClockedIn && journey.openAttendance && `Since ${formatTime(journey.openAttendance.clock_in_at)}`}
+              {isDayComplete && "You've completed today's session."}
+              {journey.attendance === 'NOT_CLOCKED_IN' && 'Tap below to start your day.'}
+            </p>
+          </div>
+
+          <ProgressRing
+            value={isClockedIn ? 100 : isDayComplete ? 100 : 0}
+            progressClassName={isDayComplete ? 'stroke-white/40' : 'stroke-earth-400'}
+          >
+            <div className="text-center">
+              <p className="text-[10px] font-medium uppercase text-white/40">Live</p>
+              <p className="text-sm font-semibold text-white">
+                {journey.openAttendance ? formatTime(journey.openAttendance.clock_in_at) : '--:--'}
+              </p>
+            </div>
+          </ProgressRing>
+        </div>
+
+        {!isDayComplete && (
+          <button
+            onClick={() => setPendingAction(isClockedIn ? 'clock-out' : 'clock-in')}
+            disabled={journey.busy}
+            className={`relative mt-5 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold tap-target disabled:opacity-60 ${
+              isClockedIn ? 'bg-white/10 text-white' : 'bg-earth-400 text-brand-900'
+            }`}
+          >
+            <Camera className="h-4 w-4" /> {isClockedIn ? 'CLOCK OUT' : 'CLOCK IN'}
+          </button>
         )}
       </div>
 
-      <div className="mx-4 mt-4 rounded-xl2 bg-white p-5 shadow-card md:mx-8">
+      {/* Quick-glance bento row: today's visit count and a shortcut into full history. */}
+      <div className="mx-4 mt-3 grid grid-cols-2 gap-3 md:mx-8">
+        <div className="rounded-xl2 bg-white p-4 shadow-card">
+          <p className="text-xs font-medium text-neutral-500">Today's Visits</p>
+          <p className="mt-1 text-xl font-semibold text-neutral-900">{journey.todaysVisits.length}</p>
+        </div>
+        <Link to="/footprints" className="flex items-center justify-between rounded-xl2 bg-earth-50 p-4 shadow-card tap-target">
+          <span>
+            <span className="flex items-center gap-1.5 text-xs font-medium text-earth-500">
+              <FootprintsIcon className="h-3.5 w-3.5" /> Footprints
+            </span>
+            <span className="mt-1 block text-sm font-semibold text-neutral-900">Full journey</span>
+          </span>
+          <ChevronRight className="h-4 w-4 shrink-0 text-earth-500" />
+        </Link>
+      </div>
+
+      <div className="mx-4 mt-3 rounded-xl2 bg-white p-5 shadow-card md:mx-8">
         <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">Current Visit</p>
 
         {journey.visit === 'VISITING' && journey.openVisit ? (
@@ -129,35 +190,11 @@ export function CheckInPage() {
       </div>
 
       {journey.attendance !== 'NOT_CLOCKED_IN' && journey.openAttendance && (
-        <div className="mx-4 mt-4 rounded-xl2 bg-white p-5 shadow-card md:mx-8">
+        <div className="mx-4 mt-3 rounded-xl2 bg-white p-5 shadow-card md:mx-8">
           <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-neutral-400">Today's Journey</p>
           <JourneyTimeline attendance={journey.openAttendance} visits={journey.todaysVisits} customerNames={customerNames} />
         </div>
       )}
-
-      <div className="mx-4 mt-6 md:mx-8">
-        {journey.attendance === 'CLOCKED_IN' ? (
-          <button
-            onClick={() => setPendingAction('clock-out')}
-            disabled={journey.busy}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-status-danger py-4 text-base font-semibold text-status-danger tap-target disabled:opacity-50"
-          >
-            <Camera className="h-4 w-4" /> CLOCK OUT
-          </button>
-        ) : journey.attendance === 'NOT_CLOCKED_IN' ? (
-          <button
-            onClick={() => setPendingAction('clock-in')}
-            disabled={journey.busy}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 py-4 text-base font-semibold text-white shadow-card tap-target disabled:opacity-60"
-          >
-            <Camera className="h-4 w-4" /> CLOCK IN
-          </button>
-        ) : (
-          <p className="rounded-xl bg-neutral-100 py-4 text-center text-sm font-medium text-neutral-500">
-            You've completed today's working session.
-          </p>
-        )}
-      </div>
 
       <SelfieCaptureSheet
         open={pendingAction !== null}
