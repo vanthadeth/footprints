@@ -32,7 +32,7 @@ export function LoginPage() {
 
   return (
     <div className="flex min-h-dvh flex-col justify-center bg-neutral-50 px-6 safe-top safe-bottom">
-      <div className="mx-auto w-full max-w-sm">
+      <div className="mx-auto w-full max-w-sm animate-fade-in-up">
         <div className="mb-8 flex flex-col items-center text-center">
           <LogoIcon alt="Footprints" className="mb-3 h-12 w-12" />
           <h1 className="text-xl font-semibold text-neutral-900">Welcome back</h1>

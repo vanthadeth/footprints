@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { MapPin, Clock, Footprints as FootprintsIcon, Truck, User, Menu as MenuIcon } from 'lucide-react'
 import { haptic } from '@/lib/haptic'
 import { OfflineBanner } from '@/components/OfflineBanner'
@@ -22,6 +22,8 @@ const DESKTOP_TABS = [
  * center tab re-labels itself by attendance state).
  */
 export function AppLayout() {
+  const location = useLocation()
+
   return (
     <JourneyProvider>
       <div className="flex min-h-dvh flex-col bg-neutral-50 md:flex-row">
@@ -29,7 +31,12 @@ export function AppLayout() {
         <DesktopSidebar />
 
         <main className="flex-1 pb-[calc(4.75rem+env(safe-area-inset-bottom))] md:pb-0">
-          <Outlet />
+          {/* Keying by path remounts this div on every tab switch, which
+              restarts the fade-in-up animation -- a lightweight stand-in
+              for a real route-transition library. */}
+          <div key={location.pathname} className="animate-fade-in-up">
+            <Outlet />
+          </div>
         </main>
 
         <MobileTabBar />

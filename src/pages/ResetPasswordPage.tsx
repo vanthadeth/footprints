@@ -28,7 +28,7 @@ export function ResetPasswordPage() {
 
   return (
     <div className="flex min-h-dvh flex-col justify-center bg-neutral-50 px-6 safe-top safe-bottom">
-      <div className="mx-auto w-full max-w-sm">
+      <div className="mx-auto w-full max-w-sm animate-fade-in-up">
         <h1 className="text-xl font-semibold text-neutral-900">Set a new password</h1>
         <form onSubmit={onSubmit} className="mt-6 space-y-4" noValidate>
           <input

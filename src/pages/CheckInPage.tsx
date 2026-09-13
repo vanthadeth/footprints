@@ -220,7 +220,7 @@ function AutoCheckoutBanner({
   onDismiss: () => void
 }) {
   return (
-    <div className="mx-4 mt-3 flex items-start gap-3 rounded-xl bg-status-warn/10 p-4 md:mx-8">
+    <div className="mx-4 mt-3 flex animate-slide-down items-start gap-3 rounded-xl bg-status-warn/10 p-4 md:mx-8">
       <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-status-warn" />
       <div className="flex-1 text-sm">
         <p className="font-semibold text-status-warn">Auto Check Out</p>

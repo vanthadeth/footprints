@@ -58,6 +58,28 @@ export default {
       borderRadius: {
         xl2: '1.25rem',
       },
+      keyframes: {
+        'fade-in': { from: { opacity: '0' }, to: { opacity: '1' } },
+        'fade-in-up': {
+          from: { opacity: '0', transform: 'translateY(8px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+        'slide-down': {
+          from: { opacity: '0', transform: 'translateY(-10px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+        'pop-in': {
+          from: { opacity: '0', transform: 'scale(0.9)' },
+          to: { opacity: '1', transform: 'scale(1)' },
+        },
+      },
+      animation: {
+        // Page/card entrances and the theme-toggle icon swap.
+        'fade-in': 'fade-in 0.2s ease-out',
+        'fade-in-up': 'fade-in-up 0.25s ease-out both',
+        'slide-down': 'slide-down 0.25s ease-out both',
+        'pop-in': 'pop-in 0.2s ease-out both',
+      },
     },
   },
   plugins: [],

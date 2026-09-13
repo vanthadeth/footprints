@@ -30,7 +30,7 @@ export function ForgotPasswordPage() {
 
   return (
     <div className="flex min-h-dvh flex-col justify-center bg-neutral-50 px-6 safe-top safe-bottom">
-      <div className="mx-auto w-full max-w-sm">
+      <div className="mx-auto w-full max-w-sm animate-fade-in-up">
         <button
           onClick={() => navigate(-1)}
           className="mb-6 flex items-center gap-1 text-sm font-medium text-neutral-600 tap-target"

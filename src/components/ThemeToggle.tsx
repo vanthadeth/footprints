@@ -25,7 +25,8 @@ export function ThemeToggle() {
       style={{ top: 'calc(0.75rem + env(safe-area-inset-top))' }}
       className="fixed right-3 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-white/90 text-neutral-500 shadow-card backdrop-blur tap-target dark:border-neutral-700 dark:bg-neutral-900/90 dark:text-neutral-300"
     >
-      {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+      {/* key={theme} remounts the icon on toggle so animate-pop-in replays each time, giving a little crossfade instead of an instant swap. */}
+      {theme === 'dark' ? <Sun key="sun" className="h-5 w-5 animate-pop-in" /> : <Moon key="moon" className="h-5 w-5 animate-pop-in" />}
     </button>
   )
 }

@@ -11,7 +11,7 @@ export function OfflineBanner() {
   if (online) return null
 
   return (
-    <div className="fixed inset-x-0 top-0 z-40 flex items-center justify-center gap-2 bg-status-danger px-4 py-2 text-center text-xs font-medium text-white safe-top">
+    <div className="fixed inset-x-0 top-0 z-40 flex animate-slide-down items-center justify-center gap-2 bg-status-danger px-4 py-2 text-center text-xs font-medium text-white safe-top">
       <WifiOff className="h-3.5 w-3.5" />
       You're offline. Clock in/out and check in/out need a connection to save.
     </div>

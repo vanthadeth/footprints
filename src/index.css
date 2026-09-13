@@ -28,6 +28,37 @@
   button {
     touch-action: manipulation;
   }
+
+  /* App-wide tap feedback: every button and link compresses slightly on
+     press. One rule instead of hand-adding active:scale to every button
+     across ~15 files -- and it can't miss a spot added later.
+     transition-property (not the `transition` shorthand) so this adds
+     "transform" alongside whatever a component's own transition-colors/
+     transition-all class already animates, rather than this selector's
+     higher specificity (:not()) silently replacing it. */
+  button:not(:disabled),
+  a[href],
+  [role='button'] {
+    transition-property: transform, color, background-color, border-color, opacity, box-shadow;
+    transition-duration: 0.15s;
+    transition-timing-function: ease-out;
+  }
+  button:not(:disabled):active,
+  a[href]:active,
+  [role='button']:active {
+    transform: scale(0.97);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
 
 @layer utilities {
