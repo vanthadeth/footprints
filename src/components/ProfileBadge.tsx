@@ -1,21 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Globe, LogOut, Settings, User, UserRound } from 'lucide-react'
-import { BottomSheet } from '@/components/BottomSheet'
-import { LanguagePicker } from '@/components/LanguagePicker'
 import { useProfile } from '@/features/auth/useProfile'
 import { useAvatarUrl } from '@/features/auth/useAvatarUrl'
 import { useAuth } from '@/features/auth/AuthContext'
+import { getInitialLanguage, setLanguage } from '@/lib/language'
 import { haptic } from '@/lib/haptic'
 
-/** Avatar button in the title bar; opens a small account dropdown (Profile, Language, Setting, Logout). */
+/** Avatar button in the title bar; opens a small account dropdown (Profile, an inline KH|EN language switch, Setting, Logout). */
 export function ProfileBadge() {
   const { profile } = useProfile()
   const avatarUrl = useAvatarUrl(profile?.photo_path)
   const { signOut } = useAuth()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
-  const [showLanguage, setShowLanguage] = useState(false)
+  const [language, setLanguageState] = useState(() => getInitialLanguage())
   const rootRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -63,14 +62,30 @@ export function ProfileBadge() {
               navigate('/profile')
             }}
           />
-          <MenuItem
-            icon={Globe}
-            label="Language"
-            onClick={() => {
-              setOpen(false)
-              setShowLanguage(true)
-            }}
-          />
+          <div className="flex items-center justify-between gap-3 px-4 py-2.5">
+            <span className="flex items-center gap-3 text-sm font-medium text-neutral-700 dark:text-neutral-200">
+              <Globe className="h-4 w-4" aria-hidden />
+              Language
+            </span>
+            <div className="flex rounded-full bg-neutral-100 p-0.5 dark:bg-neutral-800">
+              {(['km', 'en'] as const).map((code) => (
+                <button
+                  key={code}
+                  onClick={() => {
+                    haptic('light')
+                    setLanguage(code)
+                    setLanguageState(code)
+                  }}
+                  aria-pressed={language === code}
+                  className={`rounded-full px-2.5 py-1 text-xs font-semibold tap-target ${
+                    language === code ? 'bg-white text-brand-700 shadow-sm dark:bg-neutral-700 dark:text-brand-300' : 'text-neutral-500'
+                  }`}
+                >
+                  {code === 'km' ? 'KH' : 'EN'}
+                </button>
+              ))}
+            </div>
+          </div>
           <MenuItem
             icon={Settings}
             label="Setting"
@@ -92,12 +107,6 @@ export function ProfileBadge() {
           />
         </div>
       )}
-
-      <BottomSheet open={showLanguage} onClose={() => setShowLanguage(false)} title="Language">
-        <div className="p-4">
-          <LanguagePicker onSelect={() => setShowLanguage(false)} />
-        </div>
-      </BottomSheet>
     </div>
   )
 }
