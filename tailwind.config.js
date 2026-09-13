@@ -56,7 +56,15 @@ export default {
         card: '0 1px 2px 0 rgb(0 0 0 / 0.05), 0 1px 3px 0 rgb(0 0 0 / 0.06)',
       },
       borderRadius: {
-        xl2: '1.25rem',
+        // Overriding the core scale (not just extending xl2) so every
+        // rounded-lg/xl/2xl button, input, and sheet across the app gets
+        // less round from one place, not just the custom card radius.
+        // rounded-full (avatars, pills, switches, badges) is untouched --
+        // those are meant to be fully round, not "corner rounding".
+        lg: '0.375rem',
+        xl: '0.5rem',
+        '2xl': '0.75rem',
+        xl2: '0.75rem',
       },
       keyframes: {
         'fade-in': { from: { opacity: '0' }, to: { opacity: '1' } },
