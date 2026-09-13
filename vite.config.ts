@@ -13,8 +13,11 @@ export default defineConfig({
         name: 'Footprints, by HIG',
         short_name: 'Footprints',
         description: 'Journal your sales journey.',
-        theme_color: '#171717',
-        background_color: '#f7f7f5',
+        // Matches the app's actual light-mode background (bg-neutral-50 in
+        // index.css) so the OS-level chrome/splash screen blends into the
+        // page instead of showing as a distinct colored strip/flash.
+        theme_color: '#fafafa',
+        background_color: '#fafafa',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',
