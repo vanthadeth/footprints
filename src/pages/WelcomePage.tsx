@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Footprints as FootprintsIcon } from 'lucide-react'
 import { haptic } from '@/lib/haptic'
+import logo from '@/assets/logo-full.png'
 
 const SLIDES = [
   {
@@ -44,9 +44,7 @@ export function WelcomePage() {
   return (
     <div className="flex min-h-dvh flex-col items-center bg-gradient-to-b from-brand-50 to-neutral-50 px-6 safe-top safe-bottom">
       <div className="flex flex-1 flex-col items-center justify-center text-center">
-        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-500 text-white shadow-card">
-          <FootprintsIcon className="h-9 w-9" aria-hidden />
-        </div>
+        <img src={logo} alt="Footprints, by HIG" className="mb-4 h-20 w-20 drop-shadow-sm" />
         <h1 className="text-2xl font-semibold text-neutral-900">Footprints</h1>
         <p className="mt-1 text-sm font-medium text-brand-600">by HIG</p>
         <p className="mt-3 max-w-xs text-sm text-neutral-500">Journal your sales journey.</p>

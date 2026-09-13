@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, Footprints as FootprintsIcon } from 'lucide-react'
+import { Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { haptic } from '@/lib/haptic'
+import logo from '@/assets/logo-icon.png'
 
 export function LoginPage() {
   const { signInWithPassword } = useAuth()
@@ -33,9 +34,7 @@ export function LoginPage() {
     <div className="flex min-h-dvh flex-col justify-center bg-neutral-50 px-6 safe-top safe-bottom">
       <div className="mx-auto w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
-          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-500 text-white">
-            <FootprintsIcon className="h-6 w-6" aria-hidden />
-          </div>
+          <img src={logo} alt="Footprints" className="mb-3 h-12 w-12" />
           <h1 className="text-xl font-semibold text-neutral-900">Welcome back</h1>
           <p className="mt-1 text-sm text-neutral-500">Sign in to continue your journey</p>
         </div>
