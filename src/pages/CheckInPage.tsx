@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AlertTriangle, Building2, Camera, Footprints as FootprintsIcon, Loader2, MapPin, X } from 'lucide-react'
+import { AlertTriangle, Building2, Camera, ChevronRight, Footprints as FootprintsIcon, Loader2, MapPin, X } from 'lucide-react'
 import { BottomSheet } from '@/components/BottomSheet'
 import { useJourneyContext } from '@/features/attendance/JourneyContext'
 import type { VisitRow } from '@/features/attendance/types'
@@ -32,7 +32,7 @@ export function CheckInPage() {
     .filter((v) => v.checked_out_at && !v.cancelled_at)
     .sort((a, b) => b.checked_out_at!.localeCompare(a.checked_out_at!))
     .slice(0, 5)
-  const customerNames = useCustomerNames([autoCheckoutCustomerId, ...recentVisits.map((v) => v.customer_id)])
+  const customerNames = useCustomerNames([autoCheckoutCustomerId, journey.openVisit?.customer_id ?? null, ...recentVisits.map((v) => v.customer_id)])
 
   const firstName = profile?.full_name?.split(' ')[0]
 
@@ -180,13 +180,25 @@ export function CheckInPage() {
             <Stat label="Effectiveness" value={`${effectivenessRatio}%`} />
           </div>
 
-          <button
-            onClick={() => setFlowOpen(true)}
-            disabled={isDayComplete || journey.busy}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 py-4 text-base font-semibold text-white tap-target disabled:opacity-40"
-          >
-            <MapPin className="h-4.5 w-4.5" /> {isVisiting ? 'CONTINUE VISIT' : 'CHECK IN'}
-          </button>
+          {/* Only one visit can ever be open at a time (app.check_in enforces
+              this server-side) -- so once checked in, there's nothing left
+              to "check in" to. Show what you're already checked into instead
+              of a button that would just fail. */}
+          {isVisiting && journey.openVisit ? (
+            <CurrentVisitCard
+              visit={journey.openVisit}
+              customerName={journey.openVisit.customer_id ? customerNames[journey.openVisit.customer_id] : undefined}
+              onView={() => setFlowOpen(true)}
+            />
+          ) : (
+            <button
+              onClick={() => setFlowOpen(true)}
+              disabled={isDayComplete || journey.busy}
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 py-4 text-base font-semibold text-white tap-target disabled:opacity-40"
+            >
+              <MapPin className="h-4.5 w-4.5" /> CHECK IN
+            </button>
+          )}
           {isDayComplete && <p className="mt-2 text-center text-xs text-neutral-400">Your day is complete -- check in is no longer available.</p>}
 
           {!isVisiting && recentVisits.length > 0 && <RecentVisits visits={recentVisits} customerNames={customerNames} />}
@@ -234,6 +246,38 @@ function Stat({ label, value }: { label: string; value: string }) {
       <p className="text-sm font-semibold text-neutral-900">{value}</p>
       <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-neutral-400">{label}</p>
     </div>
+  )
+}
+
+function CurrentVisitCard({
+  visit,
+  customerName,
+  onView,
+}: {
+  visit: VisitRow
+  customerName: string | undefined
+  onView: () => void
+}) {
+  const label = visit.customer_id ? customerName ?? 'Loading…' : 'Unassigned Visit'
+  return (
+    <button
+      onClick={onView}
+      className="mt-3 flex w-full items-center gap-3 rounded-xl2 border border-brand-200 bg-brand-50 p-4 text-left tap-target"
+    >
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-500 text-white">
+        <MapPin className="h-5 w-5" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-brand-600">
+          <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-status-visiting" /> Currently Checked In
+        </p>
+        <p className="mt-0.5 truncate text-sm font-semibold text-neutral-900">{label}</p>
+        <p className="text-xs text-neutral-500">
+          Since {formatTime(visit.checked_in_at)} · {formatDuration(Date.now() - new Date(visit.checked_in_at).getTime())} so far
+        </p>
+      </div>
+      <ChevronRight className="h-4 w-4 shrink-0 text-brand-400" />
+    </button>
   )
 }
 
