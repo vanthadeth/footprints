@@ -39,7 +39,10 @@ export function computeJourneyStats(days: DayJourney[], now: number = Date.now()
       }
     }
 
-    const sorted = [...day.visits].sort((a, b) => a.checked_in_at.localeCompare(b.checked_in_at))
+    // A voided visit never happened -- excluded from every count/duration/
+    // gap below, same as a still-open visit that gets cancelled outright
+    // (cancelVisit) already never appears here at all.
+    const sorted = [...day.visits].filter((v) => !v.cancelled_at).sort((a, b) => a.checked_in_at.localeCompare(b.checked_in_at))
     for (let i = 0; i < sorted.length; i++) {
       const visit = sorted[i]
       totalVisits += 1

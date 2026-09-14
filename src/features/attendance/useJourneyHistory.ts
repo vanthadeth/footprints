@@ -15,11 +15,14 @@ interface HistoryState {
   allVisits: VisitRow[]
   loading: boolean
   error: string | null
+  /** Re-fetches the same range -- for after a mutation made elsewhere (editing/voiding a visit, checking out from its detail sheet) that this hook's own query wouldn't otherwise notice. */
+  refresh: () => void
 }
 
 /** Attendance + visit history for the signed-in user over a date range, grouped by calendar day. */
 export function useJourneyHistory(userId: string | null, range: DateRange): HistoryState {
-  const [state, setState] = useState<HistoryState>({ days: [], allVisits: [], loading: true, error: null })
+  const [state, setState] = useState<Omit<HistoryState, 'refresh'>>({ days: [], allVisits: [], loading: true, error: null })
+  const [nonce, setNonce] = useState(0)
 
   useEffect(() => {
     if (!userId) {
@@ -81,7 +84,7 @@ export function useJourneyHistory(userId: string | null, range: DateRange): Hist
     return () => {
       cancelled = true
     }
-  }, [userId, range.startIso, range.endIso])
+  }, [userId, range.startIso, range.endIso, nonce])
 
-  return state
+  return { ...state, refresh: () => setNonce((n) => n + 1) }
 }

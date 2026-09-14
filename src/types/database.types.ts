@@ -2701,7 +2701,138 @@ export type Database = {
           is_required: boolean
         }[]
       }
+      unvoid_visit: {
+        Args: { p_visit: string }
+        Returns: {
+          attendance_id: string | null
+          auto_closed: boolean
+          cancel_reason: string | null
+          cancelled_at: string | null
+          checked_in_at: string
+          checked_out_at: string | null
+          checkout_distance_m: number | null
+          checkout_out_of_range: boolean
+          created_at: string
+          customer_id: string | null
+          distance_m: number | null
+          flags: string[]
+          id: string
+          in_accuracy_m: number | null
+          in_latitude: number | null
+          in_longitude: number | null
+          next_appointment: string | null
+          order_status_id: string | null
+          out_accuracy_m: number | null
+          out_latitude: number | null
+          out_longitude: number | null
+          out_of_range: boolean
+          payment_status_id: string | null
+          radius_m: number | null
+          remarks: string | null
+          updated_at: string
+          user_id: string
+          visit_number: number | null
+          visit_status_id: string | null
+          visit_type_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "visits"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      update_visit_record: {
+        Args: {
+          p_next_appointment?: string
+          p_order_status_id?: string
+          p_payment_status_id?: string
+          p_remarks?: string
+          p_visit: string
+          p_visit_status_id?: string
+          p_visit_type_id?: string
+        }
+        Returns: {
+          attendance_id: string | null
+          auto_closed: boolean
+          cancel_reason: string | null
+          cancelled_at: string | null
+          checked_in_at: string
+          checked_out_at: string | null
+          checkout_distance_m: number | null
+          checkout_out_of_range: boolean
+          created_at: string
+          customer_id: string | null
+          distance_m: number | null
+          flags: string[]
+          id: string
+          in_accuracy_m: number | null
+          in_latitude: number | null
+          in_longitude: number | null
+          next_appointment: string | null
+          order_status_id: string | null
+          out_accuracy_m: number | null
+          out_latitude: number | null
+          out_longitude: number | null
+          out_of_range: boolean
+          payment_status_id: string | null
+          radius_m: number | null
+          remarks: string | null
+          updated_at: string
+          user_id: string
+          visit_number: number | null
+          visit_status_id: string | null
+          visit_type_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "visits"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       verify_my_pin: { Args: { p_pin: string }; Returns: boolean }
+      void_visit: {
+        Args: { p_reason?: string; p_visit: string }
+        Returns: {
+          attendance_id: string | null
+          auto_closed: boolean
+          cancel_reason: string | null
+          cancelled_at: string | null
+          checked_in_at: string
+          checked_out_at: string | null
+          checkout_distance_m: number | null
+          checkout_out_of_range: boolean
+          created_at: string
+          customer_id: string | null
+          distance_m: number | null
+          flags: string[]
+          id: string
+          in_accuracy_m: number | null
+          in_latitude: number | null
+          in_longitude: number | null
+          next_appointment: string | null
+          order_status_id: string | null
+          out_accuracy_m: number | null
+          out_latitude: number | null
+          out_longitude: number | null
+          out_of_range: boolean
+          payment_status_id: string | null
+          radius_m: number | null
+          remarks: string | null
+          updated_at: string
+          user_id: string
+          visit_number: number | null
+          visit_status_id: string | null
+          visit_type_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "visits"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       audit_action: "insert" | "update" | "delete"

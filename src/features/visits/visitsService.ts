@@ -99,6 +99,43 @@ export const visitsService = {
     return data
   },
 
+  /**
+   * Overwrites a visit's record fields (unlike checkOut's _close_visit,
+   * which only ever fills in a field left blank) -- the visit-detail edit
+   * sheet sends the whole edited state, including clearing a field back
+   * out. Only allowed within 24h of check-in (app.update_visit_record).
+   */
+  async updateVisitRecord(visitId: string, details: VisitOutcomeDetails): Promise<VisitRow> {
+    const { data, error } = await supabase.rpc('update_visit_record', {
+      p_visit: visitId,
+      p_visit_type_id: details.visitTypeId ?? undefined,
+      p_visit_status_id: details.visitStatusId ?? undefined,
+      p_order_status_id: details.orderStatusId ?? undefined,
+      p_payment_status_id: details.paymentStatusId ?? undefined,
+      p_next_appointment: details.nextAppointment ?? undefined,
+      p_remarks: details.remarks ?? undefined,
+    })
+    if (error) throw error
+    return data
+  },
+
+  /** Voids any of your own visits, open or closed -- unlike cancelVisit, not limited to a still-open one. */
+  async voidVisit(visitId: string, reason?: string): Promise<VisitRow> {
+    const { data, error } = await supabase.rpc('void_visit', {
+      p_visit: visitId,
+      p_reason: reason ?? undefined,
+    })
+    if (error) throw error
+    return data
+  },
+
+  /** Restores a voided visit. Server rejects it if it was open when voided and another visit is open now (only one can ever be open at a time). */
+  async unvoidVisit(visitId: string): Promise<VisitRow> {
+    const { data, error } = await supabase.rpc('unvoid_visit', { p_visit: visitId })
+    if (error) throw error
+    return data
+  },
+
   async recordLocationPing(
     visitId: string,
     latitude: number,

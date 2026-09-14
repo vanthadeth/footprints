@@ -90,4 +90,26 @@ describe('computeJourneyStats', () => {
     expect(stats.autoCheckouts).toBe(1)
     expect(stats.flaggedVisits).toBe(2)
   })
+
+  it('excludes a voided visit entirely -- it never happened', () => {
+    const days: DayJourney[] = [
+      {
+        date: '2026-01-01',
+        attendance: [],
+        visits: [
+          visit({ checked_in_at: '2026-01-01T09:05:00Z', checked_out_at: '2026-01-01T09:47:00Z' }),
+          visit({
+            checked_in_at: '2026-01-01T10:05:00Z',
+            checked_out_at: '2026-01-01T10:40:00Z',
+            cancelled_at: '2026-01-01T11:00:00Z',
+            cancel_reason: 'Voided by user',
+          }),
+        ],
+      },
+    ]
+    const stats = computeJourneyStats(days)
+    expect(stats.totalVisits).toBe(1)
+    expect(stats.totalVisitingMs).toBe(42 * 60 * 1000)
+    expect(stats.totalGapMs).toBe(0)
+  })
 })

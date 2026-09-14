@@ -22,7 +22,7 @@ export function FootprintsPage() {
   const [selectedDate, setSelectedDate] = useState(() => todayDateString())
   const [mapOpen, setMapOpen] = useState(false)
   const range = getCustomRange(selectedDate, selectedDate)
-  const { days, allVisits, loading, error } = useJourneyHistory(userId, range)
+  const { days, allVisits, loading, error, refresh } = useJourneyHistory(userId, range)
   const customerNames = useCustomerNames(allVisits.map((v) => v.customer_id))
 
   const day = days[0] ?? null
@@ -87,7 +87,13 @@ export function FootprintsPage() {
             {/* Main section: the day's timeline, clock-in through clock-out. */}
             <div className="mt-4 rounded-xl2 bg-white p-4 shadow-card">
               <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-neutral-400">Timeline</p>
-              <JourneyTimeline attendance={day.attendance} visits={day.visits} customerNames={customerNames} />
+              <JourneyTimeline
+                attendance={day.attendance}
+                visits={day.visits}
+                customerNames={customerNames}
+                interactive
+                onVisitChanged={refresh}
+              />
             </div>
           </>
         )}
