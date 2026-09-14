@@ -6,7 +6,8 @@ import { computeJourneyStats } from '@/features/attendance/journeyStats'
 import type { DayJourney } from '@/features/attendance/useJourneyHistory'
 import { VisitFlow } from '@/features/visits/VisitFlow'
 import { useCustomerNames } from '@/features/customers/useCustomerNames'
-import { greeting, formatDuration, formatTime } from '@/lib/datetime'
+import { useAppSettings } from '@/hooks/useAppSettings'
+import { greeting, formatDuration, formatTime, isPastTimeOfDay, isWithinClockInWindow, shiftTimeOfDay } from '@/lib/datetime'
 import { useProfile } from '@/features/auth/useProfile'
 
 type PendingAction = 'clock-in' | 'clock-out' | null
@@ -14,6 +15,7 @@ type PendingAction = 'clock-in' | 'clock-out' | null
 export function CheckInPage() {
   const journey = useJourneyContext()
   const { profile } = useProfile()
+  const settings = useAppSettings()
   const [pendingAction, setPendingAction] = useState<PendingAction>(null)
   const [flowOpen, setFlowOpen] = useState(false)
 
@@ -40,6 +42,13 @@ export function CheckInPage() {
 
   const isDayComplete = journey.attendance === 'CLOCKED_OUT'
   const isVisiting = journey.visit === 'VISITING'
+
+  // The RPC is the real gate (app.within_clock_in_window()) -- this only
+  // disables the button and explains why, so nobody wastes a selfie capture
+  // on a clock-in the server was always going to reject.
+  const canClockIn = isWithinClockInWindow(settings.workStartTime, settings.workEndTime, settings.allowEarlyClockinMinutes)
+  const clockInWindowClosed = !canClockIn && isPastTimeOfDay(settings.workEndTime)
+  const clockInOpensAt = shiftTimeOfDay(settings.workStartTime, -settings.allowEarlyClockinMinutes)
 
   const today: DayJourney = { date: '', attendance: journey.openAttendance, visits: journey.todaysVisits }
   const stats = computeJourneyStats([today])
@@ -77,11 +86,15 @@ export function CheckInPage() {
             {greeting()}
             {firstName ? `, ${firstName}` : ''}
           </p>
-          <p className="mt-1.5 max-w-xs text-sm text-neutral-500">Your day hasn't started yet. Clock in to begin tracking your visits.</p>
+          <p className="mt-1.5 max-w-xs text-sm text-neutral-500">
+            {canClockIn && "Your day hasn't started yet. Clock in to begin tracking your visits."}
+            {!canClockIn && !clockInWindowClosed && `Clock-in opens at ${clockInOpensAt}.`}
+            {clockInWindowClosed && `Clock-in is closed for today -- working hours ended at ${shiftTimeOfDay(settings.workEndTime, 0)}.`}
+          </p>
           <button
             onClick={() => setPendingAction('clock-in')}
-            disabled={journey.busy}
-            className="mt-7 flex w-full max-w-xs items-center justify-center gap-2 rounded-xl bg-brand-500 py-4 text-base font-semibold text-white tap-target disabled:opacity-60"
+            disabled={journey.busy || !canClockIn}
+            className="mt-7 flex w-full max-w-xs items-center justify-center gap-2 rounded-xl bg-brand-500 py-4 text-base font-semibold text-white tap-target disabled:opacity-40"
           >
             <Camera className="h-4.5 w-4.5" /> CLOCK IN
           </button>

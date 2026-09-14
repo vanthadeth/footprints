@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatDuration, formatTime, isPastTimeOfDay } from '../datetime'
+import { formatDuration, formatTime, isPastTimeOfDay, isWithinClockInWindow, shiftTimeOfDay } from '../datetime'
 
 describe('formatDuration', () => {
   it('formats minutes only under an hour', () => {
@@ -45,5 +45,55 @@ describe('isPastTimeOfDay', () => {
 
   it('accepts "HH:MM:SS" as Postgres time columns come back', () => {
     expect(isPastTimeOfDay('17:00:00', 0, undefined, at1700)).toBe(true)
+  })
+})
+
+describe('isWithinClockInWindow', () => {
+  const workStart = '08:00'
+  const workEnd = '17:00'
+  const earlyMinutes = 15
+
+  // Times in Asia/Phnom_Penh (UTC+7), expressed as UTC for the fake clock.
+  const at0744 = new Date('2026-01-01T00:44:00Z') // 07:44 local
+  const at0746 = new Date('2026-01-01T00:46:00Z') // 07:46 local
+  const at1200 = new Date('2026-01-01T05:00:00Z') // 12:00 local
+  const at1700 = new Date('2026-01-01T10:00:00Z') // 17:00 local
+
+  it('is false just before the early-allowance window opens', () => {
+    expect(isWithinClockInWindow(workStart, workEnd, earlyMinutes, undefined, at0744)).toBe(false)
+  })
+
+  it('is true once the early-allowance window opens', () => {
+    expect(isWithinClockInWindow(workStart, workEnd, earlyMinutes, undefined, at0746)).toBe(true)
+  })
+
+  it('is true during the working day', () => {
+    expect(isWithinClockInWindow(workStart, workEnd, earlyMinutes, undefined, at1200)).toBe(true)
+  })
+
+  it('is false at (and after) work_end_time', () => {
+    expect(isWithinClockInWindow(workStart, workEnd, earlyMinutes, undefined, at1700)).toBe(false)
+  })
+})
+
+describe('shiftTimeOfDay', () => {
+  it('shifts earlier within the same day', () => {
+    expect(shiftTimeOfDay('08:00', -15)).toBe('07:45')
+  })
+
+  it('shifts later within the same day', () => {
+    expect(shiftTimeOfDay('08:00', 30)).toBe('08:30')
+  })
+
+  it('wraps backward past midnight', () => {
+    expect(shiftTimeOfDay('00:10', -20)).toBe('23:50')
+  })
+
+  it('wraps forward past midnight', () => {
+    expect(shiftTimeOfDay('23:50', 20)).toBe('00:10')
+  })
+
+  it('accepts "HH:MM:SS" as Postgres time columns come back', () => {
+    expect(shiftTimeOfDay('08:00:00', -15)).toBe('07:45')
   })
 })

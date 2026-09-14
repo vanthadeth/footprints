@@ -115,6 +115,40 @@ export function isPastTimeOfDay(
   return hour * 60 + minute >= thresholdMinutes
 }
 
+/**
+ * Is "now" within the clock-in window -- [work_start_time minus the
+ * admin's early-clock-in allowance, work_end_time) -- mirroring
+ * app.within_clock_in_window() server-side. Only used to disable the
+ * Clock In button and explain why; the RPC is still the one true gate
+ * (never trust the client clock for the actual write), so a wrong device
+ * clock here means at worst a button that's briefly mis-enabled/disabled,
+ * never a clock-in that shouldn't have gone through.
+ */
+export function isWithinClockInWindow(
+  workStartTime: string,
+  workEndTime: string,
+  allowEarlyClockinMinutes: number,
+  timezone: string = APP_TIMEZONE,
+  now: Date = new Date()
+): boolean {
+  return (
+    isPastTimeOfDay(workStartTime, -allowEarlyClockinMinutes, timezone, now) && !isPastTimeOfDay(workEndTime, 0, timezone, now)
+  )
+}
+
+/**
+ * Shifts a "HH:MM" or "HH:MM:SS" time-of-day by `offsetMinutes` (may be
+ * negative), wrapping within a single day. Used to show e.g. "Clock-in
+ * opens at 07:45" from work_start_time and the early-allowance minutes.
+ */
+export function shiftTimeOfDay(timeOfDay: string, offsetMinutes: number): string {
+  const [h, m] = timeOfDay.split(':').map(Number)
+  const total = (((h * 60 + m + offsetMinutes) % 1440) + 1440) % 1440
+  const hh = Math.floor(total / 60)
+  const mm = total % 60
+  return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`
+}
+
 export function formatDuration(ms: number): string {
   if (ms < 0) ms = 0
   const totalMinutes = Math.round(ms / 60_000)
