@@ -77,13 +77,17 @@ export function FleetMemberDetail({ snapshot, onClose }: { snapshot: FleetMember
 
         <div className="mt-4">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Journey Map</p>
-          <JourneyMap visits={visitsToday} customerNames={customerNames} />
+          {/* Fleet's snapshot only ever keeps this member's most recent
+              session today (fleetService.fetchSnapshot) -- fine for a live
+              glance, so only that one session's clock in/out pin shows here
+              even on a day with more than one. */}
+          <JourneyMap visits={visitsToday} attendance={attendance ? [attendance] : []} customerNames={customerNames} />
         </div>
 
         {attendance && (
           <div className="mt-4 rounded-xl2 border border-neutral-100 p-4">
             <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-400">Today's Timeline</p>
-            <JourneyTimeline attendance={attendance} visits={visitsToday} customerNames={customerNames} />
+            <JourneyTimeline attendance={[attendance]} visits={visitsToday} customerNames={customerNames} />
           </div>
         )}
       </div>

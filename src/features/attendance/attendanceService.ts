@@ -52,6 +52,18 @@ export const attendanceService = {
     return data
   },
 
+  /** Every attendance session that started today, oldest first -- multiple clock-in/clock-out cycles per day are allowed. */
+  async getTodayAttendance(userId: string, sinceIso: string): Promise<AttendanceRow[]> {
+    const { data, error } = await supabase
+      .from('attendance')
+      .select('*')
+      .eq('user_id', userId)
+      .gte('clock_in_at', sinceIso)
+      .order('clock_in_at', { ascending: true })
+    if (error) throw error
+    return data ?? []
+  },
+
   async getTodayVisits(userId: string, sinceIso: string): Promise<VisitRow[]> {
     const { data, error } = await supabase
       .from('visits')

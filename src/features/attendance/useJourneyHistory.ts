@@ -5,7 +5,8 @@ import type { AttendanceRow, VisitRow } from './types'
 
 export interface DayJourney {
   date: string // YYYY-MM-DD, local calendar day
-  attendance: AttendanceRow | null
+  /** Every attendance session that started this day, oldest first -- multiple clock-in/clock-out cycles per day are allowed. */
+  attendance: AttendanceRow[]
   visits: VisitRow[]
 }
 
@@ -62,13 +63,15 @@ export function useJourneyHistory(userId: string | null, range: DateRange): Hist
 
       for (const a of attendanceRows) {
         const date = a.clock_in_at.slice(0, 10)
-        byDate.set(date, { date, attendance: a, visits: [] })
+        const existing = byDate.get(date)
+        if (existing) existing.attendance.push(a)
+        else byDate.set(date, { date, attendance: [a], visits: [] })
       }
       for (const v of visitRows) {
         const date = v.checked_in_at.slice(0, 10)
         const existing = byDate.get(date)
         if (existing) existing.visits.push(v)
-        else byDate.set(date, { date, attendance: null, visits: [v] })
+        else byDate.set(date, { date, attendance: [], visits: [v] })
       }
 
       const days = [...byDate.values()].sort((a, b) => b.date.localeCompare(a.date))

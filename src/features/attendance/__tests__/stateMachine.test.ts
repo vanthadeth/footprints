@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { deriveAttendanceStatus, deriveVisitStatus, isValidJourneyCombination } from '../stateMachine'
+import { deriveAttendanceStatus, deriveVisitStatus, isValidJourneyCombination, summarizeAttendanceTimes } from '../stateMachine'
 import type { AttendanceRow, VisitRow } from '../types'
 
 function attendance(overrides: Partial<AttendanceRow> = {}): AttendanceRow {
@@ -109,5 +109,36 @@ describe('isValidJourneyCombination (spec §54)', () => {
     ['CLOCKED_OUT', 'AUTO_CHECKED_OUT'],
   ] as const)('%s + %s is invalid', (attendanceStatus, visitStatus) => {
     expect(isValidJourneyCombination(attendanceStatus, visitStatus)).toBe(false)
+  })
+})
+
+describe('summarizeAttendanceTimes', () => {
+  it('is all null with no sessions today', () => {
+    expect(summarizeAttendanceTimes([], null)).toEqual({ clockInTime: null, clockOutTime: null })
+  })
+
+  it('uses the first clock-in and the open session has no clock-out yet', () => {
+    const open = attendance({ id: 'a1', clock_in_at: '2026-01-01T01:00:00Z' })
+    expect(summarizeAttendanceTimes([open], open)).toEqual({ clockInTime: '2026-01-01T01:00:00Z', clockOutTime: null })
+  })
+
+  it('uses the most recent clock-out once nothing is open, across multiple sessions', () => {
+    const sessions = [
+      attendance({ id: 'a1', clock_in_at: '2026-01-01T01:00:00Z', clock_out_at: '2026-01-01T05:00:00Z' }),
+      attendance({ id: 'a2', clock_in_at: '2026-01-01T06:00:00Z', clock_out_at: '2026-01-01T09:00:00Z' }),
+    ]
+    expect(summarizeAttendanceTimes(sessions, null)).toEqual({
+      clockInTime: '2026-01-01T01:00:00Z',
+      clockOutTime: '2026-01-01T09:00:00Z',
+    })
+  })
+
+  it('reports no clock-out yet while a later session is still open, even if an earlier one closed', () => {
+    const closed = attendance({ id: 'a1', clock_in_at: '2026-01-01T01:00:00Z', clock_out_at: '2026-01-01T05:00:00Z' })
+    const open = attendance({ id: 'a2', clock_in_at: '2026-01-01T06:00:00Z' })
+    expect(summarizeAttendanceTimes([closed, open], open)).toEqual({
+      clockInTime: '2026-01-01T01:00:00Z',
+      clockOutTime: null,
+    })
   })
 })

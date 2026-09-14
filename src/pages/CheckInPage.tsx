@@ -9,6 +9,7 @@ import type { DayJourney } from '@/features/attendance/useJourneyHistory'
 import { VisitFlow } from '@/features/visits/VisitFlow'
 import { useCustomerNames } from '@/features/customers/useCustomerNames'
 import { useAppSettings } from '@/hooks/useAppSettings'
+import { summarizeAttendanceTimes } from '@/features/attendance/stateMachine'
 import { locationService } from '@/features/location/locationService'
 import { greeting, formatDuration, formatTime, isPastTimeOfDay, isWithinClockInWindow, shiftTimeOfDay } from '@/lib/datetime'
 import { useProfile } from '@/features/auth/useProfile'
@@ -74,7 +75,6 @@ export function CheckInPage() {
     )
   }
 
-  const isDayComplete = journey.attendance === 'CLOCKED_OUT'
   const isVisiting = journey.visit === 'VISITING'
 
   // The RPC is the real gate (app.within_clock_in_window()) -- this only
@@ -84,9 +84,13 @@ export function CheckInPage() {
   const clockInWindowClosed = !canClockIn && isPastTimeOfDay(settings.workEndTime)
   const clockInOpensAt = shiftTimeOfDay(settings.workStartTime, -settings.allowEarlyClockinMinutes)
 
-  const today: DayJourney = { date: '', attendance: journey.openAttendance, visits: journey.todaysVisits }
+  // Multiple clock-in/clock-out sessions are allowed in one day (a lunch
+  // break, a split shift) -- stats and the hero times below are summed
+  // across every session today, not just whichever one is currently open.
+  const today: DayJourney = { date: '', attendance: journey.todaysAttendance, visits: journey.todaysVisits }
   const stats = computeJourneyStats([today])
   const effectivenessRatio = stats.totalWorkingMs > 0 ? Math.round((stats.totalVisitingMs / stats.totalWorkingMs) * 100) : 0
+  const { clockInTime, clockOutTime } = summarizeAttendanceTimes(journey.todaysAttendance, journey.openAttendance)
 
   return (
     <div className="mx-auto max-w-lg pb-6 md:max-w-2xl">
@@ -121,7 +125,12 @@ export function CheckInPage() {
             {firstName ? `, ${firstName}` : ''}
           </p>
           <p className="mt-1.5 max-w-xs text-sm text-neutral-500">
-            {canClockIn && "Your day hasn't started yet. Clock in to begin tracking your visits."}
+            {canClockIn &&
+              journey.todaysAttendance.length === 0 &&
+              "Your day hasn't started yet. Clock in to begin tracking your visits."}
+            {canClockIn &&
+              journey.todaysAttendance.length > 0 &&
+              `You've clocked in ${journey.todaysAttendance.length} time${journey.todaysAttendance.length > 1 ? 's' : ''} today (${formatDuration(stats.totalWorkingMs)} so far). Clock in again to start a new session.`}
             {!canClockIn && !clockInWindowClosed && `Clock-in opens at ${clockInOpensAt}.`}
             {clockInWindowClosed && `Clock-in is closed for today -- working hours ended at ${shiftTimeOfDay(settings.workEndTime, 0)}.`}
           </p>
@@ -144,31 +153,23 @@ export function CheckInPage() {
             <div className="relative flex items-center justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-white/50">Clock In</p>
-                <p className="mt-1 text-xl font-semibold text-white">
-                  {journey.openAttendance ? formatTime(journey.openAttendance.clock_in_at) : '--:--'}
-                </p>
+                <p className="mt-1 text-xl font-semibold text-white">{clockInTime ? formatTime(clockInTime) : '--:--'}</p>
               </div>
               <div className="text-right">
                 <p className="text-xs font-semibold uppercase tracking-wide text-white/50">Clock Out</p>
-                <p className="mt-1 text-xl font-semibold text-white">
-                  {journey.openAttendance?.clock_out_at ? formatTime(journey.openAttendance.clock_out_at) : '--:--'}
-                </p>
+                <p className="mt-1 text-xl font-semibold text-white">{clockOutTime ? formatTime(clockOutTime) : '--:--'}</p>
               </div>
             </div>
 
-            {isDayComplete ? (
-              <div className="relative mt-5 rounded-xl bg-white/10 py-3.5 text-center">
-                <p className="text-xs font-medium uppercase tracking-wide text-white/50">Total Working Hours</p>
-                <p className="mt-0.5 text-lg font-semibold text-white">{formatDuration(stats.totalWorkingMs)}</p>
-              </div>
-            ) : (
-              <button
-                onClick={() => setPendingAction('clock-out')}
-                disabled={journey.busy}
-                className="relative mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-white/10 py-3.5 text-sm font-semibold text-white tap-target disabled:opacity-60"
-              >
-                <Camera className="h-4 w-4" /> CLOCK OUT
-              </button>
+            <button
+              onClick={() => setPendingAction('clock-out')}
+              disabled={journey.busy}
+              className="relative mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-white/10 py-3.5 text-sm font-semibold text-white tap-target disabled:opacity-60"
+            >
+              <Camera className="h-4 w-4" /> CLOCK OUT
+            </button>
+            {journey.todaysAttendance.length > 1 && (
+              <p className="relative mt-2 text-center text-xs text-white/40">{journey.todaysAttendance.length} sessions today</p>
             )}
           </div>
 
@@ -193,13 +194,12 @@ export function CheckInPage() {
           ) : (
             <button
               onClick={() => setFlowOpen(true)}
-              disabled={isDayComplete || journey.busy}
+              disabled={journey.busy}
               className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 py-4 text-base font-semibold text-white tap-target disabled:opacity-40"
             >
               <MapPin className="h-4.5 w-4.5" /> CHECK IN
             </button>
           )}
-          {isDayComplete && <p className="mt-2 text-center text-xs text-neutral-400">Your day is complete -- check in is no longer available.</p>}
 
           {!isVisiting && recentVisits.length > 0 && <RecentVisits visits={recentVisits} customerNames={customerNames} />}
         </div>

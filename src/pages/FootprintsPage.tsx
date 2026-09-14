@@ -94,7 +94,7 @@ export function FootprintsPage() {
       </div>
 
       <BottomSheet open={mapOpen} onClose={() => setMapOpen(false)} title="Journey Map">
-        <div className="p-4">{day && <JourneyMap visits={day.visits} customerNames={customerNames} height="60vh" />}</div>
+        <div className="p-4">{day && <JourneyMap visits={day.visits} attendance={day.attendance} customerNames={customerNames} height="60vh" />}</div>
       </BottomSheet>
     </div>
   )

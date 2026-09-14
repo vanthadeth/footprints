@@ -6,6 +6,7 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { AvatarPicker } from '@/features/auth/AvatarPicker'
 import { useJourneyContext } from '@/features/attendance/JourneyContext'
 import { computeJourneyStats } from '@/features/attendance/journeyStats'
+import { summarizeAttendanceTimes } from '@/features/attendance/stateMachine'
 import type { DayJourney } from '@/features/attendance/useJourneyHistory'
 import { useTheme } from '@/lib/ThemeContext'
 import { getInitialLanguage, setLanguage } from '@/lib/language'
@@ -19,9 +20,12 @@ export function ProfilePage() {
   const journey = useJourneyContext()
   const [signingOut, setSigningOut] = useState(false)
 
-  const today: DayJourney = { date: '', attendance: journey.openAttendance, visits: journey.todaysVisits }
+  // Multiple clock-in/clock-out sessions are allowed in one day -- summed
+  // across all of today's sessions, not just whichever one is open now.
+  const today: DayJourney = { date: '', attendance: journey.todaysAttendance, visits: journey.todaysVisits }
   const stats = computeJourneyStats([today])
   const activeRatio = stats.totalWorkingMs > 0 ? Math.round((stats.totalVisitingMs / stats.totalWorkingMs) * 100) : 0
+  const { clockInTime, clockOutTime } = summarizeAttendanceTimes(journey.todaysAttendance, journey.openAttendance)
 
   return (
     <div className="mx-auto max-w-lg pb-6 md:max-w-2xl">
@@ -33,8 +37,8 @@ export function ProfilePage() {
             <ProfileSection profile={profile} userId={session.user.id} onAvatarUploaded={refresh} />
 
             <TodaySummary
-              clockIn={journey.openAttendance ? formatTime(journey.openAttendance.clock_in_at) : '--:--'}
-              clockOut={journey.openAttendance?.clock_out_at ? formatTime(journey.openAttendance.clock_out_at) : '--:--'}
+              clockIn={clockInTime ? formatTime(clockInTime) : '--:--'}
+              clockOut={clockOutTime ? formatTime(clockOutTime) : '--:--'}
               totalWorking={formatDuration(stats.totalWorkingMs)}
               visits={stats.totalVisits}
               activeTime={formatDuration(stats.totalVisitingMs)}

@@ -1,15 +1,21 @@
-import { useState } from 'react'
-import { Check, ChevronDown, ChevronUp, Clock, Link2 } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
+import { Check, ChevronDown, ChevronUp, Clock, Coffee, Link2 } from 'lucide-react'
 import { GAP_FLAG_THRESHOLD_MINUTES } from '@/lib/config'
 import { formatDuration, formatTime } from '@/lib/datetime'
 import { formatDistance } from '@/lib/geo'
 import type { AttendanceRow, VisitRow } from './types'
 
 interface Props {
-  attendance: AttendanceRow | null
+  /** Every attendance session for the day, in any order -- multiple clock-in/clock-out cycles are allowed. */
+  attendance: AttendanceRow[]
   visits: VisitRow[]
   customerNames: Record<string, string>
 }
+
+type TimelineEvent =
+  | { kind: 'clock-in'; time: string; session: AttendanceRow }
+  | { kind: 'clock-out'; time: string; session: AttendanceRow }
+  | { kind: 'visit'; time: string; visit: VisitRow; index: number }
 
 /**
  * Attendance and visit events on one chronological rail, but always
@@ -20,44 +26,71 @@ interface Props {
  * on the same vertical rail (each is centered on its own <li> regardless
  * of that row's height) and each visit is wrapped in its own card so a day
  * with several visits still reads as distinct events instead of one dense
- * block. A transit/gap entry sits between every pair of consecutive
- * events -- clock-in to the first visit, visit to visit, and the last
- * visit to clock-out -- and is flagged once it runs long
- * (GAP_FLAG_THRESHOLD_MINUTES), same as an over-distance visit is flagged
- * in its expanded detail.
+ * block.
+ *
+ * A day can have more than one clock-in/clock-out pair -- multiple
+ * sessions (a lunch break, a split shift) are allowed. Events from every
+ * session merge into one flat, chronological list rather than one rail
+ * per session, with a gap entry between every pair of consecutive events.
+ * A gap that falls between a clock-out and the next clock-in is "off the
+ * clock" -- shown distinctly and never flagged, since time away between
+ * shifts is expected, unlike a long gap while actually clocked in
+ * (flagged once it runs long, GAP_FLAG_THRESHOLD_MINUTES, same as an
+ * over-distance visit is flagged in its expanded detail).
  */
 export function JourneyTimeline({ attendance, visits, customerNames }: Props) {
-  if (!attendance) return null
+  if (attendance.length === 0) return null
 
-  const sorted = [...visits].sort((a, b) => a.checked_in_at.localeCompare(b.checked_in_at))
-  const first = sorted[0]
-  const last = sorted[sorted.length - 1]
+  const events: TimelineEvent[] = []
+  for (const session of attendance) {
+    events.push({ kind: 'clock-in', time: session.clock_in_at, session })
+    if (session.clock_out_at) events.push({ kind: 'clock-out', time: session.clock_out_at, session })
+  }
+  const sortedVisits = [...visits].sort((a, b) => a.checked_in_at.localeCompare(b.checked_in_at))
+  sortedVisits.forEach((visit, index) => events.push({ kind: 'visit', time: visit.checked_in_at, visit, index }))
+  events.sort((a, b) => a.time.localeCompare(b.time))
 
-  const preGapMs = first ? gapBetween(attendance.clock_in_at, first.checked_in_at) : null
-  const postGapMs = last?.checked_out_at && attendance.clock_out_at ? gapBetween(last.checked_out_at, attendance.clock_out_at) : null
+  const rows: ReactNode[] = []
+  let cursor: string | null = null
+  let cursorWasClockOut = false
 
-  return (
-    <ol className="relative ml-3 space-y-3 border-l-2 border-neutral-100 pl-8 dark:border-neutral-700">
-      <ClockNode time={attendance.clock_in_at} label="Clock In" toneClass="bg-status-working" />
-
-      {preGapMs != null && <GapEntry ms={preGapMs} />}
-
-      {sorted.map((visit, i) => {
-        const prev = sorted[i - 1]
-        const gapMs = prev ? gapBetween(prev.checked_out_at, visit.checked_in_at) : null
-        return (
-          <div key={visit.id} className="contents">
-            {gapMs != null && <GapEntry ms={gapMs} />}
-            <VisitEntry visit={visit} index={i} customerName={visit.customer_id ? customerNames[visit.customer_id] : undefined} />
-          </div>
+  for (const event of events) {
+    if (cursor) {
+      const gapMs = gapBetween(cursor, event.time)
+      if (gapMs != null) {
+        rows.push(
+          <GapEntry
+            key={`gap-before-${event.kind}-${event.time}`}
+            ms={gapMs}
+            offClock={cursorWasClockOut && event.kind === 'clock-in'}
+          />
         )
-      })}
+      }
+    }
 
-      {postGapMs != null && <GapEntry ms={postGapMs} />}
+    if (event.kind === 'clock-in') {
+      rows.push(<ClockNode key={`in-${event.session.id}`} time={event.time} label="Clock In" toneClass="bg-status-working" />)
+      cursor = event.time
+      cursorWasClockOut = false
+    } else if (event.kind === 'clock-out') {
+      rows.push(<ClockNode key={`out-${event.session.id}`} time={event.time} label="Clock Out" toneClass="bg-earth-500" />)
+      cursor = event.time
+      cursorWasClockOut = true
+    } else {
+      rows.push(
+        <VisitEntry
+          key={event.visit.id}
+          visit={event.visit}
+          index={event.index}
+          customerName={event.visit.customer_id ? customerNames[event.visit.customer_id] : undefined}
+        />
+      )
+      cursor = event.visit.checked_out_at
+      cursorWasClockOut = false
+    }
+  }
 
-      {attendance.clock_out_at && <ClockNode time={attendance.clock_out_at} label="Clock Out" toneClass="bg-earth-500" />}
-    </ol>
-  )
+  return <ol className="relative ml-3 space-y-3 border-l-2 border-neutral-100 pl-8 dark:border-neutral-700">{rows}</ol>
 }
 
 /** Gap between two ISO timestamps in ms, or null if either is missing or the gap isn't positive (nothing to show). */
@@ -79,8 +112,8 @@ function ClockNode({ time, label, toneClass }: { time: string; label: string; to
   )
 }
 
-function GapEntry({ ms }: { ms: number }) {
-  const flagged = ms / 60_000 > GAP_FLAG_THRESHOLD_MINUTES
+function GapEntry({ ms, offClock = false }: { ms: number; offClock?: boolean }) {
+  const flagged = !offClock && ms / 60_000 > GAP_FLAG_THRESHOLD_MINUTES
   return (
     <li className="relative flex items-center justify-between gap-3 py-0.5">
       <span
@@ -88,9 +121,15 @@ function GapEntry({ ms }: { ms: number }) {
           flagged ? 'border-status-warn' : 'border-neutral-200 dark:border-neutral-700'
         }`}
       >
-        <Link2 className={`h-3 w-3 ${flagged ? 'text-status-warn' : 'text-neutral-400'}`} />
+        {offClock ? (
+          <Coffee className="h-3 w-3 text-neutral-400" />
+        ) : (
+          <Link2 className={`h-3 w-3 ${flagged ? 'text-status-warn' : 'text-neutral-400'}`} />
+        )}
       </span>
-      <p className={`text-xs ${flagged ? 'font-medium text-status-warn' : 'text-neutral-400'}`}>Transit / Gap / Rest</p>
+      <p className={`text-xs ${flagged ? 'font-medium text-status-warn' : 'text-neutral-400'}`}>
+        {offClock ? 'Off the Clock' : 'Transit / Gap / Rest'}
+      </p>
       <span className="flex shrink-0 items-center gap-1.5">
         {flagged && <span className="rounded-full bg-status-warn/10 px-1.5 py-0.5 text-[10px] font-medium text-status-warn">Flagged</span>}
         <span className={`text-xs font-medium ${flagged ? 'text-status-warn' : 'text-neutral-400'}`}>{formatDuration(ms)}</span>

@@ -12,6 +12,8 @@ import type { AttendanceRow, JourneyState, VisitRow } from './types'
 
 interface UseJourneyResult extends JourneyState {
   todaysVisits: VisitRow[]
+  /** Every attendance session that started today, oldest first -- multiple clock-in/clock-out cycles per day are allowed. */
+  todaysAttendance: AttendanceRow[]
   loading: boolean
   /** True while any write (clock in/out, check in/out) is in flight -- used to disable buttons and block duplicate taps. */
   busy: boolean
@@ -40,6 +42,7 @@ export function useJourney(): UseJourneyResult {
   const [openAttendance, setOpenAttendance] = useState<AttendanceRow | null>(null)
   const [openVisit, setOpenVisit] = useState<VisitRow | null>(null)
   const [todaysVisits, setTodaysVisits] = useState<VisitRow[]>([])
+  const [todaysAttendance, setTodaysAttendance] = useState<AttendanceRow[]>([])
   const [lastAutoCheckout, setLastAutoCheckout] = useState<JourneyState['lastAutoCheckout']>(null)
   const [lastAutoClockOut, setLastAutoClockOut] = useState<JourneyState['lastAutoClockOut']>(null)
   const [loading, setLoading] = useState(true)
@@ -54,20 +57,23 @@ export function useJourney(): UseJourneyResult {
       setOpenAttendance(null)
       setOpenVisit(null)
       setTodaysVisits([])
+      setTodaysAttendance([])
       setLoading(false)
       return
     }
     setLoading(true)
     setError(null)
     try {
-      const [attendance, visit, visits] = await Promise.all([
+      const [attendance, visit, visits, attendanceToday] = await Promise.all([
         attendanceService.getOpenAttendance(userId),
         attendanceService.getOpenVisit(userId),
         attendanceService.getTodayVisits(userId, startOfTodayIso()),
+        attendanceService.getTodayAttendance(userId, startOfTodayIso()),
       ])
       setOpenAttendance(attendance)
       setOpenVisit(visit)
       setTodaysVisits(visits)
+      setTodaysAttendance(attendanceToday)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load your journey.')
     } finally {
@@ -139,7 +145,11 @@ export function useJourney(): UseJourneyResult {
         })
         if (cancelled || !result.autoClockedOut || !result.attendance) return
         haptic('warning')
-        setOpenAttendance(result.attendance)
+        // The session just closed itself -- there's nothing open anymore.
+        // (Working hours are over, so within_clock_in_window will keep a
+        // new clock-in from starting right back up anyway.)
+        setOpenAttendance(null)
+        setTodaysAttendance((prev) => prev.map((a) => (a.id === result.attendance!.id ? result.attendance! : a)))
         setLastAutoClockOut(result.attendance)
         if (result.autoCheckedOutVisit) {
           setOpenVisit(null)
@@ -204,6 +214,7 @@ export function useJourney(): UseJourneyResult {
     lastAutoCheckout,
     lastAutoClockOut,
     todaysVisits,
+    todaysAttendance,
     loading,
     busy,
     error,
@@ -218,6 +229,7 @@ export function useJourney(): UseJourneyResult {
           selfieBlob
         )
         setOpenAttendance(attendance)
+        setTodaysAttendance((prev) => [...prev, attendance])
         haptic('success')
       }),
 
@@ -230,7 +242,12 @@ export function useJourney(): UseJourneyResult {
           { latitude: reading.latitude, longitude: reading.longitude, accuracy: reading.accuracy },
           selfieBlob
         )
-        setOpenAttendance(attendance)
+        // Only one attendance session can ever be open at a time, but the
+        // day itself isn't "done" -- clocking in again (a lunch break, a
+        // split shift) is allowed, so there's nothing left open now rather
+        // than treating this closed record as still "the" attendance.
+        setOpenAttendance(null)
+        setTodaysAttendance((prev) => prev.map((a) => (a.id === attendance.id ? attendance : a)))
         if (autoCheckedOutVisit) {
           setOpenVisit(null)
           setLastAutoCheckout({ reason: 'clock_out', visit: autoCheckedOutVisit })

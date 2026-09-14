@@ -28,11 +28,15 @@ export function computeJourneyStats(days: DayJourney[], now: number = Date.now()
   let workingDays = 0
 
   for (const day of days) {
-    if (day.attendance) {
+    if (day.attendance.length > 0) {
       workingDays += 1
-      const start = new Date(day.attendance.clock_in_at).getTime()
-      const end = day.attendance.clock_out_at ? new Date(day.attendance.clock_out_at).getTime() : now
-      totalWorkingMs += Math.max(0, end - start)
+      // A day can have more than one clock-in/clock-out session -- sum
+      // working time across all of them, not just the first.
+      for (const session of day.attendance) {
+        const start = new Date(session.clock_in_at).getTime()
+        const end = session.clock_out_at ? new Date(session.clock_out_at).getTime() : now
+        totalWorkingMs += Math.max(0, end - start)
+      }
     }
 
     const sorted = [...day.visits].sort((a, b) => a.checked_in_at.localeCompare(b.checked_in_at))

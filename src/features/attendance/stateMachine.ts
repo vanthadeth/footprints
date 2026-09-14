@@ -28,3 +28,23 @@ const VALID_COMBINATIONS: ReadonlySet<string> = new Set([
 export function isValidJourneyCombination(attendance: AttendanceStatus, visit: VisitStatus): boolean {
   return VALID_COMBINATIONS.has(`${attendance}:${visit}`)
 }
+
+/**
+ * A day can now have more than one clock-in/clock-out pair (spec update --
+ * multiple sessions per day are allowed, e.g. a lunch break). For a compact
+ * "Clock In / Clock Out" display that still makes sense across sessions:
+ * the first clock-in of the day, and -- only once nothing is currently
+ * open -- the most recent clock-out. While still clocked in, clockOutTime
+ * is null rather than some earlier session's stale value.
+ */
+export function summarizeAttendanceTimes(
+  todaysAttendance: AttendanceRow[],
+  openAttendance: AttendanceRow | null
+): { clockInTime: string | null; clockOutTime: string | null } {
+  if (todaysAttendance.length === 0) return { clockInTime: null, clockOutTime: null }
+  const sorted = [...todaysAttendance].sort((a, b) => a.clock_in_at.localeCompare(b.clock_in_at))
+  return {
+    clockInTime: sorted[0].clock_in_at,
+    clockOutTime: openAttendance ? null : (sorted[sorted.length - 1].clock_out_at ?? null),
+  }
+}
