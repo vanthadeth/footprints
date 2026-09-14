@@ -36,13 +36,13 @@ export function LoginPage() {
         <div className="mb-8 flex flex-col items-center text-center">
           <LogoIcon alt="Footprints" className="mb-3 h-12 w-12" />
           <h1 className="text-xl font-semibold text-neutral-900">Welcome back</h1>
-          <p className="mt-1 text-sm text-neutral-500">Sign in to continue your journey</p>
+          <p className="mt-1 text-sm text-neutral-500">Ready for today's journey?</p>
         </div>
 
         <form onSubmit={onSubmit} className="space-y-4" noValidate>
           <div>
             <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-neutral-700">
-              Email
+              Email / Employee ID
             </label>
             <input
               id="email"
@@ -92,23 +92,25 @@ export function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 py-4 text-base font-semibold text-white shadow-card transition-colors active:bg-brand-600 disabled:opacity-60"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 py-4 text-base font-semibold uppercase tracking-wide text-white shadow-card transition-colors active:bg-brand-600 disabled:opacity-60"
           >
             {loading ? 'Signing in…' : 'Log In'}
           </button>
         </form>
 
+        {/* Biometric login (Face/Touch ID via WebAuthn) after a first successful
+            password sign-in is a natural next step here, but there's no
+            WebAuthn groundwork in this app yet -- a separate project, not
+            wired up in this redesign pass. */}
+
         <div className="mt-6 flex flex-col items-center gap-3 text-sm">
-          <button
-            onClick={() => navigate('/forgot-password')}
-            className="font-medium text-brand-600 tap-target"
-          >
+          <button onClick={() => navigate('/forgot-password')} className="font-medium text-brand-600 tap-target">
             Forgot Password?
           </button>
           <p className="text-neutral-500">
-            New here?{' '}
+            New to Footprints?{' '}
             <a href="mailto:admin@hig.example" className="font-medium text-brand-600">
-              Contact Admin for Registration
+              Contact HIG Admin
             </a>
           </p>
         </div>
