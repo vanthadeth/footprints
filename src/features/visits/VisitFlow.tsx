@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Building2, ChevronLeft, Loader2, MapPin, RefreshCw, ShieldCheck, X } from 'lucide-react'
+import { Ban, Building2, ChevronLeft, Loader2, MapPin, RefreshCw, ShieldCheck, X } from 'lucide-react'
+import { BottomSheet } from '@/components/BottomSheet'
 import { useJourneyContext } from '@/features/attendance/JourneyContext'
 import { useCustomerNames } from '@/features/customers/useCustomerNames'
 import { locationService } from '@/features/location/locationService'
@@ -26,10 +27,13 @@ const NEXT_VISIT_PRESETS: { label: string; days: number }[] = [
  * bar and tab bar (z-30) but under the offline banner (z-40) so connectivity
  * warnings still surface while the app is locked into a visit.
  *
- * There's deliberately no way out of the `record` step other than
- * confirming check-out (or the server auto-checking the visit out from
- * underneath it) -- that's what "lock the app" means here. The `picker`
- * step, before any visit exists, can still be dismissed with no side effect.
+ * The `record` step only ever leaves through a deliberate action -- confirm
+ * check-out (itself behind an "are you sure" step, spec), cancel check-in
+ * (for a wrong/accidental one -- app.cancel_visit, no checkout record at
+ * all), or the server auto-checking the visit out from underneath it --
+ * that's what "lock the app" means here. The `picker` step, before any
+ * visit exists, can still be dismissed with no side effect. All visit
+ * record fields are optional; nothing here blocks checking out.
  */
 export function VisitFlow({ open, onClose }: { open: boolean; onClose: () => void }) {
   const journey = useJourneyContext()
@@ -48,6 +52,7 @@ export function VisitFlow({ open, onClose }: { open: boolean; onClose: () => voi
   const [nextAppointment, setNextAppointment] = useState<string | null>(null)
   const [customDate, setCustomDate] = useState('')
   const [remarks, setRemarks] = useState('')
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   const reselectingRef = useRef(false)
   const customerNames = useCustomerNames([journey.openVisit?.customer_id ?? null])
@@ -84,6 +89,7 @@ export function VisitFlow({ open, onClose }: { open: boolean; onClose: () => voi
     setNextAppointment(null)
     setCustomDate('')
     setRemarks('')
+    setConfirmOpen(false)
     if (!journey.openVisit) void refreshLocation()
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when the flow is (re)opened, not on every journey/state change
   }, [open])
@@ -100,9 +106,10 @@ export function VisitFlow({ open, onClose }: { open: boolean; onClose: () => voi
     if (open && step === 'record' && !journey.openVisit && !reselectingRef.current) onClose()
   }, [open, step, journey.openVisit, onClose])
 
-  // A reselect's endVisit() call just settled (succeeded or failed) -- on
-  // success, go back to the picker for a fresh location + customer list;
-  // on failure the visit is still open, so stay put (the error banner shows why).
+  // A reselect's cancelVisit() call just settled (succeeded or failed) --
+  // on success, go back to the picker for a fresh location + customer
+  // list; on failure the visit is still open, so stay put (the error
+  // banner shows why).
   useEffect(() => {
     if (journey.busy) return
     if (reselectingRef.current) {
@@ -118,14 +125,18 @@ export function VisitFlow({ open, onClose }: { open: boolean; onClose: () => voi
 
   const customerId = journey.openVisit?.customer_id ?? null
   const customerName = customerId ? customerNames[customerId] : null
-  const detailsComplete = Boolean(visitTypeId && visitStatusId && orderStatusId && paymentStatusId)
 
   function handleReselect() {
     reselectingRef.current = true
-    void journey.endVisit()
+    void journey.cancelVisit()
+  }
+
+  function handleCancelCheckIn() {
+    void journey.cancelVisit()
   }
 
   function handleConfirm() {
+    setConfirmOpen(false)
     haptic('light')
     const details: VisitOutcomeDetails = {
       visitTypeId,
@@ -204,7 +215,6 @@ export function VisitFlow({ open, onClose }: { open: boolean; onClose: () => voi
             customDate={customDate}
             remarks={remarks}
             busy={journey.busy}
-            detailsComplete={detailsComplete}
             onVisitType={setVisitTypeId}
             onVisitStatus={setVisitStatusId}
             onOrderStatus={setOrderStatusId}
@@ -213,10 +223,33 @@ export function VisitFlow({ open, onClose }: { open: boolean; onClose: () => voi
             onCustomDate={pickCustomDate}
             onRemarks={setRemarks}
             onReselect={handleReselect}
-            onConfirm={handleConfirm}
+            onCancelCheckIn={handleCancelCheckIn}
+            onRequestConfirm={() => setConfirmOpen(true)}
           />
         )}
       </div>
+
+      <BottomSheet open={confirmOpen} onClose={() => setConfirmOpen(false)} title="Confirm Check Out">
+        <div className="p-4">
+          <p className="text-sm text-neutral-600">
+            You're about to check out{customerName ? ` of ${customerName}` : ''}. This can't be undone -- make sure you're ready.
+          </p>
+          <button
+            onClick={handleConfirm}
+            disabled={journey.busy}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 py-3.5 text-sm font-semibold text-white tap-target disabled:opacity-60"
+          >
+            {journey.busy && <Loader2 className="h-4 w-4 animate-spin" />}
+            {journey.busy ? 'Checking out…' : 'Yes, Check Out'}
+          </button>
+          <button
+            onClick={() => setConfirmOpen(false)}
+            className="mt-2 w-full rounded-xl py-3.5 text-sm font-semibold text-neutral-500 tap-target"
+          >
+            Cancel
+          </button>
+        </div>
+      </BottomSheet>
     </div>,
     document.body
   )
@@ -315,7 +348,6 @@ function RecordStep({
   customDate,
   remarks,
   busy,
-  detailsComplete,
   onVisitType,
   onVisitStatus,
   onOrderStatus,
@@ -324,7 +356,8 @@ function RecordStep({
   onCustomDate,
   onRemarks,
   onReselect,
-  onConfirm,
+  onCancelCheckIn,
+  onRequestConfirm,
 }: {
   customerName: string | null | undefined
   checkedInAt: string | null
@@ -337,7 +370,6 @@ function RecordStep({
   customDate: string
   remarks: string
   busy: boolean
-  detailsComplete: boolean
   onVisitType: (id: string) => void
   onVisitStatus: (id: string) => void
   onOrderStatus: (id: string) => void
@@ -346,7 +378,8 @@ function RecordStep({
   onCustomDate: (value: string) => void
   onRemarks: (value: string) => void
   onReselect: () => void
-  onConfirm: () => void
+  onCancelCheckIn: () => void
+  onRequestConfirm: () => void
 }) {
   return (
     <div className="space-y-4 p-4">
@@ -375,10 +408,10 @@ function RecordStep({
         </p>
       </div>
 
-      <ChipGroup label="Type of Visit" options={byKind.visit_type} value={visitTypeId} onChange={onVisitType} />
-      <ChipGroup label="Visit Status" options={byKind.visit_status} value={visitStatusId} onChange={onVisitStatus} />
-      <ChipGroup label="Order Status" options={byKind.order_status} value={orderStatusId} onChange={onOrderStatus} />
-      <ChipGroup label="Payment Status" options={byKind.payment_status} value={paymentStatusId} onChange={onPaymentStatus} />
+      <ChipGroup label="Type of Visit (optional)" options={byKind.visit_type} value={visitTypeId} onChange={onVisitType} />
+      <ChipGroup label="Visit Status (optional)" options={byKind.visit_status} value={visitStatusId} onChange={onVisitStatus} />
+      <ChipGroup label="Order Status (optional)" options={byKind.order_status} value={orderStatusId} onChange={onOrderStatus} />
+      <ChipGroup label="Payment Status (optional)" options={byKind.payment_status} value={paymentStatusId} onChange={onPaymentStatus} />
 
       <div>
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Next Visit (optional)</p>
@@ -415,14 +448,21 @@ function RecordStep({
       </div>
 
       <button
-        onClick={onConfirm}
-        disabled={busy || !detailsComplete}
+        onClick={onRequestConfirm}
+        disabled={busy}
         className="flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 py-3.5 text-sm font-semibold text-white tap-target disabled:opacity-40"
       >
         {busy && <Loader2 className="h-4 w-4 animate-spin" />}
         {busy ? 'Checking out…' : 'CHECK OUT (CONFIRM)'}
       </button>
-      {!detailsComplete && <p className="text-center text-xs text-neutral-400">Fill in Type, Status, Order and Payment to check out.</p>}
+
+      <button
+        onClick={onCancelCheckIn}
+        disabled={busy}
+        className="flex w-full items-center justify-center gap-2 rounded-xl border border-status-danger/30 py-3.5 text-sm font-semibold text-status-danger tap-target disabled:opacity-40"
+      >
+        <Ban className="h-4 w-4" /> Cancel Check In
+      </button>
     </div>
   )
 }

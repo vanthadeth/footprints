@@ -20,6 +20,7 @@ interface UseJourneyResult extends JourneyState {
   clockOut: (selfieBlob: Blob) => Promise<void>
   startVisit: (customerId: string | null) => Promise<void>
   endVisit: (details?: VisitOutcomeDetails) => Promise<void>
+  cancelVisit: () => Promise<void>
   clearAutoCheckoutNotice: () => void
   clearAutoClockOutNotice: () => void
   refresh: () => void
@@ -256,6 +257,18 @@ export function useJourney(): UseJourneyResult {
         setOpenVisit(null)
         setTodaysVisits((prev) => prev.map((v) => (v.id === visit.id ? visit : v)))
         haptic('success')
+      }),
+
+    cancelVisit: () =>
+      withBusyGuard(async () => {
+        if (!openVisit) return
+        const visit = await visitsService.cancelVisit(openVisit.id)
+        setOpenVisit(null)
+        // A cancelled visit never happened -- drop it from today's list rather
+        // than leaving a "phantom" entry in the timeline/stats, unlike a real
+        // checkout which always stays.
+        setTodaysVisits((prev) => prev.filter((v) => v.id !== visit.id))
+        haptic('light')
       }),
 
     clearAutoCheckoutNotice: () => setLastAutoCheckout(null),

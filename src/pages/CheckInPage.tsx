@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { AlertTriangle, Camera, Footprints as FootprintsIcon, MapPin, X } from 'lucide-react'
+import { AlertTriangle, Building2, Camera, Footprints as FootprintsIcon, MapPin, X } from 'lucide-react'
 import { useJourneyContext } from '@/features/attendance/JourneyContext'
+import type { VisitRow } from '@/features/attendance/types'
 import { SelfieCaptureSheet } from '@/features/attendance/SelfieCaptureSheet'
 import { computeJourneyStats } from '@/features/attendance/journeyStats'
 import type { DayJourney } from '@/features/attendance/useJourneyHistory'
@@ -20,7 +21,14 @@ export function CheckInPage() {
   const [flowOpen, setFlowOpen] = useState(false)
 
   const autoCheckoutCustomerId = journey.lastAutoCheckout?.visit.customer_id ?? null
-  const customerNames = useCustomerNames([autoCheckoutCustomerId])
+  // Most recent completed visits today, newest first -- shown under the
+  // Check In button so you can see what you've already covered before
+  // starting another one.
+  const recentVisits = [...journey.todaysVisits]
+    .filter((v) => v.checked_out_at && !v.cancelled_at)
+    .sort((a, b) => b.checked_out_at!.localeCompare(a.checked_out_at!))
+    .slice(0, 5)
+  const customerNames = useCustomerNames([autoCheckoutCustomerId, ...recentVisits.map((v) => v.customer_id)])
 
   const firstName = profile?.full_name?.split(' ')[0]
 
@@ -153,6 +161,8 @@ export function CheckInPage() {
             <MapPin className="h-4.5 w-4.5" /> {isVisiting ? 'CONTINUE VISIT' : 'CHECK IN'}
           </button>
           {isDayComplete && <p className="mt-2 text-center text-xs text-neutral-400">Your day is complete -- check in is no longer available.</p>}
+
+          {!isVisiting && recentVisits.length > 0 && <RecentVisits visits={recentVisits} customerNames={customerNames} />}
         </div>
       )}
 
@@ -173,6 +183,36 @@ function Stat({ label, value }: { label: string; value: string }) {
     <div className="px-1">
       <p className="text-sm font-semibold text-neutral-900">{value}</p>
       <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-neutral-400">{label}</p>
+    </div>
+  )
+}
+
+function RecentVisits({ visits, customerNames }: { visits: VisitRow[]; customerNames: Record<string, string> }) {
+  return (
+    <div className="mt-4">
+      <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-neutral-400">Recent Visits</p>
+      <div className="space-y-2">
+        {visits.map((v) => {
+          const duration = formatDuration(new Date(v.checked_out_at!).getTime() - new Date(v.checked_in_at).getTime())
+          const flagged = (v.flags?.length ?? 0) > 0 || v.out_of_range
+          return (
+            <div key={v.id} className="flex items-center gap-3 rounded-xl2 bg-white p-3.5 shadow-card">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-400">
+                <Building2 className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-neutral-900">
+                  {v.customer_id ? customerNames[v.customer_id] ?? 'Loading…' : 'Unassigned Visit'}
+                </p>
+                <p className="text-xs text-neutral-400">{duration}</p>
+              </div>
+              {flagged && (
+                <span className="shrink-0 rounded-full bg-status-warn/10 px-2 py-0.5 text-[10px] font-medium text-status-warn">Flagged</span>
+              )}
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }

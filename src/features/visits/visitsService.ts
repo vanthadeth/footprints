@@ -89,6 +89,16 @@ export const visitsService = {
     return data
   },
 
+  /** Cancels a still-open visit outright (a wrong/accidental check-in) -- no checkout record, no outcome fields, just gone from the active journey. */
+  async cancelVisit(visitId: string, reason?: string): Promise<VisitRow> {
+    const { data, error } = await supabase.rpc('cancel_visit', {
+      p_visit: visitId,
+      p_reason: reason ?? undefined,
+    })
+    if (error) throw error
+    return data
+  },
+
   async recordLocationPing(
     visitId: string,
     latitude: number,
