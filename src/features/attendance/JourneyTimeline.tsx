@@ -1,10 +1,9 @@
-import { useState, type ReactNode } from 'react'
+import { type ReactNode, useState } from 'react'
 import {
   AlertTriangle,
   Calendar,
   Check,
-  ChevronDown,
-  ChevronUp,
+  ChevronRight,
   Clock,
   Coffee,
   Coins,
@@ -22,6 +21,7 @@ import {
   Wallet,
   type LucideIcon,
 } from 'lucide-react'
+import { BottomSheet } from '@/components/BottomSheet'
 import { GAP_FLAG_THRESHOLD_MINUTES } from '@/lib/config'
 import { formatDate, formatDuration, formatTime } from '@/lib/datetime'
 import { formatDistance } from '@/lib/geo'
@@ -255,95 +255,92 @@ function VisitEntry({
       <span className="absolute -left-[2.875rem] top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-neutral-900 text-[11px] font-bold text-white dark:bg-neutral-700">
         {visit.visit_number ?? index + 1}
       </span>
-      <div className="overflow-hidden rounded-xl2 border border-neutral-200 bg-white shadow-card dark:border-neutral-700 dark:bg-neutral-900">
-        <button onClick={() => setOpen((v) => !v)} className="flex w-full items-start justify-between gap-3 p-4 text-left tap-target">
-          <div className="min-w-0 flex-1">
-            <p className="flex flex-wrap items-center gap-1.5 font-semibold text-neutral-900 dark:text-neutral-100">
-              {label}
-              {closed && !visit.auto_closed && (
-                <span className="inline-flex items-center gap-0.5 rounded-full bg-status-working/10 px-1.5 py-0.5 text-[10px] font-medium text-status-working">
-                  <Check className="h-2.5 w-2.5" /> Done
-                </span>
-              )}
-              {visit.auto_closed && (
-                <span className="rounded-full bg-status-warn/10 px-1.5 py-0.5 text-[10px] font-medium text-status-warn">AUTO</span>
-              )}
-            </p>
-            <p className="mt-1 font-mono text-xs text-neutral-400">{timeRange}</p>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <div className="text-right">
-              <p className={`text-sm font-bold ${visit.out_of_range ? 'text-status-warn' : 'text-earth-500'}`}>{duration}</p>
-              <p className="text-[10px] font-medium uppercase tracking-wide text-neutral-400">Duration</p>
-            </div>
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
-              {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </span>
-          </div>
-        </button>
-
-        {open && (
-          <div className="space-y-3 border-t border-neutral-100 p-4 dark:border-neutral-800">
-            <div className="rounded-xl2 border border-neutral-200 p-3 dark:border-neutral-700">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center gap-2.5">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-status-working/10 text-status-working">
-                    <LogIn className="h-4 w-4" />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-medium uppercase tracking-wide text-neutral-400">Check In</p>
-                    <p className="font-mono text-sm font-bold text-neutral-900 dark:text-neutral-100">{formatTime(visit.checked_in_at)}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-status-visiting/10 text-status-visiting">
-                    <LogOut className="h-4 w-4" />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-medium uppercase tracking-wide text-neutral-400">Check Out</p>
-                    <p className="font-mono text-sm font-bold text-neutral-900 dark:text-neutral-100">
-                      {visit.checked_out_at ? formatTime(visit.checked_out_at) : '—'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-xl2 border border-neutral-200 p-3 dark:border-neutral-700">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
-                  <Timer className="h-3.5 w-3.5 text-earth-500" /> Visit Duration:{' '}
-                  <span className="font-semibold text-neutral-800 dark:text-neutral-200">{duration}</span>
-                </p>
-                <p className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
-                  <MapPin className={`h-3.5 w-3.5 ${visit.out_of_range ? 'text-status-warn' : 'text-status-working'}`} /> Distance:{' '}
-                  <span className={`font-semibold ${visit.out_of_range ? 'text-status-warn' : 'text-neutral-800 dark:text-neutral-200'}`}>
-                    {formatDistance(visit.distance_m)}
-                    {visit.out_of_range && ' · Flagged'}
-                  </span>
-                </p>
-              </div>
-            </div>
-
-            {hasRecord && (
-              <div className="space-y-2.5 rounded-xl2 border border-neutral-200 p-3 dark:border-neutral-700">
-                {visitStatus && <RecordRow icon={visitStatusIcon(visitStatus.label)} label="Visit Status" value={visitStatus.label} />}
-                {orderStatus && <RecordRow icon={orderStatusIcon(orderStatus.label)} label="Order Status" value={orderStatus.label} />}
-                {paymentStatus && (
-                  <RecordRow icon={paymentStatusIcon(paymentStatus.label)} label="Payment Status" value={paymentStatus.label} />
-                )}
-                {visit.next_appointment && (
-                  <RecordRow
-                    icon={<Calendar className="h-4 w-4" />}
-                    label="Next Visit"
-                    value={formatDate(visit.next_appointment)}
-                  />
-                )}
-              </div>
+      <button
+        onClick={() => setOpen(true)}
+        className="flex w-full items-start justify-between gap-3 rounded-xl2 border border-neutral-200 bg-white p-4 text-left shadow-card tap-target dark:border-neutral-700 dark:bg-neutral-900"
+      >
+        <div className="min-w-0 flex-1">
+          <p className="flex flex-wrap items-center gap-1.5 font-semibold text-neutral-900 dark:text-neutral-100">
+            {label}
+            {closed && !visit.auto_closed && (
+              <span className="inline-flex items-center gap-0.5 rounded-full bg-status-working/10 px-1.5 py-0.5 text-[10px] font-medium text-status-working">
+                <Check className="h-2.5 w-2.5" /> Done
+              </span>
             )}
+            {visit.auto_closed && (
+              <span className="rounded-full bg-status-warn/10 px-1.5 py-0.5 text-[10px] font-medium text-status-warn">AUTO</span>
+            )}
+          </p>
+          <p className="mt-1 font-mono text-xs text-neutral-400">{timeRange}</p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <div className="text-right">
+            <p className={`text-sm font-bold ${visit.out_of_range ? 'text-status-warn' : 'text-earth-500'}`}>{duration}</p>
+            <p className="text-[10px] font-medium uppercase tracking-wide text-neutral-400">Duration</p>
           </div>
-        )}
-      </div>
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
+            <ChevronRight className="h-4 w-4" />
+          </span>
+        </div>
+      </button>
+
+      <BottomSheet open={open} onClose={() => setOpen(false)} title={label}>
+        <div className="space-y-3 p-4">
+          <div className="rounded-xl2 border border-neutral-200 p-3 dark:border-neutral-700">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-status-working/10 text-status-working">
+                  <LogIn className="h-4 w-4" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-neutral-400">Check In</p>
+                  <p className="font-mono text-sm font-bold text-neutral-900 dark:text-neutral-100">{formatTime(visit.checked_in_at)}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-status-visiting/10 text-status-visiting">
+                  <LogOut className="h-4 w-4" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-neutral-400">Check Out</p>
+                  <p className="font-mono text-sm font-bold text-neutral-900 dark:text-neutral-100">
+                    {visit.checked_out_at ? formatTime(visit.checked_out_at) : '—'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl2 border border-neutral-200 p-3 dark:border-neutral-700">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
+                <Timer className="h-3.5 w-3.5 text-earth-500" /> Visit Duration:{' '}
+                <span className="font-semibold text-neutral-800 dark:text-neutral-200">{duration}</span>
+              </p>
+              <p className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
+                <MapPin className={`h-3.5 w-3.5 ${visit.out_of_range ? 'text-status-warn' : 'text-status-working'}`} /> Distance:{' '}
+                <span className={`font-semibold ${visit.out_of_range ? 'text-status-warn' : 'text-neutral-800 dark:text-neutral-200'}`}>
+                  {formatDistance(visit.distance_m)}
+                  {visit.out_of_range && ' · Flagged'}
+                </span>
+              </p>
+            </div>
+          </div>
+
+          {hasRecord && (
+            <div className="space-y-2.5 rounded-xl2 border border-neutral-200 p-3 dark:border-neutral-700">
+              {visitStatus && <RecordRow icon={visitStatusIcon(visitStatus.label)} label="Visit Status" value={visitStatus.label} />}
+              {orderStatus && <RecordRow icon={orderStatusIcon(orderStatus.label)} label="Order Status" value={orderStatus.label} />}
+              {paymentStatus && (
+                <RecordRow icon={paymentStatusIcon(paymentStatus.label)} label="Payment Status" value={paymentStatus.label} />
+              )}
+              {visit.next_appointment && (
+                <RecordRow icon={<Calendar className="h-4 w-4" />} label="Next Visit" value={formatDate(visit.next_appointment)} />
+              )}
+            </div>
+          )}
+        </div>
+      </BottomSheet>
     </li>
   )
 }
