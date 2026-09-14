@@ -163,13 +163,20 @@ export function CheckInPage() {
 
             <button
               onClick={() => setPendingAction('clock-out')}
-              disabled={journey.busy}
+              disabled={journey.busy || isVisiting}
               className="relative mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-white/10 py-3.5 text-sm font-semibold text-white tap-target disabled:opacity-60"
             >
               <Camera className="h-4 w-4" /> CLOCK OUT
             </button>
-            {journey.todaysAttendance.length > 1 && (
-              <p className="relative mt-2 text-center text-xs text-white/40">{journey.todaysAttendance.length} sessions today</p>
+            {/* The server (app.clock_out) rejects this outright now rather
+                than auto-checking the visit out on the way through -- check
+                out of it first, then clock out. */}
+            {isVisiting ? (
+              <p className="relative mt-2 text-center text-xs text-white/40">Check out of your current visit before clocking out.</p>
+            ) : (
+              journey.todaysAttendance.length > 1 && (
+                <p className="relative mt-2 text-center text-xs text-white/40">{journey.todaysAttendance.length} sessions today</p>
+              )
             )}
           </div>
 

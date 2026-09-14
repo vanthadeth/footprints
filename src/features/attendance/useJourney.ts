@@ -248,6 +248,11 @@ export function useJourney(): UseJourneyResult {
         // than treating this closed record as still "the" attendance.
         setOpenAttendance(null)
         setTodaysAttendance((prev) => prev.map((a) => (a.id === attendance.id ? attendance : a)))
+        // app.clock_out now rejects this outright (check_violation) while a
+        // visit is still open, rather than auto-checking it out -- so
+        // autoCheckedOutVisit is always null from a manual clock-out these
+        // days. Kept (rather than dropped along with the type) because
+        // enforceWorkingHours' auto-clock-out below still populates it.
         if (autoCheckedOutVisit) {
           setOpenVisit(null)
           setLastAutoCheckout({ reason: 'clock_out', visit: autoCheckedOutVisit })
