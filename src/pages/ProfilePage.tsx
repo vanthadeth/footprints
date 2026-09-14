@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronDown, ChevronRight, ChevronUp, Download, Globe, LogOut, Moon, type LucideIcon } from 'lucide-react'
+import { ChevronDown, ChevronRight, ChevronUp, Download, Globe, LogOut, type LucideIcon } from 'lucide-react'
 import { useProfile } from '@/features/auth/useProfile'
 import { useAuth } from '@/features/auth/AuthContext'
 import { AvatarPicker } from '@/features/auth/AvatarPicker'
@@ -8,7 +8,6 @@ import { useJourneyContext } from '@/features/attendance/JourneyContext'
 import { computeJourneyStats } from '@/features/attendance/journeyStats'
 import { summarizeAttendanceTimes } from '@/features/attendance/stateMachine'
 import type { DayJourney } from '@/features/attendance/useJourneyHistory'
-import { useTheme } from '@/lib/ThemeContext'
 import { getInitialLanguage, setLanguage } from '@/lib/language'
 import { useInstallPrompt } from '@/hooks/useInstallPrompt'
 import { formatDuration, formatTime } from '@/lib/datetime'
@@ -180,7 +179,6 @@ function SummaryStat({ label, value }: { label: string; value: string }) {
 }
 
 function PreferencesSection() {
-  const { theme, toggleTheme } = useTheme()
   const install = useInstallPrompt()
   const [language, setLanguageState] = useState(() => getInitialLanguage())
 
@@ -188,29 +186,9 @@ function PreferencesSection() {
     <div className="mt-3 overflow-hidden rounded-xl2 bg-white shadow-card">
       <p className="px-4 pt-3 text-xs font-semibold uppercase tracking-wide text-neutral-400">Preferences</p>
 
-      <PrefRow
-        icon={Moon}
-        label="Dark Mode"
-        control={
-          <button
-            role="switch"
-            aria-checked={theme === 'dark'}
-            aria-label="Toggle dark mode"
-            onClick={() => {
-              haptic('light')
-              toggleTheme()
-            }}
-            className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${theme === 'dark' ? 'bg-brand-500' : 'bg-neutral-200'}`}
-          >
-            <span
-              className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-                theme === 'dark' ? 'translate-x-5' : 'translate-x-0'
-              }`}
-            />
-          </button>
-        }
-      />
-
+      {/* Dark Mode lives in Settings → Appearance now (one designated
+          control instead of one scattered across every screen) -- see
+          AppearanceControl. */}
       <PrefRow
         icon={Globe}
         label="Language"

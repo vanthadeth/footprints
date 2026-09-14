@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { AlertTriangle, Check, ShieldAlert } from 'lucide-react'
 import { useProfile } from '@/features/auth/useProfile'
+import { AppearanceControl } from '@/components/AppearanceControl'
 import { ALLOWED_CHECKIN_RADII_METERS, ALLOWED_LOCATION_PING_MINUTES } from '@/lib/config'
 import { haptic } from '@/lib/haptic'
 import { settingsService, type EditableSettings } from './settingsService'
@@ -17,25 +18,27 @@ import { settingsService, type EditableSettings } from './settingsService'
 export function SettingsPage() {
   const { profile, loading: profileLoading } = useProfile()
 
-  if (profileLoading) {
-    return (
-      <div className="mx-auto max-w-lg space-y-3 p-4 md:max-w-2xl">
-        <div className="h-32 animate-pulse rounded-xl2 bg-neutral-100" />
+  return (
+    <div className="mx-auto max-w-lg space-y-3 p-4 pb-28 md:max-w-2xl">
+      {/* Appearance is everyone's, not just a super admin's -- the rest of
+          this screen (below) is the global config only a super admin can
+          see or edit. */}
+      <Section title="Appearance">
+        <AppearanceControl />
+      </Section>
+
+      {profileLoading ? (
         <div className="h-48 animate-pulse rounded-xl2 bg-neutral-100" />
-      </div>
-    )
-  }
-
-  if (!profile?.is_super_admin) {
-    return (
-      <div className="mx-auto flex max-w-lg flex-col items-center px-6 pt-16 text-center md:max-w-2xl">
-        <ShieldAlert className="h-10 w-10 text-neutral-300" />
-        <p className="mt-4 text-sm text-neutral-500">Only a super admin can view global settings.</p>
-      </div>
-    )
-  }
-
-  return <SettingsForm />
+      ) : !profile?.is_super_admin ? (
+        <div className="flex flex-col items-center px-6 pt-10 text-center">
+          <ShieldAlert className="h-10 w-10 text-neutral-300" />
+          <p className="mt-4 text-sm text-neutral-500">Only a super admin can view global settings.</p>
+        </div>
+      ) : (
+        <SettingsForm />
+      )}
+    </div>
+  )
 }
 
 function SettingsForm() {
@@ -76,23 +79,19 @@ function SettingsForm() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-lg space-y-3 p-4 md:max-w-2xl">
+      <>
         <div className="h-32 animate-pulse rounded-xl2 bg-neutral-100" />
         <div className="h-48 animate-pulse rounded-xl2 bg-neutral-100" />
-      </div>
+      </>
     )
   }
 
   if (!settings) {
-    return (
-      <div className="mx-auto max-w-lg p-4 md:max-w-2xl">
-        <p className="rounded-lg bg-status-danger/10 px-3 py-2 text-sm text-status-danger">{error ?? 'Settings unavailable.'}</p>
-      </div>
-    )
+    return <p className="rounded-lg bg-status-danger/10 px-3 py-2 text-sm text-status-danger">{error ?? 'Settings unavailable.'}</p>
   }
 
   return (
-    <div className="mx-auto max-w-lg space-y-3 p-4 pb-28 md:max-w-2xl">
+    <>
       {error && (
         <div role="alert" className="flex items-center gap-2 rounded-lg bg-status-danger/10 px-3 py-2 text-sm text-status-danger">
           <AlertTriangle className="h-4 w-4 shrink-0" /> {error}
@@ -192,7 +191,7 @@ function SettingsForm() {
         )}
       </button>
       <p className="text-center text-xs text-neutral-400">These settings apply globally, to every user, immediately.</p>
-    </div>
+    </>
   )
 }
 

@@ -2,7 +2,6 @@ import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { haptic } from '@/lib/haptic'
 import { LogoFull } from '@/components/Logo'
-import { ThemeToggle } from '@/components/ThemeToggle'
 
 const SLIDES = [
   {
@@ -44,7 +43,6 @@ export function WelcomePage() {
 
   return (
     <div className="flex min-h-dvh flex-col items-center bg-gradient-to-b from-brand-50 to-neutral-50 px-6 safe-top safe-bottom dark:from-neutral-900 dark:to-neutral-950">
-      <ThemeToggle />
       <div className="flex flex-1 animate-fade-in-up flex-col items-center justify-center text-center">
         <LogoFull alt="Footprints, by HIG" className="mb-4 h-20 w-20 drop-shadow-sm" />
         <h1 className="text-2xl font-semibold text-neutral-900">Footprints</h1>

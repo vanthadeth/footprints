@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronRight, LogOut, Settings, HelpCircle, MapPin, Info, Shield } from 'lucide-react'
 import { InfoSheet } from '@/components/InfoSheet'
+import { AppearanceControl } from '@/components/AppearanceControl'
 import { LocationPermissionSheet } from '@/features/location/LocationPermissionSheet'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useProfile } from '@/features/auth/useProfile'
@@ -73,7 +74,8 @@ export function MenuPage() {
       </div>
 
       <InfoSheet open={openSheet === 'settings'} onClose={() => setOpenSheet(null)} title="Settings">
-        <p>Personal app settings will live here in a future update.</p>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-400">Appearance</p>
+        <AppearanceControl />
       </InfoSheet>
 
       <InfoSheet open={openSheet === 'help'} onClose={() => setOpenSheet(null)} title="Help">
