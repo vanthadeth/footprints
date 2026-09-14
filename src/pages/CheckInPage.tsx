@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { AlertTriangle, Building2, Camera, Footprints as FootprintsIcon, MapPin, X } from 'lucide-react'
+import { AlertTriangle, Building2, Camera, Footprints as FootprintsIcon, Loader2, MapPin, X } from 'lucide-react'
+import { BottomSheet } from '@/components/BottomSheet'
 import { useJourneyContext } from '@/features/attendance/JourneyContext'
 import type { VisitRow } from '@/features/attendance/types'
 import { SelfieCaptureSheet } from '@/features/attendance/SelfieCaptureSheet'
@@ -8,6 +9,7 @@ import type { DayJourney } from '@/features/attendance/useJourneyHistory'
 import { VisitFlow } from '@/features/visits/VisitFlow'
 import { useCustomerNames } from '@/features/customers/useCustomerNames'
 import { useAppSettings } from '@/hooks/useAppSettings'
+import { locationService } from '@/features/location/locationService'
 import { greeting, formatDuration, formatTime, isPastTimeOfDay, isWithinClockInWindow, shiftTimeOfDay } from '@/lib/datetime'
 import { useProfile } from '@/features/auth/useProfile'
 
@@ -19,6 +21,8 @@ export function CheckInPage() {
   const settings = useAppSettings()
   const [pendingAction, setPendingAction] = useState<PendingAction>(null)
   const [flowOpen, setFlowOpen] = useState(false)
+  const [checkingLocation, setCheckingLocation] = useState(false)
+  const [lowAccuracyM, setLowAccuracyM] = useState<number | null>(null)
 
   const autoCheckoutCustomerId = journey.lastAutoCheckout?.visit.customer_id ?? null
   // Most recent completed visits today, newest first -- shown under the
@@ -36,6 +40,28 @@ export function CheckInPage() {
     if (pendingAction === 'clock-in') await journey.clockIn(blob)
     if (pendingAction === 'clock-out') await journey.clockOut(blob)
     setPendingAction(null)
+  }
+
+  // Check the GPS fix *before* asking for a selfie -- a bad reading rejects
+  // at the server anyway (app.clock_in), but catching it here means nobody
+  // wastes a selfie capture on a clock-in that was always going to fail.
+  async function handleClockInTap() {
+    setCheckingLocation(true)
+    try {
+      const reading = await locationService.getCurrentPosition()
+      if (reading.accuracy > settings.maxLocationAccuracyM) {
+        setLowAccuracyM(reading.accuracy)
+        return
+      }
+      setPendingAction('clock-in')
+    } catch {
+      // Couldn't get a reading at all -- let the normal clock-in flow surface
+      // that (it re-fetches location and reports "location required" itself)
+      // rather than duplicating that error message here.
+      setPendingAction('clock-in')
+    } finally {
+      setCheckingLocation(false)
+    }
   }
 
   if (journey.loading) {
@@ -100,11 +126,12 @@ export function CheckInPage() {
             {clockInWindowClosed && `Clock-in is closed for today -- working hours ended at ${shiftTimeOfDay(settings.workEndTime, 0)}.`}
           </p>
           <button
-            onClick={() => setPendingAction('clock-in')}
-            disabled={journey.busy || !canClockIn}
+            onClick={handleClockInTap}
+            disabled={journey.busy || !canClockIn || checkingLocation}
             className="mt-7 flex w-full max-w-xs items-center justify-center gap-2 rounded-xl bg-brand-500 py-4 text-base font-semibold text-white tap-target disabled:opacity-40"
           >
-            <Camera className="h-4.5 w-4.5" /> CLOCK IN
+            {checkingLocation ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : <Camera className="h-4.5 w-4.5" />}
+            {checkingLocation ? 'Checking Location…' : 'CLOCK IN'}
           </button>
         </div>
       ) : (
@@ -174,6 +201,29 @@ export function CheckInPage() {
       />
 
       <VisitFlow open={flowOpen} onClose={() => setFlowOpen(false)} />
+
+      <BottomSheet open={lowAccuracyM !== null} onClose={() => setLowAccuracyM(null)} title="Location Accuracy Too Low">
+        <div className="p-4">
+          <p className="text-sm text-neutral-600">
+            Your location accuracy is currently {lowAccuracyM != null ? `${Math.round(lowAccuracyM)} m` : 'too low'} -- {settings.maxLocationAccuracyM} m
+            or better is required to clock in. Move to an open area, away from buildings or indoors, and try again.
+          </p>
+          <button
+            onClick={() => {
+              setLowAccuracyM(null)
+              void handleClockInTap()
+            }}
+            disabled={checkingLocation}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 py-3.5 text-sm font-semibold text-white tap-target disabled:opacity-60"
+          >
+            {checkingLocation && <Loader2 className="h-4 w-4 animate-spin" />}
+            {checkingLocation ? 'Checking Location…' : 'Try Again'}
+          </button>
+          <button onClick={() => setLowAccuracyM(null)} className="mt-2 w-full rounded-xl py-3.5 text-sm font-semibold text-neutral-500 tap-target">
+            Cancel
+          </button>
+        </div>
+      </BottomSheet>
     </div>
   )
 }

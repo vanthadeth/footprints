@@ -222,6 +222,7 @@ export function VisitFlow({ open, onClose }: { open: boolean; onClose: () => voi
             locError={locError}
             busy={journey.busy}
             farThresholdM={settings.checkinRadiusM}
+            maxAccuracyM={settings.maxLocationAccuracyM}
             onRefresh={refreshLocation}
             onSelect={handleSelectCustomer}
             onSkip={() => journey.startVisit(null)}
@@ -309,6 +310,7 @@ function PickerStep({
   locError,
   busy,
   farThresholdM,
+  maxAccuracyM,
   onRefresh,
   onSelect,
   onSkip,
@@ -319,27 +321,38 @@ function PickerStep({
   locError: string | null
   busy: boolean
   farThresholdM: number
+  maxAccuracyM: number
   onRefresh: () => void
   onSelect: (customer: NearbyCustomer) => void
   onSkip: () => void
 }) {
+  const accuracyTooLow = locState === 'ready' && accuracy != null && accuracy > maxAccuracyM
+  const blocked = busy || accuracyTooLow
+
   return (
     <div className="p-4">
-      <div className="flex items-center justify-between rounded-xl2 bg-white p-4 shadow-card">
-        <p className="flex items-center gap-1.5 text-xs text-neutral-500">
-          <MapPin className="h-3.5 w-3.5" />
-          {locState === 'loading' && 'Finding your location…'}
-          {locState === 'ready' && accuracy != null && `Current location · accuracy ${Math.round(accuracy)} m`}
-          {locState === 'error' && (locError ?? 'Location unavailable')}
-        </p>
-        <button
-          onClick={onRefresh}
-          disabled={locState === 'loading'}
-          aria-label="Refresh location"
-          className="flex h-9 w-9 items-center justify-center rounded-full text-brand-600 tap-target disabled:opacity-40"
-        >
-          <RefreshCw className={`h-4 w-4 ${locState === 'loading' ? 'animate-spin' : ''}`} />
-        </button>
+      <div className="rounded-xl2 bg-white p-4 shadow-card">
+        <div className="flex items-center justify-between">
+          <p className={`flex items-center gap-1.5 text-xs ${accuracyTooLow ? 'text-status-warn' : 'text-neutral-500'}`}>
+            <MapPin className="h-3.5 w-3.5" />
+            {locState === 'loading' && 'Finding your location…'}
+            {locState === 'ready' && accuracy != null && `Current location · accuracy ${Math.round(accuracy)} m`}
+            {locState === 'error' && (locError ?? 'Location unavailable')}
+          </p>
+          <button
+            onClick={onRefresh}
+            disabled={locState === 'loading'}
+            aria-label="Refresh location"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-brand-600 tap-target disabled:opacity-40"
+          >
+            <RefreshCw className={`h-4 w-4 ${locState === 'loading' ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
+        {accuracyTooLow && (
+          <p className="mt-2 flex items-center gap-1.5 text-xs text-status-warn">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> Accuracy is too low to check in -- move to an open area and refresh.
+          </p>
+        )}
       </div>
 
       {locState === 'loading' && (
@@ -360,7 +373,7 @@ function PickerStep({
               <button
                 key={c.id}
                 onClick={() => onSelect(c)}
-                disabled={busy}
+                disabled={blocked}
                 className="flex w-full items-center gap-3 rounded-xl2 bg-white px-4 py-3.5 text-left shadow-card tap-target disabled:opacity-60"
               >
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-500">
@@ -388,7 +401,7 @@ function PickerStep({
 
       <button
         onClick={onSkip}
-        disabled={busy}
+        disabled={blocked}
         className="mt-4 w-full rounded-xl border border-dashed border-neutral-300 py-3.5 text-sm font-semibold text-neutral-600 tap-target disabled:opacity-60"
       >
         Can't find them? Check in without a customer
