@@ -32,6 +32,8 @@ export interface CreateUserInput {
   fullName: string
   email: string
   roleId: string
+  /** Chosen (or generated then edited) in the form's password box -- at least 8 characters. */
+  password: string
   phonePrimary?: string | null
   position?: string | null
   departmentId?: string | null
@@ -166,13 +168,14 @@ export const usersService = {
     if (error) throw error
   },
 
-  /** Creates the login (Supabase Auth user) and the matching `users` row. Returns a one-time temporary password to relay to the new hire. */
-  async create(input: CreateUserInput): Promise<{ userId: string; tempPassword: string }> {
-    return invokeAdmin<{ userId: string; tempPassword: string }>({
+  /** Creates the login (Supabase Auth user) and the matching `users` row, with the password chosen in the form's password box. */
+  async create(input: CreateUserInput): Promise<{ userId: string }> {
+    return invokeAdmin<{ userId: string }>({
       action: 'create',
       email: input.email,
       fullName: input.fullName,
       roleId: input.roleId,
+      password: input.password,
       phonePrimary: input.phonePrimary ?? null,
       position: input.position ?? null,
       departmentId: input.departmentId ?? null,
@@ -181,8 +184,8 @@ export const usersService = {
     })
   },
 
-  /** Sets a new random password and flags the account so the user must set their own at next sign-in. Returns the one-time temporary password to relay to them. */
-  async resetPassword(userId: string): Promise<{ tempPassword: string }> {
-    return invokeAdmin<{ tempPassword: string }>({ action: 'reset_password', userId })
+  /** Sets the given password (from the password box -- generated or admin-typed) and flags the account so the user must set their own at next sign-in. */
+  async resetPassword(userId: string, password: string): Promise<void> {
+    await invokeAdmin<{ ok: true }>({ action: 'reset_password', userId, password })
   },
 }

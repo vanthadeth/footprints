@@ -4,7 +4,6 @@ import { EmptyState } from '@/components/EmptyState'
 import { useAvatarUrl } from '@/features/auth/useAvatarUrl'
 import { useUsers } from '@/features/users/useUsers'
 import { UserFormSheet } from '@/features/users/UserFormSheet'
-import { TempPasswordSheet } from '@/features/users/TempPasswordSheet'
 import type { ManagedUser } from '@/features/users/usersService'
 
 const STATUS_STYLES: Record<ManagedUser['status'], string> = {
@@ -20,7 +19,6 @@ export function UsersPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
   const [editing, setEditing] = useState<ManagedUser | null>(null)
-  const [tempPassword, setTempPassword] = useState<string | null>(null)
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -93,10 +91,7 @@ export function UsersPage() {
         departments={departments}
         onClose={() => setFormOpen(false)}
         onSaved={refresh}
-        onTempPassword={setTempPassword}
       />
-
-      <TempPasswordSheet password={tempPassword} onClose={() => setTempPassword(null)} />
     </div>
   )
 }

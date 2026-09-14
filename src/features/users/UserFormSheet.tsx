@@ -1,10 +1,12 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { KeyRound } from 'lucide-react'
+import { KeyRound, X } from 'lucide-react'
 import { BottomSheet } from '@/components/BottomSheet'
 import { haptic } from '@/lib/haptic'
+import { generateSuggestedPassword, PasswordBox } from './PasswordBox'
 import { usersService, type ManagedUser, type Option, type UserStatus } from './usersService'
 
 const STATUSES: UserStatus[] = ['active', 'suspended', 'discharged']
+const MIN_PASSWORD_LENGTH = 8
 
 interface Props {
   open: boolean
@@ -15,13 +17,13 @@ interface Props {
   departments: Option[]
   onClose: () => void
   onSaved: () => void
-  onTempPassword: (password: string) => void
 }
 
-/** Create-or-edit form for a single user, shared because the two only differ in a handful of fields (email is create-only; status/generate-password are edit-only). */
-export function UserFormSheet({ open, mode, user, users, roles, departments, onClose, onSaved, onTempPassword }: Props) {
+/** Create-or-edit form for a single user, shared because the two only differ in a handful of fields (email/password are create-only; status/generate-password are edit-only). */
+export function UserFormSheet({ open, mode, user, users, roles, departments, onClose, onSaved }: Props) {
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [phonePrimary, setPhonePrimary] = useState('')
   const [position, setPosition] = useState('')
   const [departmentId, setDepartmentId] = useState('')
@@ -33,14 +35,22 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
   const [suspendedTo, setSuspendedTo] = useState('')
   const [dischargedDate, setDischargedDate] = useState('')
   const [saving, setSaving] = useState(false)
-  const [resettingPassword, setResettingPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // The "Generate New Password" box (edit mode only) is opt-in and separate
+  // from the main Save action -- setting a password takes effect the
+  // moment it's confirmed, unlike the other fields which wait for Save.
+  const [showPasswordBox, setShowPasswordBox] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+  const [settingPassword, setSettingPassword] = useState(false)
+  const [passwordSet, setPasswordSet] = useState(false)
 
   useEffect(() => {
     if (!open) return
     setError(null)
     setFullName(mode === 'edit' && user ? user.fullName : '')
     setEmail('')
+    setPassword(mode === 'create' ? generateSuggestedPassword() : '')
     setPhonePrimary((mode === 'edit' && user?.phonePrimary) || '')
     setPosition((mode === 'edit' && user?.position) || '')
     setDepartmentId((mode === 'edit' && user?.departmentId) || '')
@@ -51,11 +61,18 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
     setSuspendedFrom('')
     setSuspendedTo('')
     setDischargedDate('')
+    setShowPasswordBox(false)
+    setNewPassword('')
+    setPasswordSet(false)
   }, [open, mode, user])
 
   const statusNeedsMoreInput =
     (status === 'suspended' && (!suspendedFrom || !suspendedTo)) || (status === 'discharged' && !dischargedDate)
-  const canSave = fullName.trim() && roleId && (mode === 'edit' || email.trim()) && !statusNeedsMoreInput
+  const canSave =
+    fullName.trim() &&
+    roleId &&
+    (mode === 'edit' || (email.trim() && password.length >= MIN_PASSWORD_LENGTH)) &&
+    !statusNeedsMoreInput
 
   async function handleSave() {
     if (!canSave || saving) return
@@ -63,9 +80,10 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
     setError(null)
     try {
       if (mode === 'create') {
-        const result = await usersService.create({
+        await usersService.create({
           fullName: fullName.trim(),
           email: email.trim(),
+          password,
           roleId,
           phonePrimary: phonePrimary.trim() || null,
           position: position.trim() || null,
@@ -76,7 +94,6 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
         haptic('success')
         onSaved()
         onClose()
-        onTempPassword(result.tempPassword)
       } else if (user) {
         await usersService.update(user.id, {
           fullName: fullName.trim(),
@@ -103,20 +120,27 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
     }
   }
 
-  async function handleResetPassword() {
-    if (!user || resettingPassword) return
-    setResettingPassword(true)
+  function openPasswordBox() {
+    setNewPassword(generateSuggestedPassword())
+    setPasswordSet(false)
+    setError(null)
+    setShowPasswordBox(true)
+  }
+
+  async function handleSetPassword() {
+    if (!user || newPassword.length < MIN_PASSWORD_LENGTH || settingPassword) return
+    setSettingPassword(true)
     setError(null)
     try {
-      const result = await usersService.resetPassword(user.id)
+      await usersService.resetPassword(user.id, newPassword)
       haptic('success')
       onSaved()
-      onTempPassword(result.tempPassword)
+      setPasswordSet(true)
     } catch (e) {
       haptic('error')
-      setError(e instanceof Error ? e.message : 'Failed to generate a new password.')
+      setError(e instanceof Error ? e.message : 'Failed to set the new password.')
     } finally {
-      setResettingPassword(false)
+      setSettingPassword(false)
     }
   }
 
@@ -132,9 +156,14 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
         </Field>
 
         {mode === 'create' ? (
-          <Field label="Email">
-            <TextInput value={email} onChange={setEmail} placeholder="name@company.com" type="email" />
-          </Field>
+          <>
+            <Field label="Email">
+              <TextInput value={email} onChange={setEmail} placeholder="name@company.com" type="email" />
+            </Field>
+            <Field label="Password" hint="At least 8 characters -- keep the suggestion, edit it, or type your own. Share it with them securely.">
+              <PasswordBox value={password} onChange={setPassword} />
+            </Field>
+          </>
         ) : (
           <Field label="Email">
             <p className="rounded-xl bg-neutral-50 px-3.5 py-2.5 text-sm text-neutral-500 dark:bg-neutral-800">{user?.email ?? '—'}</p>
@@ -237,16 +266,42 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
           {saving ? 'Saving…' : mode === 'create' ? 'Create User' : 'Save Changes'}
         </button>
 
-        {mode === 'edit' && (
-          <button
-            onClick={handleResetPassword}
-            disabled={resettingPassword}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-neutral-200 py-3.5 text-sm font-semibold text-neutral-700 tap-target disabled:opacity-60 dark:border-neutral-700 dark:text-neutral-200"
-          >
-            <KeyRound className="h-4 w-4" />
-            {resettingPassword ? 'Generating…' : 'Generate New Password'}
-          </button>
-        )}
+        {mode === 'edit' &&
+          (showPasswordBox ? (
+            <div className="rounded-xl2 border border-neutral-200 p-3.5 dark:border-neutral-700">
+              <div className="mb-1.5 flex items-center justify-between gap-3">
+                <p className="text-sm font-medium text-neutral-800">New Password</p>
+                <button
+                  onClick={() => setShowPasswordBox(false)}
+                  aria-label="Cancel"
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-neutral-400 tap-target"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <p className="mb-2 text-xs text-neutral-400">At least 8 characters. Takes effect immediately -- share it with them securely.</p>
+              <PasswordBox value={newPassword} onChange={setNewPassword} />
+              {passwordSet ? (
+                <p className="mt-2.5 text-xs font-medium text-status-working">Password updated.</p>
+              ) : (
+                <button
+                  onClick={handleSetPassword}
+                  disabled={newPassword.length < MIN_PASSWORD_LENGTH || settingPassword}
+                  className="mt-2.5 w-full rounded-xl bg-neutral-900 py-2.5 text-sm font-semibold text-white tap-target disabled:opacity-40"
+                >
+                  {settingPassword ? 'Setting…' : 'Set Password'}
+                </button>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={openPasswordBox}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-neutral-200 py-3.5 text-sm font-semibold text-neutral-700 tap-target dark:border-neutral-700 dark:text-neutral-200"
+            >
+              <KeyRound className="h-4 w-4" />
+              Generate New Password
+            </button>
+          ))}
       </div>
     </BottomSheet>
   )
