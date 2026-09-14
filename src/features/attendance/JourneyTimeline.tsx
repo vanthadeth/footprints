@@ -1,8 +1,32 @@
 import { useState, type ReactNode } from 'react'
-import { Check, ChevronDown, ChevronUp, Clock, Coffee, Link2 } from 'lucide-react'
+import {
+  AlertTriangle,
+  Calendar,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  Coffee,
+  Coins,
+  Link2,
+  LogIn,
+  LogOut,
+  MapPin,
+  MessageCircleQuestion,
+  ShoppingCart,
+  Store,
+  Tag,
+  Timer,
+  User,
+  Users,
+  Wallet,
+  type LucideIcon,
+} from 'lucide-react'
 import { GAP_FLAG_THRESHOLD_MINUTES } from '@/lib/config'
 import { formatDuration, formatTime } from '@/lib/datetime'
 import { formatDistance } from '@/lib/geo'
+import { useVisitOptions } from '@/features/visits/useVisitOptions'
+import type { VisitOption } from '@/features/visits/visitOptionsService'
 import type { AttendanceRow, VisitRow } from './types'
 
 interface Props {
@@ -39,6 +63,15 @@ type TimelineEvent =
  * over-distance visit is flagged in its expanded detail).
  */
 export function JourneyTimeline({ attendance, visits, customerNames }: Props) {
+  // Small, rarely-changing admin-managed lookup -- cheap to load here so
+  // every caller (Footprints, Fleet's member detail) gets visit-record
+  // icons for free rather than having to fetch and thread it through.
+  const { byKind } = useVisitOptions()
+  const optionsById: Record<string, VisitOption> = {}
+  for (const options of Object.values(byKind)) {
+    for (const o of options) optionsById[o.id] = o
+  }
+
   if (attendance.length === 0) return null
 
   const events: TimelineEvent[] = []
@@ -83,6 +116,7 @@ export function JourneyTimeline({ attendance, visits, customerNames }: Props) {
           visit={event.visit}
           index={event.index}
           customerName={event.visit.customer_id ? customerNames[event.visit.customer_id] : undefined}
+          optionsById={optionsById}
         />
       )
       cursor = event.visit.checked_out_at
@@ -138,14 +172,70 @@ function GapEntry({ ms, offClock = false }: { ms: number; offClock?: boolean }) 
   )
 }
 
+/** A base icon with a diagonal "not/none" slash drawn over it -- one visual
+ * language for every negative visit-record state (Nobody, Shop Closed, No
+ * Order) instead of mixing an X-mark icon here and a slash there. */
+function SlashedIcon({ icon: Icon, className = 'h-4 w-4' }: { icon: LucideIcon; className?: string }) {
+  return (
+    <span className={`relative inline-block ${className}`}>
+      <Icon className="h-full w-full" />
+      <svg viewBox="0 0 24 24" className="absolute inset-0 h-full w-full">
+        <line x1="4" y1="20" x2="20" y2="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    </span>
+  )
+}
+
+/** Matches by the option's own label text (admin-configurable, so this is
+ * best-effort) -- an unrecognised label still gets a sensible generic tag
+ * rather than nothing. */
+function visitStatusIcon(label: string): ReactNode {
+  const key = label.trim().toLowerCase()
+  if (key === 'owner') return <User className="h-4 w-4" />
+  if (key === 'staff') return <Users className="h-4 w-4" />
+  if (key === 'nobody') return <SlashedIcon icon={User} />
+  if (key.startsWith('shop clos')) return <SlashedIcon icon={Store} />
+  return <Tag className="h-4 w-4" />
+}
+
+function orderStatusIcon(label: string): ReactNode {
+  const key = label.trim().toLowerCase()
+  if (key === 'ordered') return <ShoppingCart className="h-4 w-4" />
+  if (key === 'no order') return <SlashedIcon icon={ShoppingCart} />
+  if (key === 'will order') return <MessageCircleQuestion className="h-4 w-4" />
+  return <Tag className="h-4 w-4" />
+}
+
+function paymentStatusIcon(label: string): ReactNode {
+  const key = label.trim().toLowerCase()
+  if (key.includes('full')) return <Wallet className="h-4 w-4" />
+  if (key.includes('part')) return <Coins className="h-4 w-4" />
+  if (key.includes('refuse')) return <AlertTriangle className="h-4 w-4" />
+  return <Tag className="h-4 w-4" />
+}
+
+function RecordRow({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-500 dark:bg-neutral-700 dark:text-neutral-300">
+        {icon}
+      </span>
+      <p className="min-w-0 flex-1 truncate text-xs text-neutral-400">{label}</p>
+      <p className="shrink-0 text-xs font-semibold text-neutral-800 dark:text-neutral-200">{value}</p>
+    </div>
+  )
+}
+
 function VisitEntry({
   visit,
   index,
   customerName,
+  optionsById,
 }: {
   visit: VisitRow
   index: number
   customerName: string | undefined
+  optionsById: Record<string, VisitOption>
 }) {
   const [open, setOpen] = useState(false)
   const label = visit.customer_id ? customerName ?? 'Loading…' : 'Unassigned Visit'
@@ -155,13 +245,18 @@ function VisitEntry({
     : 'In progress'
   const timeRange = `${formatTime(visit.checked_in_at)} → ${closed ? formatTime(visit.checked_out_at) : 'now'}`
 
+  const visitStatus = visit.visit_status_id ? optionsById[visit.visit_status_id] : undefined
+  const orderStatus = visit.order_status_id ? optionsById[visit.order_status_id] : undefined
+  const paymentStatus = visit.payment_status_id ? optionsById[visit.payment_status_id] : undefined
+  const hasRecord = visitStatus || orderStatus || paymentStatus || visit.next_appointment
+
   return (
     <li className="relative">
       <span className="absolute -left-[2.875rem] top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-neutral-900 text-[11px] font-bold text-white dark:bg-neutral-700">
         {visit.visit_number ?? index + 1}
       </span>
-      <div className="rounded-xl2 bg-neutral-50 dark:bg-neutral-800">
-        <button onClick={() => setOpen((v) => !v)} className="flex w-full items-start justify-between gap-3 px-3.5 py-3 text-left tap-target">
+      <div className="overflow-hidden rounded-xl2 border border-neutral-200 bg-white shadow-card dark:border-neutral-700 dark:bg-neutral-900">
+        <button onClick={() => setOpen((v) => !v)} className="flex w-full items-start justify-between gap-3 p-4 text-left tap-target">
           <div className="min-w-0 flex-1">
             <p className="flex flex-wrap items-center gap-1.5 font-semibold text-neutral-900 dark:text-neutral-100">
               {label}
@@ -174,40 +269,78 @@ function VisitEntry({
                 <span className="rounded-full bg-status-warn/10 px-1.5 py-0.5 text-[10px] font-medium text-status-warn">AUTO</span>
               )}
             </p>
-            <p className="mt-1 text-xs text-neutral-400">{timeRange}</p>
+            <p className="mt-1 font-mono text-xs text-neutral-400">{timeRange}</p>
           </div>
-          <div className="flex shrink-0 items-center gap-1.5">
+          <div className="flex shrink-0 items-center gap-2">
             <div className="text-right">
               <p className={`text-sm font-bold ${visit.out_of_range ? 'text-status-warn' : 'text-earth-500'}`}>{duration}</p>
               <p className="text-[10px] font-medium uppercase tracking-wide text-neutral-400">Duration</p>
             </div>
-            {open ? (
-              <ChevronUp className="mt-0.5 h-4 w-4 shrink-0 text-neutral-300" />
-            ) : (
-              <ChevronDown className="mt-0.5 h-4 w-4 shrink-0 text-neutral-300" />
-            )}
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
+              {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </span>
           </div>
         </button>
 
         {open && (
-          <div className="grid grid-cols-2 gap-x-3 gap-y-2.5 border-t border-neutral-200 px-3.5 py-3 text-xs dark:border-neutral-700">
-            <div>
-              <p className="text-neutral-400">Check In</p>
-              <p className="mt-0.5 font-medium text-neutral-800 dark:text-neutral-200">{formatTime(visit.checked_in_at)}</p>
+          <div className="space-y-3 border-t border-neutral-100 p-4 dark:border-neutral-800">
+            <div className="rounded-xl2 border border-neutral-200 p-3 dark:border-neutral-700">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-status-working/10 text-status-working">
+                    <LogIn className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-medium uppercase tracking-wide text-neutral-400">Check In</p>
+                    <p className="font-mono text-sm font-bold text-neutral-900 dark:text-neutral-100">{formatTime(visit.checked_in_at)}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-status-visiting/10 text-status-visiting">
+                    <LogOut className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-medium uppercase tracking-wide text-neutral-400">Check Out</p>
+                    <p className="font-mono text-sm font-bold text-neutral-900 dark:text-neutral-100">
+                      {visit.checked_out_at ? formatTime(visit.checked_out_at) : '—'}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div>
-              <p className="text-neutral-400">Check Out</p>
-              <p className="mt-0.5 font-medium text-neutral-800 dark:text-neutral-200">
-                {visit.checked_out_at ? formatTime(visit.checked_out_at) : '—'}
-              </p>
+
+            <div className="rounded-xl2 border border-neutral-200 p-3 dark:border-neutral-700">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
+                  <Timer className="h-3.5 w-3.5 text-earth-500" /> Visit Duration:{' '}
+                  <span className="font-semibold text-neutral-800 dark:text-neutral-200">{duration}</span>
+                </p>
+                <p className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
+                  <MapPin className={`h-3.5 w-3.5 ${visit.out_of_range ? 'text-status-warn' : 'text-status-working'}`} /> Distance:{' '}
+                  <span className={`font-semibold ${visit.out_of_range ? 'text-status-warn' : 'text-neutral-800 dark:text-neutral-200'}`}>
+                    {formatDistance(visit.distance_m)}
+                    {visit.out_of_range && ' · Flagged'}
+                  </span>
+                </p>
+              </div>
             </div>
-            <div className="col-span-2">
-              <p className="text-neutral-400">Distance</p>
-              <p className={`mt-0.5 font-medium ${visit.out_of_range ? 'text-status-warn' : 'text-neutral-800 dark:text-neutral-200'}`}>
-                {formatDistance(visit.distance_m)}
-                {visit.out_of_range && ' · Flagged'}
-              </p>
-            </div>
+
+            {hasRecord && (
+              <div className="space-y-2.5 rounded-xl2 border border-neutral-200 p-3 dark:border-neutral-700">
+                {visitStatus && <RecordRow icon={visitStatusIcon(visitStatus.label)} label="Visit Status" value={visitStatus.label} />}
+                {orderStatus && <RecordRow icon={orderStatusIcon(orderStatus.label)} label="Order Status" value={orderStatus.label} />}
+                {paymentStatus && (
+                  <RecordRow icon={paymentStatusIcon(paymentStatus.label)} label="Payment Status" value={paymentStatus.label} />
+                )}
+                {visit.next_appointment && (
+                  <RecordRow
+                    icon={<Calendar className="h-4 w-4" />}
+                    label="Next Visit"
+                    value={new Date(visit.next_appointment).toLocaleDateString()}
+                  />
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
