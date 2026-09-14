@@ -12,6 +12,31 @@ export default {
         // blue, one earth accent for footprints/routes, neutral grays for
         // everything else. Avoid adding more saturated colors here --
         // status color (below) already carries the "state" signal.
+        //
+        // The neutral scale itself is custom (not Tailwind's stock
+        // `neutral`) -- inspired by a warm-cream/soft-plum reference UI. It
+        // deliberately shifts hue along its own length rather than staying
+        // one family end to end: warm cream/tan at the light shades (50-600
+        // -- page background, most light-mode text/borders) crossing
+        // through a muted bridge tone (700) into a cool plum-black at the
+        // dark shades (800-950 -- every dark-mode surface, both via direct
+        // `dark:` classes and index.css's "dark-mode retrofit" block, which
+        // hardcodes these same 800/900/950/50-600 values for the classes
+        // that have no explicit dark: variant of their own). brand (blue)
+        // and status.working (green) are untouched on purpose.
+        neutral: {
+          50: '#faf8f3',
+          100: '#f2eee3',
+          200: '#e7dfce',
+          300: '#d2c6ab',
+          400: '#ab9c7d',
+          500: '#8c7d61',
+          600: '#6e624b',
+          700: '#57505f',
+          800: '#332d42',
+          900: '#1e1a2b',
+          950: '#14111d',
+        },
         brand: {
           50: '#eaf3fb',
           100: '#cfe4f6',

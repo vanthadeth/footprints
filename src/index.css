@@ -18,11 +18,20 @@
   }
 
   body {
-    @apply bg-neutral-50 text-neutral-900 antialiased dark:bg-neutral-950 dark:text-neutral-50;
+    @apply bg-neutral-50 text-neutral-900 antialiased;
     /* One-handed mobile use: no accidental text selection on controls,
        no blue tap-highlight flash, momentum scrolling on iOS. */
     -webkit-tap-highlight-color: transparent;
     -webkit-overflow-scrolling: touch;
+  }
+
+  /* Same values as neutral-950/50 in tailwind.config.js -- spelled out as
+     plain hex (not dark:bg-neutral-950/dark:text-neutral-50) only so this
+     rule sits next to color-scheme above and doesn't fight @apply's
+     handling of the base (light) neutral-50/900 classes on the same line. */
+  html.dark body {
+    background-color: #14111d;
+    color: #faf8f3;
   }
 
   button {
@@ -87,56 +96,60 @@
  * bg-brand-900 hero cards and their white/5-10 decorations, plain
  * text-white on those) are deliberately left out -- they already look
  * right in both themes and shouldn't move.
+ *
+ * The hex values here are the literal neutral-50..900 colors from
+ * tailwind.config.js (see the comment there) -- kept as plain hex rather
+ * than referencing those classes directly because several of these pairs
+ * (e.g. text-neutral-400 <-> text-neutral-500) are mutual remaps, which
+ * Tailwind's @apply rejects as a circular dependency even though the
+ * selectors themselves target different elements. brand (blue) and
+ * status.working (green) are untouched, everywhere, in both themes.
  */
 @layer utilities {
-  /* Plain color values throughout (not @apply) -- several of these pairs
-     (e.g. text-neutral-400 <-> text-neutral-500) are mutual remaps, which
-     Tailwind's @apply rejects as a circular dependency even though the
-     selectors themselves target different elements. */
   html.dark .bg-white {
-    background-color: #171717; /* neutral-900 */
+    background-color: #1e1a2b; /* neutral-900 -- card surface */
   }
   html.dark .bg-white\/95 {
-    background-color: rgb(23 23 23 / 0.95); /* neutral-900 */
+    background-color: rgb(30 26 43 / 0.95); /* neutral-900 */
   }
   html.dark .bg-neutral-50 {
-    background-color: #0a0a0a; /* neutral-950 */
+    background-color: #14111d; /* neutral-950 -- page background */
   }
   html.dark .bg-neutral-100 {
-    background-color: #262626; /* neutral-800 */
+    background-color: #332d42; /* neutral-800 */
   }
   html.dark .text-neutral-900 {
-    color: #fafafa; /* neutral-50 */
+    color: #faf8f3; /* neutral-50 */
   }
   html.dark .text-neutral-800 {
-    color: #f5f5f5; /* neutral-100 */
+    color: #f2eee3; /* neutral-100 */
   }
   html.dark .text-neutral-700 {
-    color: #e5e5e5; /* neutral-200 */
+    color: #e7dfce; /* neutral-200 */
   }
   html.dark .text-neutral-600 {
-    color: #d4d4d4; /* neutral-300 */
+    color: #d2c6ab; /* neutral-300 */
   }
   html.dark .text-neutral-500 {
-    color: #a3a3a3; /* neutral-400 */
+    color: #ab9c7d; /* neutral-400 */
   }
   html.dark .text-neutral-400 {
-    color: #737373; /* neutral-500 */
+    color: #8c7d61; /* neutral-500 */
   }
   html.dark .text-neutral-300 {
-    color: #525252; /* neutral-600 */
+    color: #6e624b; /* neutral-600 */
   }
   html.dark .border-neutral-50 {
-    border-color: #262626; /* neutral-800 */
+    border-color: #332d42; /* neutral-800 */
   }
   html.dark .border-neutral-100 {
-    border-color: #262626; /* neutral-800 */
+    border-color: #332d42; /* neutral-800 */
   }
   html.dark .border-neutral-200 {
-    border-color: #404040; /* neutral-700 */
+    border-color: #57505f; /* neutral-700 */
   }
   html.dark .border-neutral-300 {
-    border-color: #525252; /* neutral-600 */
+    border-color: #6e624b; /* neutral-600 */
   }
   html.dark .bg-brand-50 {
     background-color: rgb(22 104 184 / 0.15); /* brand-500 tint */
@@ -151,7 +164,7 @@
     color: #3d8bd4; /* brand-400 */
   }
   html.dark .border-brand-200 {
-    border-color: #404040; /* neutral-700 */
+    border-color: #57505f; /* neutral-700 */
   }
   html.dark .bg-earth-50 {
     background-color: rgb(150 112 63 / 0.2); /* earth-500 tint */
