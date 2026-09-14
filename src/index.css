@@ -30,8 +30,8 @@
      rule sits next to color-scheme above and doesn't fight @apply's
      handling of the base (light) neutral-50/900 classes on the same line. */
   html.dark body {
-    background-color: #14111d;
-    color: #faf8f3;
+    background-color: #0e1119;
+    color: #f6f8fb;
   }
 
   button {
@@ -107,49 +107,49 @@
  */
 @layer utilities {
   html.dark .bg-white {
-    background-color: #1e1a2b; /* neutral-900 -- card surface */
+    background-color: #171b25; /* neutral-900 -- card surface */
   }
   html.dark .bg-white\/95 {
-    background-color: rgb(30 26 43 / 0.95); /* neutral-900 */
+    background-color: rgb(23 27 37 / 0.95); /* neutral-900 */
   }
   html.dark .bg-neutral-50 {
-    background-color: #14111d; /* neutral-950 -- page background */
+    background-color: #0e1119; /* neutral-950 -- page background */
   }
   html.dark .bg-neutral-100 {
-    background-color: #332d42; /* neutral-800 */
+    background-color: #262b38; /* neutral-800 */
   }
   html.dark .text-neutral-900 {
-    color: #faf8f3; /* neutral-50 */
+    color: #f6f8fb; /* neutral-50 */
   }
   html.dark .text-neutral-800 {
-    color: #f2eee3; /* neutral-100 */
+    color: #eaeef4; /* neutral-100 */
   }
   html.dark .text-neutral-700 {
-    color: #e7dfce; /* neutral-200 */
+    color: #d7dee8; /* neutral-200 */
   }
   html.dark .text-neutral-600 {
-    color: #d2c6ab; /* neutral-300 */
+    color: #b7c1d1; /* neutral-300 */
   }
   html.dark .text-neutral-500 {
-    color: #ab9c7d; /* neutral-400 */
+    color: #8991a3; /* neutral-400 */
   }
   html.dark .text-neutral-400 {
-    color: #8c7d61; /* neutral-500 */
+    color: #6b7484; /* neutral-500 */
   }
   html.dark .text-neutral-300 {
-    color: #6e624b; /* neutral-600 */
+    color: #525a6a; /* neutral-600 */
   }
   html.dark .border-neutral-50 {
-    border-color: #332d42; /* neutral-800 */
+    border-color: #262b38; /* neutral-800 */
   }
   html.dark .border-neutral-100 {
-    border-color: #332d42; /* neutral-800 */
+    border-color: #262b38; /* neutral-800 */
   }
   html.dark .border-neutral-200 {
-    border-color: #57505f; /* neutral-700 */
+    border-color: #3d4351; /* neutral-700 */
   }
   html.dark .border-neutral-300 {
-    border-color: #6e624b; /* neutral-600 */
+    border-color: #525a6a; /* neutral-600 */
   }
   html.dark .bg-brand-50 {
     background-color: rgb(22 104 184 / 0.15); /* brand-500 tint */
@@ -164,7 +164,7 @@
     color: #3d8bd4; /* brand-400 */
   }
   html.dark .border-brand-200 {
-    border-color: #57505f; /* neutral-700 */
+    border-color: #3d4351; /* neutral-700 */
   }
   html.dark .bg-earth-50 {
     background-color: rgb(150 112 63 / 0.2); /* earth-500 tint */
