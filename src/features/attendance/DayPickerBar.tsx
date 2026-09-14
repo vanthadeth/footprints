@@ -1,17 +1,18 @@
-import { lastNDaysEnding } from '@/lib/dateRange'
+import { lastNDaysEnding, todayDateString } from '@/lib/dateRange'
 
 const VISIBLE_DAYS = 5
 
 /**
- * The Footprints "pick a day" strip: exactly VISIBLE_DAYS days ending at
- * whichever date is selected (so picking a date outside the visible window
- * just slides the whole strip to end there), laid out as an even-width grid
- * so it always fits the container instead of scrolling. The "jump to any
- * earlier date" calendar action lives separately (DatePickerButton), in the
- * section header rather than inline here.
+ * The Footprints "pick a day" strip: always today plus the previous
+ * VISIBLE_DAYS - 1 days, laid out as an even-width grid so it always fits
+ * the container instead of scrolling. This window is pinned to today and
+ * never shifts based on the current selection -- picking an older date via
+ * the calendar (DatePickerButton, in the section header) just shows that
+ * day's data with none of these buttons highlighted, rather than sliding
+ * the whole strip to end there.
  */
 export function DayPickerBar({ selected, onChange }: { selected: string; onChange: (date: string) => void }) {
-  const days = lastNDaysEnding(selected, VISIBLE_DAYS)
+  const days = lastNDaysEnding(todayDateString(), VISIBLE_DAYS)
 
   return (
     <div className="grid grid-cols-5 gap-1.5">
