@@ -12,21 +12,54 @@ const STATUS_STYLES: Record<ManagedUser['status'], string> = {
   discharged: 'bg-neutral-100 text-neutral-500',
 }
 
+type StatusFilter = 'active' | 'inactive' | 'all'
+
+const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
+  { key: 'active', label: 'Active' },
+  { key: 'inactive', label: 'Inactive' },
+  { key: 'all', label: 'All' },
+]
+
+const NO_DEPARTMENT = 'No Department'
+
 /** Super-admin/HR screen: create and edit user accounts, assign who reports to whom, and mark who's a field salesperson (spec). */
 export function UsersPage() {
   const { users, roles, departments, loading, error, refresh } = useUsers()
   const [query, setQuery] = useState('')
+  // Suspended/discharged accounts pile up over time and aren't usually who
+  // you're looking for -- hidden by default, one tap away via the filter.
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('active')
   const [formOpen, setFormOpen] = useState(false)
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
   const [editing, setEditing] = useState<ManagedUser | null>(null)
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return users
-    return users.filter(
-      (u) => u.fullName.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.position?.toLowerCase().includes(q)
-    )
-  }, [users, query])
+    return users.filter((u) => {
+      if (statusFilter === 'active' && u.status !== 'active') return false
+      if (statusFilter === 'inactive' && u.status === 'active') return false
+      if (!q) return true
+      return u.fullName.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.position?.toLowerCase().includes(q)
+    })
+  }, [users, query, statusFilter])
+
+  // Grouped by department, alphabetically -- users with no department
+  // assigned sort last under a catch-all group rather than being scattered
+  // or dropped.
+  const groups = useMemo(() => {
+    const byDepartment = new Map<string, ManagedUser[]>()
+    for (const u of filtered) {
+      const key = u.departmentName ?? NO_DEPARTMENT
+      const list = byDepartment.get(key) ?? []
+      list.push(u)
+      byDepartment.set(key, list)
+    }
+    return [...byDepartment.entries()].sort(([a], [b]) => {
+      if (a === NO_DEPARTMENT) return 1
+      if (b === NO_DEPARTMENT) return -1
+      return a.localeCompare(b)
+    })
+  }, [filtered])
 
   function openCreate() {
     setFormMode('create')
@@ -61,6 +94,20 @@ export function UsersPage() {
           </button>
         </div>
 
+        <div className="mt-3 flex gap-1 rounded-full bg-neutral-100 p-1">
+          {STATUS_FILTERS.map((f) => (
+            <button
+              key={f.key}
+              onClick={() => setStatusFilter(f.key)}
+              className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold tap-target ${
+                statusFilter === f.key ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500'
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+
         {error && <p className="mt-3 rounded-lg bg-status-danger/10 px-3 py-2 text-sm text-status-danger">{error}</p>}
 
         {loading ? (
@@ -71,12 +118,29 @@ export function UsersPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="mt-4">
-            <EmptyState icon={UsersIcon} title="No users found" body="Try a different search, or create a new user." />
+            <EmptyState
+              icon={UsersIcon}
+              title="No users found"
+              body={
+                statusFilter !== 'all'
+                  ? `No ${statusFilter} users match. Try the "All" filter, a different search, or create a new user.`
+                  : 'Try a different search, or create a new user.'
+              }
+            />
           </div>
         ) : (
-          <div className="mt-4 space-y-2">
-            {filtered.map((u) => (
-              <UserRow key={u.id} user={u} onClick={() => openEdit(u)} />
+          <div className="mt-4 space-y-4">
+            {groups.map(([department, members]) => (
+              <div key={department}>
+                <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-neutral-400">
+                  {department} <span className="text-neutral-300">· {members.length}</span>
+                </p>
+                <div className="space-y-2">
+                  {members.map((u) => (
+                    <UserRow key={u.id} user={u} onClick={() => openEdit(u)} />
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         )}
