@@ -22,6 +22,7 @@ const UsersPage = lazy(() => import('@/pages/UsersPage').then((m) => ({ default:
 const HomePage = lazy(() => import('@/pages/HomePage').then((m) => ({ default: m.HomePage })))
 const CustomersPage = lazy(() => import('@/pages/CustomersPage').then((m) => ({ default: m.CustomersPage })))
 const CustomerDetailPage = lazy(() => import('@/pages/CustomerDetailPage').then((m) => ({ default: m.CustomerDetailPage })))
+const VisitsPage = lazy(() => import('@/pages/VisitsPage').then((m) => ({ default: m.VisitsPage })))
 
 function PageFallback() {
   return (
@@ -80,6 +81,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageFallback />}>
             <CustomerDetailPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/visits',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <VisitsPage />
           </Suspense>
         ),
       },
