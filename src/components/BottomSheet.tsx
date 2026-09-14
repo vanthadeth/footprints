@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 
 /** Shared bottom-sheet shell for selection/confirmation flows (spec: "Bottom sheets for selection where useful"). */
@@ -47,7 +48,15 @@ export function BottomSheet({
 
   if (!mounted) return null
 
-  return (
+  // Portaled straight to <body> -- rendered inline, this "fixed" overlay
+  // would sit inside AppLayout's per-page `animate-fade-in-up` wrapper,
+  // and that animation's `transform` (present even at rest, since the
+  // animation fill-mode is `both`) makes it the containing block for any
+  // `position: fixed` descendant per the CSS spec. That silently shrank
+  // the sheet down to that wrapper's own content box instead of the full
+  // viewport -- barely visible on a tall page, but on a short one (e.g.
+  // Users) it clipped most of the sheet's fields away entirely.
+  return createPortal(
     <div
       className={`fixed inset-0 z-50 flex items-end justify-center transition-opacity duration-200 md:items-center ${
         visible ? 'opacity-100' : 'opacity-0'
@@ -70,6 +79,7 @@ export function BottomSheet({
         </div>
         <div className="max-h-[75vh] overflow-y-auto">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Building2, ChevronLeft, Loader2, MapPin, RefreshCw, ShieldCheck, X } from 'lucide-react'
 import { useJourneyContext } from '@/features/attendance/JourneyContext'
 import { useCustomerNames } from '@/features/customers/useCustomerNames'
@@ -148,7 +149,13 @@ export function VisitFlow({ open, onClose }: { open: boolean; onClose: () => voi
     setNextAppointment(value ? new Date(`${value}T00:00:00`).toISOString() : null)
   }
 
-  return (
+  // Portaled to <body> for the same reason BottomSheet is: rendered inline
+  // inside AppLayout's per-page `animate-fade-in-up` wrapper, this "fixed"
+  // overlay would be clipped to that wrapper's own content box rather than
+  // the full viewport, since its `transform` (present even at rest -- the
+  // animation's fill-mode is `both`) makes it the containing block for any
+  // `position: fixed` descendant.
+  return createPortal(
     <div className="fixed inset-0 z-30 flex flex-col bg-neutral-50 dark:bg-neutral-950">
       <header
         style={{ paddingTop: 'calc(0.75rem + env(safe-area-inset-top))' }}
@@ -210,7 +217,8 @@ export function VisitFlow({ open, onClose }: { open: boolean; onClose: () => voi
           />
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
