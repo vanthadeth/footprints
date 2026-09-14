@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Ban, Building2, ChevronLeft, Loader2, MapPin, RefreshCw, ShieldCheck, X } from 'lucide-react'
+import { AlertTriangle, Ban, Building2, ChevronLeft, Loader2, MapPin, RefreshCw, ShieldCheck, X } from 'lucide-react'
 import { BottomSheet } from '@/components/BottomSheet'
 import { useJourneyContext } from '@/features/attendance/JourneyContext'
 import { useCustomerNames } from '@/features/customers/useCustomerNames'
+import { useAppSettings } from '@/hooks/useAppSettings'
 import { locationService } from '@/features/location/locationService'
 import { LocationError } from '@/features/location/types'
 import { formatDistance } from '@/lib/geo'
@@ -38,12 +39,14 @@ const NEXT_VISIT_PRESETS: { label: string; days: number }[] = [
 export function VisitFlow({ open, onClose }: { open: boolean; onClose: () => void }) {
   const journey = useJourneyContext()
   const { byKind } = useVisitOptions()
+  const settings = useAppSettings()
 
   const [step, setStep] = useState<Step>(journey.openVisit ? 'record' : 'picker')
   const [locState, setLocState] = useState<'loading' | 'ready' | 'error'>('loading')
   const [accuracy, setAccuracy] = useState<number | null>(null)
   const [customers, setCustomers] = useState<NearbyCustomer[]>([])
   const [locError, setLocError] = useState<string | null>(null)
+  const [farCustomer, setFarCustomer] = useState<NearbyCustomer | null>(null)
 
   const [visitTypeId, setVisitTypeId] = useState<string | null>(null)
   const [visitStatusId, setVisitStatusId] = useState<string | null>(null)
@@ -90,6 +93,7 @@ export function VisitFlow({ open, onClose }: { open: boolean; onClose: () => voi
     setCustomDate('')
     setRemarks('')
     setConfirmOpen(false)
+    setFarCustomer(null)
     if (!journey.openVisit) void refreshLocation()
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when the flow is (re)opened, not on every journey/state change
   }, [open])
@@ -129,6 +133,25 @@ export function VisitFlow({ open, onClose }: { open: boolean; onClose: () => voi
   function handleReselect() {
     reselectingRef.current = true
     void journey.cancelVisit()
+  }
+
+  // A customer farther than the visit geofence radius is still selectable
+  // (the picker is a convenience, not a hard boundary) but is very likely a
+  // mis-tap or a stale location fix -- confirm before starting the visit
+  // instead of silently checking in somewhere the auto check-out will
+  // immediately flag anyway.
+  function handleSelectCustomer(customer: NearbyCustomer) {
+    if (customer.distance_m > settings.checkinRadiusM) {
+      setFarCustomer(customer)
+    } else {
+      void journey.startVisit(customer.id)
+    }
+  }
+
+  function handleConfirmFarCheckIn() {
+    const customer = farCustomer
+    setFarCustomer(null)
+    if (customer) void journey.startVisit(customer.id)
   }
 
   function handleCancelCheckIn() {
@@ -198,8 +221,9 @@ export function VisitFlow({ open, onClose }: { open: boolean; onClose: () => voi
             customers={customers}
             locError={locError}
             busy={journey.busy}
+            farThresholdM={settings.checkinRadiusM}
             onRefresh={refreshLocation}
-            onSelect={(id) => journey.startVisit(id)}
+            onSelect={handleSelectCustomer}
             onSkip={() => journey.startVisit(null)}
           />
         ) : (
@@ -250,6 +274,29 @@ export function VisitFlow({ open, onClose }: { open: boolean; onClose: () => voi
           </button>
         </div>
       </BottomSheet>
+
+      <BottomSheet open={farCustomer !== null} onClose={() => setFarCustomer(null)} title="Customer Is Far Away">
+        <div className="p-4">
+          <p className="text-sm text-neutral-600">
+            {farCustomer?.shop_name} is {farCustomer ? formatDistance(farCustomer.distance_m) : ''} from your current
+            location -- farther than the {formatDistance(settings.checkinRadiusM)} visit range. Check in here anyway?
+          </p>
+          <button
+            onClick={handleConfirmFarCheckIn}
+            disabled={journey.busy}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-status-warn py-3.5 text-sm font-semibold text-white tap-target disabled:opacity-60"
+          >
+            {journey.busy && <Loader2 className="h-4 w-4 animate-spin" />}
+            {journey.busy ? 'Checking in…' : 'Check In Anyway'}
+          </button>
+          <button
+            onClick={() => setFarCustomer(null)}
+            className="mt-2 w-full rounded-xl py-3.5 text-sm font-semibold text-neutral-500 tap-target"
+          >
+            Cancel
+          </button>
+        </div>
+      </BottomSheet>
     </div>,
     document.body
   )
@@ -261,6 +308,7 @@ function PickerStep({
   customers,
   locError,
   busy,
+  farThresholdM,
   onRefresh,
   onSelect,
   onSkip,
@@ -270,8 +318,9 @@ function PickerStep({
   customers: NearbyCustomer[]
   locError: string | null
   busy: boolean
+  farThresholdM: number
   onRefresh: () => void
-  onSelect: (id: string) => void
+  onSelect: (customer: NearbyCustomer) => void
   onSkip: () => void
 }) {
   return (
@@ -305,23 +354,35 @@ function PickerStep({
         <div className="mt-3 space-y-2">
           <p className="px-1 text-xs font-semibold uppercase tracking-wide text-neutral-400">Nearest Customers</p>
           {customers.length === 0 && <p className="rounded-xl2 bg-white p-4 text-sm text-neutral-500 shadow-card">No customers found nearby.</p>}
-          {customers.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => onSelect(c.id)}
-              disabled={busy}
-              className="flex w-full items-center gap-3 rounded-xl2 bg-white px-4 py-3.5 text-left shadow-card tap-target disabled:opacity-60"
-            >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-500">
-                <Building2 className="h-5 w-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-neutral-900">{c.shop_name}</p>
-                <p className="truncate text-xs text-neutral-500">{c.business_type}</p>
-              </div>
-              <span className="shrink-0 text-sm font-medium text-neutral-500">{formatDistance(c.distance_m)}</span>
-            </button>
-          ))}
+          {customers.map((c) => {
+            const isFar = c.distance_m > farThresholdM
+            return (
+              <button
+                key={c.id}
+                onClick={() => onSelect(c)}
+                disabled={busy}
+                className="flex w-full items-center gap-3 rounded-xl2 bg-white px-4 py-3.5 text-left shadow-card tap-target disabled:opacity-60"
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-500">
+                  <Building2 className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-neutral-900">{c.shop_name}</p>
+                  <p className="truncate text-xs text-neutral-500">{c.business_type}</p>
+                </div>
+                <div className="flex shrink-0 flex-col items-end gap-0.5">
+                  <span className={`text-sm font-medium ${isFar ? 'text-status-warn' : 'text-neutral-500'}`}>
+                    {formatDistance(c.distance_m)}
+                  </span>
+                  {isFar && (
+                    <span className="flex items-center gap-0.5 text-[10px] font-medium text-status-warn">
+                      <AlertTriangle className="h-3 w-3" /> Far away
+                    </span>
+                  )}
+                </div>
+              </button>
+            )
+          })}
         </div>
       )}
 
