@@ -20,6 +20,8 @@ const FleetPage = lazy(() => import('@/pages/FleetPage').then((m) => ({ default:
 const SettingsPage = lazy(() => import('@/features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })))
 const UsersPage = lazy(() => import('@/pages/UsersPage').then((m) => ({ default: m.UsersPage })))
 const HomePage = lazy(() => import('@/pages/HomePage').then((m) => ({ default: m.HomePage })))
+const CustomersPage = lazy(() => import('@/pages/CustomersPage').then((m) => ({ default: m.CustomersPage })))
+const CustomerDetailPage = lazy(() => import('@/pages/CustomerDetailPage').then((m) => ({ default: m.CustomerDetailPage })))
 
 function PageFallback() {
   return (
@@ -62,6 +64,22 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageFallback />}>
             <HomePage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/customers',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <CustomersPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/customers/:id',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <CustomerDetailPage />
           </Suspense>
         ),
       },

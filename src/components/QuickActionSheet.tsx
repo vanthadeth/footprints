@@ -1,17 +1,21 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Banknote, ClipboardList, MapPin, ShoppingCart, type LucideIcon } from 'lucide-react'
 import { BottomSheet } from './BottomSheet'
 import { VisitFlow } from '@/features/visits/VisitFlow'
+import { NewCustomerSheet } from '@/features/customers/NewCustomerSheet'
 
 /**
  * The field nav's center "+" action (spec): New Visit, New Order,
  * Collection, New Customer. New Order and Collection have no product/cart
- * or payments backend wired up yet (a separate, larger project); New
- * Customer follows once the Customers module ships. Shown disabled rather
- * than left out, so the menu still reads as the full intended set.
+ * or payments backend wired up yet (a separate, larger project) -- shown
+ * disabled rather than left out, so the menu still reads as the full
+ * intended set.
  */
 export function QuickActionSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const navigate = useNavigate()
   const [visitOpen, setVisitOpen] = useState(false)
+  const [newCustomerOpen, setNewCustomerOpen] = useState(false)
 
   return (
     <>
@@ -27,11 +31,26 @@ export function QuickActionSheet({ open, onClose }: { open: boolean; onClose: ()
           />
           <QuickAction icon={ShoppingCart} label="New Order" comingSoon />
           <QuickAction icon={Banknote} label="Collection" comingSoon />
-          <QuickAction icon={ClipboardList} label="New Customer" comingSoon />
+          <QuickAction
+            icon={ClipboardList}
+            label="New Customer"
+            onClick={() => {
+              onClose()
+              setNewCustomerOpen(true)
+            }}
+          />
         </div>
       </BottomSheet>
 
       <VisitFlow open={visitOpen} onClose={() => setVisitOpen(false)} />
+      <NewCustomerSheet
+        open={newCustomerOpen}
+        onClose={() => setNewCustomerOpen(false)}
+        onCreated={(customerId) => {
+          setNewCustomerOpen(false)
+          navigate(`/customers/${customerId}`)
+        }}
+      />
     </>
   )
 }
