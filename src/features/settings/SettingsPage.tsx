@@ -6,12 +6,13 @@ import { haptic } from '@/lib/haptic'
 import { settingsService, type EditableSettings } from './settingsService'
 
 /**
- * Global settings a super admin (System Admin role) sets for everyone --
- * this is what useAppSettings() reads everywhere else in the app (location
- * ping frequency, geofence radius, auto check-out, working hours). RLS
- * (`app_settings_update`, gated on the `settings:edit` permission) is the
- * real enforcement; the role check below just keeps the form from showing
- * to people who couldn't save it anyway.
+ * Global settings a super admin (`users.is_super_admin`) sets for everyone
+ * -- this is what useAppSettings() reads everywhere else in the app
+ * (location ping frequency, geofence radius, auto check-out, working
+ * hours). RLS (`app_settings_update`, gated on the `settings:edit`
+ * permission, which a super admin always has via app.can()'s blanket
+ * 'any' scope) is the real enforcement; the check below just keeps the
+ * form from showing to people who couldn't save it anyway.
  */
 export function SettingsPage() {
   const { profile, loading: profileLoading } = useProfile()
@@ -25,11 +26,11 @@ export function SettingsPage() {
     )
   }
 
-  if (profile?.role_name !== 'System Admin') {
+  if (!profile?.is_super_admin) {
     return (
       <div className="mx-auto flex max-w-lg flex-col items-center px-6 pt-16 text-center md:max-w-2xl">
         <ShieldAlert className="h-10 w-10 text-neutral-300" />
-        <p className="mt-4 text-sm text-neutral-500">Only a System Admin can view global settings.</p>
+        <p className="mt-4 text-sm text-neutral-500">Only a super admin can view global settings.</p>
       </div>
     )
   }

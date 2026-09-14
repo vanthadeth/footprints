@@ -1780,6 +1780,7 @@ export type Database = {
           full_name: string
           gender: Database["public"]["Enums"]["gender"] | null
           id: string
+          is_field_sales: boolean
           is_super_admin: boolean
           manager_id: string | null
           must_change_password: boolean
@@ -1811,6 +1812,7 @@ export type Database = {
           full_name: string
           gender?: Database["public"]["Enums"]["gender"] | null
           id?: string
+          is_field_sales?: boolean
           is_super_admin?: boolean
           manager_id?: string | null
           must_change_password?: boolean
@@ -1842,6 +1844,7 @@ export type Database = {
           full_name?: string
           gender?: Database["public"]["Enums"]["gender"] | null
           id?: string
+          is_field_sales?: boolean
           is_super_admin?: boolean
           manager_id?: string | null
           must_change_password?: boolean
@@ -2354,6 +2357,14 @@ export type Database = {
       }
     }
     Functions: {
+      can: {
+        Args: {
+          p_action: Database["public"]["Enums"]["permission_action"]
+          p_module: string
+          p_owner?: string
+        }
+        Returns: boolean
+      }
       can_delete_user: { Args: { p_user: string }; Returns: boolean }
       can_edit_user: { Args: { p_user: string }; Returns: boolean }
       can_edit_visit_quota: { Args: { p_user: string }; Returns: boolean }
@@ -2525,6 +2536,29 @@ export type Database = {
         Returns: Json
       }
       ensure_my_cart: { Args: never; Returns: string }
+      manageable_users: {
+        Args: never
+        Returns: {
+          created_at: string
+          department_id: string
+          department_name: string
+          email: string
+          employment_date: string
+          full_name: string
+          id: string
+          is_field_sales: boolean
+          is_super_admin: boolean
+          manager_id: string
+          manager_name: string
+          must_change_password: boolean
+          phone_primary: string
+          photo_path: string
+          position: string
+          role_id: string
+          role_name: string
+          status: Database["public"]["Enums"]["user_status"]
+        }[]
+      }
       my_modules: {
         Args: { p_view: string }
         Returns: {
@@ -2563,6 +2597,7 @@ export type Database = {
         Returns: {
           full_name: string
           id: string
+          is_field_sales: boolean
           manager_id: string
           photo_path: string
           position: string

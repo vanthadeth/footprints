@@ -35,6 +35,7 @@ export const fleetService = {
       position: row.position || null,
       roleName: row.role_name,
       managerId: row.manager_id,
+      isFieldSales: row.is_field_sales,
     }))
   },
 

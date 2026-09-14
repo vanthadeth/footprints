@@ -17,6 +17,7 @@ import { MenuPage } from '@/pages/MenuPage'
 const FootprintsPage = lazy(() => import('@/pages/FootprintsPage').then((m) => ({ default: m.FootprintsPage })))
 const FleetPage = lazy(() => import('@/pages/FleetPage').then((m) => ({ default: m.FleetPage })))
 const SettingsPage = lazy(() => import('@/features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })))
+const UsersPage = lazy(() => import('@/pages/UsersPage').then((m) => ({ default: m.UsersPage })))
 
 function PageFallback() {
   return (
@@ -76,6 +77,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageFallback />}>
             <SettingsPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/users',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <UsersPage />
           </Suspense>
         ),
       },

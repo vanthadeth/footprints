@@ -6,6 +6,17 @@ const STYLES: Record<FleetStatus, string> = {
   OFF: 'bg-neutral-100 text-status-off',
 }
 
+/** Spec wording ("Off work, Idling, Visiting") -- the FleetStatus type itself stays OFF/IDLING/VISITING. */
+export const FLEET_STATUS_LABELS: Record<FleetStatus, string> = {
+  VISITING: 'Visiting',
+  IDLING: 'Idling',
+  OFF: 'Off work',
+}
+
 export function FleetStatusBadge({ status }: { status: FleetStatus }) {
-  return <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${STYLES[status]}`}>{status}</span>
+  return (
+    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${STYLES[status]}`}>
+      {FLEET_STATUS_LABELS[status]}
+    </span>
+  )
 }

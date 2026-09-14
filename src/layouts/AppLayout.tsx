@@ -1,9 +1,11 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { MapPin, Clock, Footprints as FootprintsIcon, Truck, User, Menu as MenuIcon } from 'lucide-react'
+import { MapPin, Clock, Footprints as FootprintsIcon, Truck, User, Menu as MenuIcon, Users as UsersIcon, type LucideIcon } from 'lucide-react'
 import { haptic } from '@/lib/haptic'
 import { OfflineBanner } from '@/components/OfflineBanner'
 import { TitleBar } from '@/components/TitleBar'
 import { JourneyProvider, useJourneyContext } from '@/features/attendance/JourneyContext'
+import { useProfile, type Profile } from '@/features/auth/useProfile'
+import { ForceChangePasswordPage } from '@/features/auth/ForceChangePasswordPage'
 
 /** Desktop keeps the full set of destinations as a vertical rail -- screen space isn't the constraint there that it is on a phone's bottom bar. */
 const DESKTOP_TABS = [
@@ -16,19 +18,29 @@ const DESKTOP_TABS = [
 
 /**
  * Mobile-first shell: a 3-item bottom tab bar on phones (Profile / Check In
- * (raised, center) / Footprints) with a left rail on wider viewports.
- * Fleet and Menu don't disappear -- they're one tap away from Profile --
- * they just don't compete for space on the bottom bar (spec: 3-item nav,
- * center tab re-labels itself by attendance state).
+ * (raised, center) / Footprints), growing to 5 for a super admin (Profile /
+ * Users / Check In / Footprints / Fleet -- spec) since they need Users and
+ * Fleet reachable without detouring through Profile/Menu. Regular users'
+ * Fleet/Menu access is unchanged (a left rail on wider viewports, one tap
+ * from Profile on mobile) -- they just don't compete for space on the
+ * bottom bar. The center tab re-labels itself by attendance state either way.
  */
 export function AppLayout() {
   const location = useLocation()
+  const { profile, loading, refresh } = useProfile()
+
+  // A fresh admin-issued password (new account or a reset) must be
+  // replaced before anything else loads -- nothing about the shell below
+  // (nav, journey polling) should run on a password only an admin knows.
+  if (!loading && profile?.must_change_password) {
+    return <ForceChangePasswordPage onDone={refresh} />
+  }
 
   return (
     <JourneyProvider>
       <div className="flex min-h-dvh flex-col bg-neutral-50 md:flex-row">
         <OfflineBanner />
-        <DesktopSidebar />
+        <DesktopSidebar profile={profile} />
 
         <div className="flex min-w-0 flex-1 flex-col">
           <TitleBar />
@@ -43,15 +55,16 @@ export function AppLayout() {
           </main>
         </div>
 
-        <MobileTabBar />
+        <MobileTabBar profile={profile} />
       </div>
     </JourneyProvider>
   )
 }
 
-function DesktopSidebar() {
+function DesktopSidebar({ profile }: { profile: Profile | null }) {
   const { attendance } = useJourneyContext()
   const checkInLabel = attendance === 'CLOCKED_IN' ? 'Check In' : 'Clock In'
+  const tabs = profile?.is_super_admin ? [...DESKTOP_TABS, { to: '/users', label: 'Users', icon: UsersIcon }] : DESKTOP_TABS
 
   return (
     <nav
@@ -59,7 +72,7 @@ function DesktopSidebar() {
       aria-label="Primary"
     >
       {/* No logo/brand block here -- TitleBar (to the right) already shows it, alongside the current page's title. */}
-      {DESKTOP_TABS.map((tab) => (
+      {tabs.map((tab) => (
         <NavLink
           key={tab.to}
           to={tab.to}
@@ -77,34 +90,21 @@ function DesktopSidebar() {
   )
 }
 
-function MobileTabBar() {
+function MobileTabBar({ profile }: { profile: Profile | null }) {
   const { attendance } = useJourneyContext()
   const isClockedIn = attendance === 'CLOCKED_IN'
   const checkInLabel = isClockedIn ? 'Check In' : 'Clock In'
   const CheckInIcon = isClockedIn ? MapPin : Clock
+  const isSuperAdmin = profile?.is_super_admin === true
 
   return (
     <nav
       className="fixed inset-x-0 bottom-0 z-20 border-t border-neutral-200 bg-white/95 backdrop-blur safe-bottom md:hidden"
       aria-label="Primary"
     >
-      <div className="mx-auto flex max-w-lg items-end justify-between px-4">
-        <NavLink
-          to="/profile"
-          onClick={() => haptic('light')}
-          className={({ isActive }) =>
-            `flex flex-1 flex-col items-center gap-1 py-2 text-[11px] font-medium tap-target ${
-              isActive ? 'text-brand-600' : 'text-neutral-400'
-            }`
-          }
-        >
-          {({ isActive }) => (
-            <>
-              <User className="h-6 w-6" strokeWidth={isActive ? 2.5 : 2} aria-hidden />
-              Profile
-            </>
-          )}
-        </NavLink>
+      <div className="mx-auto flex max-w-lg items-end justify-between px-2">
+        <MobileTabLink to="/profile" icon={User} label="Profile" />
+        {isSuperAdmin && <MobileTabLink to="/users" icon={UsersIcon} label="Users" />}
 
         <NavLink to="/check-in" onClick={() => haptic('light')} className="relative -mt-7 flex flex-1 flex-col items-center">
           <span className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-500 text-white shadow-card ring-4 ring-neutral-50 dark:ring-neutral-950">
@@ -113,23 +113,28 @@ function MobileTabBar() {
           <span className="mt-1 pb-2 text-[11px] font-semibold text-brand-600">{checkInLabel}</span>
         </NavLink>
 
-        <NavLink
-          to="/footprints"
-          onClick={() => haptic('light')}
-          className={({ isActive }) =>
-            `flex flex-1 flex-col items-center gap-1 py-2 text-[11px] font-medium tap-target ${
-              isActive ? 'text-brand-600' : 'text-neutral-400'
-            }`
-          }
-        >
-          {({ isActive }) => (
-            <>
-              <FootprintsIcon className="h-6 w-6" strokeWidth={isActive ? 2.5 : 2} aria-hidden />
-              Footprints
-            </>
-          )}
-        </NavLink>
+        <MobileTabLink to="/footprints" icon={FootprintsIcon} label="Footprints" />
+        {isSuperAdmin && <MobileTabLink to="/fleet" icon={Truck} label="Fleet" />}
       </div>
     </nav>
+  )
+}
+
+function MobileTabLink({ to, icon: Icon, label }: { to: string; icon: LucideIcon; label: string }) {
+  return (
+    <NavLink
+      to={to}
+      onClick={() => haptic('light')}
+      className={({ isActive }) =>
+        `flex flex-1 flex-col items-center gap-1 py-2 text-[11px] font-medium tap-target ${isActive ? 'text-brand-600' : 'text-neutral-400'}`
+      }
+    >
+      {({ isActive }) => (
+        <>
+          <Icon className="h-6 w-6" strokeWidth={isActive ? 2.5 : 2} aria-hidden />
+          {label}
+        </>
+      )}
+    </NavLink>
   )
 }
