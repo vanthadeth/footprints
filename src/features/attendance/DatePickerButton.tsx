@@ -17,7 +17,7 @@ export function DatePickerButton({ selected, onChange }: { selected: string; onC
           setOpen(true)
         }}
         aria-label="Choose a date"
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-white tap-target"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-600 tap-target"
       >
         <Calendar className="h-4 w-4" />
       </button>

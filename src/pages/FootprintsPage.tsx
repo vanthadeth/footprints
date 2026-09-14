@@ -31,19 +31,16 @@ export function FootprintsPage() {
   return (
     <div className="mx-auto max-w-lg pb-6 md:max-w-3xl">
       {/* Top section: 5-day picker (+ calendar, top-right, for any earlier date). */}
-      <div className="relative mx-4 mt-4 overflow-hidden rounded-xl2 bg-brand-900 p-5 shadow-card md:mx-8">
-        <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/5" />
-        <div className="relative">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xl font-semibold text-white">{formatDayLabel(selectedDate)}</p>
-              <p className="mt-0.5 text-sm text-white/60">Your journey history</p>
-            </div>
-            <DatePickerButton selected={selectedDate} onChange={setSelectedDate} />
+      <div className="mx-4 mt-4 rounded-xl2 bg-white p-5 shadow-card md:mx-8">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xl font-semibold text-neutral-900">{formatDayLabel(selectedDate)}</p>
+            <p className="mt-0.5 text-sm text-neutral-400">Your journey history</p>
           </div>
-          <div className="mt-4">
-            <DayPickerBar selected={selectedDate} onChange={setSelectedDate} />
-          </div>
+          <DatePickerButton selected={selectedDate} onChange={setSelectedDate} />
+        </div>
+        <div className="mt-4">
+          <DayPickerBar selected={selectedDate} onChange={setSelectedDate} />
         </div>
       </div>
 
