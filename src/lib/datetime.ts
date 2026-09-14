@@ -89,6 +89,20 @@ export function formatDate(iso: string | null, timezone: string = APP_TIMEZONE):
   return `${d}/${m}/${y}`
 }
 
+/** "Monday, 14 September" -- Home's greeting header. Always this shape, regardless of browser locale (same reasoning as formatDate). */
+export function formatLongDate(iso: string = new Date().toISOString(), timezone: string = APP_TIMEZONE): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: timezone,
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  }).formatToParts(new Date(iso))
+  const weekday = parts.find((p) => p.type === 'weekday')!.value
+  const day = parts.find((p) => p.type === 'day')!.value
+  const month = parts.find((p) => p.type === 'month')!.value
+  return `${weekday}, ${day} ${month}`
+}
+
 /**
  * Is "now" at or past `timeOfDay` (a "HH:MM" or "HH:MM:SS" string, as
  * app_settings.work_end_time comes back from Postgres) plus a grace period?

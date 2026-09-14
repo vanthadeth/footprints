@@ -14,7 +14,13 @@ import { useVisitOptions } from './useVisitOptions'
 import type { VisitOption, VisitOptionKind } from './visitOptionsService'
 import { visitsService, type NearbyCustomer, type VisitOutcomeDetails } from './visitsService'
 
-type Step = 'picker' | 'record'
+type Step = 'picker' | 'confirm' | 'record'
+
+/** A customer already chosen before the flow opened (Home's Next Customer card, a Customer detail page's VISIT button) -- skips the nearby-picker step and goes straight to a one-tap confirm. */
+export interface PresetCustomer {
+  id: string
+  shopName: string
+}
 
 const NEXT_VISIT_PRESETS: { label: string; days: number }[] = [
   { label: 'Tomorrow', days: 1 },
@@ -36,12 +42,21 @@ const NEXT_VISIT_PRESETS: { label: string; days: number }[] = [
  * visit exists, can still be dismissed with no side effect. All visit
  * record fields are optional; nothing here blocks checking out.
  */
-export function VisitFlow({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function VisitFlow({
+  open,
+  onClose,
+  presetCustomer,
+}: {
+  open: boolean
+  onClose: () => void
+  /** Skip the nearby-picker step and go straight to a one-tap confirm for this customer. */
+  presetCustomer?: PresetCustomer | null
+}) {
   const journey = useJourneyContext()
   const { byKind } = useVisitOptions()
   const settings = useAppSettings()
 
-  const [step, setStep] = useState<Step>(journey.openVisit ? 'record' : 'picker')
+  const [step, setStep] = useState<Step>(journey.openVisit ? 'record' : presetCustomer ? 'confirm' : 'picker')
   const [locState, setLocState] = useState<'loading' | 'ready' | 'error'>('loading')
   const [accuracy, setAccuracy] = useState<number | null>(null)
   const [customers, setCustomers] = useState<NearbyCustomer[]>([])
@@ -66,8 +81,12 @@ export function VisitFlow({ open, onClose }: { open: boolean; onClose: () => voi
     try {
       const reading = await locationService.getCurrentPosition()
       setAccuracy(reading.accuracy)
-      const nearby = await visitsService.nearbyCustomers(reading.latitude, reading.longitude, 5)
-      setCustomers(nearby)
+      // A preset customer already has its own confirm UI (single customer,
+      // no list) -- no need for the nearby-customers round trip at all.
+      if (!presetCustomer) {
+        const nearby = await visitsService.nearbyCustomers(reading.latitude, reading.longitude, 5)
+        setCustomers(nearby)
+      }
       setLocState('ready')
     } catch (e) {
       setLocError(
@@ -84,7 +103,7 @@ export function VisitFlow({ open, onClose }: { open: boolean; onClose: () => voi
   // goes straight to the record step instead of the picker.
   useEffect(() => {
     if (!open) return
-    setStep(journey.openVisit ? 'record' : 'picker')
+    setStep(journey.openVisit ? 'record' : presetCustomer ? 'confirm' : 'picker')
     setVisitTypeId(null)
     setVisitStatusId(null)
     setOrderStatusId(null)
@@ -96,11 +115,11 @@ export function VisitFlow({ open, onClose }: { open: boolean; onClose: () => voi
     setFarCustomer(null)
     if (!journey.openVisit) void refreshLocation()
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when the flow is (re)opened, not on every journey/state change
-  }, [open])
+  }, [open, presetCustomer?.id])
 
-  // A visit just started while we were on the picker -- move on to recording it.
+  // A visit just started while we were on the picker/confirm step -- move on to recording it.
   useEffect(() => {
-    if (step === 'picker' && journey.openVisit) setStep('record')
+    if (step !== 'record' && journey.openVisit) setStep('record')
   }, [step, journey.openVisit])
 
   // The visit closed (our own confirm, or the server auto-checking it out
@@ -123,6 +142,7 @@ export function VisitFlow({ open, onClose }: { open: boolean; onClose: () => voi
         void refreshLocation()
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when a reselect settles, not on every refreshLocation identity change
   }, [journey.busy, journey.openVisit])
 
   if (!open) return null
@@ -195,15 +215,17 @@ export function VisitFlow({ open, onClose }: { open: boolean; onClose: () => voi
         style={{ paddingTop: 'calc(0.75rem + env(safe-area-inset-top))' }}
         className="flex items-center justify-between border-b border-neutral-200 bg-white px-4 pb-3 dark:border-neutral-800"
       >
-        <h1 className="text-base font-semibold text-neutral-900">{step === 'picker' ? 'Select a Customer' : 'Visit Record'}</h1>
-        {step === 'picker' ? (
-          <button onClick={onClose} aria-label="Cancel" className="flex h-9 w-9 items-center justify-center rounded-full text-neutral-400 tap-target">
-            <X className="h-5 w-5" />
-          </button>
-        ) : (
+        <h1 className="text-base font-semibold text-neutral-900">
+          {step === 'picker' ? 'Select a Customer' : step === 'confirm' ? 'Check In' : 'Visit Record'}
+        </h1>
+        {step === 'record' ? (
           <span className="flex items-center gap-1 text-xs font-medium text-status-working">
             <ShieldCheck className="h-3.5 w-3.5" /> Locked
           </span>
+        ) : (
+          <button onClick={onClose} aria-label="Cancel" className="flex h-9 w-9 items-center justify-center rounded-full text-neutral-400 tap-target">
+            <X className="h-5 w-5" />
+          </button>
         )}
       </header>
 
@@ -226,6 +248,17 @@ export function VisitFlow({ open, onClose }: { open: boolean; onClose: () => voi
             onRefresh={refreshLocation}
             onSelect={handleSelectCustomer}
             onSkip={() => journey.startVisit(null)}
+          />
+        ) : step === 'confirm' && presetCustomer ? (
+          <ConfirmStep
+            customerName={presetCustomer.shopName}
+            locState={locState}
+            accuracy={accuracy}
+            locError={locError}
+            busy={journey.busy}
+            maxAccuracyM={settings.maxLocationAccuracyM}
+            onRefresh={refreshLocation}
+            onCheckIn={() => journey.startVisit(presetCustomer.id)}
           />
         ) : (
           <RecordStep
@@ -405,6 +438,73 @@ function PickerStep({
         className="mt-4 w-full rounded-xl border border-dashed border-neutral-300 py-3.5 text-sm font-semibold text-neutral-600 tap-target disabled:opacity-60"
       >
         Can't find them? Check in without a customer
+      </button>
+    </div>
+  )
+}
+
+function ConfirmStep({
+  customerName,
+  locState,
+  accuracy,
+  locError,
+  busy,
+  maxAccuracyM,
+  onRefresh,
+  onCheckIn,
+}: {
+  customerName: string
+  locState: 'loading' | 'ready' | 'error'
+  accuracy: number | null
+  locError: string | null
+  busy: boolean
+  maxAccuracyM: number
+  onRefresh: () => void
+  onCheckIn: () => void
+}) {
+  const accuracyTooLow = locState === 'ready' && accuracy != null && accuracy > maxAccuracyM
+  const blocked = busy || locState !== 'ready' || accuracyTooLow
+
+  return (
+    <div className="p-4">
+      <div className="rounded-xl2 bg-white p-4 shadow-card">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-500">
+            <Building2 className="h-5 w-5" />
+          </div>
+          <p className="truncate text-base font-semibold text-neutral-900">{customerName}</p>
+        </div>
+
+        <div className="mt-3 flex items-center justify-between border-t border-neutral-100 pt-3 dark:border-neutral-800">
+          <p className={`flex items-center gap-1.5 text-xs ${accuracyTooLow ? 'text-status-warn' : 'text-neutral-500'}`}>
+            <MapPin className="h-3.5 w-3.5" />
+            {locState === 'loading' && 'Finding your location…'}
+            {locState === 'ready' && accuracy != null && `Current location · accuracy ${Math.round(accuracy)} m`}
+            {locState === 'error' && (locError ?? 'Location unavailable')}
+          </p>
+          <button
+            onClick={onRefresh}
+            disabled={locState === 'loading'}
+            aria-label="Refresh location"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-brand-600 tap-target disabled:opacity-40"
+          >
+            <RefreshCw className={`h-4 w-4 ${locState === 'loading' ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
+        {accuracyTooLow && (
+          <p className="mt-2 flex items-center gap-1.5 text-xs text-status-warn">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> Accuracy is too low to check in -- move to an open area and refresh.
+          </p>
+        )}
+      </div>
+
+      <button
+        onClick={onCheckIn}
+        disabled={blocked}
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 py-4 text-base font-semibold text-white tap-target disabled:opacity-40"
+      >
+        {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+        {busy ? 'Checking in…' : 'CHECK IN'}
       </button>
     </div>
   )

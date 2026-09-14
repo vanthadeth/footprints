@@ -10,6 +10,7 @@ import { ResetPasswordPage } from '@/pages/ResetPasswordPage'
 import { CheckInPage } from '@/pages/CheckInPage'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { MenuPage } from '@/pages/MenuPage'
+import { StartPage } from '@/pages/StartPage'
 
 // Map libraries (leaflet/react-leaflet) only load once someone actually
 // visits a page that needs them, instead of bloating the initial bundle
@@ -18,6 +19,7 @@ const FootprintsPage = lazy(() => import('@/pages/FootprintsPage').then((m) => (
 const FleetPage = lazy(() => import('@/pages/FleetPage').then((m) => ({ default: m.FleetPage })))
 const SettingsPage = lazy(() => import('@/features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })))
 const UsersPage = lazy(() => import('@/pages/UsersPage').then((m) => ({ default: m.UsersPage })))
+const HomePage = lazy(() => import('@/pages/HomePage').then((m) => ({ default: m.HomePage })))
 
 function PageFallback() {
   return (
@@ -53,7 +55,16 @@ export const router = createBrowserRouter([
       </RequireAuth>
     ),
     children: [
+      { path: '/start', element: <StartPage /> },
       { path: '/check-in', element: <CheckInPage /> },
+      {
+        path: '/home',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <HomePage />
+          </Suspense>
+        ),
+      },
       {
         path: '/footprints',
         element: (

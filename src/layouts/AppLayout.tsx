@@ -1,8 +1,23 @@
+import { useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { MapPin, Clock, Footprints as FootprintsIcon, Truck, User, Menu as MenuIcon, Users as UsersIcon, type LucideIcon } from 'lucide-react'
+import {
+  MapPin,
+  Clock,
+  Footprints as FootprintsIcon,
+  Truck,
+  User,
+  Menu as MenuIcon,
+  Users as UsersIcon,
+  Home as HomeIcon,
+  Store,
+  Plus,
+  MoreHorizontal,
+  type LucideIcon,
+} from 'lucide-react'
 import { haptic } from '@/lib/haptic'
 import { OfflineBanner } from '@/components/OfflineBanner'
 import { TitleBar } from '@/components/TitleBar'
+import { QuickActionSheet } from '@/components/QuickActionSheet'
 import { JourneyProvider, useJourneyContext } from '@/features/attendance/JourneyContext'
 import { useProfile, type Profile } from '@/features/auth/useProfile'
 import { ForceChangePasswordPage } from '@/features/auth/ForceChangePasswordPage'
@@ -17,17 +32,25 @@ const DESKTOP_TABS = [
 ]
 
 /**
- * Mobile-first shell: a 3-item bottom tab bar on phones (Profile / Check In
- * (raised, center) / Footprints), growing to 5 for a super admin (Profile /
- * Users / Check In / Footprints / Fleet -- spec) since they need Users and
- * Fleet reachable without detouring through Profile/Menu. Regular users'
- * Fleet/Menu access is unchanged (a left rail on wider viewports, one tap
- * from Profile on mobile) -- they just don't compete for space on the
- * bottom bar. The center tab re-labels itself by attendance state either way.
+ * Mobile-first shell. Two entirely separate nav sets, chosen once by
+ * `profile.is_field_sales` and never mixed:
+ *
+ * - Field sales gets the new nav this redesign introduces: Home / Customers
+ *   / + (raised center, opens the quick-action sheet) / Visits / More. Fleet,
+ *   Users, and Settings -- for a field-sales rep who's also a supervisor or
+ *   super admin -- live inside More instead of competing for bottom-bar
+ *   space, gated by the same role checks as before.
+ * - Everyone else keeps exactly what shipped before this redesign: a
+ *   3-item bottom bar on phones (Profile / Check In (raised, center) /
+ *   Footprints), growing to 5 for a super admin (+ Users, + Fleet), and the
+ *   5-item desktop rail. Untouched on purpose -- this redesign is scoped to
+ *   field-sales screens only.
  */
 export function AppLayout() {
   const location = useLocation()
   const { profile, loading, refresh } = useProfile()
+  const [quickActionOpen, setQuickActionOpen] = useState(false)
+  const isFieldSales = profile?.is_field_sales === true
 
   // A fresh admin-issued password (new account or a reset) must be
   // replaced before anything else loads -- nothing about the shell below
@@ -40,7 +63,7 @@ export function AppLayout() {
     <JourneyProvider>
       <div className="flex min-h-dvh flex-col bg-neutral-50 md:flex-row">
         <OfflineBanner />
-        <DesktopSidebar profile={profile} />
+        <DesktopSidebar isFieldSales={isFieldSales} profile={profile} onQuickAction={() => setQuickActionOpen(true)} />
 
         <div className="flex min-w-0 flex-1 flex-col">
           <TitleBar />
@@ -55,15 +78,46 @@ export function AppLayout() {
           </main>
         </div>
 
-        <MobileTabBar profile={profile} />
+        <MobileTabBar isFieldSales={isFieldSales} profile={profile} onQuickAction={() => setQuickActionOpen(true)} />
       </div>
+
+      {isFieldSales && <QuickActionSheet open={quickActionOpen} onClose={() => setQuickActionOpen(false)} />}
     </JourneyProvider>
   )
 }
 
-function DesktopSidebar({ profile }: { profile: Profile | null }) {
+function DesktopSidebar({
+  isFieldSales,
+  profile,
+  onQuickAction,
+}: {
+  isFieldSales: boolean
+  profile: Profile | null
+  onQuickAction: () => void
+}) {
   const { attendance } = useJourneyContext()
   const checkInLabel = attendance === 'CLOCKED_IN' ? 'Check In' : 'Clock In'
+
+  if (isFieldSales) {
+    return (
+      <nav className="hidden shrink-0 flex-col gap-1 border-r border-neutral-200 bg-white p-3 pt-4 md:flex md:w-56" aria-label="Primary">
+        <FieldTab to="/home" label="Home" icon={HomeIcon} />
+        <FieldTab to="/customers" label="Customers" icon={Store} />
+        <button
+          onClick={() => {
+            haptic('light')
+            onQuickAction()
+          }}
+          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-brand-600 transition-colors hover:bg-brand-50"
+        >
+          <Plus className="h-5 w-5" aria-hidden /> New…
+        </button>
+        <FieldTab to="/visits" label="Visits" icon={FootprintsIcon} />
+        <FieldTab to="/more" label="More" icon={MoreHorizontal} />
+      </nav>
+    )
+  }
+
   const tabs = profile?.is_super_admin ? [...DESKTOP_TABS, { to: '/users', label: 'Users', icon: UsersIcon }] : DESKTOP_TABS
 
   return (
@@ -90,8 +144,66 @@ function DesktopSidebar({ profile }: { profile: Profile | null }) {
   )
 }
 
-function MobileTabBar({ profile }: { profile: Profile | null }) {
+function FieldTab({ to, label, icon: Icon }: { to: string; label: string; icon: LucideIcon }) {
+  return (
+    <NavLink
+      to={to}
+      className={({ isActive }) =>
+        `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+          isActive ? 'bg-brand-50 text-brand-700' : 'text-neutral-600 hover:bg-neutral-100'
+        }`
+      }
+    >
+      <Icon className="h-5 w-5" aria-hidden />
+      {label}
+    </NavLink>
+  )
+}
+
+function MobileTabBar({
+  isFieldSales,
+  profile,
+  onQuickAction,
+}: {
+  isFieldSales: boolean
+  profile: Profile | null
+  onQuickAction: () => void
+}) {
+  // Called unconditionally, before either branch returns -- JourneyProvider
+  // wraps this whole layout regardless of nav, so it's always safe, and the
+  // Rules of Hooks require it not be skipped based on isFieldSales.
   const { attendance } = useJourneyContext()
+
+  if (isFieldSales) {
+    return (
+      <nav
+        className="fixed inset-x-0 bottom-0 z-20 border-t border-neutral-200 bg-white/95 backdrop-blur safe-bottom md:hidden"
+        aria-label="Primary"
+      >
+        <div className="mx-auto flex max-w-lg items-end justify-between px-2">
+          <MobileTabLink to="/home" icon={HomeIcon} label="Home" />
+          <MobileTabLink to="/customers" icon={Store} label="Customers" />
+
+          <button
+            onClick={() => {
+              haptic('light')
+              onQuickAction()
+            }}
+            className="relative -mt-7 flex flex-1 flex-col items-center"
+          >
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-500 text-white shadow-card ring-4 ring-neutral-50 dark:ring-neutral-950">
+              <Plus className="h-6 w-6" aria-hidden />
+            </span>
+            <span className="mt-1 pb-2 text-[11px] font-semibold text-brand-600">New</span>
+          </button>
+
+          <MobileTabLink to="/visits" icon={FootprintsIcon} label="Visits" />
+          <MobileTabLink to="/more" icon={MoreHorizontal} label="More" />
+        </div>
+      </nav>
+    )
+  }
+
   const isClockedIn = attendance === 'CLOCKED_IN'
   const checkInLabel = isClockedIn ? 'Check In' : 'Clock In'
   const CheckInIcon = isClockedIn ? MapPin : Clock

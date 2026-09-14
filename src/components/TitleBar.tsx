@@ -9,6 +9,11 @@ const TITLES: Record<string, string> = {
   '/menu': 'Menu',
   '/settings': 'Settings',
   '/users': 'Users',
+  '/home': 'Home',
+  '/customers': 'Customers',
+  '/visits': 'Visits',
+  '/more': 'More',
+  '/performance': 'Performance',
 }
 
 /**
@@ -20,7 +25,14 @@ const TITLES: Record<string, string> = {
 export function TitleBar() {
   const { pathname } = useLocation()
   const { attendance } = useJourneyContext()
-  const title = pathname === '/check-in' ? (attendance === 'CLOCKED_IN' ? 'Check In' : 'Clock In') : TITLES[pathname] ?? 'Footprints'
+  const title =
+    pathname === '/check-in'
+      ? attendance === 'CLOCKED_IN'
+        ? 'Check In'
+        : 'Clock In'
+      : pathname.startsWith('/customers/')
+        ? 'Customer'
+        : (TITLES[pathname] ?? 'Footprints')
 
   return (
     <header

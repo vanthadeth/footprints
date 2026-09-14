@@ -27,7 +27,7 @@ export function LoginPage() {
       return
     }
     haptic('success')
-    navigate('/check-in', { replace: true })
+    navigate('/start', { replace: true })
   }
 
   return (
