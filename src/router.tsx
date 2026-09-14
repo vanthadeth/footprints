@@ -23,6 +23,8 @@ const HomePage = lazy(() => import('@/pages/HomePage').then((m) => ({ default: m
 const CustomersPage = lazy(() => import('@/pages/CustomersPage').then((m) => ({ default: m.CustomersPage })))
 const CustomerDetailPage = lazy(() => import('@/pages/CustomerDetailPage').then((m) => ({ default: m.CustomerDetailPage })))
 const VisitsPage = lazy(() => import('@/pages/VisitsPage').then((m) => ({ default: m.VisitsPage })))
+const MorePage = lazy(() => import('@/pages/MorePage').then((m) => ({ default: m.MorePage })))
+const PerformancePage = lazy(() => import('@/pages/PerformancePage').then((m) => ({ default: m.PerformancePage })))
 
 function PageFallback() {
   return (
@@ -110,6 +112,22 @@ export const router = createBrowserRouter([
       },
       { path: '/profile', element: <ProfilePage /> },
       { path: '/menu', element: <MenuPage /> },
+      {
+        path: '/more',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <MorePage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/performance',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <PerformancePage />
+          </Suspense>
+        ),
+      },
       {
         path: '/settings',
         element: (
