@@ -103,6 +103,23 @@ export function getPresetRange(preset: Exclude<DateRangePreset, 'custom'>, timez
   }
 }
 
+/** "YYYY-MM-DD" for today's calendar date in `timezone` -- the upper bound for anything day-picker related (you can't view a journey that hasn't happened yet). */
+export function todayDateString(timezone: string = APP_TIMEZONE): string {
+  const { year, month, day } = zonedTodayParts(timezone)
+  return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
+/** The `n` calendar dates ("YYYY-MM-DD") ending at (and including) `endDate`, oldest first -- backs the Footprints 7-day picker strip. */
+export function lastNDaysEnding(endDate: string, n: number): string[] {
+  const [y, m, d] = endDate.split('-').map(Number)
+  const dates: string[] = []
+  for (let i = n - 1; i >= 0; i--) {
+    const { year, month, day } = addDays(y, m - 1, d, -i)
+    dates.push(`${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`)
+  }
+  return dates
+}
+
 /** A user-picked [from, to] custom range, both calendar dates (YYYY-MM-DD) in `timezone`. */
 export function getCustomRange(fromDate: string, toDate: string, timezone: string = APP_TIMEZONE): DateRange {
   const [fy, fm, fd] = fromDate.split('-').map(Number)

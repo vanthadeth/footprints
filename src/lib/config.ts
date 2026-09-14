@@ -45,6 +45,16 @@ export const DEFAULT_ALLOW_EARLY_CLOCKIN_MINUTES = 15
 /** How many minutes after work_end_time before an open attendance is auto clocked out. */
 export const DEFAULT_AUTO_CLOCKOUT_GRACE_MINUTES = 60
 
+/**
+ * A transit/gap between clock-in and the first visit, between two visits,
+ * or between the last visit and clock-out is visually flagged on the
+ * Footprints timeline once it exceeds this many minutes. A UI heuristic
+ * only (unlike the other thresholds above, nothing server-side enforces
+ * or stores it) -- easy to move into app_settings later if it needs to be
+ * admin-configurable.
+ */
+export const GAP_FLAG_THRESHOLD_MINUTES = 45
+
 /** Standardised flags used across attendance, visits, fleet, and reports. */
 export const FLAGS = {
   UNASSIGNED_VISIT: 'UNASSIGNED_VISIT',

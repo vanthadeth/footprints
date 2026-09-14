@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, afterEach } from 'vitest'
-import { getCustomRange, getPresetRange } from '../dateRange'
+import { getCustomRange, getPresetRange, lastNDaysEnding, todayDateString } from '../dateRange'
 
 describe('getCustomRange', () => {
   it('converts a Phnom Penh calendar date to the correct UTC instant (UTC+7, no DST)', () => {
@@ -41,5 +41,33 @@ describe('getPresetRange', () => {
     const range = getPresetRange('last_month', 'Asia/Phnom_Penh')
     expect(range.startIso).toBe('2025-12-31T17:00:00.000Z') // 2026-01-01 local midnight
     expect(range.endIso).toBe('2026-01-31T17:00:00.000Z') // 2026-02-01 local midnight
+  })
+})
+
+describe('todayDateString', () => {
+  afterEach(() => vi.useRealTimers())
+
+  it('reads the calendar date in the given timezone, not the host TZ', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-01-15T20:00:00Z')) // 2026-01-16 03:00 in Phnom Penh
+    expect(todayDateString('Asia/Phnom_Penh')).toBe('2026-01-16')
+  })
+})
+
+describe('lastNDaysEnding', () => {
+  it('returns n dates ending at (and including) the given date, oldest first', () => {
+    expect(lastNDaysEnding('2026-01-15', 7)).toEqual([
+      '2026-01-09',
+      '2026-01-10',
+      '2026-01-11',
+      '2026-01-12',
+      '2026-01-13',
+      '2026-01-14',
+      '2026-01-15',
+    ])
+  })
+
+  it('crosses a month boundary correctly', () => {
+    expect(lastNDaysEnding('2026-03-02', 4)).toEqual(['2026-02-27', '2026-02-28', '2026-03-01', '2026-03-02'])
   })
 })
