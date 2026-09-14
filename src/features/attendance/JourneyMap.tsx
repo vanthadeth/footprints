@@ -11,7 +11,16 @@ import type { VisitRow } from './types'
  * happen -- GPS is required at check-in -- but defends against bad data)
  * are simply skipped rather than crashing the map.
  */
-export function JourneyMap({ visits, customerNames }: { visits: VisitRow[]; customerNames: Record<string, string> }) {
+export function JourneyMap({
+  visits,
+  customerNames,
+  height,
+}: {
+  visits: VisitRow[]
+  customerNames: Record<string, string>
+  /** Forwarded to MapView -- defaults to its own compact height when omitted. */
+  height?: number | string
+}) {
   const sorted = [...visits]
     .filter((v) => v.in_latitude != null && v.in_longitude != null)
     .sort((a, b) => a.checked_in_at.localeCompare(b.checked_in_at))
@@ -20,14 +29,17 @@ export function JourneyMap({ visits, customerNames }: { visits: VisitRow[]; cust
 
   if (points.length === 0) {
     return (
-      <div className="flex h-48 items-center justify-center rounded-xl2 bg-neutral-100 text-sm text-neutral-400">
+      <div
+        className="flex items-center justify-center rounded-xl2 bg-neutral-100 text-sm text-neutral-400"
+        style={{ height: height ?? 192 }}
+      >
         No visit locations yet
       </div>
     )
   }
 
   return (
-    <MapView points={points}>
+    <MapView points={points} height={height}>
       {points.length > 1 && <Polyline positions={points} pathOptions={{ color: '#0f6e4f', weight: 3, opacity: 0.6 }} />}
       {sorted.map((visit, i) => (
         <Marker key={visit.id} position={[visit.in_latitude!, visit.in_longitude!]} icon={pinIcon('#0f6e4f', { label: String(i + 1) })}>

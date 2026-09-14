@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Footprints as FootprintsIcon } from 'lucide-react'
+import { Footprints as FootprintsIcon, Map } from 'lucide-react'
+import { BottomSheet } from '@/components/BottomSheet'
 import { EmptyState } from '@/components/EmptyState'
 import { StatTile } from '@/components/StatTile'
 import { FlagBadge } from '@/components/FlagBadge'
@@ -14,11 +15,12 @@ import { useCustomerNames } from '@/features/customers/useCustomerNames'
 import { formatDuration } from '@/lib/datetime'
 import { getCustomRange, todayDateString } from '@/lib/dateRange'
 
-/** Personal journey history for one day at a time: a 5-day picker, that day's performance matrix, journey map, and full timeline (spec §31-32). */
+/** Personal journey history for one day at a time: a 5-day picker, that day's performance matrix, an on-demand journey map, and the full timeline (spec §31-32). */
 export function FootprintsPage() {
   const { session } = useAuth()
   const userId = session?.user.id ?? null
   const [selectedDate, setSelectedDate] = useState(() => todayDateString())
+  const [mapOpen, setMapOpen] = useState(false)
   const range = getCustomRange(selectedDate, selectedDate)
   const { days, allVisits, loading, error } = useJourneyHistory(userId, range)
   const customerNames = useCustomerNames(allVisits.map((v) => v.customer_id))
@@ -75,10 +77,12 @@ export function FootprintsPage() {
               </div>
             )}
 
-            <div className="mt-4 rounded-xl2 bg-white p-3 shadow-card">
-              <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-neutral-400">Journey Map</p>
-              <JourneyMap visits={day.visits} customerNames={customerNames} />
-            </div>
+            <button
+              onClick={() => setMapOpen(true)}
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl2 border border-neutral-200 bg-white py-3 text-sm font-semibold text-neutral-700 shadow-card tap-target"
+            >
+              <Map className="h-4 w-4 text-brand-500" /> View Journey Map
+            </button>
 
             {/* Main section: the day's timeline, clock-in through clock-out. */}
             <div className="mt-4 rounded-xl2 bg-white p-4 shadow-card">
@@ -88,6 +92,10 @@ export function FootprintsPage() {
           </>
         )}
       </div>
+
+      <BottomSheet open={mapOpen} onClose={() => setMapOpen(false)} title="Journey Map">
+        <div className="p-4">{day && <JourneyMap visits={day.visits} customerNames={customerNames} height="60vh" />}</div>
+      </BottomSheet>
     </div>
   )
 }
