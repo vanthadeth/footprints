@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { AlertTriangle, Check, ShieldAlert } from 'lucide-react'
 import { useProfile } from '@/features/auth/useProfile'
-import { ALLOWED_CHECKIN_RADII_METERS } from '@/lib/config'
+import { ALLOWED_CHECKIN_RADII_METERS, ALLOWED_LOCATION_PING_MINUTES } from '@/lib/config'
 import { haptic } from '@/lib/haptic'
 import { settingsService, type EditableSettings } from './settingsService'
 
@@ -117,13 +117,23 @@ function SettingsForm() {
           </div>
         </Field>
 
-        <Field label="Location Ping Frequency" hint="How often an active visit's location is checked, in minutes.">
-          <NumberInput
-            value={settings.locationPingIntervalMinutes}
-            min={1}
-            suffix="min"
-            onChange={(v) => patch({ locationPingIntervalMinutes: v })}
-          />
+        <Field label="Location Ping Frequency" hint="How often an active visit's location is checked.">
+          <div className="flex gap-2">
+            {ALLOWED_LOCATION_PING_MINUTES.map((minutes) => (
+              <button
+                key={minutes}
+                type="button"
+                onClick={() => patch({ locationPingIntervalMinutes: minutes })}
+                className={`flex-1 rounded-xl border py-2.5 text-sm font-semibold tap-target ${
+                  settings.locationPingIntervalMinutes === minutes
+                    ? 'border-brand-500 bg-brand-500 text-white'
+                    : 'border-neutral-200 bg-white text-neutral-600'
+                }`}
+              >
+                {minutes}m
+              </button>
+            ))}
+          </div>
         </Field>
 
         <Field label="Auto Check Out" hint="Automatically check out a visit if the user moves outside the geofence." inline>

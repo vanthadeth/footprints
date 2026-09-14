@@ -29,6 +29,9 @@ export const MAX_ACCEPTABLE_LOCATION_ACCURACY_METERS = 100
 /** The only geofence radii a super admin can choose between (spec). */
 export const ALLOWED_CHECKIN_RADII_METERS = [50, 100, 300] as const
 
+/** The only location ping frequencies a super admin can choose between (spec). */
+export const ALLOWED_LOCATION_PING_MINUTES = [1, 2, 5] as const
+
 /** Whether a visit auto-checks-out when the user moves outside the geofence. */
 export const DEFAULT_AUTO_CHECKOUT_ENABLED = true
 
