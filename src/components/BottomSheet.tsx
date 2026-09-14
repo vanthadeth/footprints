@@ -31,7 +31,10 @@ export function BottomSheet({
       return () => cancelAnimationFrame(raf)
     }
     setVisible(false)
-    const timeout = setTimeout(() => setMounted(false), 200)
+    // Matches the sheet's own transition-duration below -- shortening one
+    // without the other either cuts the slide-down off early or leaves a
+    // dead gap before the sheet actually unmounts.
+    const timeout = setTimeout(() => setMounted(false), 280)
     return () => clearTimeout(timeout)
   }, [open])
 
@@ -58,7 +61,7 @@ export function BottomSheet({
   // Users) it clipped most of the sheet's fields away entirely.
   return createPortal(
     <div
-      className={`fixed inset-0 z-50 flex items-end justify-center transition-opacity duration-200 md:items-center ${
+      className={`fixed inset-0 z-50 flex items-end justify-center transition-opacity duration-[280ms] md:items-center ${
         visible ? 'opacity-100' : 'opacity-0'
       }`}
       role="dialog"
@@ -67,7 +70,7 @@ export function BottomSheet({
     >
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div
-        className={`relative w-full max-w-lg rounded-t-2xl bg-white shadow-card transition-transform duration-200 ease-out safe-bottom md:rounded-2xl ${
+        className={`relative w-full max-w-lg rounded-t-2xl bg-white shadow-card transition-transform duration-[280ms] ease-[cubic-bezier(0.32,0.72,0,1)] safe-bottom md:rounded-2xl ${
           visible ? 'translate-y-0 md:scale-100' : 'translate-y-full md:translate-y-0 md:scale-95'
         }`}
       >
