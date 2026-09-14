@@ -23,7 +23,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { GAP_FLAG_THRESHOLD_MINUTES } from '@/lib/config'
-import { formatDuration, formatTime } from '@/lib/datetime'
+import { formatDate, formatDuration, formatTime } from '@/lib/datetime'
 import { formatDistance } from '@/lib/geo'
 import { useVisitOptions } from '@/features/visits/useVisitOptions'
 import type { VisitOption } from '@/features/visits/visitOptionsService'
@@ -336,7 +336,7 @@ function VisitEntry({
                   <RecordRow
                     icon={<Calendar className="h-4 w-4" />}
                     label="Next Visit"
-                    value={new Date(visit.next_appointment).toLocaleDateString()}
+                    value={formatDate(visit.next_appointment)}
                   />
                 )}
               </div>

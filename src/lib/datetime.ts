@@ -77,11 +77,16 @@ export function timeAgo(iso: string, now: number = Date.now()): string {
   return `${days}d ago`
 }
 
+/** Always "dd/mm/yyyy", regardless of the viewer's browser locale. */
 export function formatDate(iso: string | null, timezone: string = APP_TIMEZONE): string {
   if (!iso) return '—'
-  return new Intl.DateTimeFormat('en-GB', { timeZone: timezone, weekday: 'short', day: 'numeric', month: 'short' }).format(
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(
     new Date(iso)
   )
+  const y = parts.find((p) => p.type === 'year')!.value
+  const m = parts.find((p) => p.type === 'month')!.value
+  const d = parts.find((p) => p.type === 'day')!.value
+  return `${d}/${m}/${y}`
 }
 
 /**

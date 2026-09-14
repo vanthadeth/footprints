@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatDuration, formatTime, isPastTimeOfDay, isWithinClockInWindow, shiftTimeOfDay } from '../datetime'
+import { formatDate, formatDuration, formatTime, isPastTimeOfDay, isWithinClockInWindow, shiftTimeOfDay } from '../datetime'
 
 describe('formatDuration', () => {
   it('formats minutes only under an hour', () => {
@@ -23,6 +23,21 @@ describe('formatTime', () => {
   it('renders HH:MM in the Asia/Phnom_Penh timezone regardless of host TZ', () => {
     // 01:30 UTC is 08:30 in Asia/Phnom_Penh (UTC+7).
     expect(formatTime('2026-01-01T01:30:00Z')).toBe('08:30')
+  })
+})
+
+describe('formatDate', () => {
+  it('renders an em dash for a null date', () => {
+    expect(formatDate(null)).toBe('—')
+  })
+
+  it('always renders dd/mm/yyyy regardless of host locale', () => {
+    expect(formatDate('2026-03-05T10:00:00Z')).toBe('05/03/2026')
+  })
+
+  it('uses the Asia/Phnom_Penh calendar day, not UTC, near midnight', () => {
+    // 17:30 UTC on the 4th is 00:30 on the 5th in Asia/Phnom_Penh (UTC+7).
+    expect(formatDate('2026-03-04T17:30:00Z')).toBe('05/03/2026')
   })
 })
 

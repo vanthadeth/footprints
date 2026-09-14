@@ -8,7 +8,7 @@ import { useAppSettings } from '@/hooks/useAppSettings'
 import { locationService } from '@/features/location/locationService'
 import { LocationError } from '@/features/location/types'
 import { formatDistance } from '@/lib/geo'
-import { formatDuration, formatTime } from '@/lib/datetime'
+import { formatDate, formatDuration, formatTime } from '@/lib/datetime'
 import { haptic } from '@/lib/haptic'
 import { useVisitOptions } from './useVisitOptions'
 import type { VisitOption, VisitOptionKind } from './visitOptionsService'
@@ -507,7 +507,7 @@ function RecordStep({
             className="rounded-full border border-neutral-200 bg-white px-3.5 py-2 text-sm font-medium text-neutral-600"
           />
         </div>
-        {nextAppointment && <p className="mt-2 text-xs text-neutral-500">Scheduled: {new Date(nextAppointment).toLocaleDateString()}</p>}
+        {nextAppointment && <p className="mt-2 text-xs text-neutral-500">Scheduled: {formatDate(nextAppointment)}</p>}
       </div>
 
       <div>
