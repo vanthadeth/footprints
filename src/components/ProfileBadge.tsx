@@ -52,7 +52,7 @@ export function ProfileBadge() {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-full z-20 mt-2 w-52 origin-top-right animate-pop-in rounded-xl2 border border-neutral-200 bg-white py-1.5 shadow-card dark:border-neutral-700"
+          className="absolute right-0 top-full z-20 mt-2 w-72 origin-top-right animate-pop-in rounded-xl2 border border-neutral-200 bg-white py-2 shadow-card dark:border-neutral-700"
         >
           <MenuItem
             icon={UserRound}
@@ -62,9 +62,9 @@ export function ProfileBadge() {
               navigate('/profile')
             }}
           />
-          <div className="flex items-center justify-between gap-3 px-4 py-2.5">
-            <span className="flex items-center gap-3 text-sm font-medium text-neutral-700 dark:text-neutral-200">
-              <Globe className="h-4 w-4" aria-hidden />
+          <div className="flex items-center justify-between gap-3 px-5 py-3.5">
+            <span className="flex items-center gap-3.5 text-sm font-medium text-neutral-700 dark:text-neutral-200">
+              <Globe className="h-[18px] w-[18px]" aria-hidden />
               Language
             </span>
             <div className="flex rounded-full bg-neutral-100 p-0.5 dark:bg-neutral-800">
@@ -77,7 +77,7 @@ export function ProfileBadge() {
                     setLanguageState(code)
                   }}
                   aria-pressed={language === code}
-                  className={`rounded-full px-2.5 py-1 text-xs font-semibold tap-target ${
+                  className={`rounded-full px-4 py-2 text-sm font-semibold tap-target ${
                     language === code ? 'bg-white text-brand-700 shadow-sm dark:bg-neutral-700 dark:text-brand-300' : 'text-neutral-500'
                   }`}
                 >
@@ -94,7 +94,7 @@ export function ProfileBadge() {
               navigate('/menu')
             }}
           />
-          <div className="my-1 border-t border-neutral-100 dark:border-neutral-800" />
+          <div className="my-1.5 border-t border-neutral-100 dark:border-neutral-800" />
           <MenuItem
             icon={LogOut}
             label="Logout"
@@ -126,11 +126,11 @@ function MenuItem({
     <button
       role="menuitem"
       onClick={onClick}
-      className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium tap-target ${
+      className={`flex w-full items-center gap-3.5 px-5 py-3.5 text-left text-sm font-medium tap-target ${
         tone === 'danger' ? 'text-status-danger' : 'text-neutral-700 dark:text-neutral-200'
       }`}
     >
-      <Icon className="h-4 w-4" aria-hidden />
+      <Icon className="h-[18px] w-[18px]" aria-hidden />
       {label}
     </button>
   )
