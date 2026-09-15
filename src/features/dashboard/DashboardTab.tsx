@@ -29,7 +29,7 @@ export function DashboardTab({ snapshots }: { snapshots: FleetMemberSnapshot[] }
       </section>
 
       <section>
-        <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-neutral-400">Fleet — Right Now</p>
+        <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-neutral-400">Team — Right Now</p>
         <div className="grid grid-cols-3 gap-3">
           <StatTile label="Visiting" value={String(live.visiting)} />
           <StatTile label="Idling" value={String(live.idling)} />

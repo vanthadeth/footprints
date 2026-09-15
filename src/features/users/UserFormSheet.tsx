@@ -207,7 +207,7 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
           </Select>
         </Field>
 
-        <Field label="Assign Report To" hint="Their manager/supervisor -- drives who can see their attendance and visits in Fleet.">
+        <Field label="Assign Report To" hint="Their manager/supervisor -- drives who can see their attendance and visits in Team.">
           <Select value={managerId} onChange={setManagerId} placeholder="No manager">
             {managerOptions.map((m) => (
               <option key={m.id} value={m.id}>
@@ -217,7 +217,7 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
           </Select>
         </Field>
 
-        <Field label="Field Salesperson" hint="Tracks their attendance and customer visits (Check In, Fleet)." inline>
+        <Field label="Field Salesperson" hint="Tracks their attendance and customer visits (Check In, Team)." inline>
           <Switch checked={isFieldSales} onChange={setIsFieldSales} />
         </Field>
 
