@@ -5,7 +5,16 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { useLanguage } from '@/i18n/LanguageContext'
 import { listTranslationKeys, type TranslationKeyEntry } from '@/features/translations/translationKeys'
 import { translationOverridesService, type TranslationOverrideRow } from '@/features/translations/translationOverridesService'
+import { useVisitOptions } from '@/features/visits/useVisitOptions'
+import type { VisitOptionKind } from '@/features/visits/visitOptionsService'
 import { haptic } from '@/lib/haptic'
+
+const VISIT_OPTION_KIND_LABELS: Record<VisitOptionKind, string> = {
+  visit_type: 'Visit Options — Type of Visit',
+  visit_status: 'Visit Options — Visit Status',
+  order_status: 'Visit Options — Order Status',
+  payment_status: 'Visit Options — Payment Status',
+}
 
 /**
  * Super-admin screen: correct a Khmer string in place, no redeploy needed
@@ -44,6 +53,7 @@ export function TranslationsPage() {
 
 function TranslationsList() {
   const { refreshOverrides } = useLanguage()
+  const { byKind } = useVisitOptions()
   const [rows, setRows] = useState<TranslationOverrideRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -71,7 +81,23 @@ function TranslationsList() {
     return map
   }, [rows])
 
-  const entries = useMemo(() => listTranslationKeys(), [])
+  const staticEntries = useMemo(() => listTranslationKeys(), [])
+
+  // Visit record values (visit_options.label -- Type of Visit/Visit
+  // Status/Order Status/Payment Status) are admin-configured data, not
+  // static dictionary keys, so they're translated as `visitOption:<id>`
+  // overrides alongside everything else here rather than in en.ts/km.ts.
+  const visitOptionEntries = useMemo(() => {
+    const result: TranslationKeyEntry[] = []
+    for (const kind of Object.keys(byKind) as VisitOptionKind[]) {
+      for (const o of byKind[kind]) {
+        result.push({ key: `visitOption:${o.id}`, namespace: VISIT_OPTION_KIND_LABELS[kind], english: o.label, khmerDefault: o.label })
+      }
+    }
+    return result
+  }, [byKind])
+
+  const entries = useMemo(() => [...staticEntries, ...visitOptionEntries], [staticEntries, visitOptionEntries])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
