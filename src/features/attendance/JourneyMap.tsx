@@ -34,6 +34,7 @@ export function JourneyMap({
   customerNames,
   attendance = [],
   height,
+  rounded,
 }: {
   visits: VisitRow[]
   customerNames: Record<string, string>
@@ -41,6 +42,8 @@ export function JourneyMap({
   attendance?: AttendanceRow[]
   /** Forwarded to MapView -- defaults to its own compact height when omitted. */
   height?: number | string
+  /** Forwarded to MapView -- false for an edge-to-edge full-screen map. */
+  rounded?: boolean
 }) {
   const items: MapPoint[] = []
 
@@ -65,14 +68,17 @@ export function JourneyMap({
 
   if (points.length === 0) {
     return (
-      <div className="flex items-center justify-center rounded-xl2 bg-neutral-100 text-sm text-neutral-400" style={{ height: height ?? 192 }}>
+      <div
+        className={`flex items-center justify-center bg-neutral-100 text-sm text-neutral-400 ${rounded === false ? '' : 'rounded-xl2'}`}
+        style={{ height: height ?? 192 }}
+      >
         No visit locations yet
       </div>
     )
   }
 
   return (
-    <MapView points={points} height={height}>
+    <MapView points={points} height={height} rounded={rounded}>
       {points.length > 1 && <Polyline positions={points} pathOptions={{ color: '#0f6e4f', weight: 3, opacity: 0.6 }} />}
       {items.map((p) => {
         if (p.kind === 'clock-in') {

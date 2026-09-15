@@ -10,19 +10,22 @@ export function MapView({
   points,
   height = 260,
   className = '',
+  /** false for an edge-to-edge full-screen map, where rounded corners would leave a visible gap at the viewport edge. */
+  rounded = true,
   children,
 }: {
   /** Used to auto-fit the view. Pass an empty array to keep the default center/zoom. */
   points: LatLngExpression[]
   height?: number | string
   className?: string
+  rounded?: boolean
   children?: React.ReactNode
 }) {
   const tile = getTileConfig()
 
   return (
     <div
-      className={`overflow-hidden rounded-xl2 ${className}`}
+      className={`overflow-hidden ${rounded ? 'rounded-xl2' : ''} ${className}`}
       style={{ height, isolation: 'isolate' }}
     >
       <MapContainer center={DEFAULT_CENTER} zoom={13} scrollWheelZoom={false} style={{ height: '100%', width: '100%' }}>

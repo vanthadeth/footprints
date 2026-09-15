@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Footprints as FootprintsIcon, Map } from 'lucide-react'
-import { BottomSheet } from '@/components/BottomSheet'
+import { FullScreenSheet } from '@/components/FullScreenSheet'
 import { EmptyState } from '@/components/EmptyState'
 import { StatTile } from '@/components/StatTile'
 import { FlagBadge } from '@/components/FlagBadge'
@@ -99,9 +99,9 @@ export function FootprintsPage() {
         )}
       </div>
 
-      <BottomSheet open={mapOpen} onClose={() => setMapOpen(false)} title="Journey Map">
-        <div className="p-4">{day && <JourneyMap visits={day.visits} attendance={day.attendance} customerNames={customerNames} height="60vh" />}</div>
-      </BottomSheet>
+      <FullScreenSheet open={mapOpen} onClose={() => setMapOpen(false)} label="Journey Map">
+        {day && <JourneyMap visits={day.visits} attendance={day.attendance} customerNames={customerNames} height="100dvh" rounded={false} />}
+      </FullScreenSheet>
     </div>
   )
 }
