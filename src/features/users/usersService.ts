@@ -19,7 +19,6 @@ export interface ManagedUser {
   status: UserStatus
   isSuperAdmin: boolean
   isFieldSales: boolean
-  mustChangePassword: boolean
   employmentDate: string | null
   createdAt: string
 }
@@ -95,7 +94,6 @@ function fromRow(row: {
   status: string
   is_super_admin: boolean
   is_field_sales: boolean
-  must_change_password: boolean
   employment_date: string | null
   created_at: string
 }): ManagedUser {
@@ -116,7 +114,6 @@ function fromRow(row: {
     status: row.status as UserStatus,
     isSuperAdmin: row.is_super_admin,
     isFieldSales: row.is_field_sales,
-    mustChangePassword: row.must_change_password,
     employmentDate: row.employment_date,
     createdAt: row.created_at,
   }

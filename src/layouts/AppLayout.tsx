@@ -21,7 +21,6 @@ import { QuickActionSheet } from '@/components/QuickActionSheet'
 import { JourneyProvider, useJourneyContext } from '@/features/attendance/JourneyContext'
 import { NotificationsProvider } from '@/features/notifications/NotificationsContext'
 import { useProfile, type Profile } from '@/features/auth/useProfile'
-import { ForceChangePasswordPage } from '@/features/auth/ForceChangePasswordPage'
 
 /** Desktop keeps the full set of destinations as a vertical rail -- screen space isn't the constraint there that it is on a phone's bottom bar. */
 const DESKTOP_TABS = [
@@ -49,16 +48,9 @@ const DESKTOP_TABS = [
  */
 export function AppLayout() {
   const location = useLocation()
-  const { profile, loading, refresh } = useProfile()
+  const { profile } = useProfile()
   const [quickActionOpen, setQuickActionOpen] = useState(false)
   const isFieldSales = profile?.is_field_sales === true
-
-  // A fresh admin-issued password (new account or a reset) must be
-  // replaced before anything else loads -- nothing about the shell below
-  // (nav, journey polling) should run on a password only an admin knows.
-  if (!loading && profile?.must_change_password) {
-    return <ForceChangePasswordPage onDone={refresh} />
-  }
 
   return (
     <JourneyProvider>

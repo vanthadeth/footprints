@@ -1880,7 +1880,6 @@ export type Database = {
           is_field_sales: boolean
           is_super_admin: boolean
           manager_id: string | null
-          must_change_password: boolean
           nickname: string | null
           phone_primary: string | null
           phone_secondary: string | null
@@ -1912,7 +1911,6 @@ export type Database = {
           is_field_sales?: boolean
           is_super_admin?: boolean
           manager_id?: string | null
-          must_change_password?: boolean
           nickname?: string | null
           phone_primary?: string | null
           phone_secondary?: string | null
@@ -1944,7 +1942,6 @@ export type Database = {
           is_field_sales?: boolean
           is_super_admin?: boolean
           manager_id?: string | null
-          must_change_password?: boolean
           nickname?: string | null
           phone_primary?: string | null
           phone_secondary?: string | null
@@ -2787,7 +2784,6 @@ export type Database = {
           is_super_admin: boolean
           manager_id: string
           manager_name: string
-          must_change_password: boolean
           nickname: string
           phone_primary: string
           photo_path: string

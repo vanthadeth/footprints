@@ -43,8 +43,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     mode,
     setMode,
     theme: applied,
-    // Only used by pre-shell screens with no Settings access (ConfigErrorPage,
-    // ForceChangePasswordPage) -- flips to an explicit choice rather than
+    // Only used by pre-shell screens with no Settings access
+    // (ConfigErrorPage) -- flips to an explicit choice rather than
     // silently no-op'ing if the user is currently on 'system'.
     toggleTheme: () => setMode(applied === 'dark' ? 'light' : 'dark'),
   }

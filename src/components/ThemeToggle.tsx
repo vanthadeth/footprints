@@ -4,8 +4,8 @@ import { haptic } from '@/lib/haptic'
 
 /**
  * A floating light/dark toggle for the couple of screens that render
- * before the app shell exists (ConfigErrorPage, ForceChangePasswordPage)
- * and so have no Settings screen to point at. Everywhere else, Appearance
+ * before the app shell exists (ConfigErrorPage) and so have no Settings
+ * screen to point at. Everywhere else, Appearance
  * (with a proper System/Light/Dark choice) lives in Settings -- see
  * AppearanceControl -- rather than a toggle repeated on every screen.
  */
