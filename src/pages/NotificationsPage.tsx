@@ -65,7 +65,7 @@ function NotificationsFeed() {
             <button
               key={f.key}
               onClick={() => setFilter(f.key)}
-              className={`flex-1 whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold tap-target ${
+              className={`shrink-0 whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold tap-target ${
                 filter === f.key ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500'
               }`}
             >
