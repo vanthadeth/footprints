@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronRight, LogOut, Settings, HelpCircle, MapPin, Info, Shield, User, TrendingUp, Truck, Users as UsersIcon, type LucideIcon } from 'lucide-react'
+import { Bell, ChevronRight, LogOut, Settings, HelpCircle, MapPin, Info, Shield, User, TrendingUp, Truck, Users as UsersIcon, type LucideIcon } from 'lucide-react'
 import { InfoSheet } from '@/components/InfoSheet'
 import { LocationPermissionSheet } from '@/features/location/LocationPermissionSheet'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useProfile } from '@/features/auth/useProfile'
+import { useNotifications } from '@/features/notifications/useNotifications'
 import { haptic } from '@/lib/haptic'
 
 const APP_VERSION = import.meta.env.VITE_APP_VERSION ?? '0.1.0'
@@ -25,6 +26,7 @@ export function MorePage() {
   const [signingOut, setSigningOut] = useState(false)
   const [openSheet, setOpenSheet] = useState<SheetKey | null>(null)
   const isSuperAdmin = profile?.is_super_admin === true
+  const { unreadCount } = useNotifications(isSuperAdmin)
 
   function go(path: string) {
     haptic('light')
@@ -39,6 +41,7 @@ export function MorePage() {
           <Row icon={TrendingUp} label="Performance" onClick={() => go('/performance')} />
           {isSuperAdmin && <Row icon={Truck} label="Fleet" onClick={() => go('/fleet')} />}
           {isSuperAdmin && <Row icon={UsersIcon} label="Users" onClick={() => go('/users')} />}
+          {isSuperAdmin && <Row icon={Bell} label="Notifications" badge={unreadCount} onClick={() => go('/notifications')} />}
         </div>
 
         <div className="mt-4 overflow-hidden rounded-xl2 bg-white shadow-card">
@@ -91,11 +94,16 @@ export function MorePage() {
   )
 }
 
-function Row({ icon: Icon, label, onClick }: { icon: LucideIcon; label: string; onClick: () => void }) {
+function Row({ icon: Icon, label, badge, onClick }: { icon: LucideIcon; label: string; badge?: number; onClick: () => void }) {
   return (
     <button onClick={onClick} className="flex w-full items-center gap-3 border-t border-neutral-100 px-4 py-3.5 text-left text-sm font-medium text-neutral-800 tap-target first:border-t-0 dark:border-neutral-800">
       <Icon className="h-5 w-5 text-neutral-400" aria-hidden />
       <span className="flex-1">{label}</span>
+      {!!badge && (
+        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-status-danger px-1.5 text-[11px] font-semibold text-white">
+          {badge > 99 ? '99+' : badge}
+        </span>
+      )}
       <ChevronRight className="h-4 w-4 text-neutral-300" aria-hidden />
     </button>
   )

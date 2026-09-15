@@ -25,6 +25,7 @@ const CustomerDetailPage = lazy(() => import('@/pages/CustomerDetailPage').then(
 const VisitsPage = lazy(() => import('@/pages/VisitsPage').then((m) => ({ default: m.VisitsPage })))
 const MorePage = lazy(() => import('@/pages/MorePage').then((m) => ({ default: m.MorePage })))
 const PerformancePage = lazy(() => import('@/pages/PerformancePage').then((m) => ({ default: m.PerformancePage })))
+const NotificationsPage = lazy(() => import('@/pages/NotificationsPage').then((m) => ({ default: m.NotificationsPage })))
 
 function PageFallback() {
   return (
@@ -141,6 +142,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageFallback />}>
             <UsersPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/notifications',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <NotificationsPage />
           </Suspense>
         ),
       },

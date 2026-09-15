@@ -175,6 +175,33 @@ function SettingsForm() {
         </Field>
       </Section>
 
+      <Section title="Notifications">
+        <Field label="Late Clock-In Threshold" hint="Minutes after Start Time before a clock-in is flagged as late.">
+          <NumberInput
+            value={settings.lateClockinThresholdMinutes}
+            min={0}
+            suffix="min after start"
+            onChange={(v) => patch({ lateClockinThresholdMinutes: v })}
+          />
+        </Field>
+        <Field label="Idle Alert Threshold" hint="Minutes clocked in with no open visit before an idling notification fires.">
+          <NumberInput
+            value={settings.idleAlertThresholdMinutes}
+            min={0}
+            suffix="min idle"
+            onChange={(v) => patch({ idleAlertThresholdMinutes: v })}
+          />
+        </Field>
+        <Field label="Short Visit Threshold" hint="A completed visit shorter than this is flagged as ineffective.">
+          <NumberInput
+            value={settings.shortVisitThresholdMinutes}
+            min={0}
+            suffix="min minimum"
+            onChange={(v) => patch({ shortVisitThresholdMinutes: v })}
+          />
+        </Field>
+      </Section>
+
       <button
         onClick={handleSave}
         disabled={saving}

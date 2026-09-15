@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronRight, LogOut, Settings, HelpCircle, MapPin, Info, Shield } from 'lucide-react'
+import { Bell, ChevronRight, LogOut, Settings, HelpCircle, MapPin, Info, Shield } from 'lucide-react'
 import { InfoSheet } from '@/components/InfoSheet'
 import { AppearanceControl } from '@/components/AppearanceControl'
 import { LocationPermissionSheet } from '@/features/location/LocationPermissionSheet'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useProfile } from '@/features/auth/useProfile'
+import { useNotifications } from '@/features/notifications/useNotifications'
 import { haptic } from '@/lib/haptic'
 
 const APP_VERSION = import.meta.env.VITE_APP_VERSION ?? '0.1.0'
@@ -27,6 +28,11 @@ export function MenuPage() {
   const [signingOut, setSigningOut] = useState(false)
   const [openSheet, setOpenSheet] = useState<SheetKey>(null)
   const isSystemAdmin = profile?.role_name === 'System Admin'
+  // Notifications visibility is gated on is_super_admin specifically --
+  // that's the flag app.effective_scope() actually keys off of (see the
+  // notifications_center migration), not the role_name string check above.
+  const isSuperAdmin = profile?.is_super_admin === true
+  const { unreadCount } = useNotifications(isSuperAdmin)
 
   function handleItemPress(key: Exclude<SheetKey, null>) {
     // A System Admin gets the real global-settings screen; everyone else
@@ -55,6 +61,24 @@ export function MenuPage() {
               <ChevronRight className="h-4 w-4 text-neutral-300" aria-hidden />
             </button>
           ))}
+          {isSuperAdmin && (
+            <button
+              onClick={() => {
+                haptic('light')
+                navigate('/notifications')
+              }}
+              className="flex w-full items-center gap-3 border-t border-neutral-100 px-4 py-3.5 text-left text-sm font-medium text-neutral-800 tap-target dark:border-neutral-800"
+            >
+              <Bell className="h-5 w-5 text-neutral-400" aria-hidden />
+              <span className="flex-1">Notifications</span>
+              {!!unreadCount && (
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-status-danger px-1.5 text-[11px] font-semibold text-white">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+              <ChevronRight className="h-4 w-4 text-neutral-300" aria-hidden />
+            </button>
+          )}
         </div>
 
         <button

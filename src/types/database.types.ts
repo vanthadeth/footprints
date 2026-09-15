@@ -24,9 +24,12 @@ export type Database = {
           daily_visit_target: number | null
           daily_working_hours: number | null
           id: boolean
+          idle_alert_threshold_minutes: number
+          late_clockin_threshold_minutes: number
           location_ping_interval_minutes: number
           max_location_accuracy_m: number
           primary_currency: Database["public"]["Enums"]["currency"]
+          short_visit_threshold_minutes: number
           updated_at: string
           updated_by: string | null
           weekly_active_hours: number | null
@@ -44,9 +47,12 @@ export type Database = {
           daily_visit_target?: number | null
           daily_working_hours?: number | null
           id?: boolean
+          idle_alert_threshold_minutes?: number
+          late_clockin_threshold_minutes?: number
           location_ping_interval_minutes?: number
           max_location_accuracy_m?: number
           primary_currency?: Database["public"]["Enums"]["currency"]
+          short_visit_threshold_minutes?: number
           updated_at?: string
           updated_by?: string | null
           weekly_active_hours?: number | null
@@ -64,9 +70,12 @@ export type Database = {
           daily_visit_target?: number | null
           daily_working_hours?: number | null
           id?: boolean
+          idle_alert_threshold_minutes?: number
+          late_clockin_threshold_minutes?: number
           location_ping_interval_minutes?: number
           max_location_accuracy_m?: number
           primary_currency?: Database["public"]["Enums"]["currency"]
+          short_visit_threshold_minutes?: number
           updated_at?: string
           updated_by?: string | null
           weekly_active_hours?: number | null
@@ -1039,6 +1048,74 @@ export type Database = {
           sort_order?: number
         }
         Relationships: []
+      }
+      notifications: {
+        Row: {
+          attendance_id: string | null
+          comment: string
+          created_at: string
+          details: Json
+          id: string
+          kind: Database["public"]["Enums"]["notification_kind"]
+          occurred_at: string
+          read_at: string | null
+          user_id: string
+          visit_id: string | null
+        }
+        Insert: {
+          attendance_id?: string | null
+          comment: string
+          created_at?: string
+          details?: Json
+          id?: string
+          kind: Database["public"]["Enums"]["notification_kind"]
+          occurred_at: string
+          read_at?: string | null
+          user_id: string
+          visit_id?: string | null
+        }
+        Update: {
+          attendance_id?: string | null
+          comment?: string
+          created_at?: string
+          details?: Json
+          id?: string
+          kind?: Database["public"]["Enums"]["notification_kind"]
+          occurred_at?: string
+          read_at?: string | null
+          user_id?: string
+          visit_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_attendance_id_fkey"
+            columns: ["attendance_id"]
+            isOneToOne: false
+            referencedRelation: "attendance"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       positions: {
         Row: {
@@ -2263,6 +2340,52 @@ export type Database = {
           },
         ]
       }
+      notification_feed: {
+        Row: {
+          attendance_id: string | null
+          comment: string | null
+          created_at: string | null
+          customer_name: string | null
+          details: Json | null
+          id: string | null
+          kind: Database["public"]["Enums"]["notification_kind"] | null
+          occurred_at: string | null
+          read_at: string | null
+          user_id: string | null
+          user_name: string | null
+          visit_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_attendance_id_fkey"
+            columns: ["attendance_id"]
+            isOneToOne: false
+            referencedRelation: "attendance"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_directory: {
         Row: {
           department_id: string | null
@@ -2840,6 +2963,10 @@ export type Database = {
       customer_status: "active" | "inactive" | "banned"
       discount_mode: "percent" | "amount"
       gender: "male" | "female" | "other"
+      notification_kind:
+        | "late_clock_in"
+        | "idling_too_long"
+        | "ineffective_visit"
       permission_action: "view" | "add" | "edit" | "delete"
       permission_effect: "allow" | "deny"
       permission_scope: "own" | "sub" | "any" | "deny"
@@ -3002,6 +3129,11 @@ export const Constants = {
       customer_status: ["active", "inactive", "banned"],
       discount_mode: ["percent", "amount"],
       gender: ["male", "female", "other"],
+      notification_kind: [
+        "late_clock_in",
+        "idling_too_long",
+        "ineffective_visit",
+      ],
       permission_action: ["view", "add", "edit", "delete"],
       permission_effect: ["allow", "deny"],
       permission_scope: ["own", "sub", "any", "deny"],

@@ -12,6 +12,12 @@ export interface EditableSettings {
   workEndTime: string
   allowEarlyClockinMinutes: number
   autoClockoutGraceMinutes: number
+  /** Minutes after workStartTime before a clock-in triggers a "late clock-in" notification. */
+  lateClockinThresholdMinutes: number
+  /** Minutes clocked in with no open visit before an "idling too long" notification fires. */
+  idleAlertThresholdMinutes: number
+  /** Minutes; a completed visit shorter than this triggers an "ineffective visit" notification. */
+  shortVisitThresholdMinutes: number
 }
 
 /**
@@ -24,7 +30,9 @@ export const settingsService = {
   async get(): Promise<EditableSettings> {
     const { data, error } = await supabase
       .from('app_settings')
-      .select('checkin_radius_m, location_ping_interval_minutes, auto_checkout_enabled, work_start_time, work_end_time, allow_early_clockin_minutes, auto_clockout_grace_minutes')
+      .select(
+        'checkin_radius_m, location_ping_interval_minutes, auto_checkout_enabled, work_start_time, work_end_time, allow_early_clockin_minutes, auto_clockout_grace_minutes, late_clockin_threshold_minutes, idle_alert_threshold_minutes, short_visit_threshold_minutes'
+      )
       .single()
     if (error) throw error
     return {
@@ -36,6 +44,9 @@ export const settingsService = {
       workEndTime: data.work_end_time.slice(0, 5),
       allowEarlyClockinMinutes: data.allow_early_clockin_minutes,
       autoClockoutGraceMinutes: data.auto_clockout_grace_minutes,
+      lateClockinThresholdMinutes: data.late_clockin_threshold_minutes,
+      idleAlertThresholdMinutes: data.idle_alert_threshold_minutes,
+      shortVisitThresholdMinutes: data.short_visit_threshold_minutes,
     }
   },
 
@@ -50,6 +61,9 @@ export const settingsService = {
         work_end_time: settings.workEndTime,
         allow_early_clockin_minutes: settings.allowEarlyClockinMinutes,
         auto_clockout_grace_minutes: settings.autoClockoutGraceMinutes,
+        late_clockin_threshold_minutes: settings.lateClockinThresholdMinutes,
+        idle_alert_threshold_minutes: settings.idleAlertThresholdMinutes,
+        short_visit_threshold_minutes: settings.shortVisitThresholdMinutes,
       })
       .eq('id', true)
     if (error) throw error
