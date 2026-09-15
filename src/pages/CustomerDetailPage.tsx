@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Banknote, Camera, MapPin, Navigation, NotebookPen, Phone, ShoppingCart, Store, type LucideIcon } from 'lucide-react'
+import { ArrowLeft, Banknote, Camera, Construction, MapPin, Navigation, NotebookPen, Phone, ShoppingCart, Store, type LucideIcon } from 'lucide-react'
 import { customersService, type CustomerDirectoryRow } from '@/features/customers/customersService'
 import { VisitFlow, type PresetCustomer } from '@/features/visits/VisitFlow'
 import type { VisitRow } from '@/features/attendance/types'
+import { CUSTOMER_MANAGEMENT_ENABLED } from '@/lib/featureFlags'
 import { formatDate, formatTime } from '@/lib/datetime'
 
 const STATUS_STYLES: Record<string, string> = {
@@ -14,6 +15,19 @@ const STATUS_STYLES: Record<string, string> = {
 
 /** A customer's profile: how to reach them, a fast path into a visit, and their recent activity. No sales/outstanding figures yet -- see the redesign plan (Phase 2, once Orders ship). */
 export function CustomerDetailPage() {
+  if (!CUSTOMER_MANAGEMENT_ENABLED) {
+    return (
+      <div className="mx-auto flex max-w-lg flex-col items-center px-6 pt-16 text-center md:max-w-2xl">
+        <Construction className="h-10 w-10 text-neutral-300" />
+        <p className="mt-4 text-sm text-neutral-500">Customer management is temporarily unavailable.</p>
+      </div>
+    )
+  }
+
+  return <CustomerDetail />
+}
+
+function CustomerDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [customer, setCustomer] = useState<CustomerDirectoryRow | null>(null)

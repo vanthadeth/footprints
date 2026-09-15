@@ -3,13 +3,14 @@ import { useProfile } from '@/features/auth/useProfile'
 
 /**
  * Where a fresh sign-in lands. Login/ResetPassword send everyone here
- * rather than guessing a destination themselves -- the profile (and so
- * `is_field_sales`) isn't loaded yet at the moment sign-in succeeds, and
- * this is the one place that waits for it before deciding Home (field
- * sales) vs. Check In (everyone else).
+ * rather than guessing a destination themselves. The field-sales Home nav
+ * is disabled for now (see AppLayout/CustomersPage), so this always lands
+ * on Check In -- kept as its own page/wait rather than a plain router
+ * redirect so re-introducing a profile-based destination later is a
+ * one-line change here again.
  */
 export function StartPage() {
-  const { profile, loading } = useProfile()
+  const { loading } = useProfile()
 
   if (loading) {
     return (
@@ -19,5 +20,5 @@ export function StartPage() {
     )
   }
 
-  return <Navigate to={profile?.is_field_sales ? '/home' : '/check-in'} replace />
+  return <Navigate to="/check-in" replace />
 }

@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MapPin, Search, Store } from 'lucide-react'
+import { Construction, MapPin, Search, Store } from 'lucide-react'
 import { EmptyState } from '@/components/EmptyState'
 import { useCustomers } from '@/features/customers/useCustomers'
 import type { CustomerDirectoryRow } from '@/features/customers/customersService'
 import { VisitFlow, type PresetCustomer } from '@/features/visits/VisitFlow'
 import { locationService } from '@/features/location/locationService'
+import { CUSTOMER_MANAGEMENT_ENABLED } from '@/lib/featureFlags'
 import { distanceInMeters, formatDistance } from '@/lib/geo'
 import { timeAgo } from '@/lib/datetime'
 
@@ -23,6 +24,19 @@ const DUE_AFTER_DAYS = 14
 
 /** The field-sales customer book: search, a few practical filters, and a fast path into a visit -- no sales/outstanding figures (see redesign plan), just what helps decide who to see next. */
 export function CustomersPage() {
+  if (!CUSTOMER_MANAGEMENT_ENABLED) {
+    return (
+      <div className="mx-auto flex max-w-lg flex-col items-center px-6 pt-16 text-center md:max-w-2xl">
+        <Construction className="h-10 w-10 text-neutral-300" />
+        <p className="mt-4 text-sm text-neutral-500">Customer management is temporarily unavailable.</p>
+      </div>
+    )
+  }
+
+  return <CustomersList />
+}
+
+function CustomersList() {
   const { customers, loading, error } = useCustomers()
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
