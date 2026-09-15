@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AlertTriangle, Ban, Building2, ChevronLeft, Loader2, MapPin, RefreshCw, ShieldCheck, X } from 'lucide-react'
 import { BottomSheet } from '@/components/BottomSheet'
+import { useLanguage } from '@/i18n/LanguageContext'
 import { useJourneyContext } from '@/features/attendance/JourneyContext'
 import { useCustomerNames } from '@/features/customers/useCustomerNames'
 import { useAppSettings } from '@/hooks/useAppSettings'
@@ -652,6 +653,7 @@ function ChipGroup({
   value: string | null
   onChange: (id: string) => void
 }) {
+  const { tValue } = useLanguage()
   return (
     <div>
       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">{label}</p>
@@ -665,7 +667,7 @@ function ChipGroup({
               value === o.id ? 'border-brand-500 bg-brand-500 text-white' : 'border-neutral-200 bg-white text-neutral-600'
             }`}
           >
-            {o.label}
+            {tValue(`visitOption:${o.id}`, o.label)}
           </button>
         ))}
         {options.length === 0 && <p className="text-xs text-neutral-400">No options configured.</p>}

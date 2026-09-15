@@ -14,6 +14,14 @@ interface LanguageContextValue {
   setLanguage: (language: Language) => void
   /** Looks up a dotted key (e.g. "home.checkInButton") and substitutes any {{var}} placeholders from `vars`. */
   t: (key: string, vars?: Record<string, string | number>) => string
+  /**
+   * Looks up an override for a synthetic key that has no static en.ts/km.ts
+   * entry -- e.g. `visitOption:<id>` for a visit_options.label value, which
+   * lives in the database, not the dictionaries. Returns `fallback`
+   * (typically the raw DB value) when no override exists, never the key
+   * itself.
+   */
+  tValue: (key: string, fallback: string) => string
   /** Re-fetches admin-entered overrides (src/pages/TranslationsPage.tsx) so a save/reset shows up immediately in this session. */
   refreshOverrides: () => Promise<void>
 }
@@ -72,7 +80,11 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     return Object.entries(vars).reduce((acc, [name, value]) => acc.split(`{{${name}}}`).join(String(value)), template)
   }
 
-  return <LanguageContext.Provider value={{ language, setLanguage, t, refreshOverrides }}>{children}</LanguageContext.Provider>
+  function tValue(key: string, fallback: string): string {
+    return overrides[language][key] ?? fallback
+  }
+
+  return <LanguageContext.Provider value={{ language, setLanguage, t, tValue, refreshOverrides }}>{children}</LanguageContext.Provider>
 }
 
 export function useLanguage(): LanguageContextValue {

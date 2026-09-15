@@ -292,7 +292,7 @@ function ChipGroup({
   value: string | null
   onChange: (id: string) => void
 }) {
-  const { t } = useLanguage()
+  const { t, tValue } = useLanguage()
   return (
     <div>
       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">{label}</p>
@@ -306,7 +306,7 @@ function ChipGroup({
               value === o.id ? 'border-brand-500 bg-brand-500 text-white' : 'border-neutral-200 bg-white text-neutral-600'
             }`}
           >
-            {o.label}
+            {tValue(`visitOption:${o.id}`, o.label)}
           </button>
         ))}
         {options.length === 0 && <p className="text-xs text-neutral-400">{t('journey.noOptionsConfigured')}</p>}
@@ -333,7 +333,7 @@ function VisitEntry({
   onVisitChanged?: () => void
 }) {
   const journey = useJourneyContext()
-  const { t, language } = useLanguage()
+  const { t, tValue, language } = useLanguage()
 
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState(false)
@@ -679,16 +679,24 @@ function VisitEntry({
                 {hasRecord ? (
                   <div className="space-y-2.5 rounded-xl2 border border-neutral-200 p-3 dark:border-neutral-700">
                     {visitStatus && (
-                      <RecordRow icon={visitStatusIcon(visitStatus.label)} label={t('journey.visitStatusRecord')} value={visitStatus.label} />
+                      <RecordRow
+                        icon={visitStatusIcon(visitStatus.label)}
+                        label={t('journey.visitStatusRecord')}
+                        value={tValue(`visitOption:${visitStatus.id}`, visitStatus.label)}
+                      />
                     )}
                     {orderStatus && (
-                      <RecordRow icon={orderStatusIcon(orderStatus.label)} label={t('journey.orderStatusRecord')} value={orderStatus.label} />
+                      <RecordRow
+                        icon={orderStatusIcon(orderStatus.label)}
+                        label={t('journey.orderStatusRecord')}
+                        value={tValue(`visitOption:${orderStatus.id}`, orderStatus.label)}
+                      />
                     )}
                     {paymentStatus && (
                       <RecordRow
                         icon={paymentStatusIcon(paymentStatus.label)}
                         label={t('journey.paymentStatusRecord')}
-                        value={paymentStatus.label}
+                        value={tValue(`visitOption:${paymentStatus.id}`, paymentStatus.label)}
                       />
                     )}
                     {visit.next_appointment && (
