@@ -18,8 +18,8 @@ import {
 } from 'lucide-react'
 import { InfoSheet } from '@/components/InfoSheet'
 import { AppBuildInfo } from '@/components/AppBuildInfo'
+import { LogoutConfirmSheet } from '@/components/LogoutConfirmSheet'
 import { LocationPermissionSheet } from '@/features/location/LocationPermissionSheet'
-import { useAuth } from '@/features/auth/AuthContext'
 import { useProfile } from '@/features/auth/useProfile'
 import { useNotificationsContext } from '@/features/notifications/NotificationsContext'
 import { haptic } from '@/lib/haptic'
@@ -34,10 +34,9 @@ type SheetKey = 'help' | 'location' | 'about' | 'privacy'
  * plain -- a flat list, no cards-within-cards.
  */
 export function MorePage() {
-  const { signOut } = useAuth()
   const { profile } = useProfile()
   const navigate = useNavigate()
-  const [signingOut, setSigningOut] = useState(false)
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false)
   const [openSheet, setOpenSheet] = useState<SheetKey | null>(null)
   const isSuperAdmin = profile?.is_super_admin === true
   const { unreadCount } = useNotificationsContext()
@@ -71,16 +70,14 @@ export function MorePage() {
         </div>
 
         <button
-          disabled={signingOut}
-          onClick={async () => {
+          onClick={() => {
             haptic('light')
-            setSigningOut(true)
-            await signOut()
+            setLogoutConfirmOpen(true)
           }}
           className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl2 bg-white py-3.5 text-sm font-semibold text-status-danger shadow-card tap-target disabled:opacity-60"
         >
           <LogOut className="h-4 w-4" aria-hidden />
-          {signingOut ? 'Logging out…' : 'Logout'}
+          Logout
         </button>
 
         <p className="mt-6 pb-6 text-center text-xs text-neutral-400">Footprints v{__APP_VERSION__}</p>
@@ -105,6 +102,8 @@ export function MorePage() {
           only for attendance verification, visit tracking, and management reporting.
         </p>
       </InfoSheet>
+
+      <LogoutConfirmSheet open={logoutConfirmOpen} onClose={() => setLogoutConfirmOpen(false)} />
     </div>
   )
 }

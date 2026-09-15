@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Globe, LogOut, Settings, User, UserRound } from 'lucide-react'
 import { useProfile } from '@/features/auth/useProfile'
 import { useAvatarUrl } from '@/features/auth/useAvatarUrl'
-import { useAuth } from '@/features/auth/AuthContext'
+import { LogoutConfirmSheet } from '@/components/LogoutConfirmSheet'
 import { useLanguage } from '@/i18n/LanguageContext'
 import { displayName } from '@/lib/displayName'
 import { haptic } from '@/lib/haptic'
@@ -12,9 +12,9 @@ import { haptic } from '@/lib/haptic'
 export function ProfileBadge() {
   const { profile } = useProfile()
   const avatarUrl = useAvatarUrl(profile?.photo_path)
-  const { signOut } = useAuth()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false)
   const { language, setLanguage, t } = useLanguage()
   const rootRef = useRef<HTMLDivElement>(null)
 
@@ -102,11 +102,13 @@ export function ProfileBadge() {
             onClick={() => {
               setOpen(false)
               haptic('light')
-              signOut()
+              setLogoutConfirmOpen(true)
             }}
           />
         </div>
       )}
+
+      <LogoutConfirmSheet open={logoutConfirmOpen} onClose={() => setLogoutConfirmOpen(false)} />
     </div>
   )
 }

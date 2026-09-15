@@ -4,6 +4,7 @@ import { Check, ChevronDown, ChevronRight, ChevronUp, Download, Globe, Loader2, 
 import { useProfile } from '@/features/auth/useProfile'
 import { useAuth } from '@/features/auth/AuthContext'
 import { AvatarPicker } from '@/features/auth/AvatarPicker'
+import { LogoutConfirmSheet } from '@/components/LogoutConfirmSheet'
 import { usersService } from '@/features/users/usersService'
 import { useJourneyContext } from '@/features/attendance/JourneyContext'
 import { computeJourneyStats } from '@/features/attendance/journeyStats'
@@ -17,10 +18,10 @@ import { haptic } from '@/lib/haptic'
 
 export function ProfilePage() {
   const { profile, loading, refresh } = useProfile()
-  const { session, signOut } = useAuth()
+  const { session } = useAuth()
   const journey = useJourneyContext()
   const { t, language } = useLanguage()
-  const [signingOut, setSigningOut] = useState(false)
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false)
 
   // Multiple clock-in/clock-out sessions are allowed in one day -- summed
   // across all of today's sessions, not just whichever one is open now.
@@ -51,22 +52,22 @@ export function ProfilePage() {
             <PreferencesSection />
 
             <button
-              disabled={signingOut}
-              onClick={async () => {
+              onClick={() => {
                 haptic('light')
-                setSigningOut(true)
-                await signOut()
+                setLogoutConfirmOpen(true)
               }}
               className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl2 bg-status-danger py-3.5 text-sm font-semibold text-white shadow-card tap-target disabled:opacity-60"
             >
               <LogOut className="h-4 w-4" aria-hidden />
-              {signingOut ? t('profile.loggingOut') : t('profile.logOut')}
+              {t('profile.logOut')}
             </button>
           </>
         ) : (
           <p className="text-sm text-neutral-500">{t('profile.couldNotLoad')}</p>
         )}
       </div>
+
+      <LogoutConfirmSheet open={logoutConfirmOpen} onClose={() => setLogoutConfirmOpen(false)} />
     </div>
   )
 }
