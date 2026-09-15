@@ -4,6 +4,7 @@ import {
   Bell,
   Building2,
   ChevronRight,
+  Globe,
   LogOut,
   Settings,
   HelpCircle,
@@ -56,6 +57,7 @@ export function MorePage() {
           {isSuperAdmin && <Row icon={UsersIcon} label="Users" onClick={() => go('/users')} />}
           {isSuperAdmin && <Row icon={Bell} label="Notifications" badge={unreadCount} onClick={() => go('/notifications')} />}
           {isSuperAdmin && <Row icon={Building2} label="Locations" onClick={() => go('/locations')} />}
+          {isSuperAdmin && <Row icon={Globe} label="Translations" onClick={() => go('/translations')} />}
         </div>
 
         <div className="mt-4 overflow-hidden rounded-xl2 bg-white shadow-card">

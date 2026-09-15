@@ -23,6 +23,7 @@ export const en = {
     performance: 'Performance',
     notifications: 'Notifications',
     locations: 'Locations',
+    translations: 'Translations',
     customer: 'Customer',
   },
   welcome: {

@@ -31,6 +31,7 @@ export const km: TranslationKey = {
     performance: 'សមិទ្ធផល',
     notifications: 'ការជូនដំណឹង',
     locations: 'ទីតាំង',
+    translations: 'ការបកប្រែ',
     customer: 'អតិថិជន',
   },
   welcome: {

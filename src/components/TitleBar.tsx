@@ -18,6 +18,7 @@ const TITLE_KEYS: Record<string, string> = {
   '/performance': 'nav.performance',
   '/notifications': 'nav.notifications',
   '/locations': 'nav.locations',
+  '/translations': 'nav.translations',
 }
 
 /**
