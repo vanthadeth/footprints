@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { getInitialLanguage, setLanguage as persistLanguage, type Language } from '@/lib/language'
 import { en } from './en'
 import { km } from './km'
@@ -26,6 +26,12 @@ function lookup(dictionary: object, key: string): string | undefined {
 /** Single shared language instance for the whole app -- same shape as ThemeProvider/useTheme. */
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>(() => getInitialLanguage())
+
+  // Keeps <html lang> correct after a live toggle -- index.html's inline
+  // script only sets it correctly for the very first paint.
+  useEffect(() => {
+    document.documentElement.lang = language
+  }, [language])
 
   function setLanguage(next: Language) {
     persistLanguage(next)
