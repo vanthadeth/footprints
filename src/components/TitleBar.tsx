@@ -1,5 +1,6 @@
 import { useLocation } from 'react-router-dom'
 import { ProfileBadge } from '@/components/ProfileBadge'
+import { NotificationBell } from '@/components/NotificationBell'
 import { useJourneyContext } from '@/features/attendance/JourneyContext'
 
 const TITLES: Record<string, string> = {
@@ -47,7 +48,10 @@ export function TitleBar() {
       className="sticky top-0 z-10 flex items-center justify-between border-b border-neutral-200 bg-white/95 px-4 pb-3 backdrop-blur dark:border-neutral-800 md:px-8"
     >
       <h1 className="text-lg font-semibold text-neutral-700">{title}</h1>
-      <ProfileBadge />
+      <div className="flex items-center gap-1">
+        <NotificationBell />
+        <ProfileBadge />
+      </div>
     </header>
   )
 }
