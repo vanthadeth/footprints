@@ -2,6 +2,7 @@ import { Marker, Polyline, Popup } from 'react-leaflet'
 import type { LatLngExpression } from 'leaflet'
 import { MapView } from '@/features/maps/MapView'
 import { pinIcon } from '@/features/maps/markers'
+import { useLocationNames } from '@/features/locations/useLocationNames'
 import { formatDuration, formatTime } from '@/lib/datetime'
 import type { AttendanceRow, VisitRow } from './types'
 
@@ -45,6 +46,8 @@ export function JourneyMap({
   /** Forwarded to MapView -- false for an edge-to-edge full-screen map. */
   rounded?: boolean
 }) {
+  const locationNames = useLocationNames(attendance.flatMap((s) => [s.clock_in_location_id, s.clock_out_location_id]))
+
   const items: MapPoint[] = []
 
   for (const session of attendance) {
@@ -86,7 +89,9 @@ export function JourneyMap({
             <Marker key={`in-${p.session.id}`} position={[p.lat, p.lng]} icon={pinIcon(CHECK_IN_COLOR, { size: SMALL_PIN_SIZE })}>
               <Popup>
                 <div className="text-sm">
-                  <p className="font-semibold">Clock In</p>
+                  <p className="font-semibold">
+                    Clock In{p.session.clock_in_location_id && locationNames[p.session.clock_in_location_id] ? ` — ${locationNames[p.session.clock_in_location_id]}` : ''}
+                  </p>
                   <p className="text-neutral-500">{formatTime(p.time)}</p>
                 </div>
               </Popup>
@@ -99,7 +104,9 @@ export function JourneyMap({
             <Marker key={`out-${session.id}`} position={[p.lat, p.lng]} icon={pinIcon(CHECK_OUT_COLOR, { size: SMALL_PIN_SIZE })}>
               <Popup>
                 <div className="text-sm">
-                  <p className="font-semibold">Clock Out</p>
+                  <p className="font-semibold">
+                    Clock Out{session.clock_out_location_id && locationNames[session.clock_out_location_id] ? ` — ${locationNames[session.clock_out_location_id]}` : ''}
+                  </p>
                   <p className="text-neutral-500">
                     {formatTime(p.time)} · {formatDuration(new Date(session.clock_out_at!).getTime() - new Date(session.clock_in_at).getTime())}
                   </p>

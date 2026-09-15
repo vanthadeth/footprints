@@ -8,6 +8,7 @@ import { computeJourneyStats } from '@/features/attendance/journeyStats'
 import type { DayJourney } from '@/features/attendance/useJourneyHistory'
 import { VisitFlow } from '@/features/visits/VisitFlow'
 import { useCustomerNames } from '@/features/customers/useCustomerNames'
+import { useLocationNames } from '@/features/locations/useLocationNames'
 import { useAppSettings } from '@/hooks/useAppSettings'
 import { summarizeAttendanceTimes } from '@/features/attendance/stateMachine'
 import { locationService } from '@/features/location/locationService'
@@ -34,6 +35,14 @@ export function CheckInPage() {
     .sort((a, b) => b.checked_out_at!.localeCompare(a.checked_out_at!))
     .slice(0, 5)
   const customerNames = useCustomerNames([autoCheckoutCustomerId, journey.openVisit?.customer_id ?? null, ...recentVisits.map((v) => v.customer_id)])
+  // Computed above the loading guard below (hooks can't follow a
+  // conditional return) -- summarizeAttendanceTimes handles an empty
+  // todaysAttendance fine, returning all-null.
+  const { clockInTime, clockOutTime, clockInLocationId, clockOutLocationId } = summarizeAttendanceTimes(
+    journey.todaysAttendance,
+    journey.openAttendance
+  )
+  const locationNames = useLocationNames([clockInLocationId, clockOutLocationId])
 
   const firstName = profile?.full_name?.split(' ')[0]
 
@@ -90,7 +99,6 @@ export function CheckInPage() {
   const today: DayJourney = { date: '', attendance: journey.todaysAttendance, visits: journey.todaysVisits }
   const stats = computeJourneyStats([today])
   const effectivenessRatio = stats.totalWorkingMs > 0 ? Math.round((stats.totalVisitingMs / stats.totalWorkingMs) * 100) : 0
-  const { clockInTime, clockOutTime } = summarizeAttendanceTimes(journey.todaysAttendance, journey.openAttendance)
 
   return (
     <div className="mx-auto max-w-lg pb-6 md:max-w-2xl">
@@ -154,10 +162,16 @@ export function CheckInPage() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-white/50">Clock In</p>
                 <p className="mt-1 text-xl font-semibold text-white">{clockInTime ? formatTime(clockInTime) : '--:--'}</p>
+                {clockInLocationId && locationNames[clockInLocationId] && (
+                  <p className="mt-0.5 text-xs text-white/50">{locationNames[clockInLocationId]}</p>
+                )}
               </div>
               <div className="text-right">
                 <p className="text-xs font-semibold uppercase tracking-wide text-white/50">Clock Out</p>
                 <p className="mt-1 text-xl font-semibold text-white">{clockOutTime ? formatTime(clockOutTime) : '--:--'}</p>
+                {clockOutLocationId && locationNames[clockOutLocationId] && (
+                  <p className="mt-0.5 text-xs text-white/50">{locationNames[clockOutLocationId]}</p>
+                )}
               </div>
             </div>
 

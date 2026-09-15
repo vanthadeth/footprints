@@ -40,11 +40,21 @@ export function isValidJourneyCombination(attendance: AttendanceStatus, visit: V
 export function summarizeAttendanceTimes(
   todaysAttendance: AttendanceRow[],
   openAttendance: AttendanceRow | null
-): { clockInTime: string | null; clockOutTime: string | null } {
-  if (todaysAttendance.length === 0) return { clockInTime: null, clockOutTime: null }
+): {
+  clockInTime: string | null
+  clockOutTime: string | null
+  clockInLocationId: string | null
+  clockOutLocationId: string | null
+} {
+  if (todaysAttendance.length === 0) {
+    return { clockInTime: null, clockOutTime: null, clockInLocationId: null, clockOutLocationId: null }
+  }
   const sorted = [...todaysAttendance].sort((a, b) => a.clock_in_at.localeCompare(b.clock_in_at))
+  const last = sorted[sorted.length - 1]
   return {
     clockInTime: sorted[0].clock_in_at,
-    clockOutTime: openAttendance ? null : (sorted[sorted.length - 1].clock_out_at ?? null),
+    clockOutTime: openAttendance ? null : (last.clock_out_at ?? null),
+    clockInLocationId: sorted[0].clock_in_location_id ?? null,
+    clockOutLocationId: openAttendance ? null : (last.clock_out_location_id ?? null),
   }
 }

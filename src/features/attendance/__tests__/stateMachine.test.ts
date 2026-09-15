@@ -16,6 +16,8 @@ function attendance(overrides: Partial<AttendanceRow> = {}): AttendanceRow {
     clock_out_longitude: null,
     clock_out_accuracy_m: null,
     clock_out_selfie_path: null,
+    clock_in_location_id: null,
+    clock_out_location_id: null,
     flags: [],
     created_at: '2026-01-01T01:00:00Z',
     updated_at: '2026-01-01T01:00:00Z',
@@ -114,22 +116,46 @@ describe('isValidJourneyCombination (spec §54)', () => {
 
 describe('summarizeAttendanceTimes', () => {
   it('is all null with no sessions today', () => {
-    expect(summarizeAttendanceTimes([], null)).toEqual({ clockInTime: null, clockOutTime: null })
+    expect(summarizeAttendanceTimes([], null)).toEqual({
+      clockInTime: null,
+      clockOutTime: null,
+      clockInLocationId: null,
+      clockOutLocationId: null,
+    })
   })
 
   it('uses the first clock-in and the open session has no clock-out yet', () => {
-    const open = attendance({ id: 'a1', clock_in_at: '2026-01-01T01:00:00Z' })
-    expect(summarizeAttendanceTimes([open], open)).toEqual({ clockInTime: '2026-01-01T01:00:00Z', clockOutTime: null })
+    const open = attendance({ id: 'a1', clock_in_at: '2026-01-01T01:00:00Z', clock_in_location_id: 'loc-office' })
+    expect(summarizeAttendanceTimes([open], open)).toEqual({
+      clockInTime: '2026-01-01T01:00:00Z',
+      clockOutTime: null,
+      clockInLocationId: 'loc-office',
+      clockOutLocationId: null,
+    })
   })
 
   it('uses the most recent clock-out once nothing is open, across multiple sessions', () => {
     const sessions = [
-      attendance({ id: 'a1', clock_in_at: '2026-01-01T01:00:00Z', clock_out_at: '2026-01-01T05:00:00Z' }),
-      attendance({ id: 'a2', clock_in_at: '2026-01-01T06:00:00Z', clock_out_at: '2026-01-01T09:00:00Z' }),
+      attendance({
+        id: 'a1',
+        clock_in_at: '2026-01-01T01:00:00Z',
+        clock_out_at: '2026-01-01T05:00:00Z',
+        clock_in_location_id: 'loc-office',
+        clock_out_location_id: 'loc-office',
+      }),
+      attendance({
+        id: 'a2',
+        clock_in_at: '2026-01-01T06:00:00Z',
+        clock_out_at: '2026-01-01T09:00:00Z',
+        clock_in_location_id: 'loc-warehouse',
+        clock_out_location_id: 'loc-warehouse',
+      }),
     ]
     expect(summarizeAttendanceTimes(sessions, null)).toEqual({
       clockInTime: '2026-01-01T01:00:00Z',
       clockOutTime: '2026-01-01T09:00:00Z',
+      clockInLocationId: 'loc-office',
+      clockOutLocationId: 'loc-warehouse',
     })
   })
 
@@ -139,6 +165,13 @@ describe('summarizeAttendanceTimes', () => {
     expect(summarizeAttendanceTimes([closed, open], open)).toEqual({
       clockInTime: '2026-01-01T01:00:00Z',
       clockOutTime: null,
+      clockInLocationId: null,
+      clockOutLocationId: null,
     })
+  })
+
+  it('is null when a session has no matched location', () => {
+    const open = attendance({ id: 'a1', clock_in_at: '2026-01-01T01:00:00Z', clock_in_location_id: null })
+    expect(summarizeAttendanceTimes([open], open).clockInLocationId).toBeNull()
   })
 })
