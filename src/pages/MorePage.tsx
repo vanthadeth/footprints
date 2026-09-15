@@ -17,13 +17,12 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { InfoSheet } from '@/components/InfoSheet'
+import { AppBuildInfo } from '@/components/AppBuildInfo'
 import { LocationPermissionSheet } from '@/features/location/LocationPermissionSheet'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useProfile } from '@/features/auth/useProfile'
 import { useNotificationsContext } from '@/features/notifications/NotificationsContext'
 import { haptic } from '@/lib/haptic'
-
-const APP_VERSION = import.meta.env.VITE_APP_VERSION ?? '0.1.0'
 
 type SheetKey = 'help' | 'location' | 'about' | 'privacy'
 
@@ -84,7 +83,7 @@ export function MorePage() {
           {signingOut ? 'Logging out…' : 'Logout'}
         </button>
 
-        <p className="mt-6 pb-6 text-center text-xs text-neutral-400">Footprints v{APP_VERSION}</p>
+        <p className="mt-6 pb-6 text-center text-xs text-neutral-400">Footprints v{__APP_VERSION__}</p>
       </div>
 
       <InfoSheet open={openSheet === 'help'} onClose={() => setOpenSheet(null)} title="Help">
@@ -96,7 +95,7 @@ export function MorePage() {
       <InfoSheet open={openSheet === 'about'} onClose={() => setOpenSheet(null)} title="About Footprints">
         <p className="font-medium text-neutral-900">Footprints, by HIG</p>
         <p>Plan your day, visit your customers, and track your progress -- all in one place.</p>
-        <p className="text-xs text-neutral-400">Version {APP_VERSION}</p>
+        <AppBuildInfo />
       </InfoSheet>
 
       <InfoSheet open={openSheet === 'privacy'} onClose={() => setOpenSheet(null)} title="Privacy">
