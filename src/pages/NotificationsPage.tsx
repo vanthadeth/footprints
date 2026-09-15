@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Bell, ShieldAlert } from 'lucide-react'
 import { EmptyState } from '@/components/EmptyState'
 import { useProfile } from '@/features/auth/useProfile'
-import { useNotifications } from '@/features/notifications/useNotifications'
+import { useNotificationsContext } from '@/features/notifications/NotificationsContext'
 import { NOTIFICATION_KIND_META, type NotificationKind } from '@/features/notifications/notificationKindMeta'
 import type { NotificationFeedRow } from '@/features/notifications/notificationsService'
 import { timeAgo } from '@/lib/datetime'
@@ -49,7 +49,7 @@ export function NotificationsPage() {
 }
 
 function NotificationsFeed() {
-  const { notifications, loading, error, markRead } = useNotifications()
+  const { notifications, loading, error, markRead } = useNotificationsContext()
   const [filter, setFilter] = useState<Filter>('all')
 
   const filtered = useMemo(

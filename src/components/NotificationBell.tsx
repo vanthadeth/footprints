@@ -1,20 +1,21 @@
 import { useNavigate } from 'react-router-dom'
 import { Bell } from 'lucide-react'
 import { useProfile } from '@/features/auth/useProfile'
-import { useNotifications } from '@/features/notifications/useNotifications'
+import { useNotificationsContext } from '@/features/notifications/NotificationsContext'
 import { haptic } from '@/lib/haptic'
 
 /**
  * Title-bar shortcut into the Notifications Center -- rendered for every
  * authenticated screen (like ProfileBadge), but only ever visible to a
  * super admin, since that's the whole feature's audience (see
- * NotificationsPage). `useNotifications(isSuperAdmin)` skips its fetch +
- * realtime subscription entirely for everyone else.
+ * NotificationsPage). Reads the shared NotificationsProvider instance
+ * (AppLayout) rather than calling useNotifications() itself -- see that
+ * context's doc comment for why a second independent instance would crash.
  */
 export function NotificationBell() {
   const { profile } = useProfile()
   const isSuperAdmin = profile?.is_super_admin === true
-  const { unreadCount } = useNotifications(isSuperAdmin)
+  const { unreadCount } = useNotificationsContext()
   const navigate = useNavigate()
 
   if (!isSuperAdmin) return null

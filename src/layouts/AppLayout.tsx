@@ -19,6 +19,7 @@ import { OfflineBanner } from '@/components/OfflineBanner'
 import { TitleBar } from '@/components/TitleBar'
 import { QuickActionSheet } from '@/components/QuickActionSheet'
 import { JourneyProvider, useJourneyContext } from '@/features/attendance/JourneyContext'
+import { NotificationsProvider } from '@/features/notifications/NotificationsContext'
 import { useProfile, type Profile } from '@/features/auth/useProfile'
 import { ForceChangePasswordPage } from '@/features/auth/ForceChangePasswordPage'
 
@@ -61,27 +62,29 @@ export function AppLayout() {
 
   return (
     <JourneyProvider>
-      <div className="flex min-h-dvh flex-col bg-neutral-50 md:flex-row">
-        <OfflineBanner />
-        <DesktopSidebar isFieldSales={isFieldSales} profile={profile} onQuickAction={() => setQuickActionOpen(true)} />
+      <NotificationsProvider>
+        <div className="flex min-h-dvh flex-col bg-neutral-50 md:flex-row">
+          <OfflineBanner />
+          <DesktopSidebar isFieldSales={isFieldSales} profile={profile} onQuickAction={() => setQuickActionOpen(true)} />
 
-        <div className="flex min-w-0 flex-1 flex-col">
-          <TitleBar />
+          <div className="flex min-w-0 flex-1 flex-col">
+            <TitleBar />
 
-          <main className="flex-1 pb-[calc(4.75rem+env(safe-area-inset-bottom))] md:pb-0">
-            {/* Keying by path remounts this div on every tab switch, which
-                restarts the fade-in-up animation -- a lightweight stand-in
-                for a real route-transition library. */}
-            <div key={location.pathname} className="animate-fade-in-up">
-              <Outlet />
-            </div>
-          </main>
+            <main className="flex-1 pb-[calc(4.75rem+env(safe-area-inset-bottom))] md:pb-0">
+              {/* Keying by path remounts this div on every tab switch, which
+                  restarts the fade-in-up animation -- a lightweight stand-in
+                  for a real route-transition library. */}
+              <div key={location.pathname} className="animate-fade-in-up">
+                <Outlet />
+              </div>
+            </main>
+          </div>
+
+          <MobileTabBar isFieldSales={isFieldSales} profile={profile} onQuickAction={() => setQuickActionOpen(true)} />
         </div>
 
-        <MobileTabBar isFieldSales={isFieldSales} profile={profile} onQuickAction={() => setQuickActionOpen(true)} />
-      </div>
-
-      {isFieldSales && <QuickActionSheet open={quickActionOpen} onClose={() => setQuickActionOpen(false)} />}
+        {isFieldSales && <QuickActionSheet open={quickActionOpen} onClose={() => setQuickActionOpen(false)} />}
+      </NotificationsProvider>
     </JourneyProvider>
   )
 }

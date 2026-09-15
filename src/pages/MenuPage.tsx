@@ -6,7 +6,7 @@ import { AppearanceControl } from '@/components/AppearanceControl'
 import { LocationPermissionSheet } from '@/features/location/LocationPermissionSheet'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useProfile } from '@/features/auth/useProfile'
-import { useNotifications } from '@/features/notifications/useNotifications'
+import { useNotificationsContext } from '@/features/notifications/NotificationsContext'
 import { haptic } from '@/lib/haptic'
 
 const APP_VERSION = import.meta.env.VITE_APP_VERSION ?? '0.1.0'
@@ -32,7 +32,7 @@ export function MenuPage() {
   // that's the flag app.effective_scope() actually keys off of (see the
   // notifications_center migration), not the role_name string check above.
   const isSuperAdmin = profile?.is_super_admin === true
-  const { unreadCount } = useNotifications(isSuperAdmin)
+  const { unreadCount } = useNotificationsContext()
 
   function handleItemPress(key: Exclude<SheetKey, null>) {
     // A System Admin gets the real global-settings screen; everyone else

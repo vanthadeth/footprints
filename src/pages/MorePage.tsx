@@ -5,7 +5,7 @@ import { InfoSheet } from '@/components/InfoSheet'
 import { LocationPermissionSheet } from '@/features/location/LocationPermissionSheet'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useProfile } from '@/features/auth/useProfile'
-import { useNotifications } from '@/features/notifications/useNotifications'
+import { useNotificationsContext } from '@/features/notifications/NotificationsContext'
 import { haptic } from '@/lib/haptic'
 
 const APP_VERSION = import.meta.env.VITE_APP_VERSION ?? '0.1.0'
@@ -26,7 +26,7 @@ export function MorePage() {
   const [signingOut, setSigningOut] = useState(false)
   const [openSheet, setOpenSheet] = useState<SheetKey | null>(null)
   const isSuperAdmin = profile?.is_super_admin === true
-  const { unreadCount } = useNotifications(isSuperAdmin)
+  const { unreadCount } = useNotificationsContext()
 
   function go(path: string) {
     haptic('light')
