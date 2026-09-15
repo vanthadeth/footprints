@@ -11,9 +11,9 @@ type Filter = 'all' | NotificationKind
 
 const FILTERS: { key: Filter; label: string }[] = [
   { key: 'all', label: 'All' },
-  { key: 'late_clock_in', label: 'Late Clock-In' },
+  { key: 'late_clock_in', label: 'Late' },
   { key: 'idling_too_long', label: 'Idling' },
-  { key: 'ineffective_visit', label: 'Ineffective Visit' },
+  { key: 'ineffective_visit', label: 'Ineffective' },
 ]
 
 /**
