@@ -28,6 +28,7 @@ import {
 } from 'lucide-react'
 import { BottomSheet } from '@/components/BottomSheet'
 import { useJourneyContext } from './JourneyContext'
+import { useLocationNames } from '@/features/locations/useLocationNames'
 import { GAP_FLAG_THRESHOLD_MINUTES } from '@/lib/config'
 import { formatDate, formatDuration, formatTime } from '@/lib/datetime'
 import { formatDistance } from '@/lib/geo'
@@ -102,6 +103,7 @@ export function JourneyTimeline({ attendance, visits, customerNames, interactive
   for (const options of Object.values(byKind)) {
     for (const o of options) optionsById[o.id] = o
   }
+  const locationNames = useLocationNames(attendance.map((s) => s.clock_in_location_id))
 
   if (attendance.length === 0) return null
 
@@ -133,7 +135,10 @@ export function JourneyTimeline({ attendance, visits, customerNames, interactive
     }
 
     if (event.kind === 'clock-in') {
-      rows.push(<ClockNode key={`in-${event.session.id}`} time={event.time} label="Clock In" toneClass="bg-status-working" />)
+      const locationName = event.session.clock_in_location_id ? locationNames[event.session.clock_in_location_id] : undefined
+      rows.push(
+        <ClockNode key={`in-${event.session.id}`} time={event.time} label="Clock In" toneClass="bg-status-working" locationName={locationName} />
+      )
       cursor = event.time
       cursorWasClockOut = false
     } else if (event.kind === 'clock-out') {
@@ -168,14 +173,17 @@ function gapBetween(fromIso: string | null, toIso: string | null): number | null
   return ms > 0 ? ms : null
 }
 
-function ClockNode({ time, label, toneClass }: { time: string; label: string; toneClass: string }) {
+function ClockNode({ time, label, toneClass, locationName }: { time: string; label: string; toneClass: string; locationName?: string }) {
   return (
     <li className="relative flex items-center justify-between gap-3 py-0.5">
       <span className={`absolute -left-[2.875rem] top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-white ${toneClass}`}>
         <Clock className="h-3.5 w-3.5" />
       </span>
-      <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">{label}</p>
-      <p className="text-sm font-bold text-neutral-900 dark:text-neutral-100">{formatTime(time)}</p>
+      <div className="min-w-0">
+        <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">{label}</p>
+        {locationName && <p className="truncate text-xs text-neutral-400">{locationName}</p>}
+      </div>
+      <p className="shrink-0 text-sm font-bold text-neutral-900 dark:text-neutral-100">{formatTime(time)}</p>
     </li>
   )
 }
