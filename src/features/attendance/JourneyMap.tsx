@@ -3,6 +3,7 @@ import type { LatLngExpression } from 'leaflet'
 import { MapView } from '@/features/maps/MapView'
 import { pinIcon } from '@/features/maps/markers'
 import { useLocationNames } from '@/features/locations/useLocationNames'
+import { useLanguage } from '@/i18n/LanguageContext'
 import { formatDuration, formatTime } from '@/lib/datetime'
 import type { AttendanceRow, VisitRow } from './types'
 
@@ -46,6 +47,7 @@ export function JourneyMap({
   /** Forwarded to MapView -- false for an edge-to-edge full-screen map. */
   rounded?: boolean
 }) {
+  const { t, language } = useLanguage()
   const locationNames = useLocationNames(attendance.flatMap((s) => [s.clock_in_location_id, s.clock_out_location_id]))
 
   const items: MapPoint[] = []
@@ -75,7 +77,7 @@ export function JourneyMap({
         className={`flex items-center justify-center bg-neutral-100 text-sm text-neutral-400 ${rounded === false ? '' : 'rounded-xl2'}`}
         style={{ height: height ?? 192 }}
       >
-        No visit locations yet
+        {t('journey.noVisitLocations')}
       </div>
     )
   }
@@ -90,7 +92,10 @@ export function JourneyMap({
               <Popup>
                 <div className="text-sm">
                   <p className="font-semibold">
-                    Clock In{p.session.clock_in_location_id && locationNames[p.session.clock_in_location_id] ? ` — ${locationNames[p.session.clock_in_location_id]}` : ''}
+                    {t('nav.clockIn')}
+                    {p.session.clock_in_location_id && locationNames[p.session.clock_in_location_id]
+                      ? ` — ${locationNames[p.session.clock_in_location_id]}`
+                      : ''}
                   </p>
                   <p className="text-neutral-500">{formatTime(p.time)}</p>
                 </div>
@@ -105,10 +110,14 @@ export function JourneyMap({
               <Popup>
                 <div className="text-sm">
                   <p className="font-semibold">
-                    Clock Out{session.clock_out_location_id && locationNames[session.clock_out_location_id] ? ` — ${locationNames[session.clock_out_location_id]}` : ''}
+                    {t('common.clockOut')}
+                    {session.clock_out_location_id && locationNames[session.clock_out_location_id]
+                      ? ` — ${locationNames[session.clock_out_location_id]}`
+                      : ''}
                   </p>
                   <p className="text-neutral-500">
-                    {formatTime(p.time)} · {formatDuration(new Date(session.clock_out_at!).getTime() - new Date(session.clock_in_at).getTime())}
+                    {formatTime(p.time)} ·{' '}
+                    {formatDuration(new Date(session.clock_out_at!).getTime() - new Date(session.clock_in_at).getTime(), language)}
                   </p>
                 </div>
               </Popup>
@@ -120,12 +129,12 @@ export function JourneyMap({
           <Marker key={visit.id} position={[p.lat, p.lng]} icon={pinIcon(VISIT_COLOR, { label: String(p.index + 1) })}>
             <Popup>
               <div className="text-sm">
-                <p className="font-semibold">Visit #{visit.visit_number ?? p.index + 1}</p>
-                <p>{visit.customer_id ? customerNames[visit.customer_id] ?? 'Loading…' : 'Unassigned'}</p>
+                <p className="font-semibold">{t('journey.mapVisitLabel', { n: String(visit.visit_number ?? p.index + 1) })}</p>
+                <p>{visit.customer_id ? customerNames[visit.customer_id] ?? t('common.loading') : t('common.unassignedVisit')}</p>
                 <p className="text-neutral-500">
                   {formatTime(visit.checked_in_at)}
                   {visit.checked_out_at &&
-                    ` · ${formatDuration(new Date(visit.checked_out_at).getTime() - new Date(visit.checked_in_at).getTime())}`}
+                    ` · ${formatDuration(new Date(visit.checked_out_at).getTime() - new Date(visit.checked_in_at).getTime(), language)}`}
                 </p>
               </div>
             </Popup>

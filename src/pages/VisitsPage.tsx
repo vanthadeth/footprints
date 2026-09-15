@@ -7,34 +7,36 @@ import { useJourneyContext } from '@/features/attendance/JourneyContext'
 import { JourneyTimeline } from '@/features/attendance/JourneyTimeline'
 import { useUpcomingVisits } from '@/features/visits/useUpcomingVisits'
 import { useCustomerNames } from '@/features/customers/useCustomerNames'
+import { useLanguage } from '@/i18n/LanguageContext'
 import { formatDate } from '@/lib/datetime'
 import { FootprintsPage } from './FootprintsPage'
 
 type Tab = 'today' | 'upcoming' | 'history'
 
-const TABS: { key: Tab; label: string }[] = [
-  { key: 'today', label: 'Today' },
-  { key: 'upcoming', label: 'Upcoming' },
-  { key: 'history', label: 'History' },
+const TABS: { key: Tab; labelKey: string }[] = [
+  { key: 'today', labelKey: 'common.today' },
+  { key: 'upcoming', labelKey: 'visits.tabUpcoming' },
+  { key: 'history', labelKey: 'visits.tabHistory' },
 ]
 
 /** The field nav's Visits screen: today's visits, promised-return dates from past visit records, and (reusing FootprintsPage as-is) full day-by-day history. */
 export function VisitsPage() {
+  const { t } = useLanguage()
   const [tab, setTab] = useState<Tab>('today')
 
   return (
     <div className="mx-auto max-w-lg pb-6 md:max-w-2xl">
       <div className="px-4 pt-4 md:px-8">
         <div className="flex gap-1 rounded-full bg-neutral-100 p-1">
-          {TABS.map((t) => (
+          {TABS.map((item) => (
             <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
+              key={item.key}
+              onClick={() => setTab(item.key)}
               className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold tap-target ${
-                tab === t.key ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500'
+                tab === item.key ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500'
               }`}
             >
-              {t.label}
+              {t(item.labelKey)}
             </button>
           ))}
         </div>
@@ -48,6 +50,7 @@ export function VisitsPage() {
 }
 
 function TodayTab() {
+  const { t } = useLanguage()
   const journey = useJourneyContext()
   const customerNames = useCustomerNames([...journey.todaysVisits.map((v) => v.customer_id), journey.openVisit?.customer_id ?? null])
 
@@ -64,7 +67,7 @@ function TodayTab() {
   return (
     <div className="px-4 pt-4 md:px-8">
       {!hasActivity ? (
-        <EmptyState icon={FootprintsIcon} title="No activity yet today" body="Clock in and start a visit to see it here." />
+        <EmptyState icon={FootprintsIcon} title={t('visits.todayEmptyTitle')} body={t('visits.todayEmptyBody')} />
       ) : (
         <div className="rounded-xl2 bg-white p-4 shadow-card">
           <JourneyTimeline
@@ -81,6 +84,7 @@ function TodayTab() {
 }
 
 function UpcomingTab() {
+  const { t } = useLanguage()
   const { session } = useAuth()
   const navigate = useNavigate()
   const { visits, loading, error } = useUpcomingVisits(session?.user.id ?? null)
@@ -101,11 +105,7 @@ function UpcomingTab() {
     <div className="px-4 pt-4 md:px-8">
       {error && <p className="mb-3 rounded-lg bg-status-danger/10 px-3 py-2 text-sm text-status-danger">{error}</p>}
       {visits.length === 0 ? (
-        <EmptyState
-          icon={CalendarClock}
-          title="Nothing scheduled"
-          body="A visit's 'Next Visit' date, recorded when you check out, will show up here."
-        />
+        <EmptyState icon={CalendarClock} title={t('visits.upcomingEmptyTitle')} body={t('visits.upcomingEmptyBody')} />
       ) : (
         <div className="space-y-2">
           {visits.map((v) => (
@@ -119,7 +119,7 @@ function UpcomingTab() {
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-medium text-neutral-900">
-                  {v.customer_id ? (customerNames[v.customer_id] ?? 'Loading…') : 'Unassigned Visit'}
+                  {v.customer_id ? (customerNames[v.customer_id] ?? t('common.loading')) : t('common.unassignedVisit')}
                 </span>
                 <span className="text-xs text-neutral-400">{formatDate(v.next_appointment)}</span>
               </span>

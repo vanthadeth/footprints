@@ -12,11 +12,13 @@ import { JourneyMap } from '@/features/attendance/JourneyMap'
 import { DayPickerBar } from '@/features/attendance/DayPickerBar'
 import { DatePickerButton } from '@/features/attendance/DatePickerButton'
 import { useCustomerNames } from '@/features/customers/useCustomerNames'
+import { useLanguage } from '@/i18n/LanguageContext'
 import { formatDuration } from '@/lib/datetime'
 import { getCustomRange, todayDateString } from '@/lib/dateRange'
 
 /** Personal journey history for one day at a time: a 5-day picker, that day's performance matrix, an on-demand journey map, and the full timeline (spec §31-32). */
 export function FootprintsPage() {
+  const { t, language } = useLanguage()
   const { session } = useAuth()
   const userId = session?.user.id ?? null
   const [selectedDate, setSelectedDate] = useState(() => todayDateString())
@@ -36,8 +38,8 @@ export function FootprintsPage() {
       <div className="mx-4 mt-4 rounded-xl2 bg-white p-5 shadow-card md:mx-8">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xl font-semibold text-neutral-900">{formatDayLabel(selectedDate)}</p>
-            <p className="mt-0.5 text-sm text-neutral-400">Your journey history</p>
+            <p className="text-xl font-semibold text-neutral-900">{formatDayLabel(selectedDate, t)}</p>
+            <p className="mt-0.5 text-sm text-neutral-400">{t('footprints.subtitle')}</p>
           </div>
           <DatePickerButton selected={selectedDate} onChange={setSelectedDate} />
         </div>
@@ -57,16 +59,28 @@ export function FootprintsPage() {
           </div>
         ) : !day ? (
           <div className="mt-4">
-            <EmptyState icon={FootprintsIcon} title="No activity on this day" body="Clock in and start a visit to build your journey." />
+            <EmptyState icon={FootprintsIcon} title={t('footprints.emptyTitle')} body={t('footprints.emptyBody')} />
           </div>
         ) : (
           <>
             {/* Top section: performance matrix for the selected day. */}
             <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-              <StatTile label="Working Hours" value={formatDuration(stats.totalWorkingMs)} />
-              <StatTile label="Visits" value={String(stats.totalVisits)} sub={stats.unassignedVisits ? `${stats.unassignedVisits} unassigned` : undefined} />
-              <StatTile label="Active Hours" value={formatDuration(stats.totalVisitingMs)} sub={`Avg ${formatDuration(stats.averageVisitMs)}`} />
-              <StatTile label="Effectiveness" value={`${effectivenessRatio}%`} sub={`Gap ${formatDuration(stats.totalGapMs)}`} />
+              <StatTile label={t('footprints.workingHours')} value={formatDuration(stats.totalWorkingMs, language)} />
+              <StatTile
+                label={t('nav.visits')}
+                value={String(stats.totalVisits)}
+                sub={stats.unassignedVisits ? t('footprints.unassignedSub', { n: String(stats.unassignedVisits) }) : undefined}
+              />
+              <StatTile
+                label={t('footprints.activeHours')}
+                value={formatDuration(stats.totalVisitingMs, language)}
+                sub={t('footprints.avgPrefix', { duration: formatDuration(stats.averageVisitMs, language) })}
+              />
+              <StatTile
+                label={t('home.effectiveness')}
+                value={`${effectivenessRatio}%`}
+                sub={t('footprints.gapPrefix', { duration: formatDuration(stats.totalGapMs, language) })}
+              />
             </div>
 
             {flags.length > 0 && (
@@ -81,12 +95,12 @@ export function FootprintsPage() {
               onClick={() => setMapOpen(true)}
               className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl2 border border-neutral-200 bg-white py-3 text-sm font-semibold text-neutral-700 shadow-card tap-target"
             >
-              <Map className="h-4 w-4 text-brand-500" /> View Journey Map
+              <Map className="h-4 w-4 text-brand-500" /> {t('footprints.viewJourneyMap')}
             </button>
 
             {/* Main section: the day's timeline, clock-in through clock-out. */}
             <div className="mt-4 rounded-xl2 bg-white p-4 shadow-card">
-              <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-neutral-400">Timeline</p>
+              <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-neutral-400">{t('footprints.timeline')}</p>
               <JourneyTimeline
                 attendance={day.attendance}
                 visits={day.visits}
@@ -99,18 +113,18 @@ export function FootprintsPage() {
         )}
       </div>
 
-      <FullScreenSheet open={mapOpen} onClose={() => setMapOpen(false)} label="Journey Map">
+      <FullScreenSheet open={mapOpen} onClose={() => setMapOpen(false)} label={t('footprints.journeyMapLabel')}>
         {day && <JourneyMap visits={day.visits} attendance={day.attendance} customerNames={customerNames} height="100dvh" rounded={false} />}
       </FullScreenSheet>
     </div>
   )
 }
 
-function formatDayLabel(date: string): string {
+function formatDayLabel(date: string, t: (key: string) => string): string {
   const today = todayDateString()
-  if (date === today) return 'Today'
+  if (date === today) return t('common.today')
   const [ty, tm, td] = today.split('-').map(Number)
   const yesterday = new Date(Date.UTC(ty, tm - 1, td - 1)).toISOString().slice(0, 10)
-  if (date === yesterday) return 'Yesterday'
+  if (date === yesterday) return t('common.yesterday')
   return new Date(date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
 }
