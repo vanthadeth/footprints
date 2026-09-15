@@ -16,6 +16,7 @@ const TITLES: Record<string, string> = {
   '/more': 'More',
   '/performance': 'Performance',
   '/notifications': 'Notifications',
+  '/locations': 'Locations',
 }
 
 /**

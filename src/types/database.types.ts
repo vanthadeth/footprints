@@ -107,11 +107,13 @@ export type Database = {
           clock_in_accuracy_m: number | null
           clock_in_at: string
           clock_in_latitude: number
+          clock_in_location_id: string | null
           clock_in_longitude: number
           clock_in_selfie_path: string
           clock_out_accuracy_m: number | null
           clock_out_at: string | null
           clock_out_latitude: number | null
+          clock_out_location_id: string | null
           clock_out_longitude: number | null
           clock_out_selfie_path: string | null
           created_at: string
@@ -125,11 +127,13 @@ export type Database = {
           clock_in_accuracy_m?: number | null
           clock_in_at?: string
           clock_in_latitude: number
+          clock_in_location_id?: string | null
           clock_in_longitude: number
           clock_in_selfie_path: string
           clock_out_accuracy_m?: number | null
           clock_out_at?: string | null
           clock_out_latitude?: number | null
+          clock_out_location_id?: string | null
           clock_out_longitude?: number | null
           clock_out_selfie_path?: string | null
           created_at?: string
@@ -143,11 +147,13 @@ export type Database = {
           clock_in_accuracy_m?: number | null
           clock_in_at?: string
           clock_in_latitude?: number
+          clock_in_location_id?: string | null
           clock_in_longitude?: number
           clock_in_selfie_path?: string
           clock_out_accuracy_m?: number | null
           clock_out_at?: string | null
           clock_out_latitude?: number | null
+          clock_out_location_id?: string | null
           clock_out_longitude?: number | null
           clock_out_selfie_path?: string | null
           created_at?: string
@@ -157,6 +163,20 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "attendance_clock_in_location_id_fkey"
+            columns: ["clock_in_location_id"]
+            isOneToOne: false
+            referencedRelation: "work_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_clock_out_location_id_fkey"
+            columns: ["clock_out_location_id"]
+            isOneToOne: false
+            referencedRelation: "work_locations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "attendance_user_id_fkey"
             columns: ["user_id"]
@@ -2238,6 +2258,57 @@ export type Database = {
           },
         ]
       }
+      work_locations: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          latitude: number
+          longitude: number
+          name: string
+          radius_m: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          latitude: number
+          longitude: number
+          name: string
+          radius_m?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          latitude?: number
+          longitude?: number
+          name?: string
+          radius_m?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_locations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_locations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       customer_directory: {
@@ -2642,11 +2713,13 @@ export type Database = {
           clock_in_accuracy_m: number | null
           clock_in_at: string
           clock_in_latitude: number
+          clock_in_location_id: string | null
           clock_in_longitude: number
           clock_in_selfie_path: string
           clock_out_accuracy_m: number | null
           clock_out_at: string | null
           clock_out_latitude: number | null
+          clock_out_location_id: string | null
           clock_out_longitude: number | null
           clock_out_selfie_path: string | null
           created_at: string

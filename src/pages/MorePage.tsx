@@ -1,6 +1,21 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Bell, ChevronRight, LogOut, Settings, HelpCircle, MapPin, Info, Shield, User, TrendingUp, Truck, Users as UsersIcon, type LucideIcon } from 'lucide-react'
+import {
+  Bell,
+  Building2,
+  ChevronRight,
+  LogOut,
+  Settings,
+  HelpCircle,
+  MapPin,
+  Info,
+  Shield,
+  User,
+  TrendingUp,
+  Truck,
+  Users as UsersIcon,
+  type LucideIcon,
+} from 'lucide-react'
 import { InfoSheet } from '@/components/InfoSheet'
 import { LocationPermissionSheet } from '@/features/location/LocationPermissionSheet'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -42,6 +57,7 @@ export function MorePage() {
           {isSuperAdmin && <Row icon={Truck} label="Fleet" onClick={() => go('/fleet')} />}
           {isSuperAdmin && <Row icon={UsersIcon} label="Users" onClick={() => go('/users')} />}
           {isSuperAdmin && <Row icon={Bell} label="Notifications" badge={unreadCount} onClick={() => go('/notifications')} />}
+          {isSuperAdmin && <Row icon={Building2} label="Locations" onClick={() => go('/locations')} />}
         </div>
 
         <div className="mt-4 overflow-hidden rounded-xl2 bg-white shadow-card">

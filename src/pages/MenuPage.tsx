@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Bell, ChevronRight, LogOut, Settings, HelpCircle, MapPin, Info, Shield } from 'lucide-react'
+import { Bell, Building2, ChevronRight, LogOut, Settings, HelpCircle, MapPin, Info, Shield } from 'lucide-react'
 import { InfoSheet } from '@/components/InfoSheet'
 import { AppearanceControl } from '@/components/AppearanceControl'
 import { LocationPermissionSheet } from '@/features/location/LocationPermissionSheet'
@@ -76,6 +76,19 @@ export function MenuPage() {
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
+              <ChevronRight className="h-4 w-4 text-neutral-300" aria-hidden />
+            </button>
+          )}
+          {isSuperAdmin && (
+            <button
+              onClick={() => {
+                haptic('light')
+                navigate('/locations')
+              }}
+              className="flex w-full items-center gap-3 border-t border-neutral-100 px-4 py-3.5 text-left text-sm font-medium text-neutral-800 tap-target dark:border-neutral-800"
+            >
+              <Building2 className="h-5 w-5 text-neutral-400" aria-hidden />
+              <span className="flex-1">Locations</span>
               <ChevronRight className="h-4 w-4 text-neutral-300" aria-hidden />
             </button>
           )}
