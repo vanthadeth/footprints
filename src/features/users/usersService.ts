@@ -5,6 +5,7 @@ export type UserStatus = 'active' | 'suspended' | 'discharged'
 export interface ManagedUser {
   id: string
   fullName: string
+  nickname: string | null
   email: string | null
   phonePrimary: string | null
   photoPath: string | null
@@ -30,6 +31,7 @@ export interface Option {
 
 export interface CreateUserInput {
   fullName: string
+  nickname?: string | null
   email: string
   roleId: string
   /** Chosen (or generated then edited) in the form's password box -- at least 8 characters. */
@@ -43,6 +45,7 @@ export interface CreateUserInput {
 
 export interface EditUserInput {
   fullName: string
+  nickname: string | null
   phonePrimary: string | null
   position: string | null
   departmentId: string | null
@@ -78,6 +81,7 @@ async function invokeAdmin<T>(body: Record<string, unknown>): Promise<T> {
 function fromRow(row: {
   id: string
   full_name: string
+  nickname: string | null
   email: string | null
   phone_primary: string | null
   photo_path: string | null
@@ -98,6 +102,7 @@ function fromRow(row: {
   return {
     id: row.id,
     fullName: row.full_name,
+    nickname: row.nickname,
     email: row.email,
     phonePrimary: row.phone_primary,
     photoPath: row.photo_path,
@@ -151,6 +156,7 @@ export const usersService = {
       .from('users')
       .update({
         full_name: input.fullName,
+        nickname: input.nickname,
         phone_primary: input.phonePrimary,
         position: input.position,
         department_id: input.departmentId,
@@ -174,6 +180,7 @@ export const usersService = {
       action: 'create',
       email: input.email,
       fullName: input.fullName,
+      nickname: input.nickname ?? null,
       roleId: input.roleId,
       password: input.password,
       phonePrimary: input.phonePrimary ?? null,
@@ -187,5 +194,17 @@ export const usersService = {
   /** Sets the given password (from the password box -- generated or admin-typed) and flags the account so the user must set their own at next sign-in. */
   async resetPassword(userId: string, password: string): Promise<void> {
     await invokeAdmin<{ ok: true }>({ action: 'reset_password', userId, password })
+  },
+
+  /**
+   * Self-service nickname edit, for the signed-in user's own Profile page --
+   * a direct table write (like avatarService.uploadAvatar's photo_path
+   * update) rather than the admin `update()` above, since users_update's
+   * RLS already lets anyone write their own row and this never touches any
+   * other field.
+   */
+  async updateOwnNickname(userId: string, nickname: string | null): Promise<void> {
+    const { error } = await supabase.from('users').update({ nickname }).eq('id', userId)
+    if (error) throw error
   },
 }

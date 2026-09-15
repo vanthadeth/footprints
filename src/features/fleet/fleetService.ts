@@ -31,6 +31,7 @@ export const fleetService = {
     return (data ?? []).map((row) => ({
       id: row.id,
       fullName: row.full_name,
+      nickname: row.nickname,
       photoPath: row.photo_path || null,
       position: row.position || null,
       roleName: row.role_name,

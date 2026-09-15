@@ -13,6 +13,7 @@ import { useCustomerNames } from '@/features/customers/useCustomerNames'
 import { useAppSettings } from '@/hooks/useAppSettings'
 import { locationService } from '@/features/location/locationService'
 import { formatDistance } from '@/lib/geo'
+import { displayName } from '@/lib/displayName'
 import { formatDuration, formatLongDate, formatTime, greeting, isPastTimeOfDay, isWithinClockInWindow, shiftTimeOfDay } from '@/lib/datetime'
 import { BottomSheet } from '@/components/BottomSheet'
 
@@ -41,7 +42,7 @@ export function HomePage() {
 
   const isClockedIn = journey.attendance === 'CLOCKED_IN'
   const isVisiting = journey.visit === 'VISITING'
-  const firstName = profile?.full_name?.split(' ')[0]
+  const firstName = profile ? displayName(profile.full_name, profile.nickname).split(' ')[0] : undefined
 
   const today: DayJourney = { date: '', attendance: journey.todaysAttendance, visits: journey.todaysVisits }
   const stats = computeJourneyStats([today])

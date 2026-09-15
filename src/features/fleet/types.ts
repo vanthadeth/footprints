@@ -3,6 +3,7 @@ import type { AttendanceRow, VisitRow } from '@/features/attendance/types'
 export interface TeamMember {
   id: string
   fullName: string
+  nickname: string | null
   photoPath: string | null
   position: string | null
   roleName: string | null

@@ -5,6 +5,7 @@ import { useFleetHistory } from './useFleetHistory'
 import { computeUserReportRows, computeVisitKpis } from './reportStats'
 import { formatDuration } from '@/lib/datetime'
 import { getPresetRange } from '@/lib/dateRange'
+import { displayName } from '@/lib/displayName'
 import type { TeamMember } from '@/features/fleet/types'
 
 type ReportKind = 'user' | 'fleet'
@@ -16,7 +17,7 @@ export function ReportsTab({ team }: { team: TeamMember[] }) {
   const { attendance, visits, loading } = useFleetHistory(userIds, range)
 
   const rows = computeUserReportRows(
-    team.map((m) => ({ id: m.id, fullName: m.fullName })),
+    team.map((m) => ({ id: m.id, fullName: m.fullName, nickname: m.nickname })),
     attendance,
     visits
   )
@@ -81,7 +82,7 @@ function ReportTable({ rows }: { rows: ReturnType<typeof computeUserReportRows> 
         <tbody>
           {rows.map((r) => (
             <tr key={r.userId} className="border-b border-neutral-50 last:border-0">
-              <td className="px-4 py-3 font-medium text-neutral-900">{r.fullName}</td>
+              <td className="px-4 py-3 font-medium text-neutral-900">{displayName(r.fullName, r.nickname)}</td>
               <td className="px-3 py-3 text-neutral-600">{r.workingDays}</td>
               <td className="px-3 py-3 text-neutral-600">{formatDuration(r.totalWorkingMs)}</td>
               <td className="px-3 py-3 text-neutral-600">{r.visitCount}</td>

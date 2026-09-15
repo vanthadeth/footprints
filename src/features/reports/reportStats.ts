@@ -106,6 +106,7 @@ export function computeVisitKpis(visits: VisitRow[], userCount: number, now: num
 export interface UserReportRow {
   userId: string
   fullName: string
+  nickname: string | null
   workingDays: number
   firstClockIn: string | null
   lastClockOut: string | null
@@ -122,7 +123,7 @@ export interface UserReportRow {
 
 /** Per-user rows for both the User Report and the Fleet Report's comparison table (spec §39-40). */
 export function computeUserReportRows(
-  members: { id: string; fullName: string }[],
+  members: { id: string; fullName: string; nickname?: string | null }[],
   attendanceRows: AttendanceRow[],
   visitRows: VisitRow[],
   now: number = Date.now()
@@ -163,6 +164,7 @@ export function computeUserReportRows(
     return {
       userId: member.id,
       fullName: member.fullName,
+      nickname: member.nickname ?? null,
       workingDays: workDayKeys.size,
       firstClockIn: sortedAttendance[0] ? formatTime(sortedAttendance[0].clock_in_at) : null,
       lastClockOut: lastClockOuts[0] ? formatTime(lastClockOuts[0].clock_out_at) : null,

@@ -5,6 +5,7 @@ import { useProfile } from '@/features/auth/useProfile'
 import { useAvatarUrl } from '@/features/auth/useAvatarUrl'
 import { useAuth } from '@/features/auth/AuthContext'
 import { getInitialLanguage, setLanguage } from '@/lib/language'
+import { displayName } from '@/lib/displayName'
 import { haptic } from '@/lib/haptic'
 
 /** Avatar button in the title bar; opens a small account dropdown (Profile, an inline KH|EN language switch, Setting, Logout). */
@@ -33,7 +34,7 @@ export function ProfileBadge() {
     }
   }, [open])
 
-  const initial = profile?.full_name?.trim()?.[0]?.toUpperCase()
+  const initial = profile ? displayName(profile.full_name, profile.nickname).trim()[0]?.toUpperCase() : undefined
 
   return (
     <div ref={rootRef} className="relative">

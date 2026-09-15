@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { User } from 'lucide-react'
 import { useAvatarUrl } from '@/features/auth/useAvatarUrl'
 import { useCustomerNames } from '@/features/customers/useCustomerNames'
+import { displayName } from '@/lib/displayName'
 import { FleetMemberDetail } from './FleetMemberDetail'
 import { FleetStatusBadge } from './FleetStatusBadge'
 import { Freshness } from './Freshness'
@@ -48,7 +49,7 @@ function FleetListRow({
         {avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : <User className="h-5 w-5" />}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-neutral-900">{snapshot.member.fullName}</p>
+        <p className="truncate text-sm font-medium text-neutral-900">{displayName(snapshot.member.fullName, snapshot.member.nickname)}</p>
         <p className="truncate text-xs text-neutral-500">{subtitle}</p>
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1">

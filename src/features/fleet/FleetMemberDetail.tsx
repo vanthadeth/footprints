@@ -4,6 +4,7 @@ import { FlagBadge } from '@/components/FlagBadge'
 import { JourneyTimeline } from '@/features/attendance/JourneyTimeline'
 import { JourneyMap } from '@/features/attendance/JourneyMap'
 import { useCustomerNames } from '@/features/customers/useCustomerNames'
+import { displayName } from '@/lib/displayName'
 import { formatDuration, formatTime } from '@/lib/datetime'
 import { Freshness } from './Freshness'
 import { FleetStatusBadge } from './FleetStatusBadge'
@@ -21,14 +22,14 @@ export function FleetMemberDetail({ snapshot, onClose }: { snapshot: FleetMember
   const flags = [...new Set(visitsToday.flatMap((v) => v.flags ?? []))]
 
   return (
-    <BottomSheet open={!!snapshot} onClose={onClose} title={member.fullName}>
+    <BottomSheet open={!!snapshot} onClose={onClose} title={displayName(member.fullName, member.nickname)}>
       <div className="p-4">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-50 text-brand-500">
             <User className="h-6 w-6" />
           </div>
           <div>
-            <p className="font-semibold text-neutral-900">{member.fullName}</p>
+            <p className="font-semibold text-neutral-900">{displayName(member.fullName, member.nickname)}</p>
             <p className="text-xs text-neutral-500">{member.position ?? member.roleName}</p>
           </div>
           <div className="ml-auto">

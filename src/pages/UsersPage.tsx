@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Plus, Search, User as UserIcon, Users as UsersIcon } from 'lucide-react'
 import { EmptyState } from '@/components/EmptyState'
 import { useAvatarUrl } from '@/features/auth/useAvatarUrl'
+import { displayName } from '@/lib/displayName'
 import { useUsers } from '@/features/users/useUsers'
 import { UserFormSheet } from '@/features/users/UserFormSheet'
 import type { ManagedUser } from '@/features/users/usersService'
@@ -39,7 +40,12 @@ export function UsersPage() {
       if (statusFilter === 'active' && u.status !== 'active') return false
       if (statusFilter === 'inactive' && u.status === 'active') return false
       if (!q) return true
-      return u.fullName.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.position?.toLowerCase().includes(q)
+      return (
+        u.fullName.toLowerCase().includes(q) ||
+        u.nickname?.toLowerCase().includes(q) ||
+        u.email?.toLowerCase().includes(q) ||
+        u.position?.toLowerCase().includes(q)
+      )
     })
   }, [users, query, statusFilter])
 
@@ -169,7 +175,7 @@ function UserRow({ user, onClick }: { user: ManagedUser; onClick: () => void }) 
         {avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : <UserIcon className="h-5 w-5" />}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-neutral-900">{user.fullName}</p>
+        <p className="truncate text-sm font-medium text-neutral-900">{displayName(user.fullName, user.nickname)}</p>
         <p className="truncate text-xs text-neutral-500">
           {user.roleName ?? '—'}
           {user.isFieldSales && ' · Field Sales'}

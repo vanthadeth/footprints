@@ -2,6 +2,7 @@ import { Marker, Popup } from 'react-leaflet'
 import type { LatLngExpression } from 'leaflet'
 import { MapView } from '@/features/maps/MapView'
 import { pinIcon, STATUS_COLORS } from '@/features/maps/markers'
+import { displayName } from '@/lib/displayName'
 import { timeAgo } from '@/lib/datetime'
 import { FLEET_STATUS_LABELS } from './FleetStatusBadge'
 import type { FleetMemberSnapshot } from './types'
@@ -43,7 +44,7 @@ export function FleetMap({
         >
           <Popup>
             <div className="text-sm">
-              <p className="font-semibold">{s.member.fullName}</p>
+              <p className="font-semibold">{displayName(s.member.fullName, s.member.nickname)}</p>
               <p className="text-neutral-500">{FLEET_STATUS_LABELS[s.status]}</p>
               <p className="text-xs text-neutral-400">Updated {timeAgo(s.lastLocation!.at)}</p>
             </div>

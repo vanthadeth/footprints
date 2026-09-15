@@ -9,6 +9,7 @@ import type { DayJourney } from '@/features/attendance/useJourneyHistory'
 import { VisitFlow } from '@/features/visits/VisitFlow'
 import { useCustomerNames } from '@/features/customers/useCustomerNames'
 import { useLocationNames } from '@/features/locations/useLocationNames'
+import { displayName } from '@/lib/displayName'
 import { useAppSettings } from '@/hooks/useAppSettings'
 import { summarizeAttendanceTimes } from '@/features/attendance/stateMachine'
 import { locationService } from '@/features/location/locationService'
@@ -44,7 +45,7 @@ export function CheckInPage() {
   )
   const locationNames = useLocationNames([clockInLocationId, clockOutLocationId])
 
-  const firstName = profile?.full_name?.split(' ')[0]
+  const firstName = profile ? displayName(profile.full_name, profile.nickname).split(' ')[0] : undefined
 
   async function handleSelfie(blob: Blob) {
     if (pendingAction === 'clock-in') await journey.clockIn(blob)

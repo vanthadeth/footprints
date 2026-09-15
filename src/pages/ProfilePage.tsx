@@ -1,14 +1,16 @@
 import { useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronDown, ChevronRight, ChevronUp, Download, Globe, LogOut, type LucideIcon } from 'lucide-react'
+import { Check, ChevronDown, ChevronRight, ChevronUp, Download, Globe, Loader2, LogOut, Pencil, X, type LucideIcon } from 'lucide-react'
 import { useProfile } from '@/features/auth/useProfile'
 import { useAuth } from '@/features/auth/AuthContext'
 import { AvatarPicker } from '@/features/auth/AvatarPicker'
+import { usersService } from '@/features/users/usersService'
 import { useJourneyContext } from '@/features/attendance/JourneyContext'
 import { computeJourneyStats } from '@/features/attendance/journeyStats'
 import { summarizeAttendanceTimes } from '@/features/attendance/stateMachine'
 import type { DayJourney } from '@/features/attendance/useJourneyHistory'
 import { getInitialLanguage, setLanguage } from '@/lib/language'
+import { displayName } from '@/lib/displayName'
 import { useInstallPrompt } from '@/hooks/useInstallPrompt'
 import { formatDuration, formatTime } from '@/lib/datetime'
 import { haptic } from '@/lib/haptic'
@@ -33,7 +35,7 @@ export function ProfilePage() {
           <div className="animate-pulse rounded-xl2 bg-neutral-100 p-6" />
         ) : profile && session ? (
           <>
-            <ProfileSection profile={profile} userId={session.user.id} onAvatarUploaded={refresh} />
+            <ProfileSection profile={profile} userId={session.user.id} onUpdated={refresh} />
 
             <TodaySummary
               clockIn={clockInTime ? formatTime(clockInTime) : '--:--'}
@@ -80,11 +82,11 @@ function Row({ label, value }: { label: string; value: string }) {
 function ProfileSection({
   profile,
   userId,
-  onAvatarUploaded,
+  onUpdated,
 }: {
   profile: NonNullable<ReturnType<typeof useProfile>['profile']>
   userId: string
-  onAvatarUploaded: () => void
+  onUpdated: () => void
 }) {
   const [expanded, setExpanded] = useState(false)
 
@@ -94,14 +96,14 @@ function ProfileSection({
           a sibling of the expand/collapse toggle, not nested inside it,
           since browsers don't allow a <button> inside another <button>. */}
       <div className="flex items-center gap-4 p-4">
-        <AvatarPicker userId={userId} photoPath={profile.photo_path} onUploaded={onAvatarUploaded} />
+        <AvatarPicker userId={userId} photoPath={profile.photo_path} onUploaded={onUpdated} />
         <button
           onClick={() => setExpanded((v) => !v)}
           aria-expanded={expanded}
           className="flex min-w-0 flex-1 items-center gap-2 text-left tap-target"
         >
           <div className="min-w-0 flex-1">
-            <p className="truncate text-base font-semibold text-neutral-900">{profile.full_name}</p>
+            <p className="truncate text-base font-semibold text-neutral-900">{displayName(profile.full_name, profile.nickname)}</p>
             <p className="truncate text-sm text-neutral-600">
               {profile.position || profile.role_name || '—'}
               {profile.position && profile.role_name ? ` · ${profile.role_name}` : ''}
@@ -117,11 +119,86 @@ function ProfileSection({
 
       {expanded && (
         <dl className="animate-fade-in-up divide-y divide-brand-100 px-4 pb-4 text-sm dark:divide-neutral-700">
+          <NicknameRow userId={userId} nickname={profile.nickname} onSaved={onUpdated} />
           <Row label="Phone" value={profile.phone_primary || '—'} />
           <Row label="Email" value={profile.email || '—'} />
           <Row label="Employed since" value={profile.employment_date || '—'} />
         </dl>
       )}
+    </div>
+  )
+}
+
+/** Self-service nickname edit: shown instead of the full name everywhere in the app once set (see displayName). A direct table write under users_update's own-row RLS -- see usersService.updateOwnNickname. */
+function NicknameRow({ userId, nickname, onSaved }: { userId: string; nickname: string | null; onSaved: () => void }) {
+  const [editing, setEditing] = useState(false)
+  const [value, setValue] = useState(nickname ?? '')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  function startEdit() {
+    setValue(nickname ?? '')
+    setError(null)
+    setEditing(true)
+  }
+
+  async function handleSave() {
+    if (saving) return
+    setSaving(true)
+    setError(null)
+    try {
+      await usersService.updateOwnNickname(userId, value.trim() || null)
+      haptic('success')
+      onSaved()
+      setEditing(false)
+    } catch (e) {
+      haptic('error')
+      setError(e instanceof Error ? e.message : 'Could not save your nickname.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (editing) {
+    return (
+      <div className="py-2">
+        <div className="flex items-center gap-2">
+          <input
+            autoFocus
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder="e.g. Bear"
+            className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-sm text-neutral-900 placeholder:text-neutral-400"
+          />
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            aria-label="Save nickname"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-status-working/10 text-status-working tap-target disabled:opacity-50"
+          >
+            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+          </button>
+          <button
+            onClick={() => setEditing(false)}
+            disabled={saving}
+            aria-label="Cancel"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-neutral-400 tap-target disabled:opacity-50"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+        {error && <p className="mt-1.5 text-xs text-status-danger">{error}</p>}
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex items-center justify-between gap-3 py-2">
+      <dt className="text-neutral-500">Nickname</dt>
+      <button onClick={startEdit} className="flex items-center gap-1.5 tap-target">
+        <dd className="font-medium text-neutral-900">{nickname || 'Not set'}</dd>
+        <Pencil className="h-3.5 w-3.5 text-neutral-400" aria-hidden />
+      </button>
     </div>
   )
 }

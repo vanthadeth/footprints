@@ -5,7 +5,16 @@ import type { AttendanceRow, VisitRow } from '@/features/attendance/types'
 
 function snapshot(overrides: Partial<FleetMemberSnapshot>): FleetMemberSnapshot {
   return {
-    member: { id: 'u1', fullName: 'Sok Dara', photoPath: null, position: null, roleName: 'Sales Team', managerId: null, isFieldSales: true },
+    member: {
+      id: 'u1',
+      fullName: 'Sok Dara',
+      nickname: null,
+      photoPath: null,
+      position: null,
+      roleName: 'Sales Team',
+      managerId: null,
+      isFieldSales: true,
+    },
     status: 'OFF',
     attendance: null,
     openVisit: null,

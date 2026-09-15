@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { KeyRound, X } from 'lucide-react'
 import { BottomSheet } from '@/components/BottomSheet'
+import { displayName } from '@/lib/displayName'
 import { haptic } from '@/lib/haptic'
 import { generateSuggestedPassword, PasswordBox } from './PasswordBox'
 import { usersService, type ManagedUser, type Option, type UserStatus } from './usersService'
@@ -22,6 +23,7 @@ interface Props {
 /** Create-or-edit form for a single user, shared because the two only differ in a handful of fields (email/password are create-only; status/generate-password are edit-only). */
 export function UserFormSheet({ open, mode, user, users, roles, departments, onClose, onSaved }: Props) {
   const [fullName, setFullName] = useState('')
+  const [nickname, setNickname] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [phonePrimary, setPhonePrimary] = useState('')
@@ -49,6 +51,7 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
     if (!open) return
     setError(null)
     setFullName(mode === 'edit' && user ? user.fullName : '')
+    setNickname((mode === 'edit' && user?.nickname) || '')
     setEmail('')
     setPassword(mode === 'create' ? generateSuggestedPassword() : '')
     setPhonePrimary((mode === 'edit' && user?.phonePrimary) || '')
@@ -82,6 +85,7 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
       if (mode === 'create') {
         await usersService.create({
           fullName: fullName.trim(),
+          nickname: nickname.trim() || null,
           email: email.trim(),
           password,
           roleId,
@@ -97,6 +101,7 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
       } else if (user) {
         await usersService.update(user.id, {
           fullName: fullName.trim(),
+          nickname: nickname.trim() || null,
           phonePrimary: phonePrimary.trim() || null,
           position: position.trim() || null,
           departmentId: departmentId || null,
@@ -155,6 +160,10 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
           <TextInput value={fullName} onChange={setFullName} placeholder="Full name" />
         </Field>
 
+        <Field label="Nickname" hint="Shown instead of Full Name throughout the app, when set.">
+          <TextInput value={nickname} onChange={setNickname} placeholder="Optional" />
+        </Field>
+
         {mode === 'create' ? (
           <>
             <Field label="Email">
@@ -202,7 +211,7 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
           <Select value={managerId} onChange={setManagerId} placeholder="No manager">
             {managerOptions.map((m) => (
               <option key={m.id} value={m.id}>
-                {m.fullName}
+                {displayName(m.fullName, m.nickname)}
               </option>
             ))}
           </Select>

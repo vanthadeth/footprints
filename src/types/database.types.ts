@@ -2788,6 +2788,7 @@ export type Database = {
           manager_id: string
           manager_name: string
           must_change_password: boolean
+          nickname: string
           phone_primary: string
           photo_path: string
           position: string
@@ -2836,6 +2837,7 @@ export type Database = {
           id: string
           is_field_sales: boolean
           manager_id: string
+          nickname: string
           photo_path: string
           position: string
           role_name: string
