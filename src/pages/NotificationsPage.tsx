@@ -60,12 +60,12 @@ function NotificationsFeed() {
   return (
     <div className="mx-auto max-w-lg pb-6 md:max-w-2xl">
       <div className="px-4 pt-4 md:px-8">
-        <div className="flex gap-1 overflow-x-auto rounded-full bg-neutral-100 p-1">
+        <div className="flex gap-1 rounded-full bg-neutral-100 p-1">
           {FILTERS.map((f) => (
             <button
               key={f.key}
               onClick={() => setFilter(f.key)}
-              className={`shrink-0 whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold tap-target ${
+              className={`flex-1 whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold tap-target ${
                 filter === f.key ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500'
               }`}
             >
