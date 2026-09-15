@@ -2,23 +2,18 @@ const STORAGE_KEY = 'footprints-language'
 export type Language = 'en' | 'km'
 
 export const LANGUAGES: { code: Language; label: string; nativeLabel: string }[] = [
-  { code: 'en', label: 'English', nativeLabel: 'English' },
   { code: 'km', label: 'Khmer', nativeLabel: 'ខ្មែរ' },
+  { code: 'en', label: 'English', nativeLabel: 'English' },
 ]
 
+/** Khmer is the app's default -- only an explicit "en" in storage opts back out of it. */
 export function getInitialLanguage(): Language {
-  if (typeof window === 'undefined') return 'en'
+  if (typeof window === 'undefined') return 'km'
   const stored = window.localStorage.getItem(STORAGE_KEY)
-  return stored === 'km' ? 'km' : 'en'
+  return stored === 'en' ? 'en' : 'km'
 }
 
-/**
- * Persists the chosen language. This is a preference switch only -- it
- * does not translate the app's UI text. Full Khmer localization (wrapping
- * every string in the app and translating it) is a separate, much larger
- * follow-up; this just gives the setting somewhere to live and remembers
- * the choice across sessions.
- */
+/** Persists the chosen language -- see src/i18n/LanguageContext.tsx for where it's actually applied to the UI. */
 export function setLanguage(language: Language) {
   window.localStorage.setItem(STORAGE_KEY, language)
 }

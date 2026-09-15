@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="km">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -10,6 +10,12 @@
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Khmer fallback -- the OS default UI font's Khmer coverage is thin/inconsistent
+         across platforms; Noto Sans Khmer only loads its glyphs get used, so it's a
+         no-op cost for English-only viewers. -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <!-- iOS ignores theme-color for the actual status bar and only offers
          default/black/black-translucent -- "black" is the closest fixed
@@ -28,6 +34,15 @@
         if (t !== 'light' && (t === 'dark' || matchMedia('(prefers-color-scheme: dark)').matches)) {
           document.documentElement.classList.add('dark')
           document.documentElement.style.colorScheme = 'dark'
+        }
+      } catch (e) {}
+      // Khmer is the app's default language -- the lang attribute above
+      // is already "km" for that common case; only flip it here for a
+      // visitor who explicitly opted into English (src/lib/language.ts
+      // has the same storage key + fallback logic).
+      try {
+        if (localStorage.getItem('footprints-language') === 'en') {
+          document.documentElement.lang = 'en'
         }
       } catch (e) {}
     </script>

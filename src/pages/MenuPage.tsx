@@ -3,13 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { Bell, Building2, ChevronRight, LogOut, Settings, HelpCircle, MapPin, Info, Shield } from 'lucide-react'
 import { InfoSheet } from '@/components/InfoSheet'
 import { AppearanceControl } from '@/components/AppearanceControl'
+import { AppBuildInfo } from '@/components/AppBuildInfo'
+import { LogoutConfirmSheet } from '@/components/LogoutConfirmSheet'
 import { LocationPermissionSheet } from '@/features/location/LocationPermissionSheet'
-import { useAuth } from '@/features/auth/AuthContext'
 import { useProfile } from '@/features/auth/useProfile'
 import { useNotificationsContext } from '@/features/notifications/NotificationsContext'
 import { haptic } from '@/lib/haptic'
-
-const APP_VERSION = import.meta.env.VITE_APP_VERSION ?? '0.1.0'
 
 type SheetKey = 'settings' | 'help' | 'location' | 'about' | 'privacy' | null
 
@@ -22,10 +21,9 @@ const ITEMS: { key: Exclude<SheetKey, null>; icon: typeof Settings; label: strin
 ]
 
 export function MenuPage() {
-  const { signOut } = useAuth()
   const { profile } = useProfile()
   const navigate = useNavigate()
-  const [signingOut, setSigningOut] = useState(false)
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false)
   const [openSheet, setOpenSheet] = useState<SheetKey>(null)
   const isSystemAdmin = profile?.role_name === 'System Admin'
   // Notifications visibility is gated on is_super_admin specifically --
@@ -95,19 +93,17 @@ export function MenuPage() {
         </div>
 
         <button
-          disabled={signingOut}
-          onClick={async () => {
+          onClick={() => {
             haptic('light')
-            setSigningOut(true)
-            await signOut()
+            setLogoutConfirmOpen(true)
           }}
           className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl2 bg-white py-3.5 text-sm font-semibold text-status-danger shadow-card tap-target disabled:opacity-60"
         >
           <LogOut className="h-4 w-4" aria-hidden />
-          {signingOut ? 'Logging out…' : 'Logout'}
+          Logout
         </button>
 
-        <p className="mt-6 pb-6 text-center text-xs text-neutral-400">Footprints v{APP_VERSION}</p>
+        <p className="mt-6 pb-6 text-center text-xs text-neutral-400">Footprints v{__APP_VERSION__}</p>
       </div>
 
       <InfoSheet open={openSheet === 'settings'} onClose={() => setOpenSheet(null)} title="Settings">
@@ -124,7 +120,7 @@ export function MenuPage() {
       <InfoSheet open={openSheet === 'about'} onClose={() => setOpenSheet(null)} title="About Footprints">
         <p className="font-medium text-neutral-900">Footprints, by HIG</p>
         <p>Journal your sales journey — attendance, customer visits, and your working day, all in one place.</p>
-        <p className="text-xs text-neutral-400">Version {APP_VERSION}</p>
+        <AppBuildInfo />
       </InfoSheet>
 
       <InfoSheet open={openSheet === 'privacy'} onClose={() => setOpenSheet(null)} title="Privacy">
@@ -134,6 +130,8 @@ export function MenuPage() {
           only for attendance verification, visit tracking, and management reporting.
         </p>
       </InfoSheet>
+
+      <LogoutConfirmSheet open={logoutConfirmOpen} onClose={() => setLogoutConfirmOpen(false)} />
     </div>
   )
 }

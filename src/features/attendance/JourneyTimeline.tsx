@@ -614,7 +614,7 @@ function VisitEntry({
                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 py-3.5 text-sm font-semibold text-white tap-target disabled:opacity-60 dark:bg-white dark:text-neutral-900"
                   >
                     {journey.busy && <Loader2 className="h-4 w-4 animate-spin" />}
-                    {journey.busy ? 'Checking out…' : 'CHECK OUT (CONFIRM)'}
+                    {journey.busy ? 'Checking out…' : 'CHECK OUT'}
                   </button>
                 ) : (
                   <div className="flex gap-2">

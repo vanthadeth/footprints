@@ -3,15 +3,17 @@ import { useNavigate } from 'react-router-dom'
 import { CalendarCheck, MapPinned, TrendingUp, type LucideIcon } from 'lucide-react'
 import { haptic } from '@/lib/haptic'
 import { LogoFull } from '@/components/Logo'
+import { useLanguage } from '@/i18n/LanguageContext'
 
-const STEPS: { icon: LucideIcon; title: string; body: string }[] = [
-  { icon: CalendarCheck, title: 'Plan your day', body: 'See who to visit and what to do the moment you open the app.' },
-  { icon: MapPinned, title: 'Visit your customers', body: 'Check in at every stop and record what happened, in seconds.' },
-  { icon: TrendingUp, title: 'Track your progress', body: 'Watch your visits, sales, and effort add up as the day goes.' },
+const STEPS: { icon: LucideIcon; titleKey: string; bodyKey: string }[] = [
+  { icon: CalendarCheck, titleKey: 'welcome.step1Title', bodyKey: 'welcome.step1Body' },
+  { icon: MapPinned, titleKey: 'welcome.step2Title', bodyKey: 'welcome.step2Body' },
+  { icon: TrendingUp, titleKey: 'welcome.step3Title', bodyKey: 'welcome.step3Body' },
 ]
 
 export function WelcomePage() {
   const navigate = useNavigate()
+  const { t } = useLanguage()
   const trackRef = useRef<HTMLDivElement>(null)
   const [active, setActive] = useState(0)
 
@@ -35,11 +37,7 @@ export function WelcomePage() {
         <LogoFull alt="Footprints, by HIG" className="mb-4 h-16 w-16 drop-shadow-sm" />
         <h1 className="text-2xl font-semibold uppercase tracking-wide text-neutral-900">Footprints</h1>
         <p className="mt-0.5 text-sm font-medium text-brand-600">by HIG</p>
-        <p className="mt-4 max-w-xs text-base font-medium leading-snug text-neutral-700">
-          Your day. Your customers.
-          <br />
-          Your progress.
-        </p>
+        <p className="mt-4 max-w-xs text-base font-medium leading-snug text-neutral-700">{t('welcome.tagline')}</p>
       </div>
 
       <div className="w-full max-w-sm">
@@ -52,12 +50,12 @@ export function WelcomePage() {
           aria-label="How Footprints works"
         >
           {STEPS.map((step, i) => (
-            <div key={step.title} className="w-full shrink-0 snap-center px-2 text-center" aria-hidden={active !== i}>
+            <div key={step.titleKey} className="w-full shrink-0 snap-center px-2 text-center" aria-hidden={active !== i}>
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-100 text-brand-600 dark:bg-neutral-800 dark:text-brand-300">
                 <step.icon className="h-7 w-7" aria-hidden />
               </div>
-              <h2 className="mt-3 text-base font-semibold text-neutral-900">{step.title}</h2>
-              <p className="mt-1.5 text-sm leading-relaxed text-neutral-500">{step.body}</p>
+              <h2 className="mt-3 text-base font-semibold text-neutral-900">{t(step.titleKey)}</h2>
+              <p className="mt-1.5 text-sm leading-relaxed text-neutral-500">{t(step.bodyKey)}</p>
             </div>
           ))}
         </div>
@@ -65,10 +63,10 @@ export function WelcomePage() {
         <div className="mt-4 flex items-center justify-center gap-1.5" role="tablist" aria-label="Step">
           {STEPS.map((step, i) => (
             <button
-              key={step.title}
+              key={step.titleKey}
               role="tab"
               aria-selected={active === i}
-              aria-label={`Step ${i + 1}: ${step.title}`}
+              aria-label={`Step ${i + 1}: ${t(step.titleKey)}`}
               onClick={() => goTo(i)}
               className={`h-1.5 rounded-full transition-all tap-target ${
                 active === i ? 'w-6 bg-brand-500' : 'w-1.5 bg-neutral-300 dark:bg-neutral-700'
@@ -86,7 +84,7 @@ export function WelcomePage() {
           }}
           className="w-full rounded-xl bg-brand-500 py-4 text-base font-semibold uppercase tracking-wide text-white shadow-card transition-colors active:bg-brand-600"
         >
-          Get Started
+          {t('welcome.getStarted')}
         </button>
       </div>
     </div>

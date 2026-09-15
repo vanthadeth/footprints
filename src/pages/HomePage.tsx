@@ -16,6 +16,7 @@ import { formatDistance } from '@/lib/geo'
 import { displayName } from '@/lib/displayName'
 import { formatDuration, formatLongDate, formatTime, greeting, isPastTimeOfDay, isWithinClockInWindow, shiftTimeOfDay } from '@/lib/datetime'
 import { BottomSheet } from '@/components/BottomSheet'
+import { useLanguage } from '@/i18n/LanguageContext'
 
 /**
  * The field-sales landing screen (spec's "My Day"): today's progress at a
@@ -27,6 +28,7 @@ import { BottomSheet } from '@/components/BottomSheet'
 export function HomePage() {
   const journey = useJourneyContext()
   const { profile } = useProfile()
+  const { t, language } = useLanguage()
   const settings = useAppSettings()
   const quota = useMyQuota(profile?.id ?? null)
   const navigate = useNavigate()
@@ -134,10 +136,10 @@ export function HomePage() {
     <div className="mx-auto max-w-lg pb-6 md:max-w-2xl">
       <div className="px-4 pt-4 md:px-8">
         <p className="text-lg font-semibold text-neutral-900">
-          {greeting()}
+          {greeting(undefined, language)}
           {firstName ? `, ${firstName}` : ''} 👋
         </p>
-        <p className="text-sm text-neutral-500">{formatLongDate()}</p>
+        <p className="text-sm text-neutral-500">{formatLongDate(undefined, undefined, language)}</p>
 
         {journey.error && (
           <div role="alert" className="mt-3 rounded-lg bg-status-danger/10 px-3 py-2 text-sm text-status-danger">
@@ -148,9 +150,9 @@ export function HomePage() {
         {!isClockedIn ? (
           <div className="mt-4 rounded-xl2 bg-brand-900 p-5 text-center shadow-card">
             <p className="text-sm font-medium text-white/70">
-              {canClockIn && "Your day hasn't started yet. Clock in to begin tracking your visits."}
-              {!canClockIn && !clockInWindowClosed && `Clock-in opens at ${clockInOpensAt}.`}
-              {clockInWindowClosed && `Clock-in is closed for today -- working hours ended at ${shiftTimeOfDay(settings.workEndTime, 0)}.`}
+              {canClockIn && t('home.notStartedYet')}
+              {!canClockIn && !clockInWindowClosed && t('home.clockInOpensAt', { time: clockInOpensAt })}
+              {clockInWindowClosed && t('home.clockInClosed', { time: shiftTimeOfDay(settings.workEndTime, 0) })}
             </p>
             <button
               onClick={handleClockInTap}
@@ -158,19 +160,19 @@ export function HomePage() {
               className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3.5 text-sm font-semibold text-brand-700 tap-target disabled:opacity-40"
             >
               {checkingLocation ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : <Camera className="h-4.5 w-4.5" />}
-              {checkingLocation ? 'Checking Location…' : 'CLOCK IN'}
+              {checkingLocation ? t('home.checkingLocation') : t('home.clockInButton')}
             </button>
           </div>
         ) : (
           <>
             {/* Today's Progress */}
             <div className="mt-4 rounded-xl2 bg-white p-4 shadow-card">
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">Today's Progress</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">{t('home.todaysProgress')}</p>
               <div className="mt-2 flex items-baseline justify-between">
                 <p className="text-2xl font-semibold text-neutral-900">
                   {stats.totalVisits}
                   {quota.dailyVisitTarget != null && <span className="text-base font-medium text-neutral-400"> / {quota.dailyVisitTarget}</span>}
-                  <span className="ml-1.5 text-sm font-medium text-neutral-400">visits</span>
+                  <span className="ml-1.5 text-sm font-medium text-neutral-400">{t('home.visitsUnit')}</span>
                 </p>
                 {quota.dailyVisitTarget != null && (
                   <p className="text-sm font-semibold text-brand-600">
@@ -188,12 +190,12 @@ export function HomePage() {
               )}
               <div className="mt-3 grid grid-cols-2 gap-3 border-t border-neutral-100 pt-3 dark:border-neutral-800">
                 <div>
-                  <p className="text-sm font-semibold text-neutral-900">{formatDuration(stats.totalVisitingMs)}</p>
-                  <p className="text-xs text-neutral-400">Active Time</p>
+                  <p className="text-sm font-semibold text-neutral-900">{formatDuration(stats.totalVisitingMs, language)}</p>
+                  <p className="text-xs text-neutral-400">{t('home.activeTime')}</p>
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-neutral-900">{effectivenessRatio}%</p>
-                  <p className="text-xs text-neutral-400">Effectiveness</p>
+                  <p className="text-xs text-neutral-400">{t('home.effectiveness')}</p>
                 </div>
               </div>
             </div>
@@ -209,23 +211,25 @@ export function HomePage() {
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-brand-600">
-                    <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-status-visiting" /> Currently Checked In
+                    <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-status-visiting" /> {t('home.currentlyCheckedIn')}
                   </span>
                   <span className="mt-0.5 block truncate text-sm font-semibold text-neutral-900">
-                    {journey.openVisit.customer_id ? (customerNames[journey.openVisit.customer_id] ?? 'Loading…') : 'Unassigned Visit'}
+                    {journey.openVisit.customer_id ? (customerNames[journey.openVisit.customer_id] ?? t('common.loading')) : t('common.unassignedVisit')}
                   </span>
                   <span className="text-xs text-neutral-500">
-                    Since {formatTime(journey.openVisit.checked_in_at)} ·{' '}
-                    {formatDuration(Date.now() - new Date(journey.openVisit.checked_in_at).getTime())} so far
+                    {t('home.since', {
+                      time: formatTime(journey.openVisit.checked_in_at),
+                      duration: formatDuration(Date.now() - new Date(journey.openVisit.checked_in_at).getTime(), language),
+                    })}
                   </span>
                 </span>
               </button>
             ) : (
               <div className="mt-3 rounded-xl2 bg-white p-4 shadow-card">
-                <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">Next Customer</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">{t('home.nextCustomer')}</p>
                 {nextCustomerState === 'loading' && <div className="mt-2 h-14 animate-pulse rounded-xl bg-neutral-100" />}
-                {nextCustomerState === 'error' && <p className="mt-2 text-sm text-neutral-500">Couldn't get your location.</p>}
-                {nextCustomerState === 'ready' && !nextCustomer && <p className="mt-2 text-sm text-neutral-500">No customers found nearby.</p>}
+                {nextCustomerState === 'error' && <p className="mt-2 text-sm text-neutral-500">{t('home.locationError')}</p>}
+                {nextCustomerState === 'ready' && !nextCustomer && <p className="mt-2 text-sm text-neutral-500">{t('home.noCustomersNearby')}</p>}
                 {nextCustomer && (
                   <>
                     <div className="mt-2 flex items-center gap-3">
@@ -235,7 +239,7 @@ export function HomePage() {
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-neutral-900">{nextCustomer.shop_name}</p>
                         <p className="flex items-center gap-1 text-xs text-neutral-500">
-                          <MapPin className="h-3 w-3" /> {formatDistance(nextCustomer.distance_m)} away
+                          <MapPin className="h-3 w-3" /> {t('home.distanceAway', { distance: formatDistance(nextCustomer.distance_m) })}
                         </p>
                       </div>
                     </div>
@@ -245,13 +249,13 @@ export function HomePage() {
                         disabled={journey.busy}
                         className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-500 py-3 text-sm font-semibold text-white tap-target disabled:opacity-40"
                       >
-                        <MapPin className="h-4 w-4" /> CHECK IN
+                        <MapPin className="h-4 w-4" /> {t('home.checkInButton')}
                       </button>
                       <button
                         onClick={() => navigateToCustomer(nextCustomer)}
                         className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-neutral-200 py-3 text-sm font-semibold text-neutral-700 tap-target"
                       >
-                        <Navigation className="h-4 w-4" /> NAVIGATE
+                        <Navigation className="h-4 w-4" /> {t('home.navigate')}
                       </button>
                     </div>
                   </>
@@ -262,7 +266,7 @@ export function HomePage() {
             {/* Today's Route */}
             {completedVisits.length > 0 && (
               <div className="mt-4">
-                <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-neutral-400">Today's Route</p>
+                <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-neutral-400">{t('home.todaysRoute')}</p>
                 <div className="space-y-2">
                   {completedVisits.map((v) => (
                     <div key={v.id} className="flex items-center gap-3 rounded-xl2 bg-white p-3.5 shadow-card">
@@ -271,7 +275,7 @@ export function HomePage() {
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-neutral-900">
-                          {v.customer_id ? (customerNames[v.customer_id] ?? 'Loading…') : 'Unassigned Visit'}
+                          {v.customer_id ? (customerNames[v.customer_id] ?? t('common.loading')) : t('common.unassignedVisit')}
                         </p>
                         <p className="text-xs text-neutral-400">{formatTime(v.checked_out_at)}</p>
                       </div>
@@ -284,9 +288,9 @@ export function HomePage() {
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-neutral-900">
-                          {journey.openVisit.customer_id ? (customerNames[journey.openVisit.customer_id] ?? 'Loading…') : 'Unassigned Visit'}
+                          {journey.openVisit.customer_id ? (customerNames[journey.openVisit.customer_id] ?? t('common.loading')) : t('common.unassignedVisit')}
                         </p>
-                        <p className="text-xs font-medium text-brand-600">NEXT</p>
+                        <p className="text-xs font-medium text-brand-600">{t('home.next')}</p>
                       </div>
                     </div>
                   )}
@@ -296,17 +300,17 @@ export function HomePage() {
 
             {/* Quick Actions */}
             <div className="mt-4">
-              <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-neutral-400">Quick Actions</p>
+              <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-neutral-400">{t('home.quickActions')}</p>
               <div className="grid grid-cols-2 gap-2">
-                <QuickLink icon={UsersIcon} label="Customers" onClick={() => navigate('/customers')} />
-                <QuickLink icon={MapPin} label="Visits" onClick={() => navigate('/visits')} />
+                <QuickLink icon={UsersIcon} label={t('nav.customers')} onClick={() => navigate('/customers')} />
+                <QuickLink icon={MapPin} label={t('nav.visits')} onClick={() => navigate('/visits')} />
               </div>
             </div>
           </>
         )}
       </div>
 
-      <SelfieCaptureSheet open={pendingClockIn} title="Clock In Selfie" onCancel={() => setPendingClockIn(false)} onCapture={handleSelfie} />
+      <SelfieCaptureSheet open={pendingClockIn} title={t('checkIn.clockInSelfieTitle')} onCancel={() => setPendingClockIn(false)} onCapture={handleSelfie} />
 
       <VisitFlow
         open={visitFlowOpen}
@@ -317,12 +321,13 @@ export function HomePage() {
         presetCustomer={presetCustomer}
       />
 
-      <BottomSheet open={lowAccuracyM !== null} onClose={() => setLowAccuracyM(null)} title="Location Accuracy Too Low">
+      <BottomSheet open={lowAccuracyM !== null} onClose={() => setLowAccuracyM(null)} title={t('home.lowAccuracyTitle')}>
         <div className="p-4">
           <p className="text-sm text-neutral-600">
-            Your location accuracy is currently {lowAccuracyM != null ? `${Math.round(lowAccuracyM)} m` : 'too low'} --{' '}
-            {settings.maxLocationAccuracyM} m or better is required to clock in. Move to an open area, away from buildings or indoors, and try
-            again.
+            {t('home.lowAccuracyBody', {
+              accuracy: lowAccuracyM != null ? `${Math.round(lowAccuracyM)} m` : 'too low',
+              max: settings.maxLocationAccuracyM,
+            })}
           </p>
           <button
             onClick={() => {
@@ -333,10 +338,10 @@ export function HomePage() {
             className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 py-3.5 text-sm font-semibold text-white tap-target disabled:opacity-60"
           >
             {checkingLocation && <Loader2 className="h-4 w-4 animate-spin" />}
-            {checkingLocation ? 'Checking Location…' : 'Try Again'}
+            {checkingLocation ? t('home.checkingLocation') : t('common.tryAgain')}
           </button>
           <button onClick={() => setLowAccuracyM(null)} className="mt-2 w-full rounded-xl py-3.5 text-sm font-semibold text-neutral-500 tap-target">
-            Cancel
+            {t('common.cancel')}
           </button>
         </div>
       </BottomSheet>

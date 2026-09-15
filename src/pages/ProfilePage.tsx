@@ -4,12 +4,13 @@ import { Check, ChevronDown, ChevronRight, ChevronUp, Download, Globe, Loader2, 
 import { useProfile } from '@/features/auth/useProfile'
 import { useAuth } from '@/features/auth/AuthContext'
 import { AvatarPicker } from '@/features/auth/AvatarPicker'
+import { LogoutConfirmSheet } from '@/components/LogoutConfirmSheet'
 import { usersService } from '@/features/users/usersService'
 import { useJourneyContext } from '@/features/attendance/JourneyContext'
 import { computeJourneyStats } from '@/features/attendance/journeyStats'
 import { summarizeAttendanceTimes } from '@/features/attendance/stateMachine'
 import type { DayJourney } from '@/features/attendance/useJourneyHistory'
-import { getInitialLanguage, setLanguage } from '@/lib/language'
+import { useLanguage } from '@/i18n/LanguageContext'
 import { displayName } from '@/lib/displayName'
 import { useInstallPrompt } from '@/hooks/useInstallPrompt'
 import { formatDuration, formatTime } from '@/lib/datetime'
@@ -17,9 +18,10 @@ import { haptic } from '@/lib/haptic'
 
 export function ProfilePage() {
   const { profile, loading, refresh } = useProfile()
-  const { session, signOut } = useAuth()
+  const { session } = useAuth()
   const journey = useJourneyContext()
-  const [signingOut, setSigningOut] = useState(false)
+  const { t, language } = useLanguage()
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false)
 
   // Multiple clock-in/clock-out sessions are allowed in one day -- summed
   // across all of today's sessions, not just whichever one is open now.
@@ -40,32 +42,32 @@ export function ProfilePage() {
             <TodaySummary
               clockIn={clockInTime ? formatTime(clockInTime) : '--:--'}
               clockOut={clockOutTime ? formatTime(clockOutTime) : '--:--'}
-              totalWorking={formatDuration(stats.totalWorkingMs)}
+              totalWorking={formatDuration(stats.totalWorkingMs, language)}
               visits={stats.totalVisits}
-              activeTime={formatDuration(stats.totalVisitingMs)}
-              gap={formatDuration(stats.totalGapMs)}
+              activeTime={formatDuration(stats.totalVisitingMs, language)}
+              gap={formatDuration(stats.totalGapMs, language)}
               ratio={activeRatio}
             />
 
             <PreferencesSection />
 
             <button
-              disabled={signingOut}
-              onClick={async () => {
+              onClick={() => {
                 haptic('light')
-                setSigningOut(true)
-                await signOut()
+                setLogoutConfirmOpen(true)
               }}
               className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl2 bg-status-danger py-3.5 text-sm font-semibold text-white shadow-card tap-target disabled:opacity-60"
             >
               <LogOut className="h-4 w-4" aria-hidden />
-              {signingOut ? 'Logging out…' : 'Log Out'}
+              {t('profile.logOut')}
             </button>
           </>
         ) : (
-          <p className="text-sm text-neutral-500">We couldn't load your profile.</p>
+          <p className="text-sm text-neutral-500">{t('profile.couldNotLoad')}</p>
         )}
       </div>
+
+      <LogoutConfirmSheet open={logoutConfirmOpen} onClose={() => setLogoutConfirmOpen(false)} />
     </div>
   )
 }
@@ -89,6 +91,7 @@ function ProfileSection({
   onUpdated: () => void
 }) {
   const [expanded, setExpanded] = useState(false)
+  const { t } = useLanguage()
 
   return (
     <div className="overflow-hidden rounded-xl2 bg-brand-50 shadow-card">
@@ -120,9 +123,9 @@ function ProfileSection({
       {expanded && (
         <dl className="animate-fade-in-up divide-y divide-brand-100 px-4 pb-4 text-sm dark:divide-neutral-700">
           <NicknameRow userId={userId} nickname={profile.nickname} onSaved={onUpdated} />
-          <Row label="Phone" value={profile.phone_primary || '—'} />
-          <Row label="Email" value={profile.email || '—'} />
-          <Row label="Employed since" value={profile.employment_date || '—'} />
+          <Row label={t('profile.phone')} value={profile.phone_primary || '—'} />
+          <Row label={t('profile.email')} value={profile.email || '—'} />
+          <Row label={t('profile.employedSince')} value={profile.employment_date || '—'} />
         </dl>
       )}
     </div>
@@ -131,6 +134,7 @@ function ProfileSection({
 
 /** Self-service nickname edit: shown instead of the full name everywhere in the app once set (see displayName). A direct table write under users_update's own-row RLS -- see usersService.updateOwnNickname. */
 function NicknameRow({ userId, nickname, onSaved }: { userId: string; nickname: string | null; onSaved: () => void }) {
+  const { t } = useLanguage()
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState(nickname ?? '')
   const [saving, setSaving] = useState(false)
@@ -153,7 +157,7 @@ function NicknameRow({ userId, nickname, onSaved }: { userId: string; nickname: 
       setEditing(false)
     } catch (e) {
       haptic('error')
-      setError(e instanceof Error ? e.message : 'Could not save your nickname.')
+      setError(e instanceof Error ? e.message : t('profile.nicknameSaveError'))
     } finally {
       setSaving(false)
     }
@@ -167,7 +171,7 @@ function NicknameRow({ userId, nickname, onSaved }: { userId: string; nickname: 
             autoFocus
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            placeholder="e.g. Bear"
+            placeholder={t('profile.nicknamePlaceholder')}
             className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-sm text-neutral-900 placeholder:text-neutral-400"
           />
           <button
@@ -194,9 +198,9 @@ function NicknameRow({ userId, nickname, onSaved }: { userId: string; nickname: 
 
   return (
     <div className="flex items-center justify-between gap-3 py-2">
-      <dt className="text-neutral-500">Nickname</dt>
+      <dt className="text-neutral-500">{t('profile.nickname')}</dt>
       <button onClick={startEdit} className="flex items-center gap-1.5 tap-target">
-        <dd className="font-medium text-neutral-900">{nickname || 'Not set'}</dd>
+        <dd className="font-medium text-neutral-900">{nickname || t('common.notSet')}</dd>
         <Pencil className="h-3.5 w-3.5 text-neutral-400" aria-hidden />
       </button>
     </div>
@@ -221,26 +225,27 @@ function TodaySummary({
   ratio: number
 }) {
   const navigate = useNavigate()
+  const { t } = useLanguage()
 
   return (
     <div className="mt-3 rounded-xl2 bg-white p-4 shadow-card">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">Today's Summary</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">{t('profile.todaysSummary')}</p>
         <button onClick={() => navigate('/footprints')} className="flex items-center gap-0.5 text-xs font-semibold text-brand-600 tap-target">
-          Full Report <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+          {t('profile.fullReport')} <ChevronRight className="h-3.5 w-3.5" aria-hidden />
         </button>
       </div>
 
       <div className="mt-2.5 grid grid-cols-3 divide-x divide-neutral-100 text-center dark:divide-neutral-700">
-        <SummaryStat label="Clock In" value={clockIn} />
-        <SummaryStat label="Clock Out" value={clockOut} />
-        <SummaryStat label="Total Hrs" value={totalWorking} />
+        <SummaryStat label={t('nav.clockIn')} value={clockIn} />
+        <SummaryStat label={t('common.clockOut')} value={clockOut} />
+        <SummaryStat label={t('profile.totalHrs')} value={totalWorking} />
       </div>
       <div className="mt-1.5 grid grid-cols-4 divide-x divide-neutral-100 border-t border-neutral-100 pt-1.5 text-center dark:divide-neutral-700 dark:border-neutral-800">
-        <SummaryStat label="Visits" value={String(visits)} />
-        <SummaryStat label="Active" value={activeTime} />
-        <SummaryStat label="Gap" value={gap} />
-        <SummaryStat label="Ratio" value={`${ratio}%`} />
+        <SummaryStat label={t('nav.visits')} value={String(visits)} />
+        <SummaryStat label={t('checkIn.statActive')} value={activeTime} />
+        <SummaryStat label={t('checkIn.statGap')} value={gap} />
+        <SummaryStat label={t('profile.ratio')} value={`${ratio}%`} />
       </div>
     </div>
   )
@@ -257,18 +262,18 @@ function SummaryStat({ label, value }: { label: string; value: string }) {
 
 function PreferencesSection() {
   const install = useInstallPrompt()
-  const [language, setLanguageState] = useState(() => getInitialLanguage())
+  const { language, setLanguage, t } = useLanguage()
 
   return (
     <div className="mt-3 overflow-hidden rounded-xl2 bg-white shadow-card">
-      <p className="px-4 pt-3 text-xs font-semibold uppercase tracking-wide text-neutral-400">Preferences</p>
+      <p className="px-4 pt-3 text-xs font-semibold uppercase tracking-wide text-neutral-400">{t('profile.preferences')}</p>
 
       {/* Dark Mode lives in Settings → Appearance now (one designated
           control instead of one scattered across every screen) -- see
           AppearanceControl. */}
       <PrefRow
         icon={Globe}
-        label="Language"
+        label={t('profile.language')}
         control={
           <div className="flex rounded-full bg-neutral-100 p-0.5 dark:bg-neutral-800">
             {(['km', 'en'] as const).map((code) => (
@@ -277,7 +282,6 @@ function PreferencesSection() {
                 onClick={() => {
                   haptic('light')
                   setLanguage(code)
-                  setLanguageState(code)
                 }}
                 aria-pressed={language === code}
                 className={`rounded-full px-2.5 py-1 text-xs font-semibold tap-target ${
@@ -294,7 +298,7 @@ function PreferencesSection() {
       {install.canInstall && (
         <PrefRow
           icon={Download}
-          label="Install App"
+          label={t('profile.installApp')}
           onClick={() => {
             haptic('light')
             install.promptInstall()
@@ -304,7 +308,7 @@ function PreferencesSection() {
       )}
 
       {install.needsIosInstructions && (
-        <PrefRow icon={Download} label="Install App" sub='Tap Share, then "Add to Home Screen"' />
+        <PrefRow icon={Download} label={t('profile.installApp')} sub={t('profile.installIosHint')} />
       )}
     </div>
   )

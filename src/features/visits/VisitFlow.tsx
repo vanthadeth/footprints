@@ -627,7 +627,7 @@ function RecordStep({
         className="flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 py-3.5 text-sm font-semibold text-white tap-target disabled:opacity-40"
       >
         {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-        {busy ? 'Checking out…' : 'CHECK OUT (CONFIRM)'}
+        {busy ? 'Checking out…' : 'CHECK OUT'}
       </button>
 
       <button

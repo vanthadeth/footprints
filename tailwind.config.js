@@ -68,7 +68,12 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+        // "Noto Sans Khmer" only covers the Khmer script -- browsers fall
+        // through to it per-character, so English text still renders on
+        // the system font above and only Khmer glyphs (thin/inconsistent
+        // in the system UI fonts across platforms) pick it up. Loaded via
+        // the Google Fonts <link> in index.html.
+        sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', '"Noto Sans Khmer"', 'sans-serif'],
       },
       spacing: {
         'safe-top': 'env(safe-area-inset-top)',
