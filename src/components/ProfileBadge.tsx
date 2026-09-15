@@ -4,7 +4,7 @@ import { Globe, LogOut, Settings, User, UserRound } from 'lucide-react'
 import { useProfile } from '@/features/auth/useProfile'
 import { useAvatarUrl } from '@/features/auth/useAvatarUrl'
 import { useAuth } from '@/features/auth/AuthContext'
-import { getInitialLanguage, setLanguage } from '@/lib/language'
+import { useLanguage } from '@/i18n/LanguageContext'
 import { displayName } from '@/lib/displayName'
 import { haptic } from '@/lib/haptic'
 
@@ -15,7 +15,7 @@ export function ProfileBadge() {
   const { signOut } = useAuth()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
-  const [language, setLanguageState] = useState(() => getInitialLanguage())
+  const { language, setLanguage, t } = useLanguage()
   const rootRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -43,7 +43,7 @@ export function ProfileBadge() {
           haptic('light')
           setOpen((v) => !v)
         }}
-        aria-label="Account menu"
+        aria-label={t('profile.accountMenu')}
         aria-expanded={open}
         className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-brand-50 text-sm font-semibold text-brand-700 tap-target dark:bg-brand-500/15 dark:text-brand-300"
       >
@@ -57,7 +57,7 @@ export function ProfileBadge() {
         >
           <MenuItem
             icon={UserRound}
-            label="Profile"
+            label={t('nav.profile')}
             onClick={() => {
               setOpen(false)
               navigate('/profile')
@@ -66,7 +66,7 @@ export function ProfileBadge() {
           <div className="flex items-center justify-between gap-3 px-5 py-3.5">
             <span className="flex items-center gap-3.5 text-sm font-medium text-neutral-700 dark:text-neutral-200">
               <Globe className="h-[18px] w-[18px]" aria-hidden />
-              Language
+              {t('profile.language')}
             </span>
             <div className="flex rounded-full bg-neutral-100 p-0.5 dark:bg-neutral-800">
               {(['km', 'en'] as const).map((code) => (
@@ -75,7 +75,6 @@ export function ProfileBadge() {
                   onClick={() => {
                     haptic('light')
                     setLanguage(code)
-                    setLanguageState(code)
                   }}
                   aria-pressed={language === code}
                   className={`rounded-full px-4 py-2 text-sm font-semibold tap-target ${
@@ -89,7 +88,7 @@ export function ProfileBadge() {
           </div>
           <MenuItem
             icon={Settings}
-            label="Setting"
+            label={t('profile.setting')}
             onClick={() => {
               setOpen(false)
               navigate('/menu')
@@ -98,7 +97,7 @@ export function ProfileBadge() {
           <div className="my-1.5 border-t border-neutral-100 dark:border-neutral-800" />
           <MenuItem
             icon={LogOut}
-            label="Logout"
+            label={t('profile.logout')}
             tone="danger"
             onClick={() => {
               setOpen(false)

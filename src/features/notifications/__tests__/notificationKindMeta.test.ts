@@ -7,7 +7,7 @@ describe('NOTIFICATION_KIND_META', () => {
   it('has an entry for every notification kind the database can produce', () => {
     for (const kind of ALL_KINDS) {
       expect(NOTIFICATION_KIND_META[kind]).toBeDefined()
-      expect(NOTIFICATION_KIND_META[kind].label).not.toBe('')
+      expect(NOTIFICATION_KIND_META[kind].labelKey).not.toBe('')
       expect(NOTIFICATION_KIND_META[kind].tone).toContain('text-')
     }
   })

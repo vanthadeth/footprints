@@ -10,6 +10,12 @@
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Khmer fallback -- the OS default UI font's Khmer coverage is thin/inconsistent
+         across platforms; Noto Sans Khmer only loads its glyphs get used, so it's a
+         no-op cost for English-only viewers. -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <!-- iOS ignores theme-color for the actual status bar and only offers
          default/black/black-translucent -- "black" is the closest fixed

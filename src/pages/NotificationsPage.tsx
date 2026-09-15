@@ -6,14 +6,15 @@ import { useNotificationsContext } from '@/features/notifications/NotificationsC
 import { NOTIFICATION_KIND_META, type NotificationKind } from '@/features/notifications/notificationKindMeta'
 import type { NotificationFeedRow } from '@/features/notifications/notificationsService'
 import { timeAgo } from '@/lib/datetime'
+import { useLanguage } from '@/i18n/LanguageContext'
 
 type Filter = 'all' | NotificationKind
 
-const FILTERS: { key: Filter; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'late_clock_in', label: 'Late' },
-  { key: 'idling_too_long', label: 'Idling' },
-  { key: 'ineffective_visit', label: 'Ineffective' },
+const FILTERS: { key: Filter; labelKey: string }[] = [
+  { key: 'all', labelKey: 'notifications.filterAll' },
+  { key: 'late_clock_in', labelKey: 'notifications.filterLate' },
+  { key: 'idling_too_long', labelKey: 'notifications.filterIdling' },
+  { key: 'ineffective_visit', labelKey: 'notifications.filterIneffective' },
 ]
 
 /**
@@ -26,6 +27,7 @@ const FILTERS: { key: Filter; label: string }[] = [
  */
 export function NotificationsPage() {
   const { profile, loading: profileLoading } = useProfile()
+  const { t } = useLanguage()
 
   if (profileLoading) {
     return (
@@ -40,7 +42,7 @@ export function NotificationsPage() {
     return (
       <div className="mx-auto flex max-w-lg flex-col items-center px-6 pt-16 text-center md:max-w-2xl">
         <ShieldAlert className="h-10 w-10 text-neutral-300" />
-        <p className="mt-4 text-sm text-neutral-500">Only a super admin can view notifications.</p>
+        <p className="mt-4 text-sm text-neutral-500">{t('notifications.adminOnly')}</p>
       </div>
     )
   }
@@ -50,6 +52,7 @@ export function NotificationsPage() {
 
 function NotificationsFeed() {
   const { notifications, loading, error, markRead } = useNotificationsContext()
+  const { t } = useLanguage()
   const [filter, setFilter] = useState<Filter>('all')
 
   const filtered = useMemo(
@@ -69,7 +72,7 @@ function NotificationsFeed() {
                 filter === f.key ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500'
               }`}
             >
-              {f.label}
+              {t(f.labelKey)}
             </button>
           ))}
         </div>
@@ -84,7 +87,7 @@ function NotificationsFeed() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="mt-4">
-            <EmptyState icon={Bell} title="Nothing to see" body="Flagged activity (late clock-ins, idling, ineffective visits) will show up here." />
+            <EmptyState icon={Bell} title={t('notifications.emptyTitle')} body={t('notifications.emptyBody')} />
           </div>
         ) : (
           <div className="mt-4 space-y-2">
@@ -105,6 +108,7 @@ function NotificationsFeed() {
 }
 
 function NotificationRow({ notification, onOpen }: { notification: NotificationFeedRow; onOpen: () => void }) {
+  const { t, language } = useLanguage()
   const meta = notification.kind ? NOTIFICATION_KIND_META[notification.kind] : null
   const unread = !notification.read_at
 
@@ -119,14 +123,18 @@ function NotificationRow({ notification, onOpen }: { notification: NotificationF
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5">
           <span className={`truncate text-sm ${unread ? 'font-semibold text-neutral-900' : 'font-medium text-neutral-700'}`}>
-            {notification.user_name ?? 'Unknown user'}
+            {notification.user_name ?? t('notifications.unknownUser')}
           </span>
           {unread && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand-500" aria-label="Unread" />}
         </span>
-        <span className="mt-0.5 block text-xs font-medium uppercase tracking-wide text-neutral-400">{meta?.label ?? notification.kind}</span>
+        <span className="mt-0.5 block text-xs font-medium uppercase tracking-wide text-neutral-400">
+          {meta ? t(meta.labelKey) : notification.kind}
+        </span>
         <span className="mt-1 block text-sm text-neutral-600">{notification.comment}</span>
         {notification.customer_name && <span className="mt-0.5 block text-xs text-neutral-400">{notification.customer_name}</span>}
-        <span className="mt-1 block text-xs text-neutral-400">{notification.created_at ? timeAgo(notification.created_at) : ''}</span>
+        <span className="mt-1 block text-xs text-neutral-400">
+          {notification.created_at ? timeAgo(notification.created_at, undefined, language) : ''}
+        </span>
       </span>
     </button>
   )

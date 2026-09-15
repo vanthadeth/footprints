@@ -6,15 +6,16 @@ import { TitleBar } from '@/components/TitleBar'
 import { JourneyProvider, useJourneyContext } from '@/features/attendance/JourneyContext'
 import { NotificationsProvider } from '@/features/notifications/NotificationsContext'
 import { useProfile, type Profile } from '@/features/auth/useProfile'
+import { useLanguage } from '@/i18n/LanguageContext'
 
 /** Desktop keeps the full set of destinations as a vertical rail -- screen space isn't the constraint there that it is on a phone's bottom bar. */
 const DESKTOP_TABS = [
-  { to: '/check-in', label: 'Check In', icon: MapPin },
-  { to: '/footprints', label: 'Footprints', icon: FootprintsIcon },
-  { to: '/fleet', label: 'Fleet', icon: Truck },
-  { to: '/profile', label: 'Profile', icon: User },
-  { to: '/menu', label: 'Menu', icon: MenuIcon },
-]
+  { to: '/check-in', labelKey: 'nav.checkIn', icon: MapPin },
+  { to: '/footprints', labelKey: 'nav.footprints', icon: FootprintsIcon },
+  { to: '/fleet', labelKey: 'nav.fleet', icon: Truck },
+  { to: '/profile', labelKey: 'nav.profile', icon: User },
+  { to: '/menu', labelKey: 'nav.menu', icon: MenuIcon },
+] as const
 
 /**
  * Mobile-first shell. One nav for everyone (the field-sales-specific nav
@@ -56,9 +57,10 @@ export function AppLayout() {
 
 function DesktopSidebar({ profile }: { profile: Profile | null }) {
   const { attendance } = useJourneyContext()
-  const checkInLabel = attendance === 'CLOCKED_IN' ? 'Check In' : 'Clock In'
+  const { t } = useLanguage()
+  const checkInLabel = attendance === 'CLOCKED_IN' ? t('nav.checkIn') : t('nav.clockIn')
 
-  const tabs = profile?.is_super_admin ? [...DESKTOP_TABS, { to: '/users', label: 'Users', icon: UsersIcon }] : DESKTOP_TABS
+  const tabs = profile?.is_super_admin ? [...DESKTOP_TABS, { to: '/users', labelKey: 'nav.users', icon: UsersIcon } as const] : DESKTOP_TABS
 
   return (
     <nav
@@ -77,7 +79,7 @@ function DesktopSidebar({ profile }: { profile: Profile | null }) {
           }
         >
           <tab.icon className="h-5 w-5" aria-hidden />
-          {tab.to === '/check-in' ? checkInLabel : tab.label}
+          {tab.to === '/check-in' ? checkInLabel : t(tab.labelKey)}
         </NavLink>
       ))}
     </nav>
@@ -86,8 +88,9 @@ function DesktopSidebar({ profile }: { profile: Profile | null }) {
 
 function MobileTabBar({ profile }: { profile: Profile | null }) {
   const { attendance } = useJourneyContext()
+  const { t } = useLanguage()
   const isClockedIn = attendance === 'CLOCKED_IN'
-  const checkInLabel = isClockedIn ? 'Check In' : 'Clock In'
+  const checkInLabel = isClockedIn ? t('nav.checkIn') : t('nav.clockIn')
   const CheckInIcon = isClockedIn ? MapPin : Clock
   const isSuperAdmin = profile?.is_super_admin === true
 
@@ -97,8 +100,8 @@ function MobileTabBar({ profile }: { profile: Profile | null }) {
       aria-label="Primary"
     >
       <div className="mx-auto flex max-w-lg items-end justify-between px-2">
-        <MobileTabLink to="/profile" icon={User} label="Profile" />
-        {isSuperAdmin && <MobileTabLink to="/users" icon={UsersIcon} label="Users" />}
+        <MobileTabLink to="/profile" icon={User} label={t('nav.profile')} />
+        {isSuperAdmin && <MobileTabLink to="/users" icon={UsersIcon} label={t('nav.users')} />}
 
         <NavLink to="/check-in" onClick={() => haptic('light')} className="relative -mt-7 flex flex-1 flex-col items-center">
           <span className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-500 text-white shadow-card ring-4 ring-neutral-50 dark:ring-neutral-950">
@@ -107,8 +110,8 @@ function MobileTabBar({ profile }: { profile: Profile | null }) {
           <span className="mt-1 pb-2 text-[11px] font-semibold text-brand-600">{checkInLabel}</span>
         </NavLink>
 
-        <MobileTabLink to="/footprints" icon={FootprintsIcon} label="Footprints" />
-        {isSuperAdmin && <MobileTabLink to="/fleet" icon={Truck} label="Fleet" />}
+        <MobileTabLink to="/footprints" icon={FootprintsIcon} label={t('nav.footprints')} />
+        {isSuperAdmin && <MobileTabLink to="/fleet" icon={Truck} label={t('nav.fleet')} />}
       </div>
     </nav>
   )

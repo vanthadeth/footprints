@@ -1,4 +1,30 @@
 import { APP_TIMEZONE } from './config'
+import type { Language } from './language'
+
+const KM_WEEKDAYS: Record<string, string> = {
+  Monday: 'ថ្ងៃច័ន្ទ',
+  Tuesday: 'ថ្ងៃអង្គារ',
+  Wednesday: 'ថ្ងៃពុធ',
+  Thursday: 'ថ្ងៃព្រហស្បតិ៍',
+  Friday: 'ថ្ងៃសុក្រ',
+  Saturday: 'ថ្ងៃសៅរ៍',
+  Sunday: 'ថ្ងៃអាទិត្យ',
+}
+
+const KM_MONTHS: Record<string, string> = {
+  January: 'មករា',
+  February: 'កុម្ភៈ',
+  March: 'មីនា',
+  April: 'មេសា',
+  May: 'ឧសភា',
+  June: 'មិថុនា',
+  July: 'កក្កដា',
+  August: 'សីហា',
+  September: 'កញ្ញា',
+  October: 'តុលា',
+  November: 'វិច្ឆិកា',
+  December: 'ធ្នូ',
+}
 
 /**
  * All "today"/"this week"/business-day boundaries use APP_TIMEZONE
@@ -55,26 +81,32 @@ export function formatTime(iso: string | null, timezone: string = APP_TIMEZONE):
   )
 }
 
-export function greeting(timezone: string = APP_TIMEZONE): string {
+export function greeting(timezone: string = APP_TIMEZONE, language: Language = 'en'): string {
   const hour = Number(
     new Intl.DateTimeFormat('en-US', { timeZone: timezone, hour: 'numeric', hour12: false }).format(new Date())
   )
+  if (language === 'km') {
+    if (hour < 12) return 'អរុណសួស្តី'
+    if (hour < 18) return 'ទិវាសួស្តី'
+    return 'សាយ័ណ្ហសួស្តី'
+  }
   if (hour < 12) return 'Good morning'
   if (hour < 18) return 'Good afternoon'
   return 'Good evening'
 }
 
 /** "1 min ago" / "18 min ago" style relative time for freshness indicators (spec §36). */
-export function timeAgo(iso: string, now: number = Date.now()): string {
+export function timeAgo(iso: string, now: number = Date.now(), language: Language = 'en'): string {
   const diffMs = now - new Date(iso).getTime()
-  if (diffMs < 0) return 'just now'
+  const justNow = language === 'km' ? 'ទើបតែឥឡូវនេះ' : 'just now'
+  if (diffMs < 0) return justNow
   const minutes = Math.floor(diffMs / 60_000)
-  if (minutes < 1) return 'just now'
-  if (minutes < 60) return `${minutes} min ago`
+  if (minutes < 1) return justNow
+  if (minutes < 60) return language === 'km' ? `${minutes} នាទីមុន` : `${minutes} min ago`
   const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
+  if (hours < 24) return language === 'km' ? `${hours} ម៉ោងមុន` : `${hours}h ago`
   const days = Math.floor(hours / 24)
-  return `${days}d ago`
+  return language === 'km' ? `${days} ថ្ងៃមុន` : `${days}d ago`
 }
 
 /** Always "dd/mm/yyyy", regardless of the viewer's browser locale. */
@@ -90,7 +122,7 @@ export function formatDate(iso: string | null, timezone: string = APP_TIMEZONE):
 }
 
 /** "Monday, 14 September" -- Home's greeting header. Always this shape, regardless of browser locale (same reasoning as formatDate). */
-export function formatLongDate(iso: string = new Date().toISOString(), timezone: string = APP_TIMEZONE): string {
+export function formatLongDate(iso: string = new Date().toISOString(), timezone: string = APP_TIMEZONE, language: Language = 'en'): string {
   const parts = new Intl.DateTimeFormat('en-GB', {
     timeZone: timezone,
     weekday: 'long',
@@ -100,6 +132,9 @@ export function formatLongDate(iso: string = new Date().toISOString(), timezone:
   const weekday = parts.find((p) => p.type === 'weekday')!.value
   const day = parts.find((p) => p.type === 'day')!.value
   const month = parts.find((p) => p.type === 'month')!.value
+  if (language === 'km') {
+    return `${KM_WEEKDAYS[weekday] ?? weekday}, ${day} ${KM_MONTHS[month] ?? month}`
+  }
   return `${weekday}, ${day} ${month}`
 }
 
@@ -168,11 +203,15 @@ export function shiftTimeOfDay(timeOfDay: string, offsetMinutes: number): string
   return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`
 }
 
-export function formatDuration(ms: number): string {
+export function formatDuration(ms: number, language: Language = 'en'): string {
   if (ms < 0) ms = 0
   const totalMinutes = Math.round(ms / 60_000)
   const hours = Math.floor(totalMinutes / 60)
   const minutes = totalMinutes % 60
+  if (language === 'km') {
+    if (hours <= 0) return `${minutes} នាទី`
+    return `${hours} ម៉ោង ${minutes} នាទី`
+  }
   if (hours <= 0) return `${minutes} min`
   return `${hours}h ${minutes}m`
 }

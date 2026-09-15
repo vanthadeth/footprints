@@ -2,21 +2,22 @@ import { useLocation } from 'react-router-dom'
 import { ProfileBadge } from '@/components/ProfileBadge'
 import { NotificationBell } from '@/components/NotificationBell'
 import { useJourneyContext } from '@/features/attendance/JourneyContext'
+import { useLanguage } from '@/i18n/LanguageContext'
 
-const TITLES: Record<string, string> = {
-  '/footprints': 'Footprints',
-  '/fleet': 'Fleet',
-  '/profile': 'Profile',
-  '/menu': 'Menu',
-  '/settings': 'Settings',
-  '/users': 'Users',
-  '/home': 'Home',
-  '/customers': 'Customers',
-  '/visits': 'Visits',
-  '/more': 'More',
-  '/performance': 'Performance',
-  '/notifications': 'Notifications',
-  '/locations': 'Locations',
+const TITLE_KEYS: Record<string, string> = {
+  '/footprints': 'nav.footprints',
+  '/fleet': 'nav.fleet',
+  '/profile': 'nav.profile',
+  '/menu': 'nav.menu',
+  '/settings': 'nav.settings',
+  '/users': 'nav.users',
+  '/home': 'nav.home',
+  '/customers': 'nav.customers',
+  '/visits': 'nav.visits',
+  '/more': 'nav.more',
+  '/performance': 'nav.performance',
+  '/notifications': 'nav.notifications',
+  '/locations': 'nav.locations',
 }
 
 /**
@@ -28,14 +29,15 @@ const TITLES: Record<string, string> = {
 export function TitleBar() {
   const { pathname } = useLocation()
   const { attendance } = useJourneyContext()
+  const { t } = useLanguage()
   const title =
     pathname === '/check-in'
       ? attendance === 'CLOCKED_IN'
-        ? 'Check In'
-        : 'Clock In'
+        ? t('nav.checkIn')
+        : t('nav.clockIn')
       : pathname.startsWith('/customers/')
-        ? 'Customer'
-        : (TITLES[pathname] ?? 'Footprints')
+        ? t('nav.customer')
+        : t(TITLE_KEYS[pathname] ?? 'nav.footprints')
 
   return (
     <header
