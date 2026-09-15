@@ -27,6 +27,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { BottomSheet } from '@/components/BottomSheet'
+import { useLanguage } from '@/i18n/LanguageContext'
 import { useJourneyContext } from './JourneyContext'
 import { useLocationNames } from '@/features/locations/useLocationNames'
 import { GAP_FLAG_THRESHOLD_MINUTES } from '@/lib/config'
@@ -39,10 +40,10 @@ import type { AttendanceRow, VisitRow } from './types'
 
 const VISIT_EDIT_WINDOW_MS = 24 * 60 * 60 * 1000
 
-const NEXT_VISIT_PRESETS: { label: string; days: number }[] = [
-  { label: 'Tomorrow', days: 1 },
-  { label: 'In 3 days', days: 3 },
-  { label: 'Next week', days: 7 },
+const NEXT_VISIT_PRESETS: { key: string; days: number }[] = [
+  { key: 'journey.tomorrow', days: 1 },
+  { key: 'journey.in3Days', days: 3 },
+  { key: 'journey.nextWeek', days: 7 },
 ]
 
 interface Props {
@@ -98,6 +99,7 @@ export function JourneyTimeline({ attendance, visits, customerNames, interactive
   // every caller (Footprints, Fleet's member detail) gets visit-record
   // icons (and, when interactive, the edit form's chip options) for free
   // rather than having to fetch and thread it through.
+  const { t } = useLanguage()
   const { byKind } = useVisitOptions()
   const optionsById: Record<string, VisitOption> = {}
   for (const options of Object.values(byKind)) {
@@ -137,12 +139,18 @@ export function JourneyTimeline({ attendance, visits, customerNames, interactive
     if (event.kind === 'clock-in') {
       const locationName = event.session.clock_in_location_id ? locationNames[event.session.clock_in_location_id] : undefined
       rows.push(
-        <ClockNode key={`in-${event.session.id}`} time={event.time} label="Clock In" toneClass="bg-status-working" locationName={locationName} />
+        <ClockNode
+          key={`in-${event.session.id}`}
+          time={event.time}
+          label={t('nav.clockIn')}
+          toneClass="bg-status-working"
+          locationName={locationName}
+        />
       )
       cursor = event.time
       cursorWasClockOut = false
     } else if (event.kind === 'clock-out') {
-      rows.push(<ClockNode key={`out-${event.session.id}`} time={event.time} label="Clock Out" toneClass="bg-earth-500" />)
+      rows.push(<ClockNode key={`out-${event.session.id}`} time={event.time} label={t('common.clockOut')} toneClass="bg-earth-500" />)
       cursor = event.time
       cursorWasClockOut = true
     } else {
@@ -189,6 +197,7 @@ function ClockNode({ time, label, toneClass, locationName }: { time: string; lab
 }
 
 function GapEntry({ ms, offClock = false }: { ms: number; offClock?: boolean }) {
+  const { t, language } = useLanguage()
   const flagged = !offClock && ms / 60_000 > GAP_FLAG_THRESHOLD_MINUTES
   return (
     <li className="relative flex items-center justify-between gap-3 py-0.5">
@@ -204,11 +213,15 @@ function GapEntry({ ms, offClock = false }: { ms: number; offClock?: boolean }) 
         )}
       </span>
       <p className={`text-xs ${flagged ? 'font-medium text-status-warn' : 'text-neutral-400'}`}>
-        {offClock ? 'Off the Clock' : 'Transit / Gap / Rest'}
+        {offClock ? t('journey.offTheClock') : t('journey.transitGapRest')}
       </p>
       <span className="flex shrink-0 items-center gap-1.5">
-        {flagged && <span className="rounded-full bg-status-warn/10 px-1.5 py-0.5 text-[10px] font-medium text-status-warn">Flagged</span>}
-        <span className={`text-xs font-medium ${flagged ? 'text-status-warn' : 'text-neutral-400'}`}>{formatDuration(ms)}</span>
+        {flagged && (
+          <span className="rounded-full bg-status-warn/10 px-1.5 py-0.5 text-[10px] font-medium text-status-warn">
+            {t('checkIn.flagged')}
+          </span>
+        )}
+        <span className={`text-xs font-medium ${flagged ? 'text-status-warn' : 'text-neutral-400'}`}>{formatDuration(ms, language)}</span>
       </span>
     </li>
   )
@@ -279,6 +292,7 @@ function ChipGroup({
   value: string | null
   onChange: (id: string) => void
 }) {
+  const { t } = useLanguage()
   return (
     <div>
       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">{label}</p>
@@ -295,7 +309,7 @@ function ChipGroup({
             {o.label}
           </button>
         ))}
-        {options.length === 0 && <p className="text-xs text-neutral-400">No options configured.</p>}
+        {options.length === 0 && <p className="text-xs text-neutral-400">{t('journey.noOptionsConfigured')}</p>}
       </div>
     </div>
   )
@@ -319,6 +333,7 @@ function VisitEntry({
   onVisitChanged?: () => void
 }) {
   const journey = useJourneyContext()
+  const { t, language } = useLanguage()
 
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState(false)
@@ -355,13 +370,13 @@ function VisitEntry({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-sync when the sheet opens, not on every visit/prop change
   }, [open])
 
-  const label = visit.customer_id ? customerName ?? 'Loading…' : 'Unassigned Visit'
+  const label = visit.customer_id ? customerName ?? t('common.loading') : t('common.unassignedVisit')
   const closed = !!visit.checked_out_at
   const voided = !!visit.cancelled_at
   const duration = closed
-    ? formatDuration(new Date(visit.checked_out_at!).getTime() - new Date(visit.checked_in_at).getTime())
-    : 'In progress'
-  const timeRange = `${formatTime(visit.checked_in_at)} → ${closed ? formatTime(visit.checked_out_at) : 'now'}`
+    ? formatDuration(new Date(visit.checked_out_at!).getTime() - new Date(visit.checked_in_at).getTime(), language)
+    : t('journey.inProgress')
+  const timeRange = `${formatTime(visit.checked_in_at)} → ${closed ? formatTime(visit.checked_out_at) : t('journey.now')}`
 
   const visitStatus = visit.visit_status_id ? optionsById[visit.visit_status_id] : undefined
   const orderStatus = visit.order_status_id ? optionsById[visit.order_status_id] : undefined
@@ -409,7 +424,7 @@ function VisitEntry({
       journey.refresh()
       onVisitChanged?.()
     } catch (e) {
-      setActionError(e instanceof Error ? e.message : 'Could not save changes.')
+      setActionError(e instanceof Error ? e.message : t('journey.saveError'))
     } finally {
       setBusy(false)
     }
@@ -432,7 +447,7 @@ function VisitEntry({
       journey.refresh()
       onVisitChanged?.()
     } catch (e) {
-      setActionError(e instanceof Error ? e.message : 'Could not void this visit.')
+      setActionError(e instanceof Error ? e.message : t('journey.voidError'))
     } finally {
       setBusy(false)
     }
@@ -446,7 +461,7 @@ function VisitEntry({
       journey.refresh()
       onVisitChanged?.()
     } catch (e) {
-      setActionError(e instanceof Error ? e.message : 'Could not restore this visit.')
+      setActionError(e instanceof Error ? e.message : t('journey.unvoidError'))
     } finally {
       setBusy(false)
     }
@@ -470,14 +485,18 @@ function VisitEntry({
         <div className="min-w-0 flex-1">
           <p className="flex flex-wrap items-center gap-1.5 font-semibold text-neutral-900 dark:text-neutral-100">
             <span className={voided ? 'line-through' : undefined}>{label}</span>
-            {voided && <span className="rounded-full bg-status-danger/10 px-1.5 py-0.5 text-[10px] font-medium text-status-danger">VOIDED</span>}
+            {voided && (
+              <span className="rounded-full bg-status-danger/10 px-1.5 py-0.5 text-[10px] font-medium text-status-danger">
+                {t('journey.voided')}
+              </span>
+            )}
             {!voided && closed && !visit.auto_closed && (
               <span className="inline-flex items-center gap-0.5 rounded-full bg-status-working/10 px-1.5 py-0.5 text-[10px] font-medium text-status-working">
-                <Check className="h-2.5 w-2.5" /> Done
+                <Check className="h-2.5 w-2.5" /> {t('journey.done')}
               </span>
             )}
             {!voided && visit.auto_closed && (
-              <span className="rounded-full bg-status-warn/10 px-1.5 py-0.5 text-[10px] font-medium text-status-warn">AUTO</span>
+              <span className="rounded-full bg-status-warn/10 px-1.5 py-0.5 text-[10px] font-medium text-status-warn">{t('journey.auto')}</span>
             )}
           </p>
           <p className="mt-1 font-mono text-xs text-neutral-400">{timeRange}</p>
@@ -485,7 +504,7 @@ function VisitEntry({
         <div className="flex shrink-0 items-center gap-2">
           <div className="text-right">
             <p className={`text-sm font-bold ${visit.out_of_range ? 'text-status-warn' : 'text-earth-500'}`}>{duration}</p>
-            <p className="text-[10px] font-medium uppercase tracking-wide text-neutral-400">Duration</p>
+            <p className="text-[10px] font-medium uppercase tracking-wide text-neutral-400">{t('journey.duration')}</p>
           </div>
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
             <ChevronRight className="h-4 w-4" />
@@ -501,10 +520,10 @@ function VisitEntry({
           {voided && (
             <div className="rounded-xl2 border border-status-danger/30 bg-status-danger/5 p-3">
               <p className="flex items-center gap-1.5 text-sm font-semibold text-status-danger">
-                <Ban className="h-4 w-4" /> This visit was voided
+                <Ban className="h-4 w-4" /> {t('journey.voidedBannerTitle')}
               </p>
               <p className="mt-1 text-xs text-neutral-500">
-                {visit.cancel_reason} · {formatDate(visit.cancelled_at)} at {formatTime(visit.cancelled_at)}
+                {visit.cancel_reason} · {formatDate(visit.cancelled_at)} {t('journey.at')} {formatTime(visit.cancelled_at)}
               </p>
               {canUnvoid && (
                 <button
@@ -513,7 +532,7 @@ function VisitEntry({
                   className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 py-3 text-sm font-semibold text-white tap-target disabled:opacity-60 dark:bg-white dark:text-neutral-900"
                 >
                   {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
-                  {busy ? 'Restoring…' : 'Restore Visit'}
+                  {busy ? t('journey.restoring') : t('journey.restoreVisit')}
                 </button>
               )}
             </div>
@@ -526,7 +545,7 @@ function VisitEntry({
                   <LogIn className="h-4 w-4" />
                 </span>
                 <div className="min-w-0">
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-neutral-400">Check In</p>
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-neutral-400">{t('nav.checkIn')}</p>
                   <p className="font-mono text-sm font-bold text-neutral-900 dark:text-neutral-100">{formatTime(visit.checked_in_at)}</p>
                 </div>
               </div>
@@ -535,7 +554,7 @@ function VisitEntry({
                   <LogOut className="h-4 w-4" />
                 </span>
                 <div className="min-w-0">
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-neutral-400">Check Out</p>
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-neutral-400">{t('journey.checkOutLabel')}</p>
                   <p className="font-mono text-sm font-bold text-neutral-900 dark:text-neutral-100">
                     {visit.checked_out_at ? formatTime(visit.checked_out_at) : '—'}
                   </p>
@@ -547,14 +566,19 @@ function VisitEntry({
           <div className="rounded-xl2 border border-neutral-200 p-3 dark:border-neutral-700">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
-                <Timer className="h-3.5 w-3.5 text-earth-500" /> Visit Duration:{' '}
+                <Timer className="h-3.5 w-3.5 text-earth-500" /> {t('journey.visitDuration')}{' '}
                 <span className="font-semibold text-neutral-800 dark:text-neutral-200">{duration}</span>
               </p>
               <p className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
-                <MapPin className={`h-3.5 w-3.5 ${visit.out_of_range ? 'text-status-warn' : 'text-status-working'}`} /> Distance:{' '}
+                <MapPin className={`h-3.5 w-3.5 ${visit.out_of_range ? 'text-status-warn' : 'text-status-working'}`} /> {t('journey.distance')}{' '}
                 <span className={`font-semibold ${visit.out_of_range ? 'text-status-warn' : 'text-neutral-800 dark:text-neutral-200'}`}>
                   {formatDistance(visit.distance_m)}
-                  {visit.out_of_range && ' · Flagged'}
+                  {visit.out_of_range && (
+                    <>
+                      {' '}
+                      · {t('checkIn.flagged')}
+                    </>
+                  )}
                 </span>
               </p>
             </div>
@@ -563,27 +587,37 @@ function VisitEntry({
           {!voided &&
             (showForm ? (
               <div className="space-y-4">
-                <ChipGroup label="Type of Visit (optional)" options={byKind.visit_type} value={visitTypeId} onChange={setVisitTypeId} />
-                <ChipGroup label="Visit Status (optional)" options={byKind.visit_status} value={visitStatusId} onChange={setVisitStatusId} />
-                <ChipGroup label="Order Status (optional)" options={byKind.order_status} value={orderStatusId} onChange={setOrderStatusId} />
+                <ChipGroup label={t('journey.typeOfVisit')} options={byKind.visit_type} value={visitTypeId} onChange={setVisitTypeId} />
                 <ChipGroup
-                  label="Payment Status (optional)"
+                  label={t('journey.visitStatusOptional')}
+                  options={byKind.visit_status}
+                  value={visitStatusId}
+                  onChange={setVisitStatusId}
+                />
+                <ChipGroup
+                  label={t('journey.orderStatusOptional')}
+                  options={byKind.order_status}
+                  value={orderStatusId}
+                  onChange={setOrderStatusId}
+                />
+                <ChipGroup
+                  label={t('journey.paymentStatusOptional')}
                   options={byKind.payment_status}
                   value={paymentStatusId}
                   onChange={setPaymentStatusId}
                 />
 
                 <div>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Next Visit (optional)</p>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">{t('journey.nextVisitOptional')}</p>
                   <div className="flex flex-wrap gap-2">
                     {NEXT_VISIT_PRESETS.map((preset) => (
                       <button
-                        key={preset.label}
+                        key={preset.key}
                         type="button"
                         onClick={() => pickNextVisit(preset.days)}
                         className="rounded-full border border-neutral-200 bg-white px-3.5 py-2 text-sm font-medium text-neutral-600 tap-target"
                       >
-                        {preset.label}
+                        {t(preset.key)}
                       </button>
                     ))}
                     <input
@@ -593,16 +627,20 @@ function VisitEntry({
                       className="rounded-full border border-neutral-200 bg-white px-3.5 py-2 text-sm font-medium text-neutral-600"
                     />
                   </div>
-                  {nextAppointment && <p className="mt-2 text-xs text-neutral-500">Scheduled: {formatDate(nextAppointment)}</p>}
+                  {nextAppointment && (
+                    <p className="mt-2 text-xs text-neutral-500">
+                      {t('journey.scheduledPrefix', { date: formatDate(nextAppointment) })}
+                    </p>
+                  )}
                 </div>
 
                 <div>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Remarks (optional)</p>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">{t('journey.remarksOptional')}</p>
                   <textarea
                     value={remarks}
                     onChange={(e) => setRemarks(e.target.value)}
                     rows={3}
-                    placeholder="Anything worth noting about this visit…"
+                    placeholder={t('journey.remarksPlaceholder')}
                     className="w-full rounded-xl2 border border-neutral-200 bg-white p-3 text-sm text-neutral-900 placeholder:text-neutral-400"
                   />
                 </div>
@@ -614,7 +652,7 @@ function VisitEntry({
                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 py-3.5 text-sm font-semibold text-white tap-target disabled:opacity-60 dark:bg-white dark:text-neutral-900"
                   >
                     {journey.busy && <Loader2 className="h-4 w-4 animate-spin" />}
-                    {journey.busy ? 'Checking out…' : 'CHECK OUT'}
+                    {journey.busy ? t('journey.checkingOut') : t('journey.checkOutButton')}
                   </button>
                 ) : (
                   <div className="flex gap-2">
@@ -623,7 +661,7 @@ function VisitEntry({
                       disabled={busy}
                       className="flex-1 rounded-xl border border-neutral-200 py-3 text-sm font-semibold text-neutral-600 tap-target disabled:opacity-60 dark:border-neutral-700"
                     >
-                      Cancel
+                      {t('common.cancel')}
                     </button>
                     <button
                       onClick={handleSaveRecord}
@@ -631,7 +669,7 @@ function VisitEntry({
                       className="flex flex-[2] items-center justify-center gap-2 rounded-xl bg-brand-500 py-3 text-sm font-semibold text-white tap-target disabled:opacity-60"
                     >
                       {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                      {busy ? 'Saving…' : 'Save Changes'}
+                      {busy ? t('journey.saving') : t('journey.saveChanges')}
                     </button>
                   </div>
                 )}
@@ -640,17 +678,29 @@ function VisitEntry({
               <>
                 {hasRecord ? (
                   <div className="space-y-2.5 rounded-xl2 border border-neutral-200 p-3 dark:border-neutral-700">
-                    {visitStatus && <RecordRow icon={visitStatusIcon(visitStatus.label)} label="Visit Status" value={visitStatus.label} />}
-                    {orderStatus && <RecordRow icon={orderStatusIcon(orderStatus.label)} label="Order Status" value={orderStatus.label} />}
+                    {visitStatus && (
+                      <RecordRow icon={visitStatusIcon(visitStatus.label)} label={t('journey.visitStatusRecord')} value={visitStatus.label} />
+                    )}
+                    {orderStatus && (
+                      <RecordRow icon={orderStatusIcon(orderStatus.label)} label={t('journey.orderStatusRecord')} value={orderStatus.label} />
+                    )}
                     {paymentStatus && (
-                      <RecordRow icon={paymentStatusIcon(paymentStatus.label)} label="Payment Status" value={paymentStatus.label} />
+                      <RecordRow
+                        icon={paymentStatusIcon(paymentStatus.label)}
+                        label={t('journey.paymentStatusRecord')}
+                        value={paymentStatus.label}
+                      />
                     )}
                     {visit.next_appointment && (
-                      <RecordRow icon={<Calendar className="h-4 w-4" />} label="Next Visit" value={formatDate(visit.next_appointment)} />
+                      <RecordRow
+                        icon={<Calendar className="h-4 w-4" />}
+                        label={t('journey.nextVisitRecord')}
+                        value={formatDate(visit.next_appointment)}
+                      />
                     )}
                   </div>
                 ) : (
-                  canEditRecord && <p className="text-center text-xs text-neutral-400">No visit record set yet.</p>
+                  canEditRecord && <p className="text-center text-xs text-neutral-400">{t('journey.noRecordYet')}</p>
                 )}
 
                 {canEditRecord && (
@@ -658,7 +708,7 @@ function VisitEntry({
                     onClick={() => setEditing(true)}
                     className="flex w-full items-center justify-center gap-2 rounded-xl border border-neutral-200 py-3 text-sm font-semibold text-neutral-600 tap-target dark:border-neutral-700"
                   >
-                    <Pencil className="h-4 w-4" /> {hasRecord ? 'Edit Record' : 'Add Record'}
+                    <Pencil className="h-4 w-4" /> {hasRecord ? t('journey.editRecord') : t('journey.addRecord')}
                   </button>
                 )}
               </>
@@ -669,50 +719,48 @@ function VisitEntry({
               onClick={() => setConfirmVoidOpen(true)}
               className="flex w-full items-center justify-center gap-2 rounded-xl border border-status-danger/30 py-3 text-sm font-semibold text-status-danger tap-target"
             >
-              <Ban className="h-4 w-4" /> Void Visit
+              <Ban className="h-4 w-4" /> {t('journey.voidVisit')}
             </button>
           )}
         </div>
       </BottomSheet>
 
-      <BottomSheet open={confirmCheckOutOpen} onClose={() => setConfirmCheckOutOpen(false)} title="Confirm Check Out">
+      <BottomSheet open={confirmCheckOutOpen} onClose={() => setConfirmCheckOutOpen(false)} title={t('journey.confirmCheckOutTitle')}>
         <div className="p-4">
-          <p className="text-sm text-neutral-600">You're about to check out of {label}. This can't be undone -- make sure you're ready.</p>
+          <p className="text-sm text-neutral-600">{t('journey.confirmCheckOutBody', { label })}</p>
           <button
             onClick={handleCheckOut}
             disabled={journey.busy}
             className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 py-3.5 text-sm font-semibold text-white tap-target disabled:opacity-60 dark:bg-white dark:text-neutral-900"
           >
             {journey.busy && <Loader2 className="h-4 w-4 animate-spin" />}
-            {journey.busy ? 'Checking out…' : 'Yes, Check Out'}
+            {journey.busy ? t('journey.checkingOut') : t('journey.yesCheckOut')}
           </button>
           <button
             onClick={() => setConfirmCheckOutOpen(false)}
             className="mt-2 w-full rounded-xl py-3.5 text-sm font-semibold text-neutral-500 tap-target"
           >
-            Cancel
+            {t('common.cancel')}
           </button>
         </div>
       </BottomSheet>
 
-      <BottomSheet open={confirmVoidOpen} onClose={() => setConfirmVoidOpen(false)} title="Void This Visit?">
+      <BottomSheet open={confirmVoidOpen} onClose={() => setConfirmVoidOpen(false)} title={t('journey.confirmVoidTitle')}>
         <div className="p-4">
-          <p className="text-sm text-neutral-600">
-            {label} will be marked voided and excluded from your stats. You can restore it later from here if this was a mistake.
-          </p>
+          <p className="text-sm text-neutral-600">{t('journey.confirmVoidBody', { label })}</p>
           <button
             onClick={handleConfirmVoid}
             disabled={busy}
             className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-status-danger py-3.5 text-sm font-semibold text-white tap-target disabled:opacity-60"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
-            {busy ? 'Voiding…' : 'Void Visit'}
+            {busy ? t('journey.voiding') : t('journey.voidVisit')}
           </button>
           <button
             onClick={() => setConfirmVoidOpen(false)}
             className="mt-2 w-full rounded-xl py-3.5 text-sm font-semibold text-neutral-500 tap-target"
           >
-            Cancel
+            {t('common.cancel')}
           </button>
         </div>
       </BottomSheet>
