@@ -11,7 +11,7 @@ export const en = {
     clockIn: 'Clock In',
     checkIn: 'Check In',
     footprints: 'Footprints',
-    fleet: 'Fleet',
+    fleet: 'Team',
     profile: 'Profile',
     menu: 'Menu',
     users: 'Users',
@@ -23,6 +23,7 @@ export const en = {
     performance: 'Performance',
     notifications: 'Notifications',
     locations: 'Locations',
+    translations: 'Translations',
     customer: 'Customer',
   },
   welcome: {

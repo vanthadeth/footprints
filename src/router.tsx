@@ -27,6 +27,7 @@ const MorePage = lazy(() => import('@/pages/MorePage').then((m) => ({ default: m
 const PerformancePage = lazy(() => import('@/pages/PerformancePage').then((m) => ({ default: m.PerformancePage })))
 const NotificationsPage = lazy(() => import('@/pages/NotificationsPage').then((m) => ({ default: m.NotificationsPage })))
 const LocationsPage = lazy(() => import('@/pages/LocationsPage').then((m) => ({ default: m.LocationsPage })))
+const TranslationsPage = lazy(() => import('@/pages/TranslationsPage').then((m) => ({ default: m.TranslationsPage })))
 
 function PageFallback() {
   return (
@@ -159,6 +160,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageFallback />}>
             <LocationsPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/translations',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <TranslationsPage />
           </Suspense>
         ),
       },

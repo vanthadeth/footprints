@@ -35,7 +35,7 @@ export function ReportsTab({ team }: { team: TeamMember[] }) {
                 kind === k ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500'
               }`}
             >
-              {k === 'fleet' ? 'By Fleet' : 'By User'}
+              {k === 'fleet' ? 'By Team' : 'By User'}
             </button>
           ))}
         </div>
