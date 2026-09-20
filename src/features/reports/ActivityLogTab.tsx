@@ -73,13 +73,17 @@ export function ActivityLogTab({ team, attendance, visits }: { team: TeamMember[
                   {entries.map((entry) => {
                     const Icon = KIND_ICON[entry.kind]
                     return (
-                      <div key={entry.id} className="flex items-center gap-2.5 rounded-lg px-1 py-1.5">
+                      <div key={entry.id} className="flex items-start gap-2.5 rounded-lg px-1 py-1.5">
                         <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${KIND_TONE[entry.kind]}`}>
                           <Icon className="h-4 w-4" />
                         </span>
-                        <span className="w-12 shrink-0 font-mono text-xs font-semibold text-neutral-500">{formatTime(entry.time)}</span>
-                        <span className="min-w-0 flex-1 truncate text-xs font-semibold text-neutral-900">{nameById[entry.userId] ?? 'Unknown'}</span>
-                        <span className="min-w-0 flex-[2] truncate text-right text-xs text-neutral-500">{describe(entry)}</span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="truncate text-xs font-semibold text-neutral-900">{nameById[entry.userId] ?? 'Unknown'}</span>
+                            <span className="shrink-0 font-mono text-xs font-semibold text-neutral-500">{formatTime(entry.time)}</span>
+                          </div>
+                          <p className="mt-0.5 whitespace-normal break-words text-xs text-neutral-500">{describe(entry)}</p>
+                        </div>
                       </div>
                     )
                   })}
