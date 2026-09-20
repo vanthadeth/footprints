@@ -40,7 +40,7 @@ select cron.schedule(
   '*/5 * * * *',
   $$
   select net.http_post(
-    url := 'https://bwwqpmanprorvzreawbe.supabase.co/functions/v1/notify-managers',
+    url := 'https://wbyrluggvuvnhxzfaeye.supabase.co/functions/v1/notify-managers',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
       'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'service_role_key' limit 1)
