@@ -15,7 +15,7 @@ export interface ActivityLogEntry {
   paymentStatusId?: string | null
 }
 
-/** One entry per clock-in/out and per visit check-in/out, in chronological order -- the flat feed an activity log renders. */
+/** One entry per clock-in/out and per visit check-in/out, newest-first -- the flat feed an activity log renders. */
 export function buildActivityLog(attendance: AttendanceRow[], visits: VisitRow[]): ActivityLogEntry[] {
   const entries: ActivityLogEntry[] = []
 
@@ -41,7 +41,7 @@ export function buildActivityLog(attendance: AttendanceRow[], visits: VisitRow[]
     }
   }
 
-  return entries.sort((a, b) => a.time.localeCompare(b.time))
+  return entries.sort((a, b) => b.time.localeCompare(a.time))
 }
 
 export type Period = 'morning' | 'afternoon'

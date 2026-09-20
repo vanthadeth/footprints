@@ -30,7 +30,7 @@ function visit(overrides: Partial<VisitRow>): VisitRow {
 describe('buildActivityLog', () => {
   it('emits a clock-in and clock-out entry for a closed session', () => {
     const entries = buildActivityLog([attendance({ clock_out_at: '2026-09-20T09:00:00Z' })], [])
-    expect(entries.map((e) => e.kind)).toEqual(['clock-in', 'clock-out'])
+    expect(entries.map((e) => e.kind)).toEqual(['clock-out', 'clock-in'])
   })
 
   it('emits only a clock-in entry for a still-open session', () => {
@@ -53,12 +53,12 @@ describe('buildActivityLog', () => {
     expect(checkOut).toMatchObject({ durationMs: 90 * 60_000, visitStatusId: 'vs1' })
   })
 
-  it('sorts every entry chronologically regardless of input order', () => {
+  it('sorts every entry newest-first regardless of input order', () => {
     const entries = buildActivityLog(
       [attendance({ id: 'a1', clock_in_at: '2026-09-20T05:00:00Z' })],
       [visit({ id: 'v1', checked_in_at: '2026-09-20T01:00:00Z' })]
     )
-    expect(entries.map((e) => e.id)).toEqual(['ci-v1', 'in-a1'])
+    expect(entries.map((e) => e.id)).toEqual(['in-a1', 'ci-v1'])
   })
 })
 
@@ -91,5 +91,14 @@ describe('groupActivityLogByDay', () => {
     const days = groupActivityLogByDay(entries)
     expect(days[0].periods).toHaveLength(1)
     expect(days[0].periods[0].period).toBe('morning')
+  })
+
+  it('keeps entries within the same period newest-first', () => {
+    const entries = buildActivityLog(
+      [attendance({ id: 'a1', clock_in_at: '2026-09-20T01:00:00Z' }), attendance({ id: 'a2', clock_in_at: '2026-09-20T02:00:00Z' })],
+      []
+    )
+    const days = groupActivityLogByDay(entries)
+    expect(days[0].periods[0].entries.map((e) => e.id)).toEqual(['in-a2', 'in-a1'])
   })
 })
