@@ -1,8 +1,11 @@
-import { User } from 'lucide-react'
+import { useState } from 'react'
+import { CalendarDays, User } from 'lucide-react'
 import { BottomSheet } from '@/components/BottomSheet'
+import { FullScreenSheet } from '@/components/FullScreenSheet'
 import { FlagBadge } from '@/components/FlagBadge'
 import { JourneyTimeline } from '@/features/attendance/JourneyTimeline'
 import { JourneyMap } from '@/features/attendance/JourneyMap'
+import { JourneyHistoryReport } from '@/features/attendance/JourneyHistoryReport'
 import { useCustomerNames } from '@/features/customers/useCustomerNames'
 import { displayName } from '@/lib/displayName'
 import { formatDuration, formatTime } from '@/lib/datetime'
@@ -12,6 +15,7 @@ import type { FleetMemberSnapshot } from './types'
 
 export function FleetMemberDetail({ snapshot, onClose }: { snapshot: FleetMemberSnapshot | null; onClose: () => void }) {
   const customerNames = useCustomerNames(snapshot?.visitsToday.map((v) => v.customer_id) ?? [])
+  const [footprintsOpen, setFootprintsOpen] = useState(false)
   if (!snapshot) return null
 
   const { member, status, attendance, openVisit, visitsToday, lastLocation } = snapshot
@@ -51,6 +55,13 @@ export function FleetMemberDetail({ snapshot, onClose }: { snapshot: FleetMember
             <p className="text-sm font-semibold text-neutral-900">{formatDuration(totalVisitMs)}</p>
           </div>
         </div>
+
+        <button
+          onClick={() => setFootprintsOpen(true)}
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl2 border border-neutral-200 bg-white py-3 text-sm font-semibold text-neutral-700 shadow-card tap-target"
+        >
+          <CalendarDays className="h-4 w-4 text-brand-500" /> View Footprints
+        </button>
 
         {status === 'VISITING' && openVisit && (
           <div className="mt-4 rounded-xl bg-status-visiting/10 p-3">
@@ -92,6 +103,20 @@ export function FleetMemberDetail({ snapshot, onClose }: { snapshot: FleetMember
           </div>
         )}
       </div>
+
+      <FullScreenSheet open={footprintsOpen} onClose={() => setFootprintsOpen(false)} label={`${displayName(member.fullName, member.nickname)} Footprints`}>
+        {/* Top padding clears FullScreenSheet's own floating close button,
+            which sits in the same top-right corner as this report's
+            DatePickerButton -- unlike the Journey Map above, this is
+            scrollable text/card content, not an edge-to-edge map. */}
+        <div className="h-full overflow-y-auto pt-16">
+          <JourneyHistoryReport
+            userId={member.id}
+            interactive={false}
+            subtitle={displayName(member.fullName, member.nickname)}
+          />
+        </div>
+      </FullScreenSheet>
     </BottomSheet>
   )
 }
