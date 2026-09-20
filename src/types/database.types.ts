@@ -2868,6 +2868,8 @@ export type Database = {
       my_team: {
         Args: never
         Returns: {
+          department_id: string
+          department_name: string
           full_name: string
           id: string
           is_field_sales: boolean

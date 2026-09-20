@@ -37,6 +37,8 @@ export const fleetService = {
       roleName: row.role_name,
       managerId: row.manager_id,
       isFieldSales: row.is_field_sales,
+      departmentId: row.department_id,
+      departmentName: row.department_name,
     }))
   },
 

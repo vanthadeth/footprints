@@ -14,6 +14,8 @@ function snapshot(overrides: Partial<FleetMemberSnapshot>): FleetMemberSnapshot 
       roleName: 'Sales Team',
       managerId: null,
       isFieldSales: true,
+      departmentId: null,
+      departmentName: null,
     },
     status: 'OFF',
     attendance: null,
