@@ -63,7 +63,7 @@ describe('buildActivityLog', () => {
 })
 
 describe('groupActivityLogByDay', () => {
-  it('splits a day into morning and afternoon buckets in Asia/Phnom_Penh time', () => {
+  it('splits a day into afternoon and morning buckets (afternoon first) in Asia/Phnom_Penh time', () => {
     // 01:00Z / 08:00Z = 08:00 / 15:00 in Asia/Phnom_Penh (+7)
     const entries = buildActivityLog(
       [attendance({ id: 'a1', clock_in_at: '2026-09-20T01:00:00Z' }), attendance({ id: 'a2', clock_in_at: '2026-09-20T08:00:00Z' })],
@@ -72,7 +72,7 @@ describe('groupActivityLogByDay', () => {
     const days = groupActivityLogByDay(entries)
     expect(days).toHaveLength(1)
     expect(days[0].dateKey).toBe('2026-09-20')
-    expect(days[0].periods.map((p) => p.period)).toEqual(['morning', 'afternoon'])
+    expect(days[0].periods.map((p) => p.period)).toEqual(['afternoon', 'morning'])
     expect(days[0].periods[0].entries).toHaveLength(1)
     expect(days[0].periods[1].entries).toHaveLength(1)
   })
