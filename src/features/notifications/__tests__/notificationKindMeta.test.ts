@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { NOTIFICATION_KIND_META, type NotificationKind } from '../notificationKindMeta'
 
-const ALL_KINDS: NotificationKind[] = ['late_clock_in', 'idling_too_long', 'ineffective_visit']
+const ALL_KINDS: NotificationKind[] = ['late_clock_in', 'idling_too_long', 'ineffective_visit', 'late_clock_out']
 
 describe('NOTIFICATION_KIND_META', () => {
   it('has an entry for every notification kind the database can produce', () => {

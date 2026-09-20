@@ -49,6 +49,8 @@ what it does and why:
 | `0067`, `0068` | Fixes discovered while applying `0066` (a Postgres function-overload gotcha, and a default-`EXECUTE`-to-`PUBLIC` grant in this environment) |
 | `0069_footprints_my_team` | `app.my_team()` RPC backing the Fleet screen |
 | `0070_footprints_realtime` | Registers `attendance`/`visits` with Supabase Realtime |
+| `0072_footprints_manager_alerts_schema`, `0073_footprints_manager_alerts` | `late_clock_out` notification kind, `users.line_user_id`, `app.attendance_alerts()`/`app.chain_managers()` RPCs: detect late clock-in / late clock-out / idling-too-long, record a `notifications` row, and return each flagged user's chain of managers who have a `line_user_id` |
+| `0074_footprints_manager_alerts_cron` | Schedules the alert check every 5 minutes via `pg_cron`/`pg_net`, calling the `notify-managers` Edge Function below. **Requires manual steps** — read the migration's header comment before applying |
 
 All migrations are additive: no existing table, column, row, or function
 signature was removed or narrowed. **All are applied to the live
@@ -93,6 +95,16 @@ Never apply an unreviewed migration to the live project.
 
 **GitHub Actions** (`.github/workflows/ci.yml`) runs typecheck, lint,
 test, and build on every PR and on push to `main`.
+
+**Edge Functions**: `supabase/functions/notify-managers` (pushes attendance
+alerts to managers over LINE, called by the cron job in
+`0074_footprints_manager_alerts_cron`) is the first Edge Function checked
+into this repo. Deploy it with `supabase functions deploy notify-managers`
+and set its secret with `supabase secrets set
+LINE_CHANNEL_ACCESS_TOKEN=<token>` — never commit that token. See
+`0074_footprints_manager_alerts_cron.sql`'s header comment for the full
+one-time setup (including seeding the service role key into Supabase
+Vault so the cron job can authenticate to the function).
 
 ## Two independent systems
 

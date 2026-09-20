@@ -1918,6 +1918,7 @@ export type Database = {
           id: string
           is_field_sales: boolean
           is_super_admin: boolean
+          line_user_id: string | null
           manager_id: string | null
           nickname: string | null
           phone_primary: string | null
@@ -1949,6 +1950,7 @@ export type Database = {
           id?: string
           is_field_sales?: boolean
           is_super_admin?: boolean
+          line_user_id?: string | null
           manager_id?: string | null
           nickname?: string | null
           phone_primary?: string | null
@@ -1980,6 +1982,7 @@ export type Database = {
           id?: string
           is_field_sales?: boolean
           is_super_admin?: boolean
+          line_user_id?: string | null
           manager_id?: string | null
           nickname?: string | null
           phone_primary?: string | null
@@ -3077,6 +3080,7 @@ export type Database = {
         | "late_clock_in"
         | "idling_too_long"
         | "ineffective_visit"
+        | "late_clock_out"
       permission_action: "view" | "add" | "edit" | "delete"
       permission_effect: "allow" | "deny"
       permission_scope: "own" | "sub" | "any" | "deny"
@@ -3243,6 +3247,7 @@ export const Constants = {
         "late_clock_in",
         "idling_too_long",
         "ineffective_visit",
+        "late_clock_out",
       ],
       permission_action: ["view", "add", "edit", "delete"],
       permission_effect: ["allow", "deny"],

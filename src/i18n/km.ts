@@ -139,6 +139,7 @@ export const km: TranslationKey = {
     filterLate: 'យឺត',
     filterIdling: 'ទំនេរ',
     filterIneffective: 'គ្មានប្រសិទ្ធភាព',
+    filterLateClockOut: 'ចេញយឺត',
     adminOnly: 'មានតែអ្នកគ្រប់គ្រងកំពូលប៉ុណ្ណោះទើបអាចមើលការជូនដំណឹងបាន។',
     emptyTitle: 'មិនមានអ្វីត្រូវមើលទេ',
     emptyBody: 'សកម្មភាពដែលបានធ្វើសញ្ញា (ការចូលម៉ោងយឺត ការទំនេរ ការទស្សនាគ្មានប្រសិទ្ធភាព) នឹងបង្ហាញនៅទីនេះ។',
@@ -146,6 +147,7 @@ export const km: TranslationKey = {
     kindLateClockIn: 'ចូលម៉ោងយឺត',
     kindIdlingTooLong: 'ទំនេរយូរពេក',
     kindIneffectiveVisit: 'ការទស្សនាគ្មានប្រសិទ្ធភាព',
+    kindLateClockOut: 'ចេញម៉ោងយឺត',
   },
   journey: {
     tomorrow: 'ថ្ងៃស្អែក',

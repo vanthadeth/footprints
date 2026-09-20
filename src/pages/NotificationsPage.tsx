@@ -15,6 +15,7 @@ const FILTERS: { key: Filter; labelKey: string }[] = [
   { key: 'late_clock_in', labelKey: 'notifications.filterLate' },
   { key: 'idling_too_long', labelKey: 'notifications.filterIdling' },
   { key: 'ineffective_visit', labelKey: 'notifications.filterIneffective' },
+  { key: 'late_clock_out', labelKey: 'notifications.filterLateClockOut' },
 ]
 
 /**
