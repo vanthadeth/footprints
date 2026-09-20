@@ -179,6 +179,7 @@ export const en = {
     orderStatusRecord: 'Order Status',
     paymentStatusRecord: 'Payment Status',
     nextVisitRecord: 'Next Visit',
+    nextVisitLine: 'Next Visit: {{date}}',
     noRecordYet: 'No visit record set yet.',
     editRecord: 'Edit Record',
     addRecord: 'Add Record',
