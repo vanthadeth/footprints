@@ -186,6 +186,7 @@ export const km: TranslationKey = {
     orderStatusRecord: 'ស្ថានភាពការបញ្ជាទិញ',
     paymentStatusRecord: 'ស្ថានភាពការទូទាត់',
     nextVisitRecord: 'ការជួបបន្ទាប់',
+    nextVisitLine: 'ការជួបបន្ទាប់៖ {{date}}',
     noRecordYet: 'មិនទាន់មានកំណត់ត្រាការជួបនៅឡើយទេ។',
     editRecord: 'កែសម្រួលកំណត់ត្រា',
     addRecord: 'បន្ថែមកំណត់ត្រា',

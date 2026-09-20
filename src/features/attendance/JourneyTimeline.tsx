@@ -382,6 +382,11 @@ function VisitEntry({
   const orderStatus = visit.order_status_id ? optionsById[visit.order_status_id] : undefined
   const paymentStatus = visit.payment_status_id ? optionsById[visit.payment_status_id] : undefined
   const hasRecord = visitStatus || orderStatus || paymentStatus || visit.next_appointment
+  const summaryLine1 = [visitStatus, orderStatus, paymentStatus]
+    .filter((o): o is VisitOption => !!o)
+    .map((o) => tValue(`visitOption:${o.id}`, o.label))
+    .join(' | ')
+  const hasSummary = !!summaryLine1 || !!visit.next_appointment || !!visit.remarks
 
   const isOpenVisit = interactive && !closed && !voided && visit.id === journey.openVisit?.id
   const withinEditWindow = Date.now() - new Date(visit.checked_in_at).getTime() < VISIT_EDIT_WINDOW_MS
@@ -478,38 +483,48 @@ function VisitEntry({
       </span>
       <button
         onClick={() => setOpen(true)}
-        className={`flex w-full items-start justify-between gap-3 rounded-xl2 border bg-white p-4 text-left shadow-card tap-target dark:bg-neutral-900 ${
+        className={`flex w-full flex-col rounded-xl2 border bg-white p-4 text-left shadow-card tap-target dark:bg-neutral-900 ${
           voided ? 'border-dashed border-neutral-300 opacity-60 dark:border-neutral-600' : 'border-neutral-200 dark:border-neutral-700'
         }`}
       >
-        <div className="min-w-0 flex-1">
-          <p className="flex flex-wrap items-center gap-1.5 font-semibold text-neutral-900 dark:text-neutral-100">
-            <span className={voided ? 'line-through' : undefined}>{label}</span>
-            {voided && (
-              <span className="rounded-full bg-status-danger/10 px-1.5 py-0.5 text-[10px] font-medium text-status-danger">
-                {t('journey.voided')}
-              </span>
-            )}
-            {!voided && closed && !visit.auto_closed && (
-              <span className="inline-flex items-center gap-0.5 rounded-full bg-status-working/10 px-1.5 py-0.5 text-[10px] font-medium text-status-working">
-                <Check className="h-2.5 w-2.5" /> {t('journey.done')}
-              </span>
-            )}
-            {!voided && visit.auto_closed && (
-              <span className="rounded-full bg-status-warn/10 px-1.5 py-0.5 text-[10px] font-medium text-status-warn">{t('journey.auto')}</span>
-            )}
-          </p>
-          <p className="mt-1 font-mono text-xs text-neutral-400">{timeRange}</p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <div className="text-right">
-            <p className={`text-sm font-bold ${visit.out_of_range ? 'text-status-warn' : 'text-earth-500'}`}>{duration}</p>
-            <p className="text-[10px] font-medium uppercase tracking-wide text-neutral-400">{t('journey.duration')}</p>
+        <div className="flex w-full items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="flex flex-wrap items-center gap-1.5 font-semibold text-neutral-900 dark:text-neutral-100">
+              <span className={voided ? 'line-through' : undefined}>{label}</span>
+              {voided && (
+                <span className="rounded-full bg-status-danger/10 px-1.5 py-0.5 text-[10px] font-medium text-status-danger">
+                  {t('journey.voided')}
+                </span>
+              )}
+              {!voided && closed && !visit.auto_closed && (
+                <span className="inline-flex items-center gap-0.5 rounded-full bg-status-working/10 px-1.5 py-0.5 text-[10px] font-medium text-status-working">
+                  <Check className="h-2.5 w-2.5" /> {t('journey.done')}
+                </span>
+              )}
+              {!voided && visit.auto_closed && (
+                <span className="rounded-full bg-status-warn/10 px-1.5 py-0.5 text-[10px] font-medium text-status-warn">{t('journey.auto')}</span>
+              )}
+            </p>
+            <p className="mt-1 font-mono text-xs text-neutral-400">{timeRange}</p>
           </div>
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
-            <ChevronRight className="h-4 w-4" />
-          </span>
+          <div className="flex shrink-0 items-center gap-2">
+            <div className="text-right">
+              <p className={`text-sm font-bold ${visit.out_of_range ? 'text-status-warn' : 'text-earth-500'}`}>{duration}</p>
+              <p className="text-[10px] font-medium uppercase tracking-wide text-neutral-400">{t('journey.duration')}</p>
+            </div>
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
+              <ChevronRight className="h-4 w-4" />
+            </span>
+          </div>
         </div>
+
+        {!voided && hasSummary && (
+          <div className="mt-3 space-y-1 border-t border-neutral-100 pt-3 text-xs text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">
+            {summaryLine1 && <p className="font-medium text-neutral-700 dark:text-neutral-300">{summaryLine1}</p>}
+            {visit.next_appointment && <p>{t('journey.nextVisitLine', { date: formatDate(visit.next_appointment) })}</p>}
+            {visit.remarks && <p className="whitespace-pre-wrap">{visit.remarks}</p>}
+          </div>
+        )}
       </button>
 
       <BottomSheet open={open} onClose={() => setOpen(false)} title={label}>
