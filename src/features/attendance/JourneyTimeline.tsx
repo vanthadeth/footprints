@@ -14,7 +14,9 @@ import {
   LogOut,
   MapPin,
   MessageCircleQuestion,
+  Navigation,
   Pencil,
+  Phone,
   RotateCcw,
   Save,
   ShoppingCart,
@@ -30,6 +32,7 @@ import { BottomSheet } from '@/components/BottomSheet'
 import { useLanguage } from '@/i18n/LanguageContext'
 import { useJourneyContext } from './JourneyContext'
 import { useLocationNames } from '@/features/locations/useLocationNames'
+import { usePhoneNumbers } from './usePhoneNumbers'
 import { GAP_FLAG_THRESHOLD_MINUTES } from '@/lib/config'
 import { formatDate, formatDuration, formatTime } from '@/lib/datetime'
 import { formatDistance } from '@/lib/geo'
@@ -106,6 +109,7 @@ export function JourneyTimeline({ attendance, visits, customerNames, interactive
     for (const o of options) optionsById[o.id] = o
   }
   const locationNames = useLocationNames(attendance.map((s) => s.clock_in_location_id))
+  const phoneNumbers = usePhoneNumbers(attendance.map((s) => s.user_id))
 
   if (attendance.length === 0) return null
 
@@ -139,18 +143,31 @@ export function JourneyTimeline({ attendance, visits, customerNames, interactive
     if (event.kind === 'clock-in') {
       const locationName = event.session.clock_in_location_id ? locationNames[event.session.clock_in_location_id] : undefined
       rows.push(
-        <ClockNode
+        <ClockEntry
           key={`in-${event.session.id}`}
           time={event.time}
           label={t('nav.clockIn')}
           toneClass="bg-status-working"
           locationName={locationName}
+          phone={phoneNumbers[event.session.user_id] ?? null}
+          latitude={event.session.clock_in_latitude}
+          longitude={event.session.clock_in_longitude}
         />
       )
       cursor = event.time
       cursorWasClockOut = false
     } else if (event.kind === 'clock-out') {
-      rows.push(<ClockNode key={`out-${event.session.id}`} time={event.time} label={t('common.clockOut')} toneClass="bg-earth-500" />)
+      rows.push(
+        <ClockEntry
+          key={`out-${event.session.id}`}
+          time={event.time}
+          label={t('common.clockOut')}
+          toneClass="bg-earth-500"
+          phone={phoneNumbers[event.session.user_id] ?? null}
+          latitude={event.session.clock_out_latitude}
+          longitude={event.session.clock_out_longitude}
+        />
+      )
       cursor = event.time
       cursorWasClockOut = true
     } else {
@@ -181,17 +198,70 @@ function gapBetween(fromIso: string | null, toIso: string | null): number | null
   return ms > 0 ? ms : null
 }
 
-function ClockNode({ time, label, toneClass, locationName }: { time: string; label: string; toneClass: string; locationName?: string }) {
+function ClockEntry({
+  time,
+  label,
+  toneClass,
+  locationName,
+  phone,
+  latitude,
+  longitude,
+}: {
+  time: string
+  label: string
+  toneClass: string
+  locationName?: string
+  phone: string | null
+  latitude: number | null
+  longitude: number | null
+}) {
+  const { t } = useLanguage()
+  const [open, setOpen] = useState(false)
+  const hasMap = latitude != null && longitude != null
+
   return (
-    <li className="relative flex items-center justify-between gap-3 py-0.5">
+    <li className="relative py-0.5">
       <span className={`absolute -left-[2.875rem] top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-white ${toneClass}`}>
         <Clock className="h-3.5 w-3.5" />
       </span>
-      <div className="min-w-0">
-        <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">{label}</p>
-        {locationName && <p className="truncate text-xs text-neutral-400">{locationName}</p>}
-      </div>
-      <p className="shrink-0 text-sm font-bold text-neutral-900 dark:text-neutral-100">{formatTime(time)}</p>
+      <button onClick={() => setOpen(true)} className="flex w-full items-center justify-between gap-3 tap-target">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">{label}</p>
+          {locationName && <p className="truncate text-xs text-neutral-400">{locationName}</p>}
+        </div>
+        <p className="shrink-0 text-sm font-bold text-neutral-900 dark:text-neutral-100">{formatTime(time)}</p>
+      </button>
+
+      <BottomSheet open={open} onClose={() => setOpen(false)} title={label}>
+        <div className="grid grid-cols-3 gap-2 p-4">
+          <a
+            href={phone ? `tel:${phone}` : undefined}
+            aria-disabled={!phone}
+            title={phone ?? t('journey.noPhoneOnFile')}
+            className={`flex flex-col items-center gap-1 rounded-xl border border-neutral-200 py-2.5 text-xs font-semibold text-neutral-700 tap-target dark:border-neutral-700 dark:text-neutral-300 ${
+              !phone ? 'pointer-events-none opacity-40' : ''
+            }`}
+          >
+            <Phone className="h-4 w-4" /> {t('journey.phone')}
+          </a>
+          <a
+            href={hasMap ? `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}` : undefined}
+            target="_blank"
+            rel="noopener"
+            aria-disabled={!hasMap}
+            className={`flex flex-col items-center gap-1 rounded-xl border border-neutral-200 py-2.5 text-xs font-semibold text-neutral-700 tap-target dark:border-neutral-700 dark:text-neutral-300 ${
+              !hasMap ? 'pointer-events-none opacity-40' : ''
+            }`}
+          >
+            <Navigation className="h-4 w-4" /> {t('journey.map')}
+          </a>
+          <div className="flex flex-col items-center gap-1 rounded-xl border border-neutral-200 py-2.5 text-xs font-semibold text-neutral-700 dark:border-neutral-700 dark:text-neutral-300">
+            <Clock className="h-4 w-4" />
+            {t('journey.time')}
+            <span className="font-mono text-[10px] font-medium text-neutral-400">{formatTime(time)}</span>
+          </div>
+        </div>
+      </BottomSheet>
     </li>
   )
 }

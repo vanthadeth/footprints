@@ -202,6 +202,10 @@ export const km: TranslationKey = {
     voiding: 'កំពុងលុបចោល...',
     noVisitLocations: 'មិនទាន់មានទីតាំងការជួបនៅឡើយទេ',
     mapVisitLabel: 'ការជួបលេខ {{n}}',
+    phone: 'ទូរស័ព្ទ',
+    map: 'ផែនទី',
+    time: 'ពេលវេលា',
+    noPhoneOnFile: 'មិនទាន់មានលេខទូរស័ព្ទទេ',
   },
   footprints: {
     subtitle: 'ប្រវត្តិដំណើររបស់អ្នក',
