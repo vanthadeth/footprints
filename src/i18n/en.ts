@@ -194,6 +194,10 @@ export const en = {
     voiding: 'Voiding…',
     noVisitLocations: 'No visit locations yet',
     mapVisitLabel: 'Visit #{{n}}',
+    phone: 'Phone',
+    map: 'Map',
+    time: 'Time',
+    noPhoneOnFile: 'No phone number on file',
   },
   footprints: {
     subtitle: 'Your journey history',

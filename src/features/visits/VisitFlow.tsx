@@ -436,9 +436,9 @@ function PickerStep({
       <button
         onClick={onSkip}
         disabled={blocked}
-        className="mt-4 w-full rounded-xl border border-dashed border-neutral-300 py-3.5 text-sm font-semibold text-neutral-600 tap-target disabled:opacity-60"
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white py-3.5 text-sm font-semibold text-neutral-700 shadow-card tap-target disabled:opacity-60"
       >
-        Can't find them? Check in without a customer
+        <Ban className="h-4 w-4 text-neutral-400" /> No Customer
       </button>
     </div>
   )
