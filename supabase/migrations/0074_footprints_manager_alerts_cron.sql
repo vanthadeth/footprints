@@ -15,13 +15,15 @@
 --      (If a secret named 'service_role_key' already exists from another
 --      feature, skip this -- it's reused as-is.)
 --
---   2. Deploy the new Edge Function and give it the LINE secret:
+--   2. Deploy the new Edge Function and give it the Telegram bot token:
 --        supabase functions deploy notify-managers
---        supabase secrets set LINE_CHANNEL_ACCESS_TOKEN=<the LINE Messaging API channel access token>
+--        supabase secrets set TELEGRAM_BOT_TOKEN=<the Telegram bot's token, from @BotFather>
 --
---   3. Set line_user_id on each manager who should receive alerts
---      (public.users.line_user_id, added in 0072) -- there is no in-app
---      UI for this yet; set it directly for now.
+--   3. Set telegram_id on each manager who should receive alerts
+--      (public.users.telegram_id, already present on this table) -- there
+--      is no in-app UI for this yet; set it directly for now. It must be
+--      the numeric Telegram chat id for that person (e.g. from the bot's
+--      /start message via getUpdates), not their @username.
 --
 -- Without step 1, the cron job's HTTP call has no Authorization header the
 -- Edge Function will accept, so nothing fails loudly -- it just silently

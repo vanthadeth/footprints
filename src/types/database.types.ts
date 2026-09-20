@@ -1918,7 +1918,6 @@ export type Database = {
           id: string
           is_field_sales: boolean
           is_super_admin: boolean
-          line_user_id: string | null
           manager_id: string | null
           nickname: string | null
           phone_primary: string | null
@@ -1950,7 +1949,6 @@ export type Database = {
           id?: string
           is_field_sales?: boolean
           is_super_admin?: boolean
-          line_user_id?: string | null
           manager_id?: string | null
           nickname?: string | null
           phone_primary?: string | null
@@ -1982,7 +1980,6 @@ export type Database = {
           id?: string
           is_field_sales?: boolean
           is_super_admin?: boolean
-          line_user_id?: string | null
           manager_id?: string | null
           nickname?: string | null
           phone_primary?: string | null

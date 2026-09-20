@@ -17,8 +17,8 @@
 --      'late_clock_out'/'idling_too_long' per attendance session.
 --   3. For each newly-inserted row, walks the flagged user's manager chain
 --      (app.chain_managers -- direct manager, their manager, and so on)
---      and returns one (line_user_id, kind, message) row per chain manager
---      who has a line_user_id set, for the caller to push to LINE.
+--      and returns one (telegram_id, kind, message) row per chain manager
+--      who has a telegram_id set, for the caller to push to Telegram.
 --
 -- Known limitations (acceptable for v1, easy to revisit):
 --   * No workday/day-of-week concept exists anywhere in this schema, so
@@ -31,7 +31,7 @@
 -- Callable only by service_role (the new supabase/functions/notify-managers
 -- edge function, invoked by pg_cron in 0074) -- never exposed to
 -- `authenticated`, since it writes arbitrary users' notifications and
--- returns every chain manager's line_user_id.
+-- returns every chain manager's telegram_id.
 
 create or replace function app.chain_managers(p_user_id uuid)
 returns table (manager_id uuid)
@@ -57,7 +57,7 @@ comment on function app.chain_managers is
 
 create or replace function app.attendance_alerts()
 returns table (
-  line_user_id    text,
+  telegram_id     text,
   flagged_user_id uuid,
   kind            public.notification_kind,
   message         text
@@ -140,18 +140,18 @@ as $function$
     union all select * from late_out
     union all select * from idling
   )
-  select mgr_user.line_user_id, an.user_id as flagged_user_id, an.kind, an.comment as message
+  select mgr_user.telegram_id, an.user_id as flagged_user_id, an.kind, an.comment as message
     from all_new an
     join lateral app.chain_managers(an.user_id) cm on true
-    join public.users mgr_user on mgr_user.id = cm.manager_id and mgr_user.line_user_id is not null;
+    join public.users mgr_user on mgr_user.id = cm.manager_id and mgr_user.telegram_id is not null;
 $function$;
 
 comment on function app.attendance_alerts is
-  'Detects newly-late-clocking-in/late-clocking-out/idling users, records one public.notifications row per new case, and returns one row per (case, chain manager with a line_user_id) for the caller to push to LINE. Safe to call repeatedly -- already-notified cases are skipped.';
+  'Detects newly-late-clocking-in/late-clocking-out/idling users, records one public.notifications row per new case, and returns one row per (case, chain manager with a telegram_id) for the caller to push to Telegram. Safe to call repeatedly -- already-notified cases are skipped.';
 
 create or replace function public.run_attendance_alerts()
 returns table (
-  line_user_id    text,
+  telegram_id     text,
   flagged_user_id uuid,
   kind            public.notification_kind,
   message         text

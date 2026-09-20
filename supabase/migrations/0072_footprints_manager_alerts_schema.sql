@@ -1,5 +1,5 @@
 -- Footprints: schema for manager alerts (late clock-in, late clock-out,
--- idling too long), pushed to managers via LINE.
+-- idling too long), pushed to managers via Telegram.
 --
 -- Split into its own migration, kept separate from
 -- 0073_footprints_manager_alerts.sql, because `alter type ... add value`
@@ -12,17 +12,14 @@
 -- history) and auto_clockout_grace_minutes already covers "how late past
 -- work_end_time before auto clock-out" -- 0073 reads all three directly
 -- rather than introducing new config columns.
+--
+-- No new recipient column is needed either: public.users.telegram_id
+-- already exists (also added outside this repo's local migration history)
+-- and was otherwise unused anywhere in this codebase -- 0073 reuses it
+-- directly as each manager's Telegram chat id. A user with no telegram_id
+-- is simply skipped when alerts go out.
 
 -- 'late_clock_out' fills the one gap in notification_kind: the existing
 -- 'late_clock_in' and 'idling_too_long' values already cover the other two
 -- conditions this feature checks.
 alter type public.notification_kind add value 'late_clock_out';
-
--- Lets a manager be reached on LINE. Nullable and admin-set (via the
--- Supabase dashboard/SQL for now, mirroring how `telegram_id` already sits
--- unused/unwired on this table) -- a user with no line_user_id is simply
--- skipped when alerts are pushed out.
-alter table public.users add column line_user_id text;
-
-comment on column public.users.line_user_id is
-  'LINE Messaging API user ID for this person, used to push manager alerts (late clock-in/out, idling too long) for their reports. Null if not linked.';
