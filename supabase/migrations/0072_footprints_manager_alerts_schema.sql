@@ -1,0 +1,25 @@
+-- Footprints: schema for manager alerts (late clock-in, late clock-out,
+-- idling too long), pushed to managers via Telegram.
+--
+-- Split into its own migration, kept separate from
+-- 0073_footprints_manager_alerts.sql, because `alter type ... add value`
+-- cannot be used in the same transaction that adds it (a Postgres
+-- restriction) -- see the header of 0066_footprints_attendance.sql for the
+-- same kind of split precedent (0066/0067/0068) in this repo.
+--
+-- idle_alert_threshold_minutes and late_clockin_threshold_minutes already
+-- exist on public.app_settings (added outside this repo's local migration
+-- history) and auto_clockout_grace_minutes already covers "how late past
+-- work_end_time before auto clock-out" -- 0073 reads all three directly
+-- rather than introducing new config columns.
+--
+-- No new recipient column is needed either: public.users.telegram_id
+-- already exists (also added outside this repo's local migration history)
+-- and was otherwise unused anywhere in this codebase -- 0073 reuses it
+-- directly as each manager's Telegram chat id. A user with no telegram_id
+-- is simply skipped when alerts go out.
+
+-- 'late_clock_out' fills the one gap in notification_kind: the existing
+-- 'late_clock_in' and 'idling_too_long' values already cover the other two
+-- conditions this feature checks.
+alter type public.notification_kind add value 'late_clock_out';

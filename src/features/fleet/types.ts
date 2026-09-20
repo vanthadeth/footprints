@@ -9,6 +9,8 @@ export interface TeamMember {
   roleName: string | null
   managerId: string | null
   isFieldSales: boolean
+  departmentId: string | null
+  departmentName: string | null
 }
 
 /** Fleet status (spec §33): CLOCKED_IN + active visit = VISITING, CLOCKED_IN + no visit = IDLING, NOT_CLOCKED_IN/CLOCKED_OUT = OFF. */

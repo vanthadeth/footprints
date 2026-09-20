@@ -5,6 +5,7 @@ import { OfflineBanner } from '@/components/OfflineBanner'
 import { TitleBar } from '@/components/TitleBar'
 import { JourneyProvider, useJourneyContext } from '@/features/attendance/JourneyContext'
 import { NotificationsProvider } from '@/features/notifications/NotificationsContext'
+import { useHasTeam } from '@/features/fleet/useHasTeam'
 import { useProfile, type Profile } from '@/features/auth/useProfile'
 import { useLanguage } from '@/i18n/LanguageContext'
 
@@ -93,6 +94,7 @@ function MobileTabBar({ profile }: { profile: Profile | null }) {
   const checkInLabel = isClockedIn ? t('nav.checkIn') : t('nav.clockIn')
   const CheckInIcon = isClockedIn ? MapPin : Clock
   const isSuperAdmin = profile?.is_super_admin === true
+  const hasTeam = useHasTeam()
 
   return (
     <nav
@@ -111,7 +113,7 @@ function MobileTabBar({ profile }: { profile: Profile | null }) {
         </NavLink>
 
         <MobileTabLink to="/footprints" icon={FootprintsIcon} label={t('nav.footprints')} />
-        {isSuperAdmin && <MobileTabLink to="/fleet" icon={Truck} label={t('nav.fleet')} />}
+        {(isSuperAdmin || hasTeam) && <MobileTabLink to="/fleet" icon={Truck} label={t('nav.fleet')} />}
       </div>
     </nav>
   )

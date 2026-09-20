@@ -132,6 +132,7 @@ export const en = {
     filterLate: 'Late',
     filterIdling: 'Idling',
     filterIneffective: 'Ineffective',
+    filterLateClockOut: 'Late Out',
     adminOnly: 'Only a super admin can view notifications.',
     emptyTitle: 'Nothing to see',
     emptyBody: 'Flagged activity (late clock-ins, idling, ineffective visits) will show up here.',
@@ -139,6 +140,7 @@ export const en = {
     kindLateClockIn: 'Late Clock-In',
     kindIdlingTooLong: 'Idling Too Long',
     kindIneffectiveVisit: 'Ineffective Visit',
+    kindLateClockOut: 'Late Clock-Out',
   },
   journey: {
     tomorrow: 'Tomorrow',

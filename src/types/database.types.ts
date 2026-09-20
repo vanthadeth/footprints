@@ -2868,6 +2868,8 @@ export type Database = {
       my_team: {
         Args: never
         Returns: {
+          department_id: string
+          department_name: string
           full_name: string
           id: string
           is_field_sales: boolean
@@ -3077,6 +3079,7 @@ export type Database = {
         | "late_clock_in"
         | "idling_too_long"
         | "ineffective_visit"
+        | "late_clock_out"
       permission_action: "view" | "add" | "edit" | "delete"
       permission_effect: "allow" | "deny"
       permission_scope: "own" | "sub" | "any" | "deny"
@@ -3243,6 +3246,7 @@ export const Constants = {
         "late_clock_in",
         "idling_too_long",
         "ineffective_visit",
+        "late_clock_out",
       ],
       permission_action: ["view", "add", "edit", "delete"],
       permission_effect: ["allow", "deny"],
