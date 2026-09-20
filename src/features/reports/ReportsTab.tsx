@@ -4,6 +4,7 @@ import { DateRangeFilter } from '@/components/DateRangeFilter'
 import { StatTile } from '@/components/StatTile'
 import { FullScreenSheet } from '@/components/FullScreenSheet'
 import { JourneyHistoryReport } from '@/features/attendance/JourneyHistoryReport'
+import { ActivityLogTab } from './ActivityLogTab'
 import { useFleetHistory } from './useFleetHistory'
 import { computeUserReportRows, computeVisitKpis } from './reportStats'
 import { formatDuration } from '@/lib/datetime'
@@ -12,7 +13,7 @@ import { displayName } from '@/lib/displayName'
 import { groupBy, sortGroupKeys } from '@/lib/groupBy'
 import type { TeamMember } from '@/features/fleet/types'
 
-type ReportKind = 'user' | 'fleet'
+type ReportKind = 'user' | 'fleet' | 'log'
 
 export function ReportsTab({ team }: { team: TeamMember[] }) {
   const [kind, setKind] = useState<ReportKind>('fleet')
@@ -31,7 +32,7 @@ export function ReportsTab({ team }: { team: TeamMember[] }) {
     <div>
       <div className="mb-3 flex items-center justify-between gap-2">
         <div className="flex rounded-full bg-neutral-100 p-1">
-          {(['fleet', 'user'] as const).map((k) => (
+          {(['fleet', 'user', 'log'] as const).map((k) => (
             <button
               key={k}
               onClick={() => setKind(k)}
@@ -39,7 +40,7 @@ export function ReportsTab({ team }: { team: TeamMember[] }) {
                 kind === k ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500'
               }`}
             >
-              {k === 'fleet' ? 'By Team' : 'By User'}
+              {k === 'fleet' ? 'By Team' : k === 'user' ? 'By User' : 'Activity Log'}
             </button>
           ))}
         </div>
@@ -58,8 +59,10 @@ export function ReportsTab({ team }: { team: TeamMember[] }) {
           </div>
           <ReportTable rows={rows} />
         </>
-      ) : (
+      ) : kind === 'user' ? (
         <ReportTable rows={rows} />
+      ) : (
+        <ActivityLogTab team={team} attendance={attendance} visits={visits} />
       )}
     </div>
   )
