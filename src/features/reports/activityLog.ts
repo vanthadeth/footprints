@@ -69,7 +69,7 @@ function periodOf(iso: string, timezone: string): Period {
   return hour < 12 ? 'morning' : 'afternoon'
 }
 
-/** Groups a chronological activity feed into Day -> Morning/Afternoon buckets, newest day first. */
+/** Groups a chronological activity feed into Day -> Afternoon/Morning buckets, newest day and newest period first. */
 export function groupActivityLogByDay(entries: ActivityLogEntry[], timezone: string = APP_TIMEZONE): DayGroup[] {
   const byDay = new Map<string, { morning: ActivityLogEntry[]; afternoon: ActivityLogEntry[] }>()
 
@@ -87,8 +87,8 @@ export function groupActivityLogByDay(entries: ActivityLogEntry[], timezone: str
       dateKey,
       periods: (
         [
-          { period: 'morning' as const, entries: morning },
           { period: 'afternoon' as const, entries: afternoon },
+          { period: 'morning' as const, entries: morning },
         ] satisfies { period: Period; entries: ActivityLogEntry[] }[]
       ).filter((p) => p.entries.length > 0),
     }))
