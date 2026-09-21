@@ -33,9 +33,9 @@ import { useLanguage } from '@/i18n/LanguageContext'
 import { useJourneyContext } from './JourneyContext'
 import { useLocationNames } from '@/features/locations/useLocationNames'
 import { usePhoneNumbers } from './usePhoneNumbers'
-import { GAP_FLAG_THRESHOLD_MINUTES } from '@/lib/config'
+import { GAP_FLAG_MAX_DISTANCE_METERS, GAP_FLAG_THRESHOLD_MINUTES } from '@/lib/config'
 import { formatDate, formatDuration, formatTime } from '@/lib/datetime'
-import { formatDistance } from '@/lib/geo'
+import { distanceInMeters, formatDistance } from '@/lib/geo'
 import { useVisitOptions } from '@/features/visits/useVisitOptions'
 import { visitsService, type VisitOutcomeDetails } from '@/features/visits/visitsService'
 import type { VisitOption, VisitOptionKind } from '@/features/visits/visitOptionsService'
@@ -87,9 +87,11 @@ type TimelineEvent =
  * per session, with a gap entry between every pair of consecutive events.
  * A gap that falls between a clock-out and the next clock-in is "off the
  * clock" -- shown distinctly and never flagged, since time away between
- * shifts is expected, unlike a long gap while actually clocked in
- * (flagged once it runs long, GAP_FLAG_THRESHOLD_MINUTES, same as an
- * over-distance visit is flagged in its expanded detail).
+ * shifts is expected, unlike a long gap while actually clocked in (flagged
+ * once it runs long, GAP_FLAG_THRESHOLD_MINUTES, AND the straight-line
+ * distance between the gap's two endpoints is short, GAP_FLAG_MAX_DISTANCE_METERS
+ * -- a long gap with real travel distance behind it isn't flagged, only one
+ * that looks like idle/rest passed off as transit).
  *
  * A voided visit still renders here in its chronological slot (so it can
  * be found and restored) but is visually de-emphasized and excluded from
@@ -124,16 +126,20 @@ export function JourneyTimeline({ attendance, visits, customerNames, interactive
 
   const rows: ReactNode[] = []
   let cursor: string | null = null
+  let cursorLocation: LatLng | null = null
   let cursorWasClockOut = false
 
   for (const event of events) {
     if (cursor) {
       const gapMs = gapBetween(cursor, event.time)
       if (gapMs != null) {
+        const arrival = arrivalLocationOf(event)
+        const distanceMeters = cursorLocation && arrival ? distanceInMeters(cursorLocation.lat, cursorLocation.lng, arrival.lat, arrival.lng) : null
         rows.push(
           <GapEntry
             key={`gap-before-${event.kind}-${event.time}`}
             ms={gapMs}
+            distanceMeters={distanceMeters}
             offClock={cursorWasClockOut && event.kind === 'clock-in'}
           />
         )
@@ -155,6 +161,7 @@ export function JourneyTimeline({ attendance, visits, customerNames, interactive
         />
       )
       cursor = event.time
+      cursorLocation = latLng(event.session.clock_in_latitude, event.session.clock_in_longitude)
       cursorWasClockOut = false
     } else if (event.kind === 'clock-out') {
       rows.push(
@@ -169,6 +176,7 @@ export function JourneyTimeline({ attendance, visits, customerNames, interactive
         />
       )
       cursor = event.time
+      cursorLocation = latLng(event.session.clock_out_latitude, event.session.clock_out_longitude)
       cursorWasClockOut = true
     } else {
       rows.push(
@@ -184,6 +192,7 @@ export function JourneyTimeline({ attendance, visits, customerNames, interactive
         />
       )
       cursor = event.visit.checked_out_at
+      cursorLocation = event.visit.checked_out_at ? latLng(event.visit.out_latitude, event.visit.out_longitude) : null
       cursorWasClockOut = false
     }
   }
@@ -196,6 +205,22 @@ function gapBetween(fromIso: string | null, toIso: string | null): number | null
   if (!fromIso || !toIso) return null
   const ms = new Date(toIso).getTime() - new Date(fromIso).getTime()
   return ms > 0 ? ms : null
+}
+
+interface LatLng {
+  lat: number
+  lng: number
+}
+
+function latLng(lat: number | null, lng: number | null): LatLng | null {
+  return lat != null && lng != null ? { lat, lng } : null
+}
+
+/** The point an event is "arriving at" -- the far end of the gap immediately before it. */
+function arrivalLocationOf(event: TimelineEvent): LatLng | null {
+  if (event.kind === 'clock-in') return latLng(event.session.clock_in_latitude, event.session.clock_in_longitude)
+  if (event.kind === 'clock-out') return latLng(event.session.clock_out_latitude, event.session.clock_out_longitude)
+  return latLng(event.visit.in_latitude, event.visit.in_longitude)
 }
 
 function ClockEntry({
@@ -266,9 +291,14 @@ function ClockEntry({
   )
 }
 
-function GapEntry({ ms, offClock = false }: { ms: number; offClock?: boolean }) {
+function GapEntry({ ms, distanceMeters, offClock = false }: { ms: number; distanceMeters: number | null; offClock?: boolean }) {
   const { t, language } = useLanguage()
-  const flagged = !offClock && ms / 60_000 > GAP_FLAG_THRESHOLD_MINUTES
+  const isLong = ms / 60_000 > GAP_FLAG_THRESHOLD_MINUTES
+  // A long gap is only flagged when it also looks like idle/rest rather
+  // than real travel -- i.e. the distance is short, or unknown (missing
+  // coordinates keep the old, conservative "flag it" default).
+  const looksStationary = distanceMeters == null || distanceMeters <= GAP_FLAG_MAX_DISTANCE_METERS
+  const flagged = !offClock && isLong && looksStationary
   return (
     <li className="relative flex items-center justify-between gap-3 py-0.5">
       <span
@@ -291,7 +321,10 @@ function GapEntry({ ms, offClock = false }: { ms: number; offClock?: boolean }) 
             {t('checkIn.flagged')}
           </span>
         )}
-        <span className={`text-xs font-medium ${flagged ? 'text-status-warn' : 'text-neutral-400'}`}>{formatDuration(ms, language)}</span>
+        <span className={`text-xs font-medium ${flagged ? 'text-status-warn' : 'text-neutral-400'}`}>
+          {formatDuration(ms, language)}
+          {!offClock && distanceMeters != null && ` · ${formatDistance(distanceMeters)}`}
+        </span>
       </span>
     </li>
   )

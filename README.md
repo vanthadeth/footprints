@@ -53,6 +53,7 @@ what it does and why:
 | `0074_footprints_manager_alerts_cron` | Schedules the alert check every 5 minutes via `pg_cron`/`pg_net`, calling the `notify-managers` Edge Function below. **Requires manual steps** — read the migration's header comment before applying |
 | `0075_footprints_my_team_department` | Adds `department_id`/`department_name` to `app.my_team()`/`public.my_team()`, so Fleet's List and Reports tabs can group by department |
 | `0076_footprints_telegram_id_super_admin` | `app.set_user_telegram_id()`/`public.set_user_telegram_id()` — lets a super admin (`users.is_super_admin`, independent of `role_permissions`) set any user's `telegram_id`; also exposes `telegram_id` on `manageable_users()` for the Users admin screen |
+| `0077_footprints_auto_clockout_rules` | Refines the working-hours auto clock-out (`app.enforce_working_hours`): if a visit is still open, both it and the attendance session close at the later of today's `work_end_time` or 60 minutes after the visit started; otherwise the clock-out time is the last visit checked out that session, rounded up to the next quarter hour. `app._close_visit` gains an optional explicit close-time param for this (unused by its other call sites) |
 
 All migrations are additive: no existing table, column, row, or function
 signature was removed or narrowed. **All are applied to the live
