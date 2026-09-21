@@ -48,12 +48,19 @@ export const DEFAULT_AUTO_CLOCKOUT_GRACE_MINUTES = 60
 /**
  * A transit/gap between clock-in and the first visit, between two visits,
  * or between the last visit and clock-out is visually flagged on the
- * Footprints timeline once it exceeds this many minutes. A UI heuristic
- * only (unlike the other thresholds above, nothing server-side enforces
- * or stores it) -- easy to move into app_settings later if it needs to be
- * admin-configurable.
+ * Footprints timeline once it exceeds this many minutes AND the
+ * straight-line distance between the gap's two endpoints is at or below
+ * GAP_FLAG_MAX_DISTANCE_METERS -- a long gap is only suspicious if the
+ * person barely moved (looks like idle/rest passed off as transit), not
+ * when the distance shows real travel. When either endpoint's coordinates
+ * are missing, distance can't be checked, so a long gap is still flagged
+ * (same conservative default as before this distance check existed). A UI
+ * heuristic only (unlike the other thresholds above, nothing server-side
+ * enforces or stores it) -- easy to move into app_settings later if it
+ * needs to be admin-configurable.
  */
 export const GAP_FLAG_THRESHOLD_MINUTES = 45
+export const GAP_FLAG_MAX_DISTANCE_METERS = 300
 
 /** Standardised flags used across attendance, visits, fleet, and reports. */
 export const FLAGS = {

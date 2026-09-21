@@ -1,6 +1,7 @@
-// Footprints: Telegram webhook target -- lets anyone message the bot with
-// "get my id" (or /getid) and get back their own numeric Telegram user ID
-// and this chat's ID, so a super admin can self-serve the value
+// Footprints: Telegram webhook target -- handles inbound bot commands.
+// /start replies with a welcome message and the command list; "get my id"
+// (or /getid) replies with the sender's numeric Telegram user ID and this
+// chat's ID, so a super admin can self-serve the value
 // app.set_user_telegram_id() needs, instead of looking it up via getUpdates
 // (which requires a network call to api.telegram.org that isn't reachable
 // from every environment).
@@ -16,6 +17,14 @@
 // Always replies 200 once authenticated (matched or not) -- a non-2xx makes
 // Telegram retry the same update repeatedly, which isn't wanted here.
 const WEBHOOK_SECRET_HEADER = 'x-telegram-bot-api-secret-token'
+
+const WELCOME_MESSAGE = `Welcome to the Footprints attendance bot.
+
+This bot sends attendance alerts to managers and helps you find the Telegram IDs the app needs.
+
+Commands:
+/start - Show this welcome message and command list
+/getid - Show your Telegram user ID and this chat's ID (or just type "get my id")`
 
 interface TelegramUpdate {
   message?: {
@@ -48,12 +57,19 @@ Deno.serve(async (req) => {
   const fromId = message?.from?.id
   const chatId = message?.chat?.id
 
-  if (!text || fromId === undefined || chatId === undefined || !isGetIdCommand(text)) {
+  if (!text || chatId === undefined) {
     return json({ ok: true })
   }
 
+  const command = matchCommand(text)
+  if (!command || (command === 'getid' && fromId === undefined)) {
+    return json({ ok: true })
+  }
+
+  const replyText = command === 'start' ? WELCOME_MESSAGE : `Your Telegram user ID: ${fromId}\nThis chat's ID: ${chatId}`
+
   try {
-    await sendTelegramMessage(botToken, chatId, `Your Telegram user ID: ${fromId}\nThis chat's ID: ${chatId}`)
+    await sendTelegramMessage(botToken, chatId, replyText)
   } catch (err) {
     console.error('telegram-webhook: failed to send reply', String(err))
     return json({ ok: false })
@@ -62,11 +78,13 @@ Deno.serve(async (req) => {
   return json({ ok: true })
 })
 
-function isGetIdCommand(text: string): boolean {
-  if (text === 'get my id') return true
+function matchCommand(text: string): 'start' | 'getid' | null {
+  if (text === 'get my id') return 'getid'
   // Telegram appends "@botname" to slash commands in group chats.
   const command = text.split('@')[0]
-  return command === '/getid'
+  if (command === '/start') return 'start'
+  if (command === '/getid') return 'getid'
+  return null
 }
 
 async function sendTelegramMessage(botToken: string, chatId: number, text: string): Promise<void> {
