@@ -51,11 +51,21 @@ what it does and why:
 | `0070_footprints_realtime` | Registers `attendance`/`visits` with Supabase Realtime |
 | `0072_footprints_manager_alerts_schema`, `0073_footprints_manager_alerts` | `late_clock_out` notification kind, `app.attendance_alerts()`/`app.chain_managers()` RPCs: detect late clock-in / late clock-out / idling-too-long, record a `notifications` row, and return each flagged user's chain of managers who have a `telegram_id` (reuses the existing, previously-unused `users.telegram_id` column) |
 | `0074_footprints_manager_alerts_cron` | Schedules the alert check every 5 minutes via `pg_cron`/`pg_net`, calling the `notify-managers` Edge Function below. **Requires manual steps** — read the migration's header comment before applying |
+| `0075_footprints_my_team_department` | Adds `department_id`/`department_name` to `app.my_team()`/`public.my_team()`, so Fleet's List and Reports tabs can group by department |
+| `0076_footprints_telegram_id_super_admin` | `app.set_user_telegram_id()`/`public.set_user_telegram_id()` — lets a super admin (`users.is_super_admin`, independent of `role_permissions`) set any user's `telegram_id`; also exposes `telegram_id` on `manageable_users()` for the Users admin screen |
 
 All migrations are additive: no existing table, column, row, or function
 signature was removed or narrowed. **All are applied to the live
 database** — this repo's `supabase/migrations/` is a record of what ran,
 not a pending proposal.
+
+The `notify-managers` Edge Function is deployed, but the manager-alerts
+feature is still inert until two secrets are set (never committed to this
+repo, see "Deployment" below): `TELEGRAM_BOT_TOKEN` on the Edge Function,
+and a `service_role_key` entry in Supabase Vault for the cron job to
+authenticate with. Once both are set and at least one manager has a
+`telegram_id` (via the Users admin screen, Super Admin only), alerts start
+flowing on the next 5-minute cron tick.
 
 Security: every table has RLS; every RPC follows the codebase's existing
 own/sub/any scope model (`app.can`/`app.effective_scope`) and is

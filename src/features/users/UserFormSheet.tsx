@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { KeyRound, X } from 'lucide-react'
+import { KeyRound, Send, X } from 'lucide-react'
 import { BottomSheet } from '@/components/BottomSheet'
+import { useProfile } from '@/features/auth/useProfile'
 import { displayName } from '@/lib/displayName'
 import { haptic } from '@/lib/haptic'
 import { generateSuggestedPassword, PasswordBox } from './PasswordBox'
@@ -22,6 +23,8 @@ interface Props {
 
 /** Create-or-edit form for a single user, shared because the two only differ in a handful of fields (email/password are create-only; status/generate-password are edit-only). */
 export function UserFormSheet({ open, mode, user, users, roles, departments, onClose, onSaved }: Props) {
+  const { profile } = useProfile()
+  const isSuperAdmin = profile?.is_super_admin === true
   const [fullName, setFullName] = useState('')
   const [nickname, setNickname] = useState('')
   const [email, setEmail] = useState('')
@@ -47,6 +50,14 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
   const [settingPassword, setSettingPassword] = useState(false)
   const [passwordSet, setPasswordSet] = useState(false)
 
+  // Telegram ID: super-admin-only (usersService.setTelegramId enforces this
+  // server-side too), and its own immediately-effective action like the
+  // password box above, not bundled into the main field-by-field Save.
+  const [telegramId, setTelegramId] = useState('')
+  const [settingTelegramId, setSettingTelegramId] = useState(false)
+  const [telegramIdSet, setTelegramIdSet] = useState(false)
+  const [telegramError, setTelegramError] = useState<string | null>(null)
+
   useEffect(() => {
     if (!open) return
     setError(null)
@@ -67,6 +78,9 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
     setShowPasswordBox(false)
     setNewPassword('')
     setPasswordSet(false)
+    setTelegramId((mode === 'edit' && user?.telegramId) || '')
+    setTelegramIdSet(false)
+    setTelegramError(null)
   }, [open, mode, user])
 
   const statusNeedsMoreInput =
@@ -146,6 +160,23 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
       setError(e instanceof Error ? e.message : 'Failed to set the new password.')
     } finally {
       setSettingPassword(false)
+    }
+  }
+
+  async function handleSetTelegramId() {
+    if (!user || settingTelegramId) return
+    setSettingTelegramId(true)
+    setTelegramError(null)
+    try {
+      await usersService.setTelegramId(user.id, telegramId.trim() || null)
+      haptic('success')
+      onSaved()
+      setTelegramIdSet(true)
+    } catch (e) {
+      haptic('error')
+      setTelegramError(e instanceof Error ? e.message : 'Failed to set the Telegram ID.')
+    } finally {
+      setSettingTelegramId(false)
     }
   }
 
@@ -311,6 +342,39 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
               Generate New Password
             </button>
           ))}
+
+        {mode === 'edit' && isSuperAdmin && (
+          <div className="rounded-xl2 border border-neutral-200 p-3.5 dark:border-neutral-700">
+            <p className="mb-1.5 text-sm font-medium text-neutral-800">Telegram ID</p>
+            <p className="mb-2 text-xs text-neutral-400">
+              Numeric Telegram chat ID -- ask them to message the bot, then check its logs for their chat ID. Used to send
+              attendance alerts. Super admin only.
+            </p>
+            {telegramError && <p className="mb-2 rounded-lg bg-status-danger/10 px-3 py-2 text-xs text-status-danger">{telegramError}</p>}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                inputMode="numeric"
+                value={telegramId}
+                onChange={(e) => {
+                  setTelegramId(e.target.value)
+                  setTelegramIdSet(false)
+                }}
+                placeholder="e.g. 123456789"
+                className="w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400"
+              />
+              <button
+                onClick={handleSetTelegramId}
+                disabled={settingTelegramId}
+                className="flex shrink-0 items-center gap-1.5 rounded-xl bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white tap-target disabled:opacity-40"
+              >
+                <Send className="h-4 w-4" />
+                {settingTelegramId ? 'Saving…' : 'Set'}
+              </button>
+            </div>
+            {telegramIdSet && <p className="mt-2 text-xs font-medium text-status-working">Telegram ID updated.</p>}
+          </div>
+        )}
       </div>
     </BottomSheet>
   )

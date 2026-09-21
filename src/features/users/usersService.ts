@@ -21,6 +21,8 @@ export interface ManagedUser {
   isFieldSales: boolean
   employmentDate: string | null
   createdAt: string
+  /** Chat ID the manager-alerts Telegram bot sends to -- settable by a super admin only (app.set_user_telegram_id). */
+  telegramId: string | null
 }
 
 export interface Option {
@@ -96,6 +98,7 @@ function fromRow(row: {
   is_field_sales: boolean
   employment_date: string | null
   created_at: string
+  telegram_id: string | null
 }): ManagedUser {
   return {
     id: row.id,
@@ -116,6 +119,7 @@ function fromRow(row: {
     isFieldSales: row.is_field_sales,
     employmentDate: row.employment_date,
     createdAt: row.created_at,
+    telegramId: row.telegram_id,
   }
 }
 
@@ -191,6 +195,23 @@ export const usersService = {
   /** Sets the given password (from the password box -- generated or admin-typed) and flags the account so the user must set their own at next sign-in. */
   async resetPassword(userId: string, password: string): Promise<void> {
     await invokeAdmin<{ ok: true }>({ action: 'reset_password', userId, password })
+  },
+
+  /**
+   * Sets a user's Telegram chat ID (used by the manager-alerts bot) --
+   * super-admin-only, enforced server-side by app.set_user_telegram_id
+   * regardless of the caller's role_permissions (HR/System Admin have
+   * general user:edit, but that's not the same as is_super_admin). Never
+   * folded into the plain-field `update()` above for that reason.
+   */
+  async setTelegramId(userId: string, telegramId: string | null): Promise<void> {
+    const { error } = await supabase.rpc('set_user_telegram_id', {
+      p_user_id: userId,
+      // The generated type marks this as a required string (the SQL param
+      // has no DEFAULT), but the RPC accepts NULL fine to clear the field.
+      p_telegram_id: telegramId as string,
+    })
+    if (error) throw error
   },
 
   /**
