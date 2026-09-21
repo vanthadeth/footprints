@@ -106,15 +106,39 @@ Never apply an unreviewed migration to the live project.
 **GitHub Actions** (`.github/workflows/ci.yml`) runs typecheck, lint,
 test, and build on every PR and on push to `main`.
 
-**Edge Functions**: `supabase/functions/notify-managers` (pushes attendance
-alerts to managers over Telegram, called by the cron job in
-`0074_footprints_manager_alerts_cron`) is the first Edge Function checked
-into this repo. Deploy it with `supabase functions deploy notify-managers`
-and set its secret with `supabase secrets set
-TELEGRAM_BOT_TOKEN=<token>` — never commit that token. See
-`0074_footprints_manager_alerts_cron.sql`'s header comment for the full
-one-time setup (including seeding the service role key into Supabase
-Vault so the cron job can authenticate to the function).
+**Edge Functions**:
+- `supabase/functions/notify-managers` (pushes attendance alerts to
+  managers over Telegram, called by the cron job in
+  `0074_footprints_manager_alerts_cron`) is the first Edge Function
+  checked into this repo. Deploy it with `supabase functions deploy
+  notify-managers` and set its secret with `supabase secrets set
+  TELEGRAM_BOT_TOKEN=<token>` — never commit that token. See
+  `0074_footprints_manager_alerts_cron.sql`'s header comment for the full
+  one-time setup (including seeding the service role key into Supabase
+  Vault so the cron job can authenticate to the function).
+- `supabase/functions/telegram-webhook` receives inbound Telegram messages
+  and replies to "get my id" / `/getid` with the sender's numeric Telegram
+  user ID and chat ID — a self-service way to find the value
+  `set_user_telegram_id` (via the Users admin screen, Super Admin only)
+  needs, without anyone having to look it up via `getUpdates`. Deployed
+  with `verify_jwt: false` (Telegram's webhook POSTs carry no Supabase
+  JWT); the only guard against spoofed requests is the
+  `X-Telegram-Bot-Api-Secret-Token` header, checked against a
+  `TELEGRAM_WEBHOOK_SECRET` secret. One-time setup:
+  1. Deploy: `supabase functions deploy telegram-webhook`.
+  2. Set secrets: `supabase secrets set TELEGRAM_BOT_TOKEN=<token>` (same
+     bot token as `notify-managers`) and `supabase secrets set
+     TELEGRAM_WEBHOOK_SECRET=<a random string you generate, e.g. via
+     openssl rand -hex 20>`.
+  3. Register the webhook with Telegram (run this yourself — it's a plain
+     `curl` to `api.telegram.org`, nothing this repo can run for you):
+     ```bash
+     curl -X POST "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook" \
+       -H "Content-Type: application/json" \
+       -d '{"url": "https://wbyrluggvuvnhxzfaeye.supabase.co/functions/v1/telegram-webhook", "secret_token": "<TELEGRAM_WEBHOOK_SECRET>"}'
+     ```
+  Once registered, message the bot with "get my id" or `/getid` from any
+  account and it replies with that person's numeric IDs.
 
 ## Two independent systems
 
