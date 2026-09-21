@@ -2830,6 +2830,7 @@ export type Database = {
           role_id: string
           role_name: string
           status: Database["public"]["Enums"]["user_status"]
+          telegram_id: string
         }[]
       }
       my_modules: {
@@ -2911,6 +2912,7 @@ export type Database = {
       }
       set_default_printer: { Args: { p_printer: string }; Returns: undefined }
       set_my_pin: { Args: { p_pin: string }; Returns: undefined }
+      set_user_telegram_id: { Args: { p_telegram_id: string; p_user_id: string }; Returns: undefined }
       sync_apply: { Args: { p_rows: Json; p_sync: string }; Returns: number }
       sync_clear: {
         Args: {
