@@ -1078,6 +1078,7 @@ export type Database = {
           id: string
           kind: Database["public"]["Enums"]["notification_kind"]
           occurred_at: string
+          pushed_at: string | null
           read_at: string | null
           user_id: string
           visit_id: string | null
@@ -1090,6 +1091,7 @@ export type Database = {
           id?: string
           kind: Database["public"]["Enums"]["notification_kind"]
           occurred_at: string
+          pushed_at?: string | null
           read_at?: string | null
           user_id: string
           visit_id?: string | null
@@ -1102,6 +1104,7 @@ export type Database = {
           id?: string
           kind?: Database["public"]["Enums"]["notification_kind"]
           occurred_at?: string
+          pushed_at?: string | null
           read_at?: string | null
           user_id?: string
           visit_id?: string | null
@@ -1133,6 +1136,41 @@ export type Database = {
             columns: ["visit_id"]
             isOneToOne: false
             referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]

@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react'
-import { Bell, ShieldAlert } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Bell, BellRing, ShieldAlert } from 'lucide-react'
 import { EmptyState } from '@/components/EmptyState'
 import { useProfile } from '@/features/auth/useProfile'
 import { useNotificationsContext } from '@/features/notifications/NotificationsContext'
 import { NOTIFICATION_KIND_META, type NotificationKind } from '@/features/notifications/notificationKindMeta'
 import type { NotificationFeedRow } from '@/features/notifications/notificationsService'
+import { pushService, type PushPermissionState } from '@/features/notifications/pushService'
 import { timeAgo } from '@/lib/datetime'
 import { useLanguage } from '@/i18n/LanguageContext'
 
@@ -64,7 +65,9 @@ function NotificationsFeed() {
   return (
     <div className="mx-auto max-w-lg pb-6 md:max-w-2xl">
       <div className="px-4 pt-4 md:px-8">
-        <div className="flex gap-1 rounded-full bg-neutral-100 p-1">
+        <PushNotificationsCard />
+
+        <div className="mt-4 flex gap-1 rounded-full bg-neutral-100 p-1">
           {FILTERS.map((f) => (
             <button
               key={f.key}
@@ -102,6 +105,100 @@ function NotificationsFeed() {
               />
             ))}
           </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Lets a super admin subscribe THIS device to Web Push for the same
+ * anomaly notifications shown below -- an additional delivery channel, not
+ * a replacement (the feed above is unaffected either way). See
+ * pushService.ts and supabase/functions/push-notify-admins.
+ */
+function PushNotificationsCard() {
+  const [state, setState] = useState<PushPermissionState | 'loading'>('loading')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [testSent, setTestSent] = useState(false)
+
+  useEffect(() => {
+    pushService.getState().then(setState)
+  }, [])
+
+  async function handle(action: () => Promise<void>) {
+    setBusy(true)
+    setError(null)
+    setTestSent(false)
+    try {
+      await action()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Something went wrong.')
+    } finally {
+      setState(await pushService.getState())
+      setBusy(false)
+    }
+  }
+
+  if (state === 'loading' || state === 'unsupported') return null
+
+  return (
+    <div className="mb-2 rounded-xl2 border border-neutral-200 bg-white p-3.5 shadow-card dark:border-neutral-700">
+      <p className="flex items-center gap-2 text-sm font-semibold text-neutral-800">
+        <BellRing className="h-4 w-4 text-neutral-400" />
+        Push Notifications
+      </p>
+      <p className="mt-1 text-xs text-neutral-400">
+        {state === 'subscribed'
+          ? 'This device will get a push the moment one of these fires, even when the app is closed.'
+          : state === 'denied'
+            ? 'Notifications are blocked for this app in your browser/OS settings.'
+            : 'Get a push on this device the moment one of these fires, even when the app is closed.'}
+      </p>
+
+      {error && <p className="mt-2 rounded-lg bg-status-danger/10 px-3 py-2 text-xs text-status-danger">{error}</p>}
+      {testSent && <p className="mt-2 text-xs font-medium text-status-working">Test push sent -- check this device.</p>}
+
+      <div className="mt-2.5 flex flex-wrap gap-2">
+        {state !== 'subscribed' && state !== 'denied' && (
+          <button
+            onClick={() => handle(() => pushService.subscribe())}
+            disabled={busy}
+            className="rounded-xl bg-neutral-900 px-4 py-2 text-xs font-semibold text-white tap-target disabled:opacity-40"
+          >
+            Enable
+          </button>
+        )}
+        {state === 'subscribed' && (
+          <>
+            <button
+              onClick={() => handle(() => pushService.previewLocalNotification())}
+              disabled={busy}
+              className="rounded-xl border border-neutral-200 px-4 py-2 text-xs font-semibold text-neutral-700 tap-target disabled:opacity-40 dark:border-neutral-700 dark:text-neutral-300"
+            >
+              Preview
+            </button>
+            <button
+              onClick={() =>
+                handle(async () => {
+                  await pushService.sendTestPush()
+                  setTestSent(true)
+                })
+              }
+              disabled={busy}
+              className="rounded-xl border border-neutral-200 px-4 py-2 text-xs font-semibold text-neutral-700 tap-target disabled:opacity-40 dark:border-neutral-700 dark:text-neutral-300"
+            >
+              Send test push
+            </button>
+            <button
+              onClick={() => handle(() => pushService.unsubscribe())}
+              disabled={busy}
+              className="rounded-xl px-4 py-2 text-xs font-semibold text-status-danger tap-target disabled:opacity-40"
+            >
+              Disable
+            </button>
+          </>
         )}
       </div>
     </div>

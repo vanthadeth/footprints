@@ -54,6 +54,8 @@ what it does and why:
 | `0075_footprints_my_team_department` | Adds `department_id`/`department_name` to `app.my_team()`/`public.my_team()`, so Fleet's List and Reports tabs can group by department |
 | `0076_footprints_telegram_id_super_admin` | `app.set_user_telegram_id()`/`public.set_user_telegram_id()` — lets a super admin (`users.is_super_admin`, independent of `role_permissions`) set any user's `telegram_id`; also exposes `telegram_id` on `manageable_users()` for the Users admin screen |
 | `0077_footprints_auto_clockout_rules` | Refines the working-hours auto clock-out (`app.enforce_working_hours`): if a visit is still open, both it and the attendance session close at the later of today's `work_end_time` or 60 minutes after the visit started; otherwise the clock-out time is the last visit checked out that session, rounded up to the next quarter hour. `app._close_visit` gains an optional explicit close-time param for this (unused by its other call sites) |
+| `0078_footprints_push_notifications` | `public.push_subscriptions` (a user's own Web Push device registrations), `notifications.pushed_at` marker, `app.pending_push_notifications()`/`app.mark_notifications_pushed()` (+ `public.*` wrappers, `service_role`-only) — lets the `push-notify-admins` Edge Function fan the existing anomaly notifications out to every super admin's subscribed device without ever resending an already-pushed case |
+| `0079_footprints_push_notifications_cron` | Schedules the push fan-out every 5 minutes via `pg_cron`/`pg_net`, calling `push-notify-admins` below, same pattern as `0074`. **Requires manual steps** — read the migration's header comment before applying |
 
 All migrations are additive: no existing table, column, row, or function
 signature was removed or narrowed. **All are applied to the live
@@ -67,6 +69,11 @@ and a `service_role_key` entry in Supabase Vault for the cron job to
 authenticate with. Once both are set and at least one manager has a
 `telegram_id` (via the Users admin screen, Super Admin only), alerts start
 flowing on the next 5-minute cron tick.
+
+The `push-notify-admins` Edge Function is likewise deployed but inert until
+its VAPID secrets are set (see "Push notifications" below) — the same
+`service_role_key` Vault secret above covers its cron job too, nothing
+extra needed there.
 
 Security: every table has RLS; every RPC follows the codebase's existing
 own/sub/any scope model (`app.can`/`app.effective_scope`) and is
@@ -140,6 +147,44 @@ test, and build on every PR and on push to `main`.
      ```
   Once registered, message the bot with "get my id" or `/getid` from any
   account and it replies with that person's numeric IDs.
+- `supabase/functions/push-notify-admins` sends the same anomaly
+  notifications (late clock-in/out, idling too long, ineffective visit) to
+  every super admin's Web Push-subscribed device — an additional channel
+  alongside the in-app bell, not a replacement. Two modes: a cron-triggered
+  fan-out (service-role auth, called every 5 minutes by
+  `0079_footprints_push_notifications_cron`) and a self-test mode (a super
+  admin's own session, sends one test push to just their own devices —
+  wired to the "Send test push" button on the Notifications page). See
+  "Push notifications" below for the one-time setup.
+
+## Push notifications
+
+Super admins can subscribe a device to Web Push for the same anomaly
+notifications shown in the in-app bell (late clock-in/out, idling too long,
+ineffective visit) — an additional channel, not a replacement; the bell and
+Notifications page work exactly as before regardless of push. Toggle it
+from the "Push Notifications" card at the top of the Notifications page.
+
+Real Web Push needs a VAPID keypair (never committed to this repo). One-time
+setup:
+
+1. Generate a keypair (e.g. `npx web-push generate-vapid-keys`, or any tool
+   that produces a P-256 EC keypair in the format the `web-push` library
+   expects — a base64url-encoded uncompressed public point and the
+   base64url-encoded private scalar).
+2. Set `VITE_VAPID_PUBLIC_KEY` (safe to expose — it's public by design) in
+   Vercel's environment variables and your local `.env.local`.
+3. Set the Edge Function's secrets: `supabase secrets set
+   VAPID_PUBLIC_KEY=<same public key>`, `supabase secrets set
+   VAPID_PRIVATE_KEY=<the private key>`, `supabase secrets set
+   VAPID_SUBJECT=mailto:<a real contact address>` (required by the Web Push
+   spec so a push service can contact you if something's misconfigured).
+4. Deploy `push-notify-admins` (see "Edge Functions" above) and confirm the
+   `service_role_key` Vault secret the cron job needs is set (shared with
+   `notify-managers` — see `0074`'s header comment if it isn't yet).
+
+On iPhone specifically, push only works once the PWA is added to the Home
+Screen (iOS 16.4+) — it will not fire for a plain Safari tab.
 
 ## Two independent systems
 
@@ -165,11 +210,16 @@ VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
 VITE_MAP_PROVIDER=
 VITE_MAP_API_KEY=
+VITE_VAPID_PUBLIC_KEY=
 ```
 
 `VITE_MAP_PROVIDER` defaults to OpenStreetMap (no key required) if unset;
 set it to `mapbox` or `maptiler` with a matching `VITE_MAP_API_KEY` to
 switch tile providers with no code change.
+
+`VITE_VAPID_PUBLIC_KEY` is the public half of the Web Push keypair (see
+"Push notifications" above) — safe to expose, unlike its private half,
+which only ever lives as an Edge Function secret.
 
 Never commit real values for these. `SUPABASE_SERVICE_ROLE_KEY` must never be
 used in frontend code, and does not appear anywhere in this repository.
