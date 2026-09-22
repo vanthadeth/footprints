@@ -198,6 +198,11 @@ export const en = {
     map: 'Map',
     time: 'Time',
     noPhoneOnFile: 'No phone number on file',
+    noPhoto: 'No photo',
+    openInMaps: 'Open in Maps',
+    presetLocation: 'Preset Location',
+    noLocationMatched: 'No preset location matched',
+    accuracy: 'Accuracy',
   },
   footprints: {
     subtitle: 'Your journey history',

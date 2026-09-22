@@ -14,7 +14,6 @@ import {
   LogOut,
   MapPin,
   MessageCircleQuestion,
-  Navigation,
   Pencil,
   Phone,
   RotateCcw,
@@ -28,12 +27,17 @@ import {
   Wallet,
   type LucideIcon,
 } from 'lucide-react'
+import { Circle, Marker } from 'react-leaflet'
 import { BottomSheet } from '@/components/BottomSheet'
 import { useLanguage } from '@/i18n/LanguageContext'
 import { useJourneyContext } from './JourneyContext'
 import { useLocationNames } from '@/features/locations/useLocationNames'
+import { useLocationDetails, type LocationDetail } from '@/features/locations/useLocationDetails'
 import { usePhoneNumbers } from './usePhoneNumbers'
-import { GAP_FLAG_MAX_DISTANCE_METERS, GAP_FLAG_THRESHOLD_MINUTES } from '@/lib/config'
+import { MapView } from '@/features/maps/MapView'
+import { pinIcon } from '@/features/maps/markers'
+import { attendanceService } from './attendanceService'
+import { GAP_FLAG_MAX_DISTANCE_METERS, GAP_FLAG_THRESHOLD_MINUTES, MAX_ACCEPTABLE_LOCATION_ACCURACY_METERS } from '@/lib/config'
 import { formatDate, formatDuration, formatTime } from '@/lib/datetime'
 import { distanceInMeters, formatDistance } from '@/lib/geo'
 import { useVisitOptions } from '@/features/visits/useVisitOptions'
@@ -111,6 +115,7 @@ export function JourneyTimeline({ attendance, visits, customerNames, interactive
     for (const o of options) optionsById[o.id] = o
   }
   const locationNames = useLocationNames(attendance.map((s) => s.clock_in_location_id))
+  const locationDetails = useLocationDetails(attendance.flatMap((s) => [s.clock_in_location_id, s.clock_out_location_id]))
   const phoneNumbers = usePhoneNumbers(attendance.map((s) => s.user_id))
 
   if (attendance.length === 0) return null
@@ -158,6 +163,9 @@ export function JourneyTimeline({ attendance, visits, customerNames, interactive
           phone={phoneNumbers[event.session.user_id] ?? null}
           latitude={event.session.clock_in_latitude}
           longitude={event.session.clock_in_longitude}
+          selfiePath={event.session.clock_in_selfie_path}
+          accuracyM={event.session.clock_in_accuracy_m}
+          location={event.session.clock_in_location_id ? locationDetails[event.session.clock_in_location_id] : undefined}
         />
       )
       cursor = event.time
@@ -173,6 +181,9 @@ export function JourneyTimeline({ attendance, visits, customerNames, interactive
           phone={phoneNumbers[event.session.user_id] ?? null}
           latitude={event.session.clock_out_latitude}
           longitude={event.session.clock_out_longitude}
+          selfiePath={event.session.clock_out_selfie_path}
+          accuracyM={event.session.clock_out_accuracy_m}
+          location={event.session.clock_out_location_id ? locationDetails[event.session.clock_out_location_id] : undefined}
         />
       )
       cursor = event.time
@@ -231,6 +242,9 @@ function ClockEntry({
   phone,
   latitude,
   longitude,
+  selfiePath,
+  accuracyM,
+  location,
 }: {
   time: string
   label: string
@@ -239,10 +253,35 @@ function ClockEntry({
   phone: string | null
   latitude: number | null
   longitude: number | null
+  selfiePath: string | null
+  accuracyM: number | null
+  location: LocationDetail | undefined
 }) {
   const { t } = useLanguage()
   const [open, setOpen] = useState(false)
-  const hasMap = latitude != null && longitude != null
+  const [selfieUrl, setSelfieUrl] = useState<string | null>(null)
+  const [selfieLoading, setSelfieLoading] = useState(false)
+
+  useEffect(() => {
+    if (!open || !selfiePath) return
+    let cancelled = false
+    setSelfieLoading(true)
+    attendanceService
+      .getSelfieUrl(selfiePath)
+      .then((url) => {
+        if (!cancelled) setSelfieUrl(url)
+      })
+      .finally(() => {
+        if (!cancelled) setSelfieLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [open, selfiePath])
+
+  const distanceMeters =
+    latitude != null && longitude != null && location ? distanceInMeters(latitude, longitude, location.latitude, location.longitude) : null
+  const lowAccuracy = accuracyM != null && accuracyM > MAX_ACCEPTABLE_LOCATION_ACCURACY_METERS
 
   return (
     <li className="relative py-0.5">
@@ -258,36 +297,78 @@ function ClockEntry({
       </button>
 
       <BottomSheet open={open} onClose={() => setOpen(false)} title={label}>
-        <div className="grid grid-cols-3 gap-2 p-4">
+        <div className="space-y-3 p-4">
+          {selfiePath && (
+            <div className="flex h-40 items-center justify-center overflow-hidden rounded-xl2 bg-neutral-100 dark:bg-neutral-800">
+              {selfieLoading ? (
+                <Loader2 className="h-5 w-5 animate-spin text-neutral-400" />
+              ) : selfieUrl ? (
+                <img src={selfieUrl} alt={label} className="h-full w-full object-cover" />
+              ) : (
+                <p className="text-xs text-neutral-400">{t('journey.noPhoto')}</p>
+              )}
+            </div>
+          )}
+
+          {latitude != null && longitude != null && (
+            <MapView points={[[latitude, longitude]]} height={160}>
+              <Marker position={[latitude, longitude]} icon={pinIcon(toneClass.includes('working') ? '#0f6e4f' : '#b8590f')} />
+              {location && <Circle center={[location.latitude, location.longitude]} radius={location.radiusM} pathOptions={{ color: '#1668b8' }} />}
+            </MapView>
+          )}
+          {latitude != null && longitude != null && (
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`}
+              target="_blank"
+              rel="noopener"
+              className="block text-center text-xs font-medium text-brand-600 tap-target"
+            >
+              {t('journey.openInMaps')}
+            </a>
+          )}
+
+          <div className="rounded-xl2 border border-neutral-200 p-3 dark:border-neutral-700">
+            <Row label={t('journey.presetLocation')} value={location?.name ?? t('journey.noLocationMatched')} />
+            <Row
+              label={t('journey.accuracy')}
+              value={accuracyM != null ? formatDistance(accuracyM) : '—'}
+              warn={lowAccuracy}
+              flagged={lowAccuracy}
+            />
+            {location && <Row label={t('journey.distance')} value={formatDistance(distanceMeters)} />}
+          </div>
+
           <a
             href={phone ? `tel:${phone}` : undefined}
             aria-disabled={!phone}
             title={phone ?? t('journey.noPhoneOnFile')}
-            className={`flex flex-col items-center gap-1 rounded-xl border border-neutral-200 py-2.5 text-xs font-semibold text-neutral-700 tap-target dark:border-neutral-700 dark:text-neutral-300 ${
+            className={`flex items-center justify-center gap-2 rounded-xl border border-neutral-200 py-2.5 text-xs font-semibold text-neutral-700 tap-target dark:border-neutral-700 dark:text-neutral-300 ${
               !phone ? 'pointer-events-none opacity-40' : ''
             }`}
           >
             <Phone className="h-4 w-4" /> {t('journey.phone')}
           </a>
-          <a
-            href={hasMap ? `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}` : undefined}
-            target="_blank"
-            rel="noopener"
-            aria-disabled={!hasMap}
-            className={`flex flex-col items-center gap-1 rounded-xl border border-neutral-200 py-2.5 text-xs font-semibold text-neutral-700 tap-target dark:border-neutral-700 dark:text-neutral-300 ${
-              !hasMap ? 'pointer-events-none opacity-40' : ''
-            }`}
-          >
-            <Navigation className="h-4 w-4" /> {t('journey.map')}
-          </a>
-          <div className="flex flex-col items-center gap-1 rounded-xl border border-neutral-200 py-2.5 text-xs font-semibold text-neutral-700 dark:border-neutral-700 dark:text-neutral-300">
-            <Clock className="h-4 w-4" />
-            {t('journey.time')}
-            <span className="font-mono text-[10px] font-medium text-neutral-400">{formatTime(time)}</span>
-          </div>
         </div>
       </BottomSheet>
     </li>
+  )
+}
+
+function Row({ label, value, warn = false, flagged = false }: { label: string; value: string; warn?: boolean; flagged?: boolean }) {
+  const { t } = useLanguage()
+  return (
+    <div className="flex items-center justify-between gap-2 py-1 text-xs">
+      <span className="text-neutral-500 dark:text-neutral-400">{label}</span>
+      <span className={`font-semibold ${warn ? 'text-status-warn' : 'text-neutral-800 dark:text-neutral-200'}`}>
+        {value}
+        {flagged && (
+          <>
+            {' '}
+            · {t('checkIn.flagged')}
+          </>
+        )}
+      </span>
+    </div>
   )
 }
 
