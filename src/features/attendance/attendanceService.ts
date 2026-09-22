@@ -29,6 +29,13 @@ export const attendanceService = {
     return path
   },
 
+  /** The `attendance` bucket is private, so display needs a signed URL rather than a public one -- same pattern as avatarService.getSignedUrl. */
+  async getSelfieUrl(path: string): Promise<string | null> {
+    const { data, error } = await supabase.storage.from('attendance').createSignedUrl(path, 60 * 60)
+    if (error) return null
+    return data.signedUrl
+  },
+
   async getOpenAttendance(userId: string): Promise<AttendanceRow | null> {
     const { data, error } = await supabase
       .from('attendance')

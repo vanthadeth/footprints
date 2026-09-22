@@ -206,6 +206,11 @@ export const km: TranslationKey = {
     map: 'ផែនទី',
     time: 'ពេលវេលា',
     noPhoneOnFile: 'មិនទាន់មានលេខទូរស័ព្ទទេ',
+    noPhoto: 'គ្មានរូបថត',
+    openInMaps: 'បើកនៅក្នុងផែនទី',
+    presetLocation: 'ទីតាំងកំណត់ជាមុន',
+    noLocationMatched: 'មិនត្រូវនឹងទីតាំងកំណត់ជាមុនណាមួយឡើយ',
+    accuracy: 'ភាពត្រឹមត្រូវ',
   },
   footprints: {
     subtitle: 'ប្រវត្តិដំណើររបស់អ្នក',
