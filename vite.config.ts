@@ -36,6 +36,17 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      // injectManifest (not the default generateSW) so src/sw.ts can add its
+      // own push/notificationclick listeners for the super-admin push
+      // notifications feature -- generateSW auto-generates the whole worker
+      // and leaves no room for custom event handlers.
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
+      injectManifest: {
+        // Same app-shell-only precache scope the old generateSW config used.
+        globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
+      },
       includeAssets: ['favicon.png', 'apple-touch-icon.png'],
       manifest: {
         name: 'Footprints, by HIG',
@@ -57,23 +68,8 @@ export default defineConfig({
           { src: '/icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
-      workbox: {
-        // App-shell caching only. Live data (attendance, visits, customers)
-        // is never cached here -- see src/lib/offline.ts for how writes are
-        // queued instead of pretending a network write succeeded offline.
-        globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
-        navigateFallbackDenylist: [/^\/rest\//, /^\/auth\//, /^\/storage\//, /^\/realtime\//],
-        runtimeCaching: [
-          {
-            urlPattern: /\/storage\/v1\/object\//,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'footprints-media',
-              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 7 },
-            },
-          },
-        ],
-      },
+      // The old generateSW `workbox` option (runtimeCaching, etc.) moved
+      // into src/sw.ts's own code now that this uses injectManifest.
       devOptions: { enabled: false },
     }),
   ],
