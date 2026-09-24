@@ -27,6 +27,7 @@ export const en = {
     locations: 'Locations',
     translations: 'Translations',
     customer: 'Customer',
+    leave: 'Leave',
   },
   welcome: {
     tagline: 'Your day. Your customers. Your progress.',
@@ -208,6 +209,7 @@ export const en = {
     subtitle: 'Your journey history',
     emptyTitle: 'No activity on this day',
     emptyBody: 'Clock in and start a visit to build your journey.',
+    onLeaveTitle: 'On {{type}} Leave',
     workingHours: 'Working Hours',
     unassignedSub: '{{n}} unassigned',
     activeHours: 'Active Hours',

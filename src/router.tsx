@@ -28,6 +28,7 @@ const PerformancePage = lazy(() => import('@/pages/PerformancePage').then((m) =>
 const NotificationsPage = lazy(() => import('@/pages/NotificationsPage').then((m) => ({ default: m.NotificationsPage })))
 const LocationsPage = lazy(() => import('@/pages/LocationsPage').then((m) => ({ default: m.LocationsPage })))
 const TranslationsPage = lazy(() => import('@/pages/TranslationsPage').then((m) => ({ default: m.TranslationsPage })))
+const LeavePage = lazy(() => import('@/pages/LeavePage').then((m) => ({ default: m.LeavePage })))
 
 function PageFallback() {
   return (
@@ -110,6 +111,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageFallback />}>
             <FleetPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/leave',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <LeavePage />
           </Suspense>
         ),
       },

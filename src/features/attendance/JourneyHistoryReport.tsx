@@ -11,9 +11,12 @@ import { JourneyMap } from '@/features/attendance/JourneyMap'
 import { DayPickerBar } from '@/features/attendance/DayPickerBar'
 import { DatePickerButton } from '@/features/attendance/DatePickerButton'
 import { useCustomerNames } from '@/features/customers/useCustomerNames'
+import { useApprovedLeaveOnDate } from '@/features/leave/useApprovedLeaveOnDate'
 import { useLanguage } from '@/i18n/LanguageContext'
 import { formatDuration } from '@/lib/datetime'
 import { getCustomRange, todayDateString } from '@/lib/dateRange'
+
+const LEAVE_TYPE_LABEL: Record<string, string> = { annual: 'Annual', sick: 'Sick', unpaid: 'Unpaid' }
 
 /**
  * Day-by-day journey history for one user at a time: a 5-day picker, that
@@ -40,6 +43,7 @@ export function JourneyHistoryReport({
   const customerNames = useCustomerNames(allVisits.map((v) => v.customer_id))
 
   const day = days[0] ?? null
+  const leaveType = useApprovedLeaveOnDate(userId ? [userId] : [], selectedDate)[userId ?? '']
   const stats = computeJourneyStats(day ? [day] : [])
   const effectivenessRatio = stats.totalWorkingMs > 0 ? Math.round((stats.totalVisitingMs / stats.totalWorkingMs) * 100) : 0
   const flags = [...new Set((day?.visits ?? []).flatMap((v) => v.flags ?? []))]
@@ -71,7 +75,11 @@ export function JourneyHistoryReport({
           </div>
         ) : !day ? (
           <div className="mt-4">
-            <EmptyState icon={FootprintsIcon} title={t('footprints.emptyTitle')} body={t('footprints.emptyBody')} />
+            {leaveType ? (
+              <EmptyState icon={FootprintsIcon} title={t('footprints.onLeaveTitle', { type: LEAVE_TYPE_LABEL[leaveType] })} />
+            ) : (
+              <EmptyState icon={FootprintsIcon} title={t('footprints.emptyTitle')} body={t('footprints.emptyBody')} />
+            )}
           </div>
         ) : (
           <>

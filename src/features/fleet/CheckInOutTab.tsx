@@ -15,6 +15,10 @@ import { getCustomRange, todayDateString } from '@/lib/dateRange'
 import { useTeamDayJourneys } from './useTeamDayJourneys'
 import { FleetStatusBadge } from './FleetStatusBadge'
 import type { FleetMemberSnapshot } from './types'
+import { useApprovedLeaveOnDate } from '@/features/leave/useApprovedLeaveOnDate'
+import type { LeaveType } from '@/features/leave/types'
+
+const LEAVE_TYPE_LABEL: Record<LeaveType, string> = { annual: 'Annual', sick: 'Sick', unpaid: 'Unpaid' }
 
 const PhotoZoomViewer = lazy(() => import('@/components/PhotoZoomViewer').then((m) => ({ default: m.PhotoZoomViewer })))
 
@@ -27,6 +31,7 @@ export function CheckInOutTab({ snapshots }: { snapshots: FleetMemberSnapshot[] 
   const team = useMemo(() => snapshots.map((s) => s.member), [snapshots])
   const userIds = useMemo(() => team.map((m) => m.id), [team])
   const { journeysByUserId, loading, error } = useTeamDayJourneys(userIds, range, selectedDate)
+  const leaveByUserId = useApprovedLeaveOnDate(userIds, selectedDate)
 
   const locationIds = useMemo(
     () => Object.values(journeysByUserId).flatMap((day) => day.attendance.flatMap((a) => [a.clock_in_location_id, a.clock_out_location_id])),
@@ -71,6 +76,7 @@ export function CheckInOutTab({ snapshots }: { snapshots: FleetMemberSnapshot[] 
                     snapshot={snapshot}
                     day={journeysByUserId[snapshot.member.id] ?? null}
                     locationNames={locationNames}
+                    leaveType={leaveByUserId[snapshot.member.id]}
                   />
                 ))}
               </div>
@@ -91,10 +97,12 @@ function MemberCheckInOutCard({
   snapshot,
   day,
   locationNames,
+  leaveType,
 }: {
   snapshot: FleetMemberSnapshot
   day: DayJourney | null
   locationNames: Record<string, string>
+  leaveType: LeaveType | undefined
 }) {
   const { member, status } = snapshot
   const [footprintsOpen, setFootprintsOpen] = useState(false)
@@ -103,6 +111,9 @@ function MemberCheckInOutCard({
   const lastSession = sessions[sessions.length - 1] ?? null
   const stats = computeJourneyStats(day ? [day] : [])
   const effectivenessRatio = stats.totalWorkingMs > 0 ? Math.round((stats.totalVisitingMs / stats.totalWorkingMs) * 100) : 0
+  // Only overrides the placeholder when there's no attendance at all that
+  // day -- an actual clock-in/out session is ground truth and always wins.
+  const onLeaveLabel = !day && leaveType ? `On ${LEAVE_TYPE_LABEL[leaveType]} Leave` : null
 
   return (
     <div className="rounded-xl2 bg-white p-4 shadow-card">
@@ -118,7 +129,7 @@ function MemberCheckInOutCard({
           time={firstSession?.clock_in_at ?? null}
           locationId={firstSession?.clock_in_location_id ?? null}
           locationNames={locationNames}
-          emptyLabel="Not clocked in"
+          emptyLabel={onLeaveLabel ?? 'Not clocked in'}
         />
         <ClockPhotoColumn
           label="Check Out"
@@ -126,7 +137,7 @@ function MemberCheckInOutCard({
           time={lastSession?.clock_out_at ?? null}
           locationId={lastSession?.clock_out_location_id ?? null}
           locationNames={locationNames}
-          emptyLabel={lastSession && !lastSession.clock_out_at ? 'Still working' : 'Not clocked out'}
+          emptyLabel={onLeaveLabel ?? (lastSession && !lastSession.clock_out_at ? 'Still working' : 'Not clocked out')}
         />
       </div>
 

@@ -981,6 +981,142 @@ export type Database = {
           },
         ]
       }
+      leave_balances: {
+        Row: {
+          leave_type: Database["public"]["Enums"]["leave_type"]
+          quota_days: number
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+          year: number
+        }
+        Insert: {
+          leave_type: Database["public"]["Enums"]["leave_type"]
+          quota_days?: number
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+          year: number
+        }
+        Update: {
+          leave_type?: Database["public"]["Enums"]["leave_type"]
+          quota_days?: number
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_balances_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_balances_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_balances_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_balances_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leave_requests: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          end_date: string
+          end_half_day: boolean
+          id: string
+          leave_type: Database["public"]["Enums"]["leave_type"]
+          reason: string | null
+          start_date: string
+          start_half_day: boolean
+          status: Database["public"]["Enums"]["leave_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          end_date: string
+          end_half_day?: boolean
+          id?: string
+          leave_type: Database["public"]["Enums"]["leave_type"]
+          reason?: string | null
+          start_date: string
+          start_half_day?: boolean
+          status?: Database["public"]["Enums"]["leave_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          end_date?: string
+          end_half_day?: boolean
+          id?: string
+          leave_type?: Database["public"]["Enums"]["leave_type"]
+          reason?: string | null
+          start_date?: string
+          start_half_day?: boolean
+          status?: Database["public"]["Enums"]["leave_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_requests_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_requests_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       location_pings: {
         Row: {
           accuracy_m: number | null
@@ -1140,41 +1276,6 @@ export type Database = {
           },
         ]
       }
-      push_subscriptions: {
-        Row: {
-          auth: string
-          created_at: string
-          endpoint: string
-          id: string
-          p256dh: string
-          user_id: string
-        }
-        Insert: {
-          auth: string
-          created_at?: string
-          endpoint: string
-          id?: string
-          p256dh: string
-          user_id: string
-        }
-        Update: {
-          auth?: string
-          created_at?: string
-          endpoint?: string
-          id?: string
-          p256dh?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "push_subscriptions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       positions: {
         Row: {
           created_at: string
@@ -1231,6 +1332,48 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "push_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       role_permissions: {
         Row: {
@@ -2485,6 +2628,32 @@ export type Database = {
           },
         ]
       }
+      leave_balance_summary: {
+        Row: {
+          leave_type: Database["public"]["Enums"]["leave_type"] | null
+          quota_days: number | null
+          remaining_days: number | null
+          used_days: number | null
+          user_id: string | null
+          year: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_balances_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_balances_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_feed: {
         Row: {
           attendance_id: string | null
@@ -2636,6 +2805,31 @@ export type Database = {
       can_delete_user: { Args: { p_user: string }; Returns: boolean }
       can_edit_user: { Args: { p_user: string }; Returns: boolean }
       can_edit_visit_quota: { Args: { p_user: string }; Returns: boolean }
+      cancel_leave_request: {
+        Args: { p_id: string }
+        Returns: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          end_date: string
+          end_half_day: boolean
+          id: string
+          leave_type: Database["public"]["Enums"]["leave_type"]
+          reason: string | null
+          start_date: string
+          start_half_day: boolean
+          status: Database["public"]["Enums"]["leave_status"]
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "leave_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       cancel_visit: {
         Args: { p_reason?: string; p_visit: string }
         Returns: {
@@ -2842,6 +3036,31 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      decide_leave_request: {
+        Args: { p_approve: boolean; p_id: string; p_note?: string }
+        Returns: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          end_date: string
+          end_half_day: boolean
+          id: string
+          leave_type: Database["public"]["Enums"]["leave_type"]
+          reason: string | null
+          start_date: string
+          start_half_day: boolean
+          status: Database["public"]["Enums"]["leave_status"]
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "leave_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       enforce_working_hours: {
         Args: { p_accuracy?: number; p_latitude: number; p_longitude: number }
         Returns: Json
@@ -2870,6 +3089,10 @@ export type Database = {
           status: Database["public"]["Enums"]["user_status"]
           telegram_id: string
         }[]
+      }
+      mark_notifications_pushed: {
+        Args: { p_ids: string[] }
+        Returns: undefined
       }
       my_modules: {
         Args: { p_view: string }
@@ -2939,6 +3162,17 @@ export type Database = {
           street_address: string
         }[]
       }
+      pending_push_notifications: {
+        Args: never
+        Returns: {
+          auth: string
+          endpoint: string
+          kind: Database["public"]["Enums"]["notification_kind"]
+          message: string
+          notification_id: string
+          p256dh: string
+        }[]
+      }
       record_location_ping: {
         Args: {
           p_accuracy?: number
@@ -2948,9 +3182,75 @@ export type Database = {
         }
         Returns: Json
       }
+      request_leave: {
+        Args: {
+          p_end_date: string
+          p_end_half_day?: boolean
+          p_leave_type: Database["public"]["Enums"]["leave_type"]
+          p_reason?: string
+          p_start_date: string
+          p_start_half_day?: boolean
+        }
+        Returns: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          end_date: string
+          end_half_day: boolean
+          id: string
+          leave_type: Database["public"]["Enums"]["leave_type"]
+          reason: string | null
+          start_date: string
+          start_half_day: boolean
+          status: Database["public"]["Enums"]["leave_status"]
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "leave_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      run_attendance_alerts: {
+        Args: never
+        Returns: {
+          flagged_user_id: string
+          kind: Database["public"]["Enums"]["notification_kind"]
+          message: string
+          telegram_id: string
+        }[]
+      }
       set_default_printer: { Args: { p_printer: string }; Returns: undefined }
+      set_leave_balance: {
+        Args: {
+          p_leave_type: Database["public"]["Enums"]["leave_type"]
+          p_quota_days: number
+          p_user_id: string
+          p_year: number
+        }
+        Returns: {
+          leave_type: Database["public"]["Enums"]["leave_type"]
+          quota_days: number
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+          year: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "leave_balances"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       set_my_pin: { Args: { p_pin: string }; Returns: undefined }
-      set_user_telegram_id: { Args: { p_telegram_id: string; p_user_id: string }; Returns: undefined }
+      set_user_telegram_id: {
+        Args: { p_telegram_id: string; p_user_id: string }
+        Returns: undefined
+      }
       sync_apply: { Args: { p_rows: Json; p_sync: string }; Returns: number }
       sync_clear: {
         Args: {
@@ -3115,6 +3415,8 @@ export type Database = {
       customer_status: "active" | "inactive" | "banned"
       discount_mode: "percent" | "amount"
       gender: "male" | "female" | "other"
+      leave_status: "pending" | "approved" | "rejected" | "cancelled"
+      leave_type: "annual" | "sick" | "unpaid"
       notification_kind:
         | "late_clock_in"
         | "idling_too_long"
@@ -3282,6 +3584,8 @@ export const Constants = {
       customer_status: ["active", "inactive", "banned"],
       discount_mode: ["percent", "amount"],
       gender: ["male", "female", "other"],
+      leave_status: ["pending", "approved", "rejected", "cancelled"],
+      leave_type: ["annual", "sick", "unpaid"],
       notification_kind: [
         "late_clock_in",
         "idling_too_long",

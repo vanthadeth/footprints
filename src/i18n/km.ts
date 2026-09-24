@@ -35,6 +35,7 @@ export const km: TranslationKey = {
     locations: 'ទីតាំង',
     translations: 'ការបកប្រែ',
     customer: 'អតិថិជន',
+    leave: 'ច្បាប់',
   },
   welcome: {
     tagline: 'ថ្ងៃរបស់អ្នក។ អតិថិជនរបស់អ្នក។ វឌ្ឍនភាពរបស់អ្នក។',
@@ -216,6 +217,7 @@ export const km: TranslationKey = {
     subtitle: 'ប្រវត្តិដំណើររបស់អ្នក',
     emptyTitle: 'មិនមានសកម្មភាពនៅថ្ងៃនេះទេ',
     emptyBody: 'ចូលធ្វើការ ហើយចាប់ផ្តើមការជួប ដើម្បីបង្កើតដំណើររបស់អ្នក។',
+    onLeaveTitle: 'កំពុងសម្រាកលា {{type}}',
     workingHours: 'ម៉ោងធ្វើការ',
     unassignedSub: '{{n}} គ្មានកំណត់',
     activeHours: 'ម៉ោងសកម្ម',

@@ -9,6 +9,7 @@ const TITLE_KEYS: Record<string, string> = {
   '/fleet': 'nav.fleet',
   '/profile': 'nav.profile',
   '/menu': 'nav.menu',
+  '/leave': 'nav.leave',
   '/settings': 'nav.settings',
   '/users': 'nav.users',
   '/home': 'nav.home',
