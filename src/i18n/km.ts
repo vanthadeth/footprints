@@ -129,6 +129,7 @@ export const km: TranslationKey = {
     logoutConfirmBody: 'អ្នកនឹងត្រូវចូលម្ដងទៀត ដើម្បីបន្តតាមដានការទស្សនារបស់អ្នក។',
     logoutConfirmYes: 'ចាកចេញឥឡូវនេះ',
     accountMenu: 'ម៉ឺនុយគណនី',
+    menu: 'ម៉ឺនុយ',
     setting: 'ការកំណត់',
     logout: 'ចាកចេញ',
   },
