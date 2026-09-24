@@ -66,7 +66,7 @@ export function FleetPage() {
             {tab === 'map' && <FleetMapView snapshots={snapshots} />}
             {tab === 'dashboard' && <DashboardTab snapshots={snapshots} />}
             {tab === 'reports' && <ReportsTab team={snapshots.map((s) => s.member)} />}
-            {tab === 'checkinout' && <CheckInOutTab team={snapshots.map((s) => s.member)} />}
+            {tab === 'checkinout' && <CheckInOutTab snapshots={snapshots} />}
           </>
         )}
       </div>
