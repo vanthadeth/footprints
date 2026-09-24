@@ -4,7 +4,7 @@ import { EmptyState } from '@/components/EmptyState'
 import { RequestLeaveSheet } from './RequestLeaveSheet'
 import { LeaveStatusBadge } from './LeaveStatusBadge'
 import { leaveErrorMessage, leaveService } from './leaveService'
-import { formatLeaveDate } from './leaveDate'
+import { leaveDateRangeLabel } from './leaveDate'
 import type { LeaveBalanceSummary, LeaveRequest, LeaveType } from './types'
 
 const LEAVE_TYPE_LABEL: Record<LeaveType, string> = { annual: 'Annual', sick: 'Sick', unpaid: 'Unpaid' }
@@ -70,9 +70,7 @@ export function MyLeaveTab({
                   <div>
                     <p className="text-sm font-semibold text-neutral-900">{LEAVE_TYPE_LABEL[r.leave_type]} Leave</p>
                     <p className="mt-0.5 text-xs text-neutral-500">
-                      {formatLeaveDate(r.start_date)}
-                      {r.start_half_day ? ' (half)' : ''}
-                      {r.start_date !== r.end_date && ` → ${formatLeaveDate(r.end_date)}${r.end_half_day ? ' (half)' : ''}`}
+                      {leaveDateRangeLabel(r.start_date, r.end_date, r.start_period, r.end_period)}
                     </p>
                     {r.reason && <p className="mt-1 text-xs text-neutral-400">{r.reason}</p>}
                     {r.status !== 'pending' && r.decision_note && <p className="mt-1 text-xs text-neutral-400">Note: {r.decision_note}</p>}

@@ -1,12 +1,12 @@
 import { supabase } from '@/lib/supabase'
-import type { LeaveBalanceSummary, LeaveRequest, LeaveType } from './types'
+import type { LeaveBalanceSummary, LeaveDayPeriod, LeaveRequest, LeaveType } from './types'
 
 export interface RequestLeavePayload {
   leaveType: LeaveType
   startDate: string
   endDate: string
-  startHalfDay: boolean
-  endHalfDay: boolean
+  startPeriod: LeaveDayPeriod
+  endPeriod: LeaveDayPeriod
   reason: string | null
 }
 
@@ -37,8 +37,8 @@ export const leaveService = {
       p_leave_type: payload.leaveType,
       p_start_date: payload.startDate,
       p_end_date: payload.endDate,
-      p_start_half_day: payload.startHalfDay,
-      p_end_half_day: payload.endHalfDay,
+      p_start_period: payload.startPeriod,
+      p_end_period: payload.endPeriod,
       // The generated type marks this as a required string (the SQL param
       // has a DEFAULT but no explicit `| null` in its signature), but the
       // RPC accepts NULL fine -- same workaround as usersService.setTelegramId.

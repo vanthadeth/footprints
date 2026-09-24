@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { CheckCheck } from 'lucide-react'
 import { EmptyState } from '@/components/EmptyState'
 import { leaveErrorMessage, leaveService } from './leaveService'
-import { formatLeaveDate } from './leaveDate'
+import { leaveDateRangeLabel } from './leaveDate'
 import type { LeaveRequest, LeaveType } from './types'
 
 const LEAVE_TYPE_LABEL: Record<LeaveType, string> = { annual: 'Annual', sick: 'Sick', unpaid: 'Unpaid' }
@@ -53,9 +53,7 @@ function ApprovalRow({ request, name, onChanged }: { request: LeaveRequest; name
     <div className="rounded-xl2 bg-white p-3.5 shadow-card">
       <p className="text-sm font-semibold text-neutral-900">{name}</p>
       <p className="mt-0.5 text-xs text-neutral-500">
-        {LEAVE_TYPE_LABEL[request.leave_type]} Leave · {formatLeaveDate(request.start_date)}
-        {request.start_half_day ? ' (half)' : ''}
-        {request.start_date !== request.end_date && ` → ${formatLeaveDate(request.end_date)}${request.end_half_day ? ' (half)' : ''}`}
+        {LEAVE_TYPE_LABEL[request.leave_type]} Leave · {leaveDateRangeLabel(request.start_date, request.end_date, request.start_period, request.end_period)}
       </p>
       {request.reason && <p className="mt-1 text-xs text-neutral-400">{request.reason}</p>}
 

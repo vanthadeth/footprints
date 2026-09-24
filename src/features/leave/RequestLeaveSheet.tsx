@@ -7,29 +7,30 @@ import { leaveRequestDays } from './leaveMath'
 import { formatLeaveDate } from './leaveDate'
 import { todayDateString } from '@/lib/dateRange'
 import { haptic } from '@/lib/haptic'
-import type { LeaveType } from './types'
+import { LEAVE_DAY_PERIOD_LABEL, type LeaveDayPeriod, type LeaveType } from './types'
 
 const LEAVE_TYPE_LABEL: Record<LeaveType, string> = { annual: 'Annual', sick: 'Sick', unpaid: 'Unpaid' }
+const DAY_PERIODS: LeaveDayPeriod[] = ['full', 'morning', 'afternoon']
 
 export function RequestLeaveSheet({ open, onClose, onSubmitted }: { open: boolean; onClose: () => void; onSubmitted: () => void }) {
   const [leaveType, setLeaveType] = useState<LeaveType>('annual')
   const [startDate, setStartDate] = useState(() => todayDateString())
   const [endDate, setEndDate] = useState(() => todayDateString())
-  const [startHalfDay, setStartHalfDay] = useState(false)
-  const [endHalfDay, setEndHalfDay] = useState(false)
+  const [startPeriod, setStartPeriod] = useState<LeaveDayPeriod>('full')
+  const [endPeriod, setEndPeriod] = useState<LeaveDayPeriod>('full')
   const [reason, setReason] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pickerFor, setPickerFor] = useState<'start' | 'end' | null>(null)
 
-  const days = endDate >= startDate ? leaveRequestDays(startDate, endDate, startHalfDay, endHalfDay) : 0
+  const days = endDate >= startDate ? leaveRequestDays(startDate, endDate, startPeriod, endPeriod) : 0
 
   function reset() {
     setLeaveType('annual')
     setStartDate(todayDateString())
     setEndDate(todayDateString())
-    setStartHalfDay(false)
-    setEndHalfDay(false)
+    setStartPeriod('full')
+    setEndPeriod('full')
     setReason('')
     setError(null)
   }
@@ -46,8 +47,8 @@ export function RequestLeaveSheet({ open, onClose, onSubmitted }: { open: boolea
         leaveType,
         startDate,
         endDate,
-        startHalfDay,
-        endHalfDay,
+        startPeriod,
+        endPeriod,
         reason: reason.trim() || null,
       })
       haptic('light')
@@ -83,13 +84,14 @@ export function RequestLeaveSheet({ open, onClose, onSubmitted }: { open: boolea
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <DateField label="Start Date" value={startDate} onOpen={() => setPickerFor('start')} />
-            <DateField label="End Date" value={endDate} onOpen={() => setPickerFor('end')} />
-          </div>
-
-          <div className="flex gap-4">
-            <HalfDayToggle label="Half-day start" checked={startHalfDay} onChange={setStartHalfDay} />
-            <HalfDayToggle label="Half-day end" checked={endHalfDay} onChange={setEndHalfDay} />
+            <div>
+              <DateField label="Start Date" value={startDate} onOpen={() => setPickerFor('start')} />
+              <PeriodSelect value={startPeriod} onChange={setStartPeriod} />
+            </div>
+            <div>
+              <DateField label="End Date" value={endDate} onOpen={() => setPickerFor('end')} />
+              <PeriodSelect value={endPeriod} onChange={setEndPeriod} />
+            </div>
           </div>
 
           <div>
@@ -146,11 +148,18 @@ function DateField({ label, value, onOpen }: { label: string; value: string; onO
   )
 }
 
-function HalfDayToggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+function PeriodSelect({ value, onChange }: { value: LeaveDayPeriod; onChange: (v: LeaveDayPeriod) => void }) {
   return (
-    <label className="flex flex-1 items-center gap-2 text-sm text-neutral-700">
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="h-4 w-4 rounded accent-brand-500" />
-      {label}
-    </label>
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value as LeaveDayPeriod)}
+      className="mt-1.5 w-full rounded-xl2 border border-neutral-200 bg-white p-2.5 text-sm font-medium text-neutral-800 outline-none focus:border-brand-400"
+    >
+      {DAY_PERIODS.map((p) => (
+        <option key={p} value={p}>
+          {LEAVE_DAY_PERIOD_LABEL[p]}
+        </option>
+      ))}
+    </select>
   )
 }
