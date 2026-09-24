@@ -8,6 +8,7 @@ import type { TranslationKey } from './en'
  */
 export const km: TranslationKey = {
   common: {
+    back: 'ត្រឡប់ក្រោយ',
     loading: 'កំពុងផ្ទុក...',
     cancel: 'បោះបង់',
     tryAgain: 'ព្យាយាមម្ដងទៀត',
@@ -36,6 +37,9 @@ export const km: TranslationKey = {
     translations: 'ការបកប្រែ',
     customer: 'អតិថិជន',
     leave: 'ច្បាប់',
+    report: 'របាយការណ៍',
+    hub: 'មជ្ឈមណ្ឌល',
+    leaveApprovals: 'អនុម័តច្បាប់',
   },
   welcome: {
     tagline: 'ថ្ងៃរបស់អ្នក។ អតិថិជនរបស់អ្នក។ វឌ្ឍនភាពរបស់អ្នក។',
@@ -86,6 +90,17 @@ export const km: TranslationKey = {
       'ភាពត្រឹមត្រូវទីតាំងបច្ចុប្បន្នរបស់អ្នកគឺ {{accuracy}} -- ត្រូវការ {{max}} ម៉ែត្រ ឬល្អជាងនេះ ដើម្បីអាចចូលម៉ោងបាន។ សូមផ្លាស់ទីទៅកន្លែងទំនេរ ឆ្ងាយពីអគារ ឬក្នុងផ្ទះ រួចព្យាយាមម្ដងទៀត។',
   },
   checkIn: {
+    slideToClockIn: 'អូសដើម្បីចូលម៉ោង',
+    slideToClockOut: 'អូសដើម្បីចេញម៉ោង',
+    selfieHint: 'រូបថត selfie និងទីតាំងរបស់អ្នកនឹងត្រូវបានកត់ត្រា',
+    onShift: 'កំពុងធ្វើការ',
+    offShift: 'ក្រៅម៉ោងការងារ',
+    since: 'ចាប់ពី {{time}}',
+    opensAt: 'បើកម៉ោង {{time}}',
+    workedToday: 'ធ្វើការថ្ងៃនេះ · សកម្ម {{active}}',
+    shift: 'វេន {{start}} – {{end}}',
+    todaysGoals: 'គោលដៅថ្ងៃនេះ',
+    seeJourney: 'មើលដំណើរ',
     clockedInTimes: 'អ្នកបានចូលម៉ោង {{count}} ដងហើយថ្ងៃនេះ ({{duration}} មកហើយ)។ សូមចូលម៉ោងម្តងទៀត ដើម្បីចាប់ផ្តើមវគ្គថ្មី។',
     clockOutButton: 'ចេញម៉ោង',
     clockInSelfieTitle: 'រូបថតខ្លួនឯងចូលម៉ោង',

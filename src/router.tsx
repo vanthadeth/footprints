@@ -23,8 +23,8 @@ const HomePage = lazy(() => import('@/pages/HomePage').then((m) => ({ default: m
 const CustomersPage = lazy(() => import('@/pages/CustomersPage').then((m) => ({ default: m.CustomersPage })))
 const CustomerDetailPage = lazy(() => import('@/pages/CustomerDetailPage').then((m) => ({ default: m.CustomerDetailPage })))
 const VisitsPage = lazy(() => import('@/pages/VisitsPage').then((m) => ({ default: m.VisitsPage })))
-const MorePage = lazy(() => import('@/pages/MorePage').then((m) => ({ default: m.MorePage })))
-const PerformancePage = lazy(() => import('@/pages/PerformancePage').then((m) => ({ default: m.PerformancePage })))
+const ReportPage = lazy(() => import('@/pages/ReportPage').then((m) => ({ default: m.ReportPage })))
+const LeaveApprovalsPage = lazy(() => import('@/pages/LeaveApprovalsPage').then((m) => ({ default: m.LeaveApprovalsPage })))
 const NotificationsPage = lazy(() => import('@/pages/NotificationsPage').then((m) => ({ default: m.NotificationsPage })))
 const LocationsPage = lazy(() => import('@/pages/LocationsPage').then((m) => ({ default: m.LocationsPage })))
 const TranslationsPage = lazy(() => import('@/pages/TranslationsPage').then((m) => ({ default: m.TranslationsPage })))
@@ -122,24 +122,27 @@ export const router = createBrowserRouter([
           </Suspense>
         ),
       },
+      {
+        path: '/leave/approvals',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <LeaveApprovalsPage />
+          </Suspense>
+        ),
+      },
       { path: '/profile', element: <ProfilePage /> },
       { path: '/menu', element: <MenuPage /> },
       {
-        path: '/more',
+        path: '/report',
         element: (
           <Suspense fallback={<PageFallback />}>
-            <MorePage />
+            <ReportPage />
           </Suspense>
         ),
       },
-      {
-        path: '/performance',
-        element: (
-          <Suspense fallback={<PageFallback />}>
-            <PerformancePage />
-          </Suspense>
-        ),
-      },
+      // Old destinations from earlier navs -- kept as redirects so bookmarks and installed-PWA start URLs don't 404.
+      { path: '/more', element: <Navigate to="/menu" replace /> },
+      { path: '/performance', element: <Navigate to="/report" replace /> },
       {
         path: '/settings',
         element: (

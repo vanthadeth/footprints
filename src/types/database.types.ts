@@ -1044,12 +1044,12 @@ export type Database = {
           decided_by: string | null
           decision_note: string | null
           end_date: string
-          end_half_day: boolean
+          end_period: Database["public"]["Enums"]["leave_day_period"]
           id: string
           leave_type: Database["public"]["Enums"]["leave_type"]
           reason: string | null
           start_date: string
-          start_half_day: boolean
+          start_period: Database["public"]["Enums"]["leave_day_period"]
           status: Database["public"]["Enums"]["leave_status"]
           updated_at: string
           user_id: string
@@ -1060,12 +1060,12 @@ export type Database = {
           decided_by?: string | null
           decision_note?: string | null
           end_date: string
-          end_half_day?: boolean
+          end_period?: Database["public"]["Enums"]["leave_day_period"]
           id?: string
           leave_type: Database["public"]["Enums"]["leave_type"]
           reason?: string | null
           start_date: string
-          start_half_day?: boolean
+          start_period?: Database["public"]["Enums"]["leave_day_period"]
           status?: Database["public"]["Enums"]["leave_status"]
           updated_at?: string
           user_id: string
@@ -1076,12 +1076,12 @@ export type Database = {
           decided_by?: string | null
           decision_note?: string | null
           end_date?: string
-          end_half_day?: boolean
+          end_period?: Database["public"]["Enums"]["leave_day_period"]
           id?: string
           leave_type?: Database["public"]["Enums"]["leave_type"]
           reason?: string | null
           start_date?: string
-          start_half_day?: boolean
+          start_period?: Database["public"]["Enums"]["leave_day_period"]
           status?: Database["public"]["Enums"]["leave_status"]
           updated_at?: string
           user_id?: string
@@ -2813,12 +2813,12 @@ export type Database = {
           decided_by: string | null
           decision_note: string | null
           end_date: string
-          end_half_day: boolean
+          end_period: Database["public"]["Enums"]["leave_day_period"]
           id: string
           leave_type: Database["public"]["Enums"]["leave_type"]
           reason: string | null
           start_date: string
-          start_half_day: boolean
+          start_period: Database["public"]["Enums"]["leave_day_period"]
           status: Database["public"]["Enums"]["leave_status"]
           updated_at: string
           user_id: string
@@ -3044,12 +3044,12 @@ export type Database = {
           decided_by: string | null
           decision_note: string | null
           end_date: string
-          end_half_day: boolean
+          end_period: Database["public"]["Enums"]["leave_day_period"]
           id: string
           leave_type: Database["public"]["Enums"]["leave_type"]
           reason: string | null
           start_date: string
-          start_half_day: boolean
+          start_period: Database["public"]["Enums"]["leave_day_period"]
           status: Database["public"]["Enums"]["leave_status"]
           updated_at: string
           user_id: string
@@ -3185,11 +3185,11 @@ export type Database = {
       request_leave: {
         Args: {
           p_end_date: string
-          p_end_half_day?: boolean
+          p_end_period?: Database["public"]["Enums"]["leave_day_period"]
           p_leave_type: Database["public"]["Enums"]["leave_type"]
           p_reason?: string
           p_start_date: string
-          p_start_half_day?: boolean
+          p_start_period?: Database["public"]["Enums"]["leave_day_period"]
         }
         Returns: {
           created_at: string
@@ -3197,12 +3197,12 @@ export type Database = {
           decided_by: string | null
           decision_note: string | null
           end_date: string
-          end_half_day: boolean
+          end_period: Database["public"]["Enums"]["leave_day_period"]
           id: string
           leave_type: Database["public"]["Enums"]["leave_type"]
           reason: string | null
           start_date: string
-          start_half_day: boolean
+          start_period: Database["public"]["Enums"]["leave_day_period"]
           status: Database["public"]["Enums"]["leave_status"]
           updated_at: string
           user_id: string
@@ -3415,6 +3415,7 @@ export type Database = {
       customer_status: "active" | "inactive" | "banned"
       discount_mode: "percent" | "amount"
       gender: "male" | "female" | "other"
+      leave_day_period: "full" | "morning" | "afternoon"
       leave_status: "pending" | "approved" | "rejected" | "cancelled"
       leave_type: "annual" | "sick" | "unpaid"
       notification_kind:
@@ -3584,6 +3585,7 @@ export const Constants = {
       customer_status: ["active", "inactive", "banned"],
       discount_mode: ["percent", "amount"],
       gender: ["male", "female", "other"],
+      leave_day_period: ["full", "morning", "afternoon"],
       leave_status: ["pending", "approved", "rejected", "cancelled"],
       leave_type: ["annual", "sick", "unpaid"],
       notification_kind: [

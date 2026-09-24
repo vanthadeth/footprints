@@ -78,3 +78,13 @@ export type FlagKey = (typeof FLAGS)[keyof typeof FLAGS]
 /** Selfie capture constraints (client-side compression target). */
 export const SELFIE_MAX_DIMENSION_PX = 720
 export const SELFIE_JPEG_QUALITY = 0.7
+
+/** Check In's "Today's goals" rings: minutes of in-visit time per day, and visiting ÷ working time, that count as a full ring. */
+export const ACTIVE_TIME_GOAL_MINUTES = 240
+export const EFFECTIVENESS_GOAL = 0.5
+
+/** A first clock-in more than this many minutes after the shift start shows as "Late" in Team › Attendance. */
+export const LATE_GRACE_MINUTES = 5
+
+/** A customer counts as due for a visit (Customers' "due" filter, the Team map's "overdue") once their last visit is this many days old. */
+export const CUSTOMER_DUE_AFTER_DAYS = 14

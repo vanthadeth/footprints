@@ -13,6 +13,18 @@ export interface ActivityLogEntry {
   visitStatusId?: string | null
   orderStatusId?: string | null
   paymentStatusId?: string | null
+  /** The system closed it, not the person: an auto clock-out, or a visit auto-checked-out (left the radius / clocked out mid-visit). */
+  auto?: boolean
+  /** Visit flags (short visit, out of range, …) -- anything here makes the entry an "alert" in the log. */
+  flags?: string[]
+}
+
+/** Flags that are bookkeeping rather than something a manager needs to act on. */
+const NON_ALERT_FLAGS = new Set(['UNASSIGNED_VISIT'])
+
+/** Entries a manager should look at: anything the system closed on someone's behalf, or a flagged/out-of-range visit. */
+export function isAlertEntry(entry: ActivityLogEntry): boolean {
+  return !!entry.auto || (entry.flags ?? []).some((f) => !NON_ALERT_FLAGS.has(f))
 }
 
 /** One entry per clock-in/out and per visit check-in/out, newest-first -- the flat feed an activity log renders. */
@@ -21,11 +33,18 @@ export function buildActivityLog(attendance: AttendanceRow[], visits: VisitRow[]
 
   for (const a of attendance) {
     entries.push({ id: `in-${a.id}`, time: a.clock_in_at, userId: a.user_id, kind: 'clock-in' })
-    if (a.clock_out_at) entries.push({ id: `out-${a.id}`, time: a.clock_out_at, userId: a.user_id, kind: 'clock-out' })
+    if (a.clock_out_at) entries.push({ id: `out-${a.id}`, time: a.clock_out_at, userId: a.user_id, kind: 'clock-out', auto: a.auto_clocked_out })
   }
 
   for (const v of visits) {
-    entries.push({ id: `ci-${v.id}`, time: v.checked_in_at, userId: v.user_id, kind: 'check-in', customerId: v.customer_id })
+    entries.push({
+      id: `ci-${v.id}`,
+      time: v.checked_in_at,
+      userId: v.user_id,
+      kind: 'check-in',
+      customerId: v.customer_id,
+      flags: v.out_of_range ? ['OUT_OF_RANGE'] : [],
+    })
     if (v.checked_out_at) {
       entries.push({
         id: `co-${v.id}`,
@@ -37,6 +56,8 @@ export function buildActivityLog(attendance: AttendanceRow[], visits: VisitRow[]
         visitStatusId: v.visit_status_id,
         orderStatusId: v.order_status_id,
         paymentStatusId: v.payment_status_id,
+        auto: v.auto_closed,
+        flags: v.flags ?? [],
       })
     }
   }

@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { MapPin, Clock, Footprints as FootprintsIcon, Truck, User, Menu as MenuIcon, Users as UsersIcon, type LucideIcon } from 'lucide-react'
+import { MapPin, Clock, Footprints as FootprintsIcon, Truck, CalendarDays, BarChart3, LayoutGrid, Users as UsersIcon, type LucideIcon } from 'lucide-react'
 import { haptic } from '@/lib/haptic'
 import { OfflineBanner } from '@/components/OfflineBanner'
 import { TitleBar } from '@/components/TitleBar'
@@ -9,21 +9,21 @@ import { useHasTeam } from '@/features/fleet/useHasTeam'
 import { useProfile, type Profile } from '@/features/auth/useProfile'
 import { useLanguage } from '@/i18n/LanguageContext'
 
-/** Desktop keeps the full set of destinations as a vertical rail -- screen space isn't the constraint there that it is on a phone's bottom bar. */
-const DESKTOP_TABS = [
-  { to: '/check-in', labelKey: 'nav.checkIn', icon: MapPin },
+/** The five destinations every user gets, in bottom-bar order (Check In sits in the middle of the phone bar as the raised action). */
+const PRIMARY_TABS = [
   { to: '/footprints', labelKey: 'nav.footprints', icon: FootprintsIcon },
-  { to: '/fleet', labelKey: 'nav.fleet', icon: Truck },
-  { to: '/profile', labelKey: 'nav.profile', icon: User },
-  { to: '/menu', labelKey: 'nav.menu', icon: MenuIcon },
+  { to: '/leave', labelKey: 'nav.leave', icon: CalendarDays },
+  { to: '/check-in', labelKey: 'nav.checkIn', icon: MapPin },
+  { to: '/report', labelKey: 'nav.report', icon: BarChart3 },
+  { to: '/menu', labelKey: 'nav.hub', icon: LayoutGrid },
 ] as const
 
 /**
- * Mobile-first shell. One nav for everyone (the field-sales-specific nav
- * this project briefly had -- Home / Customers / + / Visits / More -- is
- * disabled for now, see StartPage/CustomersPage): a 3-item bottom bar on
- * phones (Profile / Check In (raised, center) / Footprints), growing to 5
- * for a super admin (+ Users, + Fleet), and the 5-item desktop rail.
+ * Mobile-first shell. One nav for everyone: a 5-item bottom bar on phones
+ * (Footprints / Leave / Check In (raised, center) / Report / Hub) and the
+ * same five on the desktop rail, plus Team and Users there for the people
+ * who can see them. On phones Team, Users, Profile and the admin screens
+ * live in Hub (/menu).
  */
 export function AppLayout() {
   const location = useLocation()
@@ -49,7 +49,7 @@ export function AppLayout() {
             </main>
           </div>
 
-          <MobileTabBar profile={profile} />
+          <MobileTabBar />
         </div>
       </NotificationsProvider>
     </JourneyProvider>
@@ -59,9 +59,19 @@ export function AppLayout() {
 function DesktopSidebar({ profile }: { profile: Profile | null }) {
   const { attendance } = useJourneyContext()
   const { t } = useLanguage()
+  const hasTeam = useHasTeam()
+  const isSuperAdmin = profile?.is_super_admin === true
   const checkInLabel = attendance === 'CLOCKED_IN' ? t('nav.checkIn') : t('nav.clockIn')
 
-  const tabs = profile?.is_super_admin ? [...DESKTOP_TABS, { to: '/users', labelKey: 'nav.users', icon: UsersIcon } as const] : DESKTOP_TABS
+  const tabs: { to: string; labelKey: string; icon: LucideIcon }[] = [
+    PRIMARY_TABS[2],
+    PRIMARY_TABS[0],
+    PRIMARY_TABS[1],
+    PRIMARY_TABS[3],
+    ...(isSuperAdmin || hasTeam ? [{ to: '/fleet', labelKey: 'nav.fleet', icon: Truck }] : []),
+    ...(isSuperAdmin ? [{ to: '/users', labelKey: 'nav.users', icon: UsersIcon }] : []),
+    PRIMARY_TABS[4],
+  ]
 
   return (
     <nav
@@ -87,33 +97,35 @@ function DesktopSidebar({ profile }: { profile: Profile | null }) {
   )
 }
 
-function MobileTabBar({ profile }: { profile: Profile | null }) {
+function MobileTabBar() {
   const { attendance } = useJourneyContext()
   const { t } = useLanguage()
   const isClockedIn = attendance === 'CLOCKED_IN'
   const checkInLabel = isClockedIn ? t('nav.checkIn') : t('nav.clockIn')
   const CheckInIcon = isClockedIn ? MapPin : Clock
-  const isSuperAdmin = profile?.is_super_admin === true
-  const hasTeam = useHasTeam()
 
   return (
     <nav
       className="fixed inset-x-0 bottom-0 z-20 border-t border-neutral-200 bg-white/95 backdrop-blur safe-bottom md:hidden"
       aria-label="Primary"
     >
-      <div className="mx-auto flex max-w-lg items-end justify-between px-2">
-        <MobileTabLink to="/profile" icon={User} label={t('nav.profile')} />
-        {isSuperAdmin && <MobileTabLink to="/users" icon={UsersIcon} label={t('nav.users')} />}
+      <div className="mx-auto flex max-w-lg items-start justify-between px-1 pt-2">
+        <MobileTabLink to="/footprints" icon={FootprintsIcon} label={t('nav.footprints')} />
+        <MobileTabLink to="/leave" icon={CalendarDays} label={t('nav.leave')} />
 
-        <NavLink to="/check-in" onClick={() => haptic('light')} className="relative -mt-7 flex flex-1 flex-col items-center">
-          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-500 text-white shadow-card ring-4 ring-neutral-50 dark:ring-neutral-950">
-            <CheckInIcon className="h-6 w-6" aria-hidden />
-          </span>
-          <span className="mt-1 pb-2 text-[11px] font-semibold text-brand-600">{checkInLabel}</span>
+        <NavLink to="/check-in" onClick={() => haptic('light')} className="relative -mt-8 flex flex-1 flex-col items-center gap-1">
+          {({ isActive }) => (
+            <>
+              <span className="flex h-[58px] w-[58px] items-center justify-center rounded-full bg-brand-500 text-white shadow-[0_6px_16px_rgba(22,104,184,0.35)] ring-4 ring-neutral-50 dark:ring-neutral-950">
+                <CheckInIcon className="h-6 w-6" aria-hidden />
+              </span>
+              <span className={`pb-2 text-[11px] font-bold ${isActive ? 'text-brand-700' : 'text-neutral-500'}`}>{checkInLabel}</span>
+            </>
+          )}
         </NavLink>
 
-        <MobileTabLink to="/footprints" icon={FootprintsIcon} label={t('nav.footprints')} />
-        {(isSuperAdmin || hasTeam) && <MobileTabLink to="/fleet" icon={Truck} label={t('nav.fleet')} />}
+        <MobileTabLink to="/report" icon={BarChart3} label={t('nav.report')} />
+        <MobileTabLink to="/menu" icon={LayoutGrid} label={t('nav.hub')} />
       </div>
     </nav>
   )
@@ -125,12 +137,16 @@ function MobileTabLink({ to, icon: Icon, label }: { to: string; icon: LucideIcon
       to={to}
       onClick={() => haptic('light')}
       className={({ isActive }) =>
-        `flex flex-1 flex-col items-center gap-1 py-2 text-[11px] font-medium tap-target ${isActive ? 'text-brand-600' : 'text-neutral-400'}`
+        `flex flex-1 flex-col items-center gap-1 pb-2 text-[11px] tap-target ${isActive ? 'font-bold text-brand-700' : 'font-semibold text-neutral-500'}`
       }
     >
       {({ isActive }) => (
         <>
-          <Icon className="h-6 w-6" strokeWidth={isActive ? 2.5 : 2} aria-hidden />
+          <span
+            className={`flex h-[30px] w-14 items-center justify-center rounded-full ${isActive ? 'bg-brand-50' : ''}`}
+          >
+            <Icon className="h-[22px] w-[22px]" strokeWidth={isActive ? 2.3 : 1.9} aria-hidden />
+          </span>
           {label}
         </>
       )}

@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import { SegmentedControl } from '@/components/SegmentedControl'
 import { KeyRound, Send, X } from 'lucide-react'
 import { BottomSheet } from '@/components/BottomSheet'
 import { useProfile } from '@/features/auth/useProfile'
@@ -184,85 +185,83 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
 
   return (
     <BottomSheet open={open} onClose={onClose} title={mode === 'create' ? 'New User' : 'Edit User'}>
-      <div className="space-y-4 p-4">
+      <div className="space-y-5 p-4">
         {error && <p className="rounded-lg bg-status-danger/10 px-3 py-2 text-sm text-status-danger">{error}</p>}
 
-        <Field label="Full Name">
-          <TextInput value={fullName} onChange={setFullName} placeholder="Full name" />
-        </Field>
-
-        <Field label="Nickname" hint="Shown instead of Full Name throughout the app, when set.">
-          <TextInput value={nickname} onChange={setNickname} placeholder="Optional" />
-        </Field>
-
-        {mode === 'create' ? (
-          <>
-            <Field label="Email">
-              <TextInput value={email} onChange={setEmail} placeholder="name@company.com" type="email" />
-            </Field>
-            <Field label="Password" hint="At least 8 characters -- keep the suggestion, edit it, or type your own. Share it with them securely.">
-              <PasswordBox value={password} onChange={setPassword} />
-            </Field>
-          </>
-        ) : (
-          <Field label="Email">
-            <p className="rounded-xl bg-neutral-50 px-3.5 py-2.5 text-sm text-neutral-500 dark:bg-neutral-800">{user?.email ?? '—'}</p>
+        <Section title="Profile">
+          <Field label="Full Name">
+            <TextInput value={fullName} onChange={setFullName} placeholder="Full name" />
           </Field>
-        )}
+          <Field label="Nickname" hint="Shown instead of Full Name throughout the app, when set.">
+            <TextInput value={nickname} onChange={setNickname} placeholder="Optional" />
+          </Field>
+          <Field label="Position">
+            <TextInput value={position} onChange={setPosition} placeholder="e.g. Sales Executive" />
+          </Field>
+          <Field label="Phone">
+            <TextInput value={phonePrimary} onChange={setPhonePrimary} placeholder="012 345 678" type="tel" />
+          </Field>
+        </Section>
 
-        <Field label="Phone">
-          <TextInput value={phonePrimary} onChange={setPhonePrimary} placeholder="012 345 678" type="tel" />
-        </Field>
+        <Section title="Sign-in">
+          {mode === 'create' ? (
+            <>
+              <Field label="Email">
+                <TextInput value={email} onChange={setEmail} placeholder="name@company.com" type="email" />
+              </Field>
+              <Field label="Password" hint="At least 8 characters -- keep the suggestion, edit it, or type your own. Share it with them securely.">
+                <PasswordBox value={password} onChange={setPassword} />
+              </Field>
+            </>
+          ) : (
+            <Field label="Email">
+              <p className="rounded-xl bg-neutral-50 px-3.5 py-2.5 text-sm text-neutral-500 dark:bg-neutral-800">{user?.email ?? '—'}</p>
+            </Field>
+          )}
+        </Section>
 
-        <Field label="Position">
-          <TextInput value={position} onChange={setPosition} placeholder="e.g. Sales Executive" />
-        </Field>
-
-        <Field label="Department">
-          <Select value={departmentId} onChange={setDepartmentId} placeholder="No department">
-            {departments.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.name}
-              </option>
-            ))}
-          </Select>
-        </Field>
-
-        <Field label="Role">
-          <Select value={roleId} onChange={setRoleId} placeholder="Select a role" required>
-            {roles.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name}
-              </option>
-            ))}
-          </Select>
-        </Field>
-
-        <Field label="Assign Report To" hint="Their manager/supervisor -- drives who can see their attendance and visits in Team.">
-          <Select value={managerId} onChange={setManagerId} placeholder="No manager">
-            {managerOptions.map((m) => (
-              <option key={m.id} value={m.id}>
-                {displayName(m.fullName, m.nickname)}
-              </option>
-            ))}
-          </Select>
-        </Field>
-
-        <Field label="Field Salesperson" hint="Tracks their attendance and customer visits (Check In, Team)." inline>
-          <Switch checked={isFieldSales} onChange={setIsFieldSales} />
-        </Field>
+        <Section title="Organisation">
+          <Field label="Department">
+            <Select value={departmentId} onChange={setDepartmentId} placeholder="No department">
+              {departments.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Role">
+            <Select value={roleId} onChange={setRoleId} placeholder="Select a role" required>
+              {roles.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Assign Report To" hint="Their manager/supervisor -- drives who can see their attendance and visits in Team.">
+            <Select value={managerId} onChange={setManagerId} placeholder="No manager">
+              {managerOptions.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {displayName(m.fullName, m.nickname)}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Field Salesperson" hint="Tracks their attendance and customer visits (Check In, Team)." inline>
+            <Switch checked={isFieldSales} onChange={setIsFieldSales} />
+          </Field>
+        </Section>
 
         {mode === 'edit' && (
-          <>
-            <Field label="Status">
-              <Select value={status} onChange={(v) => setStatus(v as UserStatus)}>
-                {STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {s[0].toUpperCase() + s.slice(1)}
-                  </option>
-                ))}
-              </Select>
-            </Field>
+          <Section title="Status">
+            <SegmentedControl<UserStatus>
+              ariaLabel="Account status"
+              shape="tabs"
+              value={status}
+              onChange={setStatus}
+              options={STATUSES.map((st) => ({ value: st, label: st[0].toUpperCase() + st.slice(1) }))}
+            />
 
             {status === 'suspended' && (
               <div className="grid grid-cols-2 gap-3">
@@ -295,8 +294,18 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
                 />
               </Field>
             )}
-          </>
+          </Section>
         )}
+
+
+
+
+
+
+
+
+
+
 
         <button
           onClick={handleSave}
@@ -377,6 +386,16 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
         )}
       </div>
     </BottomSheet>
+  )
+}
+
+/** A titled group of fields, like the sections of an iOS settings form. */
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="space-y-3">
+      <h3 className="px-0.5 text-[11px] font-bold uppercase tracking-wider text-neutral-500">{title}</h3>
+      <div className="space-y-3.5 rounded-2xl border border-neutral-200 p-3.5 dark:border-neutral-700">{children}</div>
+    </section>
   )
 }
 
