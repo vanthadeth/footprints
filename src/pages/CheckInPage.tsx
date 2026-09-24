@@ -1,5 +1,10 @@
 import { useState } from 'react'
-import { AlertTriangle, Building2, Camera, ChevronRight, Footprints as FootprintsIcon, Loader2, MapPin, X } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { AlertTriangle, Building2, ChevronRight, Clock, Loader2, MapPin, X } from 'lucide-react'
+import { ActivityRings } from '@/components/ActivityRings'
+import { SlideToConfirm } from '@/components/SlideToConfirm'
+import { useMyQuota } from '@/features/attendance/useMyQuota'
+import { ACTIVE_TIME_GOAL_MINUTES, EFFECTIVENESS_GOAL } from '@/lib/config'
 import { BottomSheet } from '@/components/BottomSheet'
 import { useJourneyContext } from '@/features/attendance/JourneyContext'
 import type { VisitRow } from '@/features/attendance/types'
@@ -24,6 +29,7 @@ export function CheckInPage() {
   const { profile } = useProfile()
   const { t, language } = useLanguage()
   const settings = useAppSettings()
+  const quota = useMyQuota(profile?.id ?? null)
   const [pendingAction, setPendingAction] = useState<PendingAction>(null)
   const [flowOpen, setFlowOpen] = useState(false)
   const [checkingLocation, setCheckingLocation] = useState(false)
@@ -47,6 +53,7 @@ export function CheckInPage() {
   )
   const locationNames = useLocationNames([clockInLocationId, clockOutLocationId])
 
+  const visitTarget = quota.dailyVisitTarget
   const firstName = profile ? displayName(profile.full_name, profile.nickname).split(' ')[0] : undefined
 
   async function handleSelfie(blob: Blob) {
@@ -88,6 +95,7 @@ export function CheckInPage() {
   }
 
   const isVisiting = journey.visit === 'VISITING'
+  const isClockedIn = journey.attendance !== 'NOT_CLOCKED_IN'
 
   // The RPC is the real gate (app.within_clock_in_window()) -- this only
   // disables the button and explains why, so nobody wastes a selfie capture
@@ -124,96 +132,82 @@ export function CheckInPage() {
         />
       )}
 
-      {journey.attendance === 'NOT_CLOCKED_IN' ? (
-        /* Not yet clocked in: nothing to compete for attention -- one
-           message, one action, centered in the screen's focus area. */
-        <div className="flex min-h-[calc(100dvh-11rem)] flex-col items-center justify-center px-6 text-center">
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-brand-50 text-brand-500">
-            <FootprintsIcon className="h-9 w-9" />
+      <div className="space-y-3.5 px-4 pt-1 md:px-8 md:pt-4">
+        <p className="text-[15px] font-semibold text-neutral-700">
+          {greeting(undefined, language)}
+          {firstName ? `, ${firstName}` : ''}
+        </p>
+
+        <div className="flex flex-wrap gap-2">
+          {isClockedIn && clockInLocationId && locationNames[clockInLocationId] && (
+            <span className="flex h-[30px] items-center gap-2 rounded-full border border-neutral-200 bg-white pl-2.5 pr-3 text-xs font-semibold text-neutral-600">
+              <span className="h-2 w-2 rounded-full bg-status-working shadow-[0_0_0_3px_rgba(15,110,79,0.2)]" />
+              {locationNames[clockInLocationId]}
+            </span>
+          )}
+          <span className="flex h-[30px] items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 text-xs font-semibold text-neutral-600">
+            <Clock className="h-3.5 w-3.5" aria-hidden />
+            {t('checkIn.shift', { start: settings.workStartTime, end: settings.workEndTime })}
+          </span>
+        </div>
+
+        {/* Status hero: off shift shows the clock and when you can start; on shift shows time worked. */}
+        <div className="relative overflow-hidden rounded-[20px] bg-brand-900 p-5 text-white shadow-card">
+          <div className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full border border-white/10" />
+          <div className="pointer-events-none absolute -right-2 -top-2 h-28 w-28 rounded-full border border-white/10" />
+          <div className="relative flex items-center justify-between">
+            <span className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wider ${isClockedIn ? 'text-emerald-300' : 'text-brand-100'}`}>
+              <span className="h-2 w-2 rounded-full bg-current" />
+              {isClockedIn ? t('checkIn.onShift') : t('checkIn.offShift')}
+            </span>
+            <span className="text-xs text-brand-100">
+              {isClockedIn && clockInTime ? t('checkIn.since', { time: formatTime(clockInTime) }) : canClockIn ? '' : t('checkIn.opensAt', { time: clockInOpensAt })}
+            </span>
           </div>
-          <p className="mt-5 text-lg font-semibold text-neutral-900">
-            {greeting(undefined, language)}
-            {firstName ? `, ${firstName}` : ''}
+          <p className="relative mt-4 text-[44px] font-extrabold leading-none tracking-tight tabular-nums">
+            {isClockedIn ? formatDuration(stats.totalWorkingMs, language) : formatTime(new Date().toISOString())}
           </p>
-          <p className="mt-1.5 max-w-xs text-sm text-neutral-500">
-            {canClockIn && journey.todaysAttendance.length === 0 && t('home.notStartedYet')}
-            {canClockIn &&
+          <p className="relative mt-2 text-[13px] text-brand-100">
+            {isClockedIn && t('checkIn.workedToday', { active: formatDuration(stats.totalVisitingMs, language) })}
+            {!isClockedIn && canClockIn && journey.todaysAttendance.length === 0 && t('home.notStartedYet')}
+            {!isClockedIn &&
+              canClockIn &&
               journey.todaysAttendance.length > 0 &&
               t('checkIn.clockedInTimes', {
                 count: journey.todaysAttendance.length,
                 plural: journey.todaysAttendance.length > 1 ? 's' : '',
                 duration: formatDuration(stats.totalWorkingMs, language),
               })}
-            {!canClockIn && !clockInWindowClosed && t('home.clockInOpensAt', { time: clockInOpensAt })}
-            {clockInWindowClosed && t('home.clockInClosed', { time: shiftTimeOfDay(settings.workEndTime, 0) })}
+            {!isClockedIn && !canClockIn && !clockInWindowClosed && t('home.clockInOpensAt', { time: clockInOpensAt })}
+            {!isClockedIn && clockInWindowClosed && t('home.clockInClosed', { time: shiftTimeOfDay(settings.workEndTime, 0) })}
           </p>
-          <button
-            onClick={handleClockInTap}
-            disabled={journey.busy || !canClockIn || checkingLocation}
-            className="mt-7 flex w-full max-w-xs items-center justify-center gap-2 rounded-xl bg-brand-500 py-4 text-base font-semibold text-white tap-target disabled:opacity-40"
-          >
-            {checkingLocation ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : <Camera className="h-4.5 w-4.5" />}
-            {checkingLocation ? t('home.checkingLocation') : t('home.clockInButton')}
-          </button>
+          <div className="relative mt-4 grid grid-cols-3 gap-2 border-t border-white/15 pt-3.5">
+            <HeroStat label={t('nav.clockIn')} value={clockInTime ? formatTime(clockInTime) : '—'} />
+            <HeroStat label={t('common.clockOut')} value={clockOutTime && !isClockedIn ? formatTime(clockOutTime) : '—'} />
+            <HeroStat label={t('nav.visits')} value={String(stats.totalVisits)} />
+          </div>
         </div>
-      ) : (
-        <div className="px-4 pt-4 md:px-8">
-          {/* Main section: today's attendance -- in/out times, and the total once both are set. */}
-          <div className="relative overflow-hidden rounded-xl2 bg-brand-900 p-5 shadow-card">
-            <div className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full bg-white/5" />
-            <div className="pointer-events-none absolute -bottom-12 -left-6 h-28 w-28 rounded-full bg-white/5" />
 
-            <div className="relative flex items-center justify-between gap-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-white/50">{t('nav.clockIn')}</p>
-                <p className="mt-1 text-xl font-semibold text-white">{clockInTime ? formatTime(clockInTime) : '--:--'}</p>
-                {clockInLocationId && locationNames[clockInLocationId] && (
-                  <p className="mt-0.5 text-xs text-white/50">{locationNames[clockInLocationId]}</p>
-                )}
-              </div>
-              <div className="text-right">
-                <p className="text-xs font-semibold uppercase tracking-wide text-white/50">{t('common.clockOut')}</p>
-                <p className="mt-1 text-xl font-semibold text-white">{clockOutTime ? formatTime(clockOutTime) : '--:--'}</p>
-                {clockOutLocationId && locationNames[clockOutLocationId] && (
-                  <p className="mt-0.5 text-xs text-white/50">{locationNames[clockOutLocationId]}</p>
-                )}
-              </div>
-            </div>
+        {isClockedIn ? (
+          <SlideToConfirm label={t('checkIn.slideToClockOut')} variant="danger" busy={journey.busy} onConfirm={() => setPendingAction('clock-out')} />
+        ) : (
+          <SlideToConfirm
+            label={checkingLocation ? t('home.checkingLocation') : t('checkIn.slideToClockIn')}
+            busy={checkingLocation || journey.busy}
+            disabled={!canClockIn}
+            onConfirm={() => void handleClockInTap()}
+          />
+        )}
+        <p className="-mt-1.5 text-center text-xs text-neutral-500">
+          {/* app.clock_out force-checks-out a still-open visit rather than blocking the clock-out -- flagged AUTO_CHECKOUT_CLOCK_OUT. */}
+          {isClockedIn && isVisiting ? t('checkIn.alsoCheckOut') : t('checkIn.selfieHint')}
+        </p>
 
-            <button
-              onClick={() => setPendingAction('clock-out')}
-              disabled={journey.busy}
-              className="relative mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-white/10 py-3.5 text-sm font-semibold text-white tap-target disabled:opacity-60"
-            >
-              <Camera className="h-4 w-4" /> {t('checkIn.clockOutButton')}
-            </button>
-            {/* app.clock_out force-checks-out a still-open visit rather than
-                blocking the clock-out -- flagged AUTO_CHECKOUT_CLOCK_OUT so
-                it's distinguishable from a radius-triggered auto checkout. */}
-            {isVisiting ? (
-              <p className="relative mt-2 text-center text-xs text-white/40">{t('checkIn.alsoCheckOut')}</p>
-            ) : (
-              journey.todaysAttendance.length > 1 && (
-                <p className="relative mt-2 text-center text-xs text-white/40">
-                  {t('checkIn.sessionsToday', { count: journey.todaysAttendance.length })}
-                </p>
-              )
-            )}
-          </div>
-
-          {/* Sub section: the day's shape at a glance. */}
-          <div className="mt-3 grid grid-cols-4 divide-x divide-neutral-100 rounded-xl2 bg-white p-4 text-center shadow-card dark:divide-neutral-700">
-            <Stat label={t('nav.visits')} value={String(stats.totalVisits)} />
-            <Stat label={t('checkIn.statActive')} value={formatDuration(stats.totalVisitingMs, language)} />
-            <Stat label={t('checkIn.statGap')} value={formatDuration(stats.totalGapMs, language)} />
-            <Stat label={t('home.effectiveness')} value={`${effectivenessRatio}%`} />
-          </div>
-
-          {/* Only one visit can ever be open at a time (app.check_in enforces
-              this server-side) -- so once checked in, there's nothing left
-              to "check in" to. Show what you're already checked into instead
-              of a button that would just fail. */}
-          {isVisiting && journey.openVisit ? (
+        {/* Only one visit can ever be open at a time (app.check_in enforces
+            this server-side) -- so once checked in, show that visit instead
+            of a button that would just fail. */}
+        {isClockedIn &&
+          (isVisiting && journey.openVisit ? (
             <CurrentVisitCard
               visit={journey.openVisit}
               customerName={journey.openVisit.customer_id ? customerNames[journey.openVisit.customer_id] : undefined}
@@ -223,15 +217,35 @@ export function CheckInPage() {
             <button
               onClick={() => setFlowOpen(true)}
               disabled={journey.busy}
-              className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 py-4 text-base font-semibold text-white tap-target disabled:opacity-40"
+              className="flex h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-brand-500 text-[15px] font-bold text-white tap-target disabled:opacity-40"
             >
-              <MapPin className="h-4.5 w-4.5" /> {t('home.checkInButton')}
+              <MapPin className="h-[18px] w-[18px]" /> {t('home.checkInButton')}
             </button>
-          )}
+          ))}
 
-          {!isVisiting && recentVisits.length > 0 && <RecentVisits visits={recentVisits} customerNames={customerNames} />}
+        <div className="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-card">
+          <ActivityRings
+            label={`${t('nav.visits')} ${stats.totalVisits}${visitTarget ? `/${visitTarget}` : ''}, ${t('checkIn.statActive')} ${formatDuration(stats.totalVisitingMs, language)}, ${t('home.effectiveness')} ${effectivenessRatio}%`}
+            rings={[
+              { progress: visitTarget ? stats.totalVisits / visitTarget : stats.totalVisits > 0 ? 1 : 0, color: '#6552c9' },
+              { progress: stats.totalVisitingMs / (ACTIVE_TIME_GOAL_MINUTES * 60_000), color: '#1668b8' },
+              { progress: effectivenessRatio / 100 / EFFECTIVENESS_GOAL, color: '#1a9f6e' },
+            ]}
+          />
+          <div className="min-w-0 flex-1 space-y-2">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">{t('checkIn.todaysGoals')}</p>
+            <GoalLine tone="text-status-visiting dark:text-violet-300" label={t('nav.visits')} value={visitTarget ? `${stats.totalVisits} / ${visitTarget}` : String(stats.totalVisits)} />
+            <GoalLine
+              tone="text-brand-600"
+              label={t('checkIn.statActive')}
+              value={`${formatDuration(stats.totalVisitingMs, language)} / ${formatDuration(ACTIVE_TIME_GOAL_MINUTES * 60_000, language)}`}
+            />
+            <GoalLine tone="text-status-working dark:text-emerald-300" label={t('home.effectiveness')} value={`${effectivenessRatio}% / ${Math.round(EFFECTIVENESS_GOAL * 100)}%`} />
+          </div>
         </div>
-      )}
+
+        {recentVisits.length > 0 && <RecentVisits visits={recentVisits} customerNames={customerNames} />}
+      </div>
 
       <SelfieCaptureSheet
         open={pendingAction !== null}
@@ -270,11 +284,20 @@ export function CheckInPage() {
   )
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function HeroStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="px-1">
-      <p className="text-sm font-semibold text-neutral-900">{value}</p>
-      <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-neutral-400">{label}</p>
+    <div>
+      <p className="text-[11px] text-brand-100">{label}</p>
+      <p className="mt-0.5 text-[15px] font-bold">{value}</p>
+    </div>
+  )
+}
+
+function GoalLine({ tone, label, value }: { tone: string; label: string; value: string }) {
+  return (
+    <div>
+      <p className={`text-xs font-semibold ${tone}`}>{label}</p>
+      <p className="text-[15px] font-extrabold text-neutral-900">{value}</p>
     </div>
   )
 }
@@ -293,7 +316,7 @@ function CurrentVisitCard({
   return (
     <button
       onClick={onView}
-      className="mt-3 flex w-full items-center gap-3 rounded-xl2 border border-brand-200 bg-brand-50 p-4 text-left tap-target"
+      className="flex w-full items-center gap-3 rounded-2xl border border-brand-200 bg-brand-50 p-4 text-left tap-target"
     >
       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-500 text-white">
         <MapPin className="h-5 w-5" />
@@ -318,15 +341,20 @@ function CurrentVisitCard({
 function RecentVisits({ visits, customerNames }: { visits: VisitRow[]; customerNames: Record<string, string> }) {
   const { t, language } = useLanguage()
   return (
-    <div className="mt-4">
-      <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-neutral-400">{t('checkIn.recentVisits')}</p>
-      <div className="space-y-2">
+    <div>
+      <div className="mb-2 flex items-baseline justify-between px-0.5">
+        <p className="text-[17px] font-bold text-neutral-900">{t('checkIn.recentVisits')}</p>
+        <Link to="/footprints" className="py-1.5 text-[13px] font-semibold text-brand-500">
+          {t('checkIn.seeJourney')}
+        </Link>
+      </div>
+      <div className="divide-y divide-neutral-100 overflow-hidden rounded-2xl bg-white shadow-card dark:divide-neutral-800">
         {visits.map((v) => {
           const duration = formatDuration(new Date(v.checked_out_at!).getTime() - new Date(v.checked_in_at).getTime(), language)
           const flagged = (v.flags?.length ?? 0) > 0 || v.out_of_range
           return (
-            <div key={v.id} className="flex items-center gap-3 rounded-xl2 bg-white p-3.5 shadow-card">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-400">
+            <div key={v.id} className="flex items-center gap-3 px-3.5 py-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-status-visiting/10 text-status-visiting dark:text-violet-300">
                 <Building2 className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">

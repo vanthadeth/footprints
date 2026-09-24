@@ -102,3 +102,13 @@ describe('groupActivityLogByDay', () => {
     expect(days[0].periods[0].entries.map((e) => e.id)).toEqual(['in-a2', 'in-a1'])
   })
 })
+
+describe('isAlertEntry', () => {
+  it('flags auto-closed and flagged entries only', async () => {
+    const { isAlertEntry } = await import('../activityLog')
+    expect(isAlertEntry({ id: '1', time: 't', userId: 'u', kind: 'clock-out', auto: true })).toBe(true)
+    expect(isAlertEntry({ id: '2', time: 't', userId: 'u', kind: 'check-out', flags: ['SHORT_VISIT'] })).toBe(true)
+    expect(isAlertEntry({ id: '3', time: 't', userId: 'u', kind: 'check-in', flags: [] })).toBe(false)
+    expect(isAlertEntry({ id: '4', time: 't', userId: 'u', kind: 'check-out', flags: ['UNASSIGNED_VISIT'] })).toBe(false)
+  })
+})

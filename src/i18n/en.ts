@@ -1,5 +1,6 @@
 export const en = {
   common: {
+    back: 'Back',
     loading: 'Loading…',
     cancel: 'Cancel',
     tryAgain: 'Try Again',
@@ -28,6 +29,9 @@ export const en = {
     translations: 'Translations',
     customer: 'Customer',
     leave: 'Leave',
+    report: 'Report',
+    hub: 'Hub',
+    leaveApprovals: 'Leave Approvals',
   },
   welcome: {
     tagline: 'Your day. Your customers. Your progress.',
@@ -78,6 +82,17 @@ export const en = {
       'Your location accuracy is currently {{accuracy}} -- {{max}} m or better is required to clock in. Move to an open area, away from buildings or indoors, and try again.',
   },
   checkIn: {
+    slideToClockIn: 'Slide to clock in',
+    slideToClockOut: 'Slide to clock out',
+    selfieHint: 'A selfie and your location are recorded',
+    onShift: 'On shift',
+    offShift: 'Off shift',
+    since: 'Since {{time}}',
+    opensAt: 'Opens {{time}}',
+    workedToday: 'Worked today · Active {{active}}',
+    shift: 'Shift {{start}} – {{end}}',
+    todaysGoals: "Today's goals",
+    seeJourney: 'See journey',
     clockedInTimes:
       "You've clocked in {{count}} time{{plural}} today ({{duration}} so far). Clock in again to start a new session.",
     clockOutButton: 'CLOCK OUT',

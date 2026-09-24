@@ -13,6 +13,8 @@ import { groupBy, sortGroupKeys } from '@/lib/groupBy'
 import { formatDuration, formatTime } from '@/lib/datetime'
 import { getCustomRange, todayDateString } from '@/lib/dateRange'
 import { useTeamDayJourneys } from './useTeamDayJourneys'
+import { useAppSettings } from '@/hooks/useAppSettings'
+import { LATE_GRACE_MINUTES } from '@/lib/config'
 import { FleetStatusBadge } from './FleetStatusBadge'
 import type { FleetMemberSnapshot } from './types'
 import { useApprovedLeaveOnDate } from '@/features/leave/useApprovedLeaveOnDate'
@@ -39,6 +41,18 @@ export function CheckInOutTab({ snapshots }: { snapshots: FleetMemberSnapshot[] 
   )
   const locationNames = useLocationNames(locationIds)
 
+  const { workStartTime } = useAppSettings()
+  const summary = useMemo(() => {
+    const days = Object.values(journeysByUserId)
+    const firstIns = days.map((d) => d.attendance[0]?.clock_in_at).filter((t): t is string => !!t)
+    return {
+      clockedIn: firstIns.length,
+      late: firstIns.filter((t) => minutesLate(formatTime(t), workStartTime) > LATE_GRACE_MINUTES).length,
+      onLeave: userIds.filter((id) => leaveByUserId[id] && !journeysByUserId[id]).length,
+      stillWorking: days.filter((d) => d.attendance.some((a) => !a.clock_out_at)).length,
+    }
+  }, [journeysByUserId, leaveByUserId, userIds, workStartTime])
+
   const groups = groupBy(snapshots, (s) => s.member.departmentName ?? NO_DEPARTMENT)
   const orderedKeys = sortGroupKeys(groups.keys(), NO_DEPARTMENT)
 
@@ -52,6 +66,13 @@ export function CheckInOutTab({ snapshots }: { snapshots: FleetMemberSnapshot[] 
         <div className="mt-3">
           <DayPickerBar selected={selectedDate} onChange={setSelectedDate} />
         </div>
+      </div>
+
+      <div className="mb-4 grid grid-cols-4 gap-2">
+        <SummaryTile label="Clocked in" value={summary.clockedIn} tone="text-status-working dark:text-emerald-300" />
+        <SummaryTile label="Late" value={summary.late} tone="text-status-danger" />
+        <SummaryTile label="On leave" value={summary.onLeave} tone="text-brand-600" />
+        <SummaryTile label="Still working" value={summary.stillWorking} tone="text-neutral-900" />
       </div>
 
       {error && <p className="mb-3 text-sm text-status-danger">{error}</p>}
@@ -77,6 +98,7 @@ export function CheckInOutTab({ snapshots }: { snapshots: FleetMemberSnapshot[] 
                     day={journeysByUserId[snapshot.member.id] ?? null}
                     locationNames={locationNames}
                     leaveType={leaveByUserId[snapshot.member.id]}
+                    workStartTime={workStartTime}
                   />
                 ))}
               </div>
@@ -98,11 +120,13 @@ function MemberCheckInOutCard({
   day,
   locationNames,
   leaveType,
+  workStartTime,
 }: {
   snapshot: FleetMemberSnapshot
   day: DayJourney | null
   locationNames: Record<string, string>
   leaveType: LeaveType | undefined
+  workStartTime: string
 }) {
   const { member, status } = snapshot
   const [footprintsOpen, setFootprintsOpen] = useState(false)
@@ -114,13 +138,32 @@ function MemberCheckInOutCard({
   // Only overrides the placeholder when there's no attendance at all that
   // day -- an actual clock-in/out session is ground truth and always wins.
   const onLeaveLabel = !day && leaveType ? `On ${LEAVE_TYPE_LABEL[leaveType]} Leave` : null
+  const lateMinutes = firstSession ? minutesLate(formatTime(firstSession.clock_in_at), workStartTime) : 0
+  const isLate = lateMinutes > LATE_GRACE_MINUTES
+  const initials = member.fullName
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
 
   return (
-    <div className="rounded-xl2 bg-white p-4 shadow-card">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <p className="text-sm font-semibold text-neutral-900">{displayName(member.fullName, member.nickname)}</p>
+    <div className="rounded-2xl bg-white p-4 shadow-card">
+      <div className="mb-3 flex items-center gap-2.5">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-[13px] font-extrabold text-brand-700">{initials}</span>
+        <p className="min-w-0 flex-1 truncate text-[15px] font-bold text-neutral-900">{displayName(member.fullName, member.nickname)}</p>
+        {isLate && (
+          <span className="shrink-0 rounded-full bg-status-danger/10 px-2 py-0.5 text-[11px] font-bold text-status-danger">Late {lateMinutes}m</span>
+        )}
         <FleetStatusBadge status={status} />
       </div>
+
+      {onLeaveLabel && (
+        <div className="mb-3 flex items-center gap-2.5 rounded-xl bg-brand-50 px-3 py-2.5 text-brand-700">
+          <CalendarDays className="h-[18px] w-[18px] shrink-0" aria-hidden />
+          <span className="text-[13px] font-bold">{onLeaveLabel}</span>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <ClockPhotoColumn
@@ -152,7 +195,7 @@ function MemberCheckInOutCard({
 
       <button
         onClick={() => setFootprintsOpen(true)}
-        className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white py-2.5 text-xs font-semibold text-neutral-700 tap-target"
+        className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-50 py-2.5 text-xs font-bold text-brand-700 tap-target"
       >
         <CalendarDays className="h-3.5 w-3.5 text-brand-500" /> View Footprints
       </button>
@@ -162,6 +205,22 @@ function MemberCheckInOutCard({
           <JourneyHistoryReport userId={member.id} interactive={false} subtitle={displayName(member.fullName, member.nickname)} />
         </div>
       </FullScreenSheet>
+    </div>
+  )
+}
+
+/** Minutes after the shift start ("HH:MM" strings), 0 when on time or early. */
+function minutesLate(clockIn: string, workStart: string): number {
+  const [h, m] = clockIn.split(':').map(Number)
+  const [sh, sm] = workStart.split(':').map(Number)
+  return Math.max(0, h * 60 + m - (sh * 60 + sm))
+}
+
+function SummaryTile({ label, value, tone }: { label: string; value: number; tone: string }) {
+  return (
+    <div className="flex flex-col items-center rounded-xl bg-white px-1 py-2.5 shadow-card">
+      <span className={`text-xl font-extrabold ${tone}`}>{value}</span>
+      <span className="text-center text-[10.5px] font-semibold leading-tight text-neutral-500">{label}</span>
     </div>
   )
 }
@@ -208,25 +267,29 @@ function ClockPhotoColumn({
   const locationLabel = locationId ? locationNames[locationId] ?? 'Loading…' : 'No preset location'
 
   return (
-    <div>
-      <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">{label}</p>
-      {url ? (
-        <button onClick={() => setZoomOpen(true)} className="block aspect-[3/4] w-full overflow-hidden rounded-lg bg-neutral-100 tap-target">
-          <img src={url} alt={label} className="h-full w-full object-cover" />
-        </button>
-      ) : (
-        <div className="flex aspect-[3/4] w-full items-center justify-center rounded-lg bg-neutral-100 text-neutral-300">
-          <Camera className="h-6 w-6" />
+    <div className="min-w-0">
+      <p className="mb-1.5 text-[10.5px] font-bold uppercase tracking-wider text-neutral-500">{label}</p>
+      <div className="flex items-start gap-2">
+        {url ? (
+          <button onClick={() => setZoomOpen(true)} className="block h-[68px] w-[51px] shrink-0 overflow-hidden rounded-lg bg-neutral-100 tap-target">
+            <img src={url} alt={label} className="h-full w-full object-cover" />
+          </button>
+        ) : (
+          <div className="flex h-[68px] w-[51px] shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-400">
+            <Camera className="h-5 w-5" aria-hidden />
+          </div>
+        )}
+        <div className="min-w-0 pt-0.5">
+          {time ? (
+            <>
+              <p className="font-mono text-base font-extrabold text-neutral-900">{formatTime(time)}</p>
+              <p className="text-[11.5px] leading-snug text-neutral-600">{locationLabel}</p>
+            </>
+          ) : (
+            <p className="text-xs leading-snug text-neutral-500">{emptyLabel}</p>
+          )}
         </div>
-      )}
-      {time ? (
-        <>
-          <p className="mt-1.5 text-sm font-medium text-neutral-900">{formatTime(time)}</p>
-          <p className="truncate text-xs text-neutral-500">{locationLabel}</p>
-        </>
-      ) : (
-        <p className="mt-1.5 text-xs text-neutral-400">{emptyLabel}</p>
-      )}
+      </div>
 
       <FullScreenSheet open={zoomOpen} onClose={() => setZoomOpen(false)} label={label}>
         {url && (
