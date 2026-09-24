@@ -122,7 +122,8 @@ export const en = {
     logoutConfirmBody: "You'll need to sign in again to keep tracking your visits.",
     logoutConfirmYes: 'Log Out Now',
     accountMenu: 'Account menu',
-    setting: 'Setting',
+    menu: 'Menu',
+    setting: 'Settings',
     logout: 'Logout',
   },
   offline: {

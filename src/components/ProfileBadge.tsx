@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Globe, LogOut, Settings, User, UserRound } from 'lucide-react'
+import { Globe, LogOut, Menu, Settings, User, UserRound } from 'lucide-react'
 import { useProfile } from '@/features/auth/useProfile'
 import { useAvatarUrl } from '@/features/auth/useAvatarUrl'
 import { LogoutConfirmSheet } from '@/components/LogoutConfirmSheet'
@@ -87,11 +87,19 @@ export function ProfileBadge() {
             </div>
           </div>
           <MenuItem
+            icon={Menu}
+            label={t('profile.menu')}
+            onClick={() => {
+              setOpen(false)
+              navigate('/menu')
+            }}
+          />
+          <MenuItem
             icon={Settings}
             label={t('profile.setting')}
             onClick={() => {
               setOpen(false)
-              navigate('/menu')
+              navigate('/settings')
             }}
           />
           <div className="my-1.5 border-t border-neutral-100 dark:border-neutral-800" />
