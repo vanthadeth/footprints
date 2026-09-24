@@ -4,7 +4,7 @@ import { BarChart3, CalendarCheck, Gauge, History, List, MapPin, Truck, type Luc
 import { EmptyState } from '@/components/EmptyState'
 import { useFleet } from '@/features/fleet/useFleet'
 import { FleetListView } from '@/features/fleet/FleetListView'
-import { FleetMapView } from '@/features/fleet/FleetMapView'
+import { TeamMapView } from '@/features/fleet/map/TeamMapView'
 import { Freshness } from '@/features/fleet/Freshness'
 import { DashboardTab } from '@/features/dashboard/DashboardTab'
 import { ReportsTab } from '@/features/reports/ReportsTab'
@@ -92,7 +92,7 @@ export function FleetPage() {
                 <FleetListView snapshots={snapshots} />
               </>
             )}
-            {tab === 'map' && <FleetMapView snapshots={snapshots} />}
+            {tab === 'map' && <TeamMapView snapshots={snapshots} />}
             {tab === 'dashboard' && <DashboardTab snapshots={snapshots} />}
             {tab === 'reports' && <ReportsTab team={snapshots.map((s) => s.member)} />}
             {tab === 'logs' && <ActivityLogTab team={snapshots.map((s) => s.member)} />}

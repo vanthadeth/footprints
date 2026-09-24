@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { CUSTOMER_DUE_AFTER_DAYS } from '@/lib/config'
 import { useNavigate } from 'react-router-dom'
 import { Construction, MapPin, Search, Store } from 'lucide-react'
 import { EmptyState } from '@/components/EmptyState'
@@ -20,7 +21,6 @@ const FILTERS: { key: Filter; label: string }[] = [
 ]
 
 /** A customer with no visit in this many days (or none at all) shows up under "Due" -- a stated assumption, not a configured business rule. */
-const DUE_AFTER_DAYS = 14
 
 /** The field-sales customer book: search, a few practical filters, and a fast path into a visit -- no sales/outstanding figures (see redesign plan), just what helps decide who to see next. */
 export function CustomersPage() {
@@ -63,7 +63,7 @@ function CustomersList() {
 
     if (filter === 'active') list = list.filter((c) => c.status === 'active')
     if (filter === 'due') {
-      list = list.filter((c) => !c.last_visit_date || daysSince(c.last_visit_date) >= DUE_AFTER_DAYS)
+      list = list.filter((c) => !c.last_visit_date || daysSince(c.last_visit_date) >= CUSTOMER_DUE_AFTER_DAYS)
     }
     if (filter === 'nearby' && position) {
       list = [...list].sort((a, b) => distanceOf(a, position) - distanceOf(b, position))

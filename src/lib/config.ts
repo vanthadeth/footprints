@@ -85,3 +85,6 @@ export const EFFECTIVENESS_GOAL = 0.5
 
 /** A first clock-in more than this many minutes after the shift start shows as "Late" in Team › Attendance. */
 export const LATE_GRACE_MINUTES = 5
+
+/** A customer counts as due for a visit (Customers' "due" filter, the Team map's "overdue") once their last visit is this many days old. */
+export const CUSTOMER_DUE_AFTER_DAYS = 14

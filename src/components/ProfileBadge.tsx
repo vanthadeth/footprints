@@ -88,7 +88,7 @@ export function ProfileBadge() {
           </div>
           <MenuItem
             icon={Menu}
-            label={t('profile.menu')}
+            label={t('nav.hub')}
             onClick={() => {
               setOpen(false)
               navigate('/menu')
