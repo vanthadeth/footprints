@@ -7,14 +7,16 @@ import { FleetMapView } from '@/features/fleet/FleetMapView'
 import { Freshness } from '@/features/fleet/Freshness'
 import { DashboardTab } from '@/features/dashboard/DashboardTab'
 import { ReportsTab } from '@/features/reports/ReportsTab'
+import { CheckInOutTab } from '@/features/fleet/CheckInOutTab'
 
-type Tab = 'list' | 'map' | 'dashboard' | 'reports'
+type Tab = 'list' | 'map' | 'dashboard' | 'reports' | 'checkinout'
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'list', label: 'List' },
   { key: 'map', label: 'Map' },
   { key: 'dashboard', label: 'Dashboard' },
   { key: 'reports', label: 'Reports' },
+  { key: 'checkinout', label: 'Check In/Out' },
 ]
 
 /** Supervisor/management view: live team status (list + map), KPI dashboard, and reports (spec §33-40). */
@@ -64,6 +66,7 @@ export function FleetPage() {
             {tab === 'map' && <FleetMapView snapshots={snapshots} />}
             {tab === 'dashboard' && <DashboardTab snapshots={snapshots} />}
             {tab === 'reports' && <ReportsTab team={snapshots.map((s) => s.member)} />}
+            {tab === 'checkinout' && <CheckInOutTab team={snapshots.map((s) => s.member)} />}
           </>
         )}
       </div>
