@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useState } from 'react'
+import { type ReactNode, Suspense, lazy, useEffect, useState } from 'react'
 import {
   AlertTriangle,
   Ban,
@@ -29,6 +29,7 @@ import {
 } from 'lucide-react'
 import { Circle, Marker } from 'react-leaflet'
 import { BottomSheet } from '@/components/BottomSheet'
+import { FullScreenSheet } from '@/components/FullScreenSheet'
 import { useLanguage } from '@/i18n/LanguageContext'
 import { useJourneyContext } from './JourneyContext'
 import { useLocationNames } from '@/features/locations/useLocationNames'
@@ -44,6 +45,11 @@ import { useVisitOptions } from '@/features/visits/useVisitOptions'
 import { visitsService, type VisitOutcomeDetails } from '@/features/visits/visitsService'
 import type { VisitOption, VisitOptionKind } from '@/features/visits/visitOptionsService'
 import type { AttendanceRow, VisitRow } from './types'
+
+// react-zoom-pan-pinch only loads once someone actually taps a Clock In/Out
+// photo, instead of bloating the main bundle for the common case where
+// nobody opens one -- same reasoning as router.tsx's lazy map pages.
+const PhotoZoomViewer = lazy(() => import('@/components/PhotoZoomViewer').then((m) => ({ default: m.PhotoZoomViewer })))
 
 const VISIT_EDIT_WINDOW_MS = 24 * 60 * 60 * 1000
 
@@ -261,6 +267,7 @@ function ClockEntry({
   const [open, setOpen] = useState(false)
   const [selfieUrl, setSelfieUrl] = useState<string | null>(null)
   const [selfieLoading, setSelfieLoading] = useState(false)
+  const [photoOpen, setPhotoOpen] = useState(false)
 
   useEffect(() => {
     if (!open || !selfiePath) return
@@ -299,11 +306,13 @@ function ClockEntry({
       <BottomSheet open={open} onClose={() => setOpen(false)} title={label}>
         <div className="space-y-3 p-4">
           {selfiePath && (
-            <div className="flex h-40 items-center justify-center overflow-hidden rounded-xl2 bg-neutral-100 dark:bg-neutral-800">
+            <div className="flex aspect-[3/4] w-full items-center justify-center overflow-hidden rounded-xl2 bg-neutral-100 dark:bg-neutral-800">
               {selfieLoading ? (
                 <Loader2 className="h-5 w-5 animate-spin text-neutral-400" />
               ) : selfieUrl ? (
-                <img src={selfieUrl} alt={label} className="h-full w-full object-cover" />
+                <button onClick={() => setPhotoOpen(true)} className="h-full w-full tap-target">
+                  <img src={selfieUrl} alt={label} className="h-full w-full object-cover" />
+                </button>
               ) : (
                 <p className="text-xs text-neutral-400">{t('journey.noPhoto')}</p>
               )}
@@ -350,6 +359,16 @@ function ClockEntry({
           </a>
         </div>
       </BottomSheet>
+
+      <FullScreenSheet open={photoOpen} onClose={() => setPhotoOpen(false)} label={label}>
+        <div className="h-full w-full bg-black pt-16">
+          {selfieUrl && (
+            <Suspense fallback={<div className="flex h-full items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-white/60" /></div>}>
+              <PhotoZoomViewer src={selfieUrl} alt={label} />
+            </Suspense>
+          )}
+        </div>
+      </FullScreenSheet>
     </li>
   )
 }
