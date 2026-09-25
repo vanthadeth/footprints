@@ -32,6 +32,8 @@ export const en = {
     report: 'Report',
     hub: 'Hub',
     leaveApprovals: 'Leave Approvals',
+    plan: "Today's Plan",
+    coverage: 'Coverage',
   },
   welcome: {
     tagline: 'Your day. Your customers. Your progress.',

@@ -40,6 +40,8 @@ export const km: TranslationKey = {
     report: 'របាយការណ៍',
     hub: 'មជ្ឈមណ្ឌល',
     leaveApprovals: 'អនុម័តច្បាប់',
+    plan: 'ផែនការថ្ងៃនេះ',
+    coverage: 'ការគ្របដណ្តប់អតិថិជន',
   },
   welcome: {
     tagline: 'ថ្ងៃរបស់អ្នក។ អតិថិជនរបស់អ្នក។ វឌ្ឍនភាពរបស់អ្នក។',

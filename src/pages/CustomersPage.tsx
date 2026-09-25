@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { CUSTOMER_DUE_AFTER_DAYS } from '@/lib/config'
-import { useNavigate } from 'react-router-dom'
-import { Construction, MapPin, Search, Store } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ChevronRight, Construction, MapPin, Search, Store, Target } from 'lucide-react'
 import { EmptyState } from '@/components/EmptyState'
 import { useCustomers } from '@/features/customers/useCustomers'
 import type { CustomerDirectoryRow } from '@/features/customers/customersService'
@@ -103,6 +103,15 @@ function CustomersList() {
             </button>
           ))}
         </div>
+
+        <Link to="/customers/coverage" className="mt-3 flex items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-card">
+          <Target className="h-5 w-5 shrink-0 text-status-warn" aria-hidden />
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-bold text-neutral-900">Coverage & tiers</span>
+            <span className="block text-xs text-neutral-500">Who's due or overdue, by A / B / C tier</span>
+          </span>
+          <ChevronRight className="h-4 w-4 text-neutral-400" aria-hidden />
+        </Link>
 
         {filter === 'nearby' && positionError && (
           <p className="mt-2 text-xs text-status-warn">Couldn't get your location -- showing unsorted.</p>

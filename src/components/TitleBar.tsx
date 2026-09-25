@@ -17,6 +17,8 @@ const TITLE_KEYS: Record<string, string> = {
   '/users': 'nav.users',
   '/home': 'nav.home',
   '/customers': 'nav.customers',
+  '/customers/coverage': 'nav.coverage',
+  '/plan': 'nav.plan',
   '/visits': 'nav.visits',
   '/notifications': 'nav.notifications',
   '/locations': 'nav.locations',
@@ -28,6 +30,7 @@ const TAB_ROOTS = new Set(['/check-in', '/footprints', '/leave', '/report', '/me
 
 /** Where a sub-page's back link goes -- almost every secondary screen is reached from Hub. */
 function backTarget(pathname: string): string {
+  if (pathname === '/plan') return '/check-in'
   if (pathname.startsWith('/customers/')) return '/customers'
   return '/menu'
 }
@@ -47,7 +50,7 @@ export function TitleBar() {
       ? attendance === 'CLOCKED_IN'
         ? t('nav.checkIn')
         : t('nav.clockIn')
-      : pathname.startsWith('/customers/')
+      : pathname.startsWith('/customers/') && !TITLE_KEYS[pathname]
         ? t('nav.customer')
         : t(TITLE_KEYS[pathname] ?? 'nav.footprints')
   const isRoot = TAB_ROOTS.has(pathname)

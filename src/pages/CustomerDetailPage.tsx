@@ -3,6 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Banknote, Camera, Construction, MapPin, Navigation, NotebookPen, Phone, ShoppingCart, Store, type LucideIcon } from 'lucide-react'
 import { customersService, type CustomerDirectoryRow } from '@/features/customers/customersService'
 import { VisitFlow, type PresetCustomer } from '@/features/visits/VisitFlow'
+import { TierCard } from '@/features/customers/TierCard'
+import { formatUsd } from '@/features/visits/visitOutcome'
 import type { VisitRow } from '@/features/attendance/types'
 import { CUSTOMER_MANAGEMENT_ENABLED } from '@/lib/featureFlags'
 import { formatDate, formatTime } from '@/lib/datetime'
@@ -135,6 +137,8 @@ function CustomerDetail() {
           </div>
         </div>
 
+        <TierCard customerId={customer.id!} />
+
         <div className="mt-4">
           <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-neutral-400">Quick Actions</p>
           <div className="grid grid-cols-2 gap-2">
@@ -160,7 +164,11 @@ function CustomerDetail() {
                     <p className="text-sm font-medium text-neutral-900">
                       {formatDate(v.checked_in_at)} · Visit{v.cancelled_at ? ' (Voided)' : !v.checked_out_at ? ' (In progress)' : ''}
                     </p>
-                    <p className="text-xs text-neutral-400">{formatTime(v.checked_in_at)}</p>
+                    <p className="text-xs text-neutral-400">
+                      {formatTime(v.checked_in_at)}
+                      {v.order_amount_usd != null && ` · Order ${formatUsd(v.order_amount_usd)}`}
+                      {v.collected_usd != null && ` · Collected ${formatUsd(v.collected_usd)}`}
+                    </p>
                   </div>
                 </div>
               ))}

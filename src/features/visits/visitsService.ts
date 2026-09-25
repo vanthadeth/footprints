@@ -23,6 +23,10 @@ export interface VisitOutcomeDetails {
   /** ISO timestamp. */
   nextAppointment?: string | null
   remarks?: string | null
+  /** Order value in USD ("order value only" -- no product lines). */
+  orderAmountUsd?: number | null
+  /** Amount collected on this visit, USD. */
+  collectedUsd?: number | null
 }
 
 /**
@@ -84,6 +88,8 @@ export const visitsService = {
       p_payment_status_id: details?.paymentStatusId ?? undefined,
       p_next_appointment: details?.nextAppointment ?? undefined,
       p_remarks: details?.remarks ?? undefined,
+      p_order_amount_usd: details?.orderAmountUsd ?? undefined,
+      p_collected_usd: details?.collectedUsd ?? undefined,
     })
     if (error) throw error
     return data
@@ -114,6 +120,8 @@ export const visitsService = {
       p_payment_status_id: details.paymentStatusId ?? undefined,
       p_next_appointment: details.nextAppointment ?? undefined,
       p_remarks: details.remarks ?? undefined,
+      p_order_amount_usd: details.orderAmountUsd ?? undefined,
+      p_collected_usd: details.collectedUsd ?? undefined,
     })
     if (error) throw error
     return data
