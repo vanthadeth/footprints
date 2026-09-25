@@ -25,6 +25,8 @@ const CustomerDetailPage = lazy(() => import('@/pages/CustomerDetailPage').then(
 const VisitsPage = lazy(() => import('@/pages/VisitsPage').then((m) => ({ default: m.VisitsPage })))
 const ReportPage = lazy(() => import('@/pages/ReportPage').then((m) => ({ default: m.ReportPage })))
 const LeaveApprovalsPage = lazy(() => import('@/pages/LeaveApprovalsPage').then((m) => ({ default: m.LeaveApprovalsPage })))
+const PlanPage = lazy(() => import('@/pages/PlanPage').then((m) => ({ default: m.PlanPage })))
+const CoveragePage = lazy(() => import('@/pages/CoveragePage').then((m) => ({ default: m.CoveragePage })))
 const NotificationsPage = lazy(() => import('@/pages/NotificationsPage').then((m) => ({ default: m.NotificationsPage })))
 const LocationsPage = lazy(() => import('@/pages/LocationsPage').then((m) => ({ default: m.LocationsPage })))
 const TranslationsPage = lazy(() => import('@/pages/TranslationsPage').then((m) => ({ default: m.TranslationsPage })))
@@ -79,6 +81,22 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageFallback />}>
             <CustomersPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/customers/coverage',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <CoveragePage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/plan',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <PlanPage />
           </Suspense>
         ),
       },

@@ -12,6 +12,7 @@ import { SelfieCaptureSheet } from '@/features/attendance/SelfieCaptureSheet'
 import { computeJourneyStats } from '@/features/attendance/journeyStats'
 import type { DayJourney } from '@/features/attendance/useJourneyHistory'
 import { VisitFlow } from '@/features/visits/VisitFlow'
+import { PlanCard } from '@/features/plan/PlanCard'
 import { useCustomerNames } from '@/features/customers/useCustomerNames'
 import { useLocationNames } from '@/features/locations/useLocationNames'
 import { displayName } from '@/lib/displayName'
@@ -222,6 +223,8 @@ export function CheckInPage() {
               <MapPin className="h-[18px] w-[18px]" /> {t('home.checkInButton')}
             </button>
           ))}
+
+        <PlanCard />
 
         <div className="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-card">
           <ActivityRings

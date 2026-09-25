@@ -14,6 +14,9 @@ import { haptic } from '@/lib/haptic'
 import { useVisitOptions } from './useVisitOptions'
 import type { VisitOption, VisitOptionKind } from './visitOptionsService'
 import { visitsService, type NearbyCustomer, type VisitOutcomeDetails } from './visitsService'
+import { AmountFields } from './AmountFields'
+import { VisitPhotoStrip } from './VisitPhotoStrip'
+import { outcomeFields, parseAmount } from './visitOutcome'
 
 type Step = 'picker' | 'confirm' | 'record'
 
@@ -27,6 +30,7 @@ const NEXT_VISIT_PRESETS: { label: string; days: number }[] = [
   { label: 'Tomorrow', days: 1 },
   { label: 'In 3 days', days: 3 },
   { label: 'Next week', days: 7 },
+  { label: 'In 2 weeks', days: 14 },
 ]
 
 /**
@@ -71,6 +75,8 @@ export function VisitFlow({
   const [nextAppointment, setNextAppointment] = useState<string | null>(null)
   const [customDate, setCustomDate] = useState('')
   const [remarks, setRemarks] = useState('')
+  const [orderAmount, setOrderAmount] = useState('')
+  const [collected, setCollected] = useState('')
   const [confirmOpen, setConfirmOpen] = useState(false)
 
   const reselectingRef = useRef(false)
@@ -112,6 +118,8 @@ export function VisitFlow({
     setNextAppointment(null)
     setCustomDate('')
     setRemarks('')
+    setOrderAmount('')
+    setCollected('')
     setConfirmOpen(false)
     setFarCustomer(null)
     if (!journey.openVisit) void refreshLocation()
@@ -150,6 +158,8 @@ export function VisitFlow({
 
   const customerId = journey.openVisit?.customer_id ?? null
   const customerName = customerId ? customerNames[customerId] : null
+  const orderLabel = byKind.order_status.find((o) => o.id === orderStatusId)?.label
+  const paymentLabel = byKind.payment_status.find((o) => o.id === paymentStatusId)?.label
 
   function handleReselect() {
     reselectingRef.current = true
@@ -182,6 +192,7 @@ export function VisitFlow({
   function handleConfirm() {
     setConfirmOpen(false)
     haptic('light')
+    const fields = outcomeFields(orderLabel, paymentLabel)
     const details: VisitOutcomeDetails = {
       visitTypeId,
       visitStatusId,
@@ -189,6 +200,8 @@ export function VisitFlow({
       paymentStatusId,
       nextAppointment,
       remarks: remarks.trim() || null,
+      orderAmountUsd: fields.showOrderAmount ? parseAmount(orderAmount) : null,
+      collectedUsd: fields.showCollected ? parseAmount(collected) : null,
     }
     void journey.endVisit(details)
   }
@@ -264,6 +277,7 @@ export function VisitFlow({
         ) : (
           <RecordStep
             customerName={customerName}
+            visitId={journey.openVisit?.id ?? null}
             checkedInAt={journey.openVisit?.checked_in_at ?? null}
             byKind={byKind}
             visitTypeId={visitTypeId}
@@ -273,7 +287,13 @@ export function VisitFlow({
             nextAppointment={nextAppointment}
             customDate={customDate}
             remarks={remarks}
+            orderLabel={orderLabel}
+            paymentLabel={paymentLabel}
+            orderAmount={orderAmount}
+            collected={collected}
             busy={journey.busy}
+            onOrderAmount={setOrderAmount}
+            onCollected={setCollected}
             onVisitType={setVisitTypeId}
             onVisitStatus={setVisitStatusId}
             onOrderStatus={setOrderStatusId}
@@ -513,6 +533,7 @@ function ConfirmStep({
 
 function RecordStep({
   customerName,
+  visitId,
   checkedInAt,
   byKind,
   visitTypeId,
@@ -522,7 +543,13 @@ function RecordStep({
   nextAppointment,
   customDate,
   remarks,
+  orderLabel,
+  paymentLabel,
+  orderAmount,
+  collected,
   busy,
+  onOrderAmount,
+  onCollected,
   onVisitType,
   onVisitStatus,
   onOrderStatus,
@@ -535,6 +562,7 @@ function RecordStep({
   onRequestConfirm,
 }: {
   customerName: string | null | undefined
+  visitId: string | null
   checkedInAt: string | null
   byKind: Record<VisitOptionKind, VisitOption[]>
   visitTypeId: string | null
@@ -544,7 +572,13 @@ function RecordStep({
   nextAppointment: string | null
   customDate: string
   remarks: string
+  orderLabel: string | undefined
+  paymentLabel: string | undefined
+  orderAmount: string
+  collected: string
   busy: boolean
+  onOrderAmount: (value: string) => void
+  onCollected: (value: string) => void
   onVisitType: (id: string) => void
   onVisitStatus: (id: string) => void
   onOrderStatus: (id: string) => void
@@ -587,6 +621,15 @@ function RecordStep({
       <ChipGroup label="Visit Status (optional)" options={byKind.visit_status} value={visitStatusId} onChange={onVisitStatus} />
       <ChipGroup label="Order Status (optional)" options={byKind.order_status} value={orderStatusId} onChange={onOrderStatus} />
       <ChipGroup label="Payment Status (optional)" options={byKind.payment_status} value={paymentStatusId} onChange={onPaymentStatus} />
+      <AmountFields
+        orderLabel={orderLabel}
+        paymentLabel={paymentLabel}
+        orderAmount={orderAmount}
+        collected={collected}
+        onOrderAmount={onOrderAmount}
+        onCollected={onCollected}
+      />
+      {visitId && <VisitPhotoStrip visitId={visitId} editable />}
 
       <div>
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Next Visit (optional)</p>

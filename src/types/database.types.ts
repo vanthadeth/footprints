@@ -505,6 +505,56 @@ export type Database = {
           },
         ]
       }
+      customer_tiers: {
+        Row: {
+          customer_id: string
+          tier: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          customer_id: string
+          tier: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          customer_id?: string
+          tier?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_tiers_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: true
+            referencedRelation: "customer_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_tiers_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: true
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_tiers_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_tiers_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           business_type: string | null
@@ -2312,6 +2362,127 @@ export type Database = {
         }
         Relationships: []
       }
+      visit_photos: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          kind: string
+          photo_path: string
+          visit_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          kind?: string
+          photo_path: string
+          visit_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          kind?: string
+          photo_path?: string
+          visit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visit_photos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_photos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_photos_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      visit_plan_items: {
+        Row: {
+          created_at: string
+          customer_id: string
+          id: string
+          plan_date: string
+          sort_order: number
+          source: string
+          status: string
+          user_id: string
+          visit_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          id?: string
+          plan_date: string
+          sort_order?: number
+          source?: string
+          status?: string
+          user_id?: string
+          visit_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          id?: string
+          plan_date?: string
+          sort_order?: number
+          source?: string
+          status?: string
+          user_id?: string
+          visit_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visit_plan_items_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_plan_items_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_plan_items_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_plan_items_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_plan_items_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       visits: {
         Row: {
           attendance_id: string | null
@@ -2322,6 +2493,7 @@ export type Database = {
           checked_out_at: string | null
           checkout_distance_m: number | null
           checkout_out_of_range: boolean
+          collected_usd: number | null
           created_at: string
           customer_id: string | null
           distance_m: number | null
@@ -2331,6 +2503,7 @@ export type Database = {
           in_latitude: number | null
           in_longitude: number | null
           next_appointment: string | null
+          order_amount_usd: number | null
           order_status_id: string | null
           out_accuracy_m: number | null
           out_latitude: number | null
@@ -2354,6 +2527,7 @@ export type Database = {
           checked_out_at?: string | null
           checkout_distance_m?: number | null
           checkout_out_of_range?: boolean
+          collected_usd?: number | null
           created_at?: string
           customer_id?: string | null
           distance_m?: number | null
@@ -2363,6 +2537,7 @@ export type Database = {
           in_latitude?: number | null
           in_longitude?: number | null
           next_appointment?: string | null
+          order_amount_usd?: number | null
           order_status_id?: string | null
           out_accuracy_m?: number | null
           out_latitude?: number | null
@@ -2386,6 +2561,7 @@ export type Database = {
           checked_out_at?: string | null
           checkout_distance_m?: number | null
           checkout_out_of_range?: boolean
+          collected_usd?: number | null
           created_at?: string
           customer_id?: string | null
           distance_m?: number | null
@@ -2395,6 +2571,7 @@ export type Database = {
           in_latitude?: number | null
           in_longitude?: number | null
           next_appointment?: string | null
+          order_amount_usd?: number | null
           order_status_id?: string | null
           out_accuracy_m?: number | null
           out_latitude?: number | null
@@ -2841,6 +3018,7 @@ export type Database = {
           checked_out_at: string | null
           checkout_distance_m: number | null
           checkout_out_of_range: boolean
+          collected_usd: number | null
           created_at: string
           customer_id: string | null
           distance_m: number | null
@@ -2850,6 +3028,7 @@ export type Database = {
           in_latitude: number | null
           in_longitude: number | null
           next_appointment: string | null
+          order_amount_usd: number | null
           order_status_id: string | null
           out_accuracy_m: number | null
           out_latitude: number | null
@@ -2887,6 +3066,7 @@ export type Database = {
           checked_out_at: string | null
           checkout_distance_m: number | null
           checkout_out_of_range: boolean
+          collected_usd: number | null
           created_at: string
           customer_id: string | null
           distance_m: number | null
@@ -2896,6 +3076,7 @@ export type Database = {
           in_latitude: number | null
           in_longitude: number | null
           next_appointment: string | null
+          order_amount_usd: number | null
           order_status_id: string | null
           out_accuracy_m: number | null
           out_latitude: number | null
@@ -2920,9 +3101,11 @@ export type Database = {
       check_out: {
         Args: {
           p_accuracy?: number
+          p_collected_usd?: number
           p_latitude: number
           p_longitude: number
           p_next_appointment?: string
+          p_order_amount_usd?: number
           p_order_status_id?: string
           p_payment_status_id?: string
           p_remarks?: string
@@ -2939,6 +3122,7 @@ export type Database = {
           checked_out_at: string | null
           checkout_distance_m: number | null
           checkout_out_of_range: boolean
+          collected_usd: number | null
           created_at: string
           customer_id: string | null
           distance_m: number | null
@@ -2948,6 +3132,7 @@ export type Database = {
           in_latitude: number | null
           in_longitude: number | null
           next_appointment: string | null
+          order_amount_usd: number | null
           order_status_id: string | null
           out_accuracy_m: number | null
           out_latitude: number | null
@@ -3035,6 +3220,30 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      customer_coverage: {
+        Args: {
+          p_lat?: number
+          p_limit?: number
+          p_lng?: number
+          p_scope?: string
+          p_search?: string
+        }
+        Returns: {
+          address: string
+          cadence_days: number
+          code: string
+          customer_id: string
+          days_since: number
+          distance_m: number
+          due_state: string
+          last_visit_at: string
+          latitude: number
+          longitude: number
+          shop_name: string
+          tier: string
+          visited_by_me: boolean
+        }[]
       }
       decide_leave_request: {
         Args: { p_approve: boolean; p_id: string; p_note?: string }
@@ -3127,6 +3336,26 @@ export type Database = {
         }[]
       }
       my_pin_is_set: { Args: never; Returns: boolean }
+      my_plan: {
+        Args: { p_date?: string }
+        Returns: {
+          address: string
+          appointment_at: string
+          checked_in_at: string
+          checked_out_at: string
+          customer_id: string
+          item_id: string
+          last_visit_at: string
+          latitude: number
+          longitude: number
+          shop_name: string
+          sort_order: number
+          source: string
+          status: string
+          tier: string
+          visit_id: string
+        }[]
+      }
       my_team: {
         Args: never
         Returns: {
@@ -3172,6 +3401,51 @@ export type Database = {
           notification_id: string
           p256dh: string
         }[]
+      }
+      plan_add: {
+        Args: { p_customer: string; p_date: string; p_source?: string }
+        Returns: {
+          created_at: string
+          customer_id: string
+          id: string
+          plan_date: string
+          sort_order: number
+          source: string
+          status: string
+          user_id: string
+          visit_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "visit_plan_items"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      plan_remove: { Args: { p_item: string }; Returns: undefined }
+      plan_reorder: {
+        Args: { p_date: string; p_ids: string[] }
+        Returns: undefined
+      }
+      plan_skip: {
+        Args: { p_item: string; p_skipped?: boolean }
+        Returns: {
+          created_at: string
+          customer_id: string
+          id: string
+          plan_date: string
+          sort_order: number
+          source: string
+          status: string
+          user_id: string
+          visit_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "visit_plan_items"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       record_location_ping: {
         Args: {
@@ -3222,6 +3496,21 @@ export type Database = {
           message: string
           telegram_id: string
         }[]
+      }
+      set_customer_tier: {
+        Args: { p_customer: string; p_tier: string }
+        Returns: {
+          customer_id: string
+          tier: string
+          updated_at: string
+          updated_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "customer_tiers"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       set_default_printer: { Args: { p_printer: string }; Returns: undefined }
       set_leave_balance: {
@@ -3287,6 +3576,7 @@ export type Database = {
           checked_out_at: string | null
           checkout_distance_m: number | null
           checkout_out_of_range: boolean
+          collected_usd: number | null
           created_at: string
           customer_id: string | null
           distance_m: number | null
@@ -3296,6 +3586,7 @@ export type Database = {
           in_latitude: number | null
           in_longitude: number | null
           next_appointment: string | null
+          order_amount_usd: number | null
           order_status_id: string | null
           out_accuracy_m: number | null
           out_latitude: number | null
@@ -3319,7 +3610,9 @@ export type Database = {
       }
       update_visit_record: {
         Args: {
+          p_collected_usd?: number
           p_next_appointment?: string
+          p_order_amount_usd?: number
           p_order_status_id?: string
           p_payment_status_id?: string
           p_remarks?: string
@@ -3336,6 +3629,7 @@ export type Database = {
           checked_out_at: string | null
           checkout_distance_m: number | null
           checkout_out_of_range: boolean
+          collected_usd: number | null
           created_at: string
           customer_id: string | null
           distance_m: number | null
@@ -3345,6 +3639,7 @@ export type Database = {
           in_latitude: number | null
           in_longitude: number | null
           next_appointment: string | null
+          order_amount_usd: number | null
           order_status_id: string | null
           out_accuracy_m: number | null
           out_latitude: number | null
@@ -3378,6 +3673,7 @@ export type Database = {
           checked_out_at: string | null
           checkout_distance_m: number | null
           checkout_out_of_range: boolean
+          collected_usd: number | null
           created_at: string
           customer_id: string | null
           distance_m: number | null
@@ -3387,6 +3683,7 @@ export type Database = {
           in_latitude: number | null
           in_longitude: number | null
           next_appointment: string | null
+          order_amount_usd: number | null
           order_status_id: string | null
           out_accuracy_m: number | null
           out_latitude: number | null

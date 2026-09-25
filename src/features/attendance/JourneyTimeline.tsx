@@ -2,6 +2,7 @@ import { type ReactNode, Suspense, lazy, useEffect, useState } from 'react'
 import {
   AlertTriangle,
   Ban,
+  Banknote,
   Calendar,
   Check,
   ChevronRight,
@@ -44,6 +45,9 @@ import { distanceInMeters, formatDistance } from '@/lib/geo'
 import { useVisitOptions } from '@/features/visits/useVisitOptions'
 import { visitsService, type VisitOutcomeDetails } from '@/features/visits/visitsService'
 import type { VisitOption, VisitOptionKind } from '@/features/visits/visitOptionsService'
+import { AmountFields } from '@/features/visits/AmountFields'
+import { VisitPhotoStrip } from '@/features/visits/VisitPhotoStrip'
+import { formatUsd, outcomeFields, parseAmount } from '@/features/visits/visitOutcome'
 import type { AttendanceRow, VisitRow } from './types'
 
 // react-zoom-pan-pinch only loads once someone actually taps a Clock In/Out
@@ -552,6 +556,8 @@ function VisitEntry({
   const [nextAppointment, setNextAppointment] = useState<string | null>(visit.next_appointment)
   const [customDate, setCustomDate] = useState('')
   const [remarks, setRemarks] = useState(visit.remarks ?? '')
+  const [orderAmount, setOrderAmount] = useState(visit.order_amount_usd?.toString() ?? '')
+  const [collected, setCollected] = useState(visit.collected_usd?.toString() ?? '')
 
   // Re-sync the edit buffer to the visit's latest saved values every time
   // the sheet (re)opens -- so a previous edit-then-cancel, or fresher data
@@ -570,6 +576,8 @@ function VisitEntry({
     setNextAppointment(visit.next_appointment)
     setCustomDate('')
     setRemarks(visit.remarks ?? '')
+    setOrderAmount(visit.order_amount_usd?.toString() ?? '')
+    setCollected(visit.collected_usd?.toString() ?? '')
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-sync when the sheet opens, not on every visit/prop change
   }, [open])
 
@@ -584,12 +592,20 @@ function VisitEntry({
   const visitStatus = visit.visit_status_id ? optionsById[visit.visit_status_id] : undefined
   const orderStatus = visit.order_status_id ? optionsById[visit.order_status_id] : undefined
   const paymentStatus = visit.payment_status_id ? optionsById[visit.payment_status_id] : undefined
-  const hasRecord = visitStatus || orderStatus || paymentStatus || visit.next_appointment
+  const hasRecord = visitStatus || orderStatus || paymentStatus || visit.next_appointment || visit.order_amount_usd != null || visit.collected_usd != null
   const summaryLine1 = [visitStatus, orderStatus, paymentStatus]
     .filter((o): o is VisitOption => !!o)
     .map((o) => tValue(`visitOption:${o.id}`, o.label))
     .join(' | ')
-  const hasSummary = !!summaryLine1 || !!visit.next_appointment || !!visit.remarks
+  const moneyLine = [
+    visit.order_amount_usd != null ? `Order ${formatUsd(visit.order_amount_usd)}` : null,
+    visit.collected_usd != null ? `Collected ${formatUsd(visit.collected_usd)}` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+  const hasSummary = !!summaryLine1 || !!moneyLine || !!visit.next_appointment || !!visit.remarks
+  const orderLabel = orderStatusId ? optionsById[orderStatusId]?.label : undefined
+  const paymentLabel = paymentStatusId ? optionsById[paymentStatusId]?.label : undefined
 
   const isOpenVisit = interactive && !closed && !voided && visit.id === journey.openVisit?.id
   const withinEditWindow = Date.now() - new Date(visit.checked_in_at).getTime() < VISIT_EDIT_WINDOW_MS
@@ -609,7 +625,17 @@ function VisitEntry({
   }
 
   function currentDetails(): VisitOutcomeDetails {
-    return { visitTypeId, visitStatusId, orderStatusId, paymentStatusId, nextAppointment, remarks: remarks.trim() || null }
+    const fields = outcomeFields(orderLabel, paymentLabel)
+    return {
+      visitTypeId,
+      visitStatusId,
+      orderStatusId,
+      paymentStatusId,
+      nextAppointment,
+      remarks: remarks.trim() || null,
+      orderAmountUsd: fields.showOrderAmount ? parseAmount(orderAmount) : null,
+      collectedUsd: fields.showCollected ? parseAmount(collected) : null,
+    }
   }
 
   function handleCancelEdit() {
@@ -621,6 +647,8 @@ function VisitEntry({
     setNextAppointment(visit.next_appointment)
     setCustomDate('')
     setRemarks(visit.remarks ?? '')
+    setOrderAmount(visit.order_amount_usd?.toString() ?? '')
+    setCollected(visit.collected_usd?.toString() ?? '')
   }
 
   async function handleSaveRecord() {
@@ -724,6 +752,7 @@ function VisitEntry({
         {!voided && hasSummary && (
           <div className="mt-3 space-y-1 border-t border-neutral-100 pt-3 text-xs text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">
             {summaryLine1 && <p className="font-medium text-neutral-700 dark:text-neutral-300">{summaryLine1}</p>}
+            {moneyLine && <p className="font-semibold text-status-working">{moneyLine}</p>}
             {visit.next_appointment && <p>{t('journey.nextVisitLine', { date: formatDate(visit.next_appointment) })}</p>}
             {visit.remarks && <p className="whitespace-pre-wrap">{visit.remarks}</p>}
           </div>
@@ -824,6 +853,15 @@ function VisitEntry({
                   value={paymentStatusId}
                   onChange={setPaymentStatusId}
                 />
+                <AmountFields
+                  orderLabel={orderLabel}
+                  paymentLabel={paymentLabel}
+                  orderAmount={orderAmount}
+                  collected={collected}
+                  onOrderAmount={setOrderAmount}
+                  onCollected={setCollected}
+                />
+                <VisitPhotoStrip visitId={visit.id} editable />
 
                 <div>
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">{t('journey.nextVisitOptional')}</p>
@@ -917,6 +955,12 @@ function VisitEntry({
                         value={tValue(`visitOption:${paymentStatus.id}`, paymentStatus.label)}
                       />
                     )}
+                    {visit.order_amount_usd != null && (
+                      <RecordRow icon={<Banknote className="h-4 w-4" />} label="Order value" value={formatUsd(visit.order_amount_usd)} />
+                    )}
+                    {visit.collected_usd != null && (
+                      <RecordRow icon={<Banknote className="h-4 w-4" />} label="Collected" value={formatUsd(visit.collected_usd)} />
+                    )}
                     {visit.next_appointment && (
                       <RecordRow
                         icon={<Calendar className="h-4 w-4" />}
@@ -928,6 +972,8 @@ function VisitEntry({
                 ) : (
                   canEditRecord && <p className="text-center text-xs text-neutral-400">{t('journey.noRecordYet')}</p>
                 )}
+
+                <VisitPhotoStrip visitId={visit.id} editable={false} />
 
                 {canEditRecord && (
                   <button

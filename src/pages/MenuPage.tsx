@@ -14,6 +14,8 @@ import {
   Languages,
   LogOut,
   MapPin,
+  Route,
+  Store,
   Moon,
   Settings,
   Shield,
@@ -111,6 +113,11 @@ export function MenuPage() {
             </Link>
           ))}
         </div>
+
+        <GroupedList title="Selling">
+          <ListRow icon={Route} iconBg="bg-brand-500" label="Today's plan" sublabel="Your stops, route and next customer" to="/plan" />
+          <ListRow icon={Store} iconBg="bg-status-warn" label="Customer coverage" sublabel="Who's due or overdue for a visit" to="/customers/coverage" />
+        </GroupedList>
 
         {isManager && (
           <GroupedList title="Team">
