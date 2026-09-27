@@ -10,8 +10,14 @@ import { DashboardTab } from '@/features/dashboard/DashboardTab'
 import { ReportsTab } from '@/features/reports/ReportsTab'
 import { ActivityLogTab } from '@/features/reports/ActivityLogTab'
 import { CheckInOutTab } from '@/features/fleet/CheckInOutTab'
+import { SegmentedControl } from '@/components/SegmentedControl'
+import { WeeklyAttendance } from '@/features/attendanceSummary/WeeklyAttendance'
+import { MonthlyAttendance } from '@/features/attendanceSummary/MonthlyAttendance'
+import { useProfile } from '@/features/auth/useProfile'
 
 type Tab = 'list' | 'map' | 'dashboard' | 'reports' | 'logs' | 'attendance'
+type AttendanceView = 'daily' | 'weekly' | 'monthly'
+const ATTENDANCE_VIEWS: AttendanceView[] = ['daily', 'weekly', 'monthly']
 
 const TABS: { key: Tab; label: string; icon: LucideIcon }[] = [
   { key: 'list', label: 'List', icon: List },
@@ -28,6 +34,8 @@ export function FleetPage() {
   const [params, setParams] = useSearchParams()
   const requested = params.get('tab') === 'checkinout' ? 'attendance' : params.get('tab')
   const tab: Tab = TABS.some((t) => t.key === requested) ? (requested as Tab) : 'list'
+  const view: AttendanceView = ATTENDANCE_VIEWS.includes(params.get('view') as AttendanceView) ? (params.get('view') as AttendanceView) : 'daily'
+  const { profile } = useProfile()
 
   // "My fleet" means the field salespeople actually being tracked -- not
   // every active user who happens to report up to this viewer (HR/back
@@ -96,7 +104,23 @@ export function FleetPage() {
             {tab === 'dashboard' && <DashboardTab snapshots={snapshots} />}
             {tab === 'reports' && <ReportsTab team={snapshots.map((s) => s.member)} />}
             {tab === 'logs' && <ActivityLogTab team={snapshots.map((s) => s.member)} />}
-            {tab === 'attendance' && <CheckInOutTab snapshots={snapshots} />}
+            {tab === 'attendance' && (
+              <div className="space-y-3.5">
+                <SegmentedControl<AttendanceView>
+                  ariaLabel="Attendance period"
+                  value={view}
+                  onChange={(v) => setParams(v === 'daily' ? { tab: 'attendance' } : { tab: 'attendance', view: v }, { replace: true })}
+                  options={[
+                    { value: 'daily', label: 'Daily' },
+                    { value: 'weekly', label: 'Weekly' },
+                    { value: 'monthly', label: 'Monthly' },
+                  ]}
+                />
+                {view === 'daily' && <CheckInOutTab snapshots={snapshots} />}
+                {view === 'weekly' && <WeeklyAttendance team={snapshots.map((s) => s.member)} />}
+                {view === 'monthly' && <MonthlyAttendance team={snapshots.map((s) => s.member)} canEditCycle={profile?.is_super_admin === true} />}
+              </div>
+            )}
           </>
         )}
       </div>

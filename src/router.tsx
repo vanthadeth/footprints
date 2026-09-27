@@ -25,6 +25,9 @@ const CustomerDetailPage = lazy(() => import('@/pages/CustomerDetailPage').then(
 const VisitsPage = lazy(() => import('@/pages/VisitsPage').then((m) => ({ default: m.VisitsPage })))
 const ReportPage = lazy(() => import('@/pages/ReportPage').then((m) => ({ default: m.ReportPage })))
 const LeaveApprovalsPage = lazy(() => import('@/pages/LeaveApprovalsPage').then((m) => ({ default: m.LeaveApprovalsPage })))
+const WorkingHoursPage = lazy(() => import('@/pages/WorkingHoursPage').then((m) => ({ default: m.WorkingHoursPage })))
+const HolidaysPage = lazy(() => import('@/pages/HolidaysPage').then((m) => ({ default: m.HolidaysPage })))
+const LeaveAllowancesPage = lazy(() => import('@/pages/LeaveAllowancesPage').then((m) => ({ default: m.LeaveAllowancesPage })))
 const PlanPage = lazy(() => import('@/pages/PlanPage').then((m) => ({ default: m.PlanPage })))
 const CoveragePage = lazy(() => import('@/pages/CoveragePage').then((m) => ({ default: m.CoveragePage })))
 const NotificationsPage = lazy(() => import('@/pages/NotificationsPage').then((m) => ({ default: m.NotificationsPage })))
@@ -137,6 +140,30 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageFallback />}>
             <LeavePage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/leave/allowances',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <LeaveAllowancesPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/settings/working-hours',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <WorkingHoursPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/settings/holidays',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <HolidaysPage />
           </Suspense>
         ),
       },

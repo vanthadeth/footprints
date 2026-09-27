@@ -17,6 +17,7 @@ export type Database = {
       app_settings: {
         Row: {
           allow_early_clockin_minutes: number
+          attendance_cycle_close_day: number
           auto_checkout_enabled: boolean
           auto_clockout_grace_minutes: number
           checkin_radius_m: number
@@ -26,6 +27,7 @@ export type Database = {
           id: boolean
           idle_alert_threshold_minutes: number
           late_clockin_threshold_minutes: number
+          late_grace_minutes: number
           location_ping_interval_minutes: number
           max_location_accuracy_m: number
           primary_currency: Database["public"]["Enums"]["currency"]
@@ -40,6 +42,7 @@ export type Database = {
         }
         Insert: {
           allow_early_clockin_minutes?: number
+          attendance_cycle_close_day?: number
           auto_checkout_enabled?: boolean
           auto_clockout_grace_minutes?: number
           checkin_radius_m?: number
@@ -49,6 +52,7 @@ export type Database = {
           id?: boolean
           idle_alert_threshold_minutes?: number
           late_clockin_threshold_minutes?: number
+          late_grace_minutes?: number
           location_ping_interval_minutes?: number
           max_location_accuracy_m?: number
           primary_currency?: Database["public"]["Enums"]["currency"]
@@ -63,6 +67,7 @@ export type Database = {
         }
         Update: {
           allow_early_clockin_minutes?: number
+          attendance_cycle_close_day?: number
           auto_checkout_enabled?: boolean
           auto_clockout_grace_minutes?: number
           checkin_radius_m?: number
@@ -72,6 +77,7 @@ export type Database = {
           id?: boolean
           idle_alert_threshold_minutes?: number
           late_clockin_threshold_minutes?: number
+          late_grace_minutes?: number
           location_ping_interval_minutes?: number
           max_location_accuracy_m?: number
           primary_currency?: Database["public"]["Enums"]["currency"]
@@ -1382,6 +1388,60 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      public_holidays: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          department_ids: string[] | null
+          end_date: string
+          half_day: boolean
+          id: string
+          kind: string
+          name: string
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          department_ids?: string[] | null
+          end_date: string
+          half_day?: boolean
+          id?: string
+          kind?: string
+          name: string
+          start_date: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          department_ids?: string[] | null
+          end_date?: string
+          half_day?: boolean
+          id?: string
+          kind?: string
+          name?: string
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "public_holidays_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_holidays_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       push_subscriptions: {
         Row: {
@@ -2703,6 +2763,87 @@ export type Database = {
           },
         ]
       }
+      work_schedule_days: {
+        Row: {
+          break_minutes: number
+          end_time: string
+          is_working: boolean
+          iso_dow: number
+          schedule_id: string
+          start_time: string
+        }
+        Insert: {
+          break_minutes?: number
+          end_time?: string
+          is_working?: boolean
+          iso_dow: number
+          schedule_id: string
+          start_time?: string
+        }
+        Update: {
+          break_minutes?: number
+          end_time?: string
+          is_working?: boolean
+          iso_dow?: number
+          schedule_id?: string
+          start_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_schedule_days_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "work_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_schedules: {
+        Row: {
+          break_paid: boolean
+          department_id: string | null
+          id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          break_paid?: boolean
+          department_id?: string | null
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          break_paid?: boolean
+          department_id?: string | null
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_schedules_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: true
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_schedules_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_schedules_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       customer_directory: {
@@ -3381,6 +3522,21 @@ export type Database = {
           sort_order: number
         }[]
       }
+      my_work_day: {
+        Args: { p_date?: string }
+        Returns: {
+          break_minutes: number
+          break_paid: boolean
+          end_time: string
+          holiday_half: boolean
+          holiday_id: string
+          holiday_name: string
+          is_working: boolean
+          scheduled_day: boolean
+          start_time: string
+          team_schedule: boolean
+        }[]
+      }
       nearby_customers: {
         Args: { p_latitude: number; p_limit?: number; p_longitude: number }
         Returns: {
@@ -3496,6 +3652,10 @@ export type Database = {
           message: string
           telegram_id: string
         }[]
+      }
+      save_work_schedule: {
+        Args: { p_break_paid: boolean; p_days: Json; p_department: string }
+        Returns: string
       }
       set_customer_tier: {
         Args: { p_customer: string; p_tier: string }

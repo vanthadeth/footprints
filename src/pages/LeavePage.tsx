@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
+import { ChevronRight, Scale } from 'lucide-react'
 import { useProfile } from '@/features/auth/useProfile'
 import { usersService, type ManagedUser } from '@/features/users/usersService'
 import { leaveService } from '@/features/leave/leaveService'
 import { MyLeaveTab } from '@/features/leave/MyLeaveTab'
 import { BalanceCards } from '@/features/leave/BalanceCards'
 import { AttendanceCalendar } from '@/features/leave/AttendanceCalendar'
-import { LeaveBalancesAdmin } from '@/features/leave/LeaveBalancesAdmin'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { displayName } from '@/lib/displayName'
 import type { LeaveBalanceSummary, LeaveRequest } from '@/features/leave/types'
@@ -89,15 +89,16 @@ export function LeavePage() {
                   <BalanceCards balances={myBalances} requests={myRequests} layout="stack" />
                 </section>
                 {canManageBalances && (
-                  <section className="space-y-2">
-                    <h2 className="px-0.5 text-[17px] font-bold text-neutral-900">Team balances</h2>
-                    <LeaveBalancesAdmin
-                      people={people.map((p) => ({ id: p.id, name: displayName(p.fullName, p.nickname) }))}
-                      balances={balances}
-                      year={year}
-                      onChanged={load}
-                    />
-                  </section>
+                  <Link to="/leave/allowances" className="flex items-center gap-3 rounded-2xl bg-white p-4 shadow-card">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+                      <Scale className="h-5 w-5" aria-hidden />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[15px] font-bold text-neutral-900">Leave allowances</span>
+                      <span className="block text-[13px] text-neutral-500">Company default and each person’s allowance</span>
+                    </span>
+                    <ChevronRight className="h-4 w-4 text-neutral-400" aria-hidden />
+                  </Link>
                 )}
               </div>
             )}

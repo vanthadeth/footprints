@@ -34,6 +34,9 @@ export const en = {
     leaveApprovals: 'Leave Approvals',
     plan: "Today's Plan",
     coverage: 'Coverage',
+    leaveAllowances: 'Leave Allowances',
+    workingHours: 'Working Hours & Days',
+    holidays: 'Public Holidays',
   },
   welcome: {
     tagline: 'Your day. Your customers. Your progress.',
