@@ -7,6 +7,11 @@ import { TierCard } from '@/features/customers/TierCard'
 import { formatUsd } from '@/features/visits/visitOutcome'
 import type { VisitRow } from '@/features/attendance/types'
 import { CUSTOMER_MANAGEMENT_ENABLED } from '@/lib/featureFlags'
+import { useProfile } from '@/features/auth/useProfile'
+import { ConversationSection } from '@/features/conversations/ConversationSection'
+import { LogCallSheet } from '@/features/conversations/LogCallSheet'
+import { conversationsService } from '@/features/conversations/conversationsService'
+import type { ConversationKind } from '@/features/conversations/conversationMeta'
 import { formatDate, formatTime } from '@/lib/datetime'
 
 const STATUS_STYLES: Record<string, string> = {
@@ -37,12 +42,24 @@ function CustomerDetail() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [visitOpen, setVisitOpen] = useState(false)
+  const { profile } = useProfile()
+  const [canLog, setCanLog] = useState(false)
+  const [logKind, setLogKind] = useState<ConversationKind | null>(null)
+  const [conversationKey, setConversationKey] = useState(0)
 
   useEffect(() => {
     if (!id) return
     let cancelled = false
     setLoading(true)
     setError(null)
+    conversationsService
+      .canLog(id)
+      .then((ok) => {
+        if (!cancelled) setCanLog(ok)
+      })
+      .catch(() => {
+        // Without the answer we just don't offer Log call; the server would refuse anyway.
+      })
     Promise.all([customersService.get(id), customersService.recentVisits(id)])
       .then(([c, visits]) => {
         if (cancelled) return
@@ -114,6 +131,10 @@ function CustomerDetail() {
             <a
               href={customer.primary_contact_phone ? `tel:${customer.primary_contact_phone}` : undefined}
               aria-disabled={!customer.primary_contact_phone}
+              onClick={() => {
+                // Ask them to log it once they come back from the dialler.
+                if (canLog) setTimeout(() => setLogKind('call'), 600)
+              }}
               className={`flex flex-col items-center gap-1 rounded-xl border border-neutral-200 py-2.5 text-xs font-semibold text-neutral-700 tap-target ${
                 !customer.primary_contact_phone ? 'pointer-events-none opacity-40' : ''
               }`}
@@ -145,9 +166,16 @@ function CustomerDetail() {
             <QuickTile icon={ShoppingCart} label="New Order" comingSoon />
             <QuickTile icon={Banknote} label="Collection" comingSoon />
             <QuickTile icon={Camera} label="Photo" comingSoon />
-            <QuickTile icon={NotebookPen} label="Note" comingSoon />
+            <QuickTile icon={NotebookPen} label="Note" comingSoon={!canLog} onClick={() => setLogKind('note')} />
           </div>
         </div>
+
+        <ConversationSection
+          customerId={customer.id!}
+          meId={profile?.id ?? null}
+          refreshKey={conversationKey}
+          onLogCall={canLog ? () => setLogKind('call') : undefined}
+        />
 
         <div className="mt-4">
           <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-neutral-400">Recent Activity</p>
@@ -178,6 +206,16 @@ function CustomerDetail() {
       </div>
 
       <VisitFlow open={visitOpen} onClose={() => setVisitOpen(false)} presetCustomer={presetCustomer} />
+      <LogCallSheet
+        open={logKind != null}
+        onClose={() => setLogKind(null)}
+        kind={logKind ?? 'call'}
+        customerId={customer.id!}
+        customerName={customer.shop_name ?? 'Customer'}
+        customerOwnerId={customer.owner_id ?? null}
+        meId={profile?.id ?? null}
+        onSaved={() => setConversationKey((k) => k + 1)}
+      />
     </div>
   )
 }
@@ -190,10 +228,11 @@ function BackLink({ onClick }: { onClick: () => void }) {
   )
 }
 
-function QuickTile({ icon: Icon, label, comingSoon }: { icon: LucideIcon; label: string; comingSoon?: boolean }) {
+function QuickTile({ icon: Icon, label, comingSoon, onClick }: { icon: LucideIcon; label: string; comingSoon?: boolean; onClick?: () => void }) {
   return (
     <button
       disabled={comingSoon}
+      onClick={onClick}
       className="flex flex-col items-center gap-2 rounded-xl2 border border-neutral-200 bg-white p-4 text-center tap-target disabled:opacity-40 dark:border-neutral-700"
     >
       <span className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-50 text-brand-600 dark:bg-neutral-800 dark:text-brand-300">

@@ -1,32 +1,26 @@
 import { useNavigate } from 'react-router-dom'
 import { Bell } from 'lucide-react'
-import { useProfile } from '@/features/auth/useProfile'
-import { useNotificationsContext } from '@/features/notifications/NotificationsContext'
+import { useMessages } from '@/features/conversations/MessagesContext'
 import { haptic } from '@/lib/haptic'
 
 /**
- * Title-bar shortcut into the Notifications Center -- rendered for every
- * authenticated screen (like ProfileBadge), but only ever visible to a
- * super admin, since that's the whole feature's audience (see
- * NotificationsPage). Reads the shared NotificationsProvider instance
- * (AppLayout) rather than calling useNotifications() itself -- see that
- * context's doc comment for why a second independent instance would crash.
+ * Title-bar shortcut into Messages -- the customer conversations that
+ * concern you (mentions, replies, your customers, follow-ups due), for
+ * every signed-in user. Reads the shared MessagesProvider (AppLayout) so
+ * the badge and the Messages page share one realtime subscription.
+ * Super admins still reach the activity Notifications from Hub.
  */
 export function NotificationBell() {
-  const { profile } = useProfile()
-  const isSuperAdmin = profile?.is_super_admin === true
-  const { unreadCount } = useNotificationsContext()
+  const { unreadCount } = useMessages()
   const navigate = useNavigate()
-
-  if (!isSuperAdmin) return null
 
   return (
     <button
       onClick={() => {
         haptic('light')
-        navigate('/notifications')
+        navigate('/messages')
       }}
-      aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
+      aria-label={unreadCount > 0 ? `Messages, ${unreadCount} unread` : 'Messages'}
       className="relative flex h-9 w-9 items-center justify-center rounded-full text-neutral-500 tap-target dark:text-neutral-300"
     >
       <Bell className="h-5 w-5" aria-hidden />

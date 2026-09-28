@@ -17,6 +17,7 @@ import {
   Languages,
   LogOut,
   MapPin,
+  MessagesSquare,
   Route,
   Store,
   Moon,
@@ -37,6 +38,7 @@ import { useAvatarUrl } from '@/features/auth/useAvatarUrl'
 import { useHasTeam } from '@/features/fleet/useHasTeam'
 import { leaveService } from '@/features/leave/leaveService'
 import { useNotificationsContext } from '@/features/notifications/NotificationsContext'
+import { useMessages } from '@/features/conversations/MessagesContext'
 import { useLanguage } from '@/i18n/LanguageContext'
 import { useTheme } from '@/lib/ThemeContext'
 import { displayName } from '@/lib/displayName'
@@ -72,6 +74,7 @@ export function MenuPage() {
   const isManager = isSuperAdmin || hasTeam
   const isHr = profile?.role_name === 'HR'
   const { unreadCount } = useNotificationsContext()
+  const { unreadCount: unreadMessages } = useMessages()
 
   useEffect(() => {
     if (!isManager || !profile) return
@@ -119,6 +122,15 @@ export function MenuPage() {
         </div>
 
         <GroupedList title="Selling">
+          <ListRow
+            icon={MessagesSquare}
+            iconBg="bg-brand-600"
+            label="Messages"
+            sublabel="Mentions, replies and your customers"
+            badge={unreadMessages}
+            to="/messages"
+          />
+          <ListRow icon={Store} iconBg="bg-status-working" label="Customers" sublabel="Calls, notes and visits by customer" to="/customers" />
           <ListRow icon={Route} iconBg="bg-brand-500" label="Today's plan" sublabel="Your stops, route and next customer" to="/plan" />
           <ListRow icon={Store} iconBg="bg-status-warn" label="Customer coverage" sublabel="Who's due or overdue for a visit" to="/customers/coverage" />
         </GroupedList>

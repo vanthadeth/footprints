@@ -33,6 +33,8 @@ export const km: TranslationKey = {
     more: 'ច្រើនទៀត',
     performance: 'សមិទ្ធផល',
     notifications: 'ការជូនដំណឹង',
+    messages: 'សារ',
+    messageThread: 'ការសន្ទនា',
     locations: 'ទីតាំង',
     translations: 'ការបកប្រែ',
     customer: 'អតិថិជន',
