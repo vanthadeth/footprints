@@ -13,7 +13,7 @@ interface Props {
 
 /** Working days the request uses, as stored when it was made; older rows fall back to a calendar-day count. */
 function daysOf(r: LeaveRequest) {
-  const stored = (r as LeaveRequest & { days?: number | string | null }).days
+  const stored = r.days
   return stored != null ? Number(stored) : leaveRequestDays(r.start_date, r.end_date, r.start_period, r.end_period)
 }
 

@@ -24,10 +24,14 @@ export type Database = {
           daily_active_hours: number | null
           daily_visit_target: number | null
           daily_working_hours: number | null
+          default_annual_leave_days: number
+          default_sick_leave_days: number
           id: boolean
           idle_alert_threshold_minutes: number
           late_clockin_threshold_minutes: number
           late_grace_minutes: number
+          leave_carry_over_max_days: number
+          leave_prorata_new_joiners: boolean
           location_ping_interval_minutes: number
           max_location_accuracy_m: number
           primary_currency: Database["public"]["Enums"]["currency"]
@@ -49,10 +53,14 @@ export type Database = {
           daily_active_hours?: number | null
           daily_visit_target?: number | null
           daily_working_hours?: number | null
+          default_annual_leave_days?: number
+          default_sick_leave_days?: number
           id?: boolean
           idle_alert_threshold_minutes?: number
           late_clockin_threshold_minutes?: number
           late_grace_minutes?: number
+          leave_carry_over_max_days?: number
+          leave_prorata_new_joiners?: boolean
           location_ping_interval_minutes?: number
           max_location_accuracy_m?: number
           primary_currency?: Database["public"]["Enums"]["currency"]
@@ -74,10 +82,14 @@ export type Database = {
           daily_active_hours?: number | null
           daily_visit_target?: number | null
           daily_working_hours?: number | null
+          default_annual_leave_days?: number
+          default_sick_leave_days?: number
           id?: boolean
           idle_alert_threshold_minutes?: number
           late_clockin_threshold_minutes?: number
           late_grace_minutes?: number
+          leave_carry_over_max_days?: number
+          leave_prorata_new_joiners?: boolean
           location_ping_interval_minutes?: number
           max_location_accuracy_m?: number
           primary_currency?: Database["public"]["Enums"]["currency"]
@@ -91,6 +103,13 @@ export type Database = {
           work_start_time?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "app_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "app_settings_updated_by_fkey"
             columns: ["updated_by"]
@@ -187,6 +206,13 @@ export type Database = {
             foreignKeyName: "attendance_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "attendance_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["id"]
           },
@@ -237,6 +263,13 @@ export type Database = {
           table_name?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "audit_log_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "audit_log_actor_id_fkey"
             columns: ["actor_id"]
@@ -386,6 +419,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "carts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "carts_user_id_fkey"
@@ -549,6 +589,13 @@ export type Database = {
             foreignKeyName: "customer_tiers_updated_by_fkey"
             columns: ["updated_by"]
             isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "customer_tiers_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["id"]
           },
@@ -645,6 +692,13 @@ export type Database = {
             foreignKeyName: "customers_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "customers_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["id"]
           },
@@ -654,6 +708,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customers_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "customers_owner_id_fkey"
@@ -1025,6 +1086,13 @@ export type Database = {
             foreignKeyName: "items_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["id"]
           },
@@ -1040,6 +1108,7 @@ export type Database = {
       leave_balances: {
         Row: {
           leave_type: Database["public"]["Enums"]["leave_type"]
+          note: string | null
           quota_days: number
           updated_at: string
           updated_by: string | null
@@ -1048,6 +1117,7 @@ export type Database = {
         }
         Insert: {
           leave_type: Database["public"]["Enums"]["leave_type"]
+          note?: string | null
           quota_days?: number
           updated_at?: string
           updated_by?: string | null
@@ -1056,6 +1126,7 @@ export type Database = {
         }
         Update: {
           leave_type?: Database["public"]["Enums"]["leave_type"]
+          note?: string | null
           quota_days?: number
           updated_at?: string
           updated_by?: string | null
@@ -1063,6 +1134,13 @@ export type Database = {
           year?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "leave_balances_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "leave_balances_updated_by_fkey"
             columns: ["updated_by"]
@@ -1076,6 +1154,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_balances_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "leave_balances_user_id_fkey"
@@ -1096,6 +1181,7 @@ export type Database = {
       leave_requests: {
         Row: {
           created_at: string
+          days: number | null
           decided_at: string | null
           decided_by: string | null
           decision_note: string | null
@@ -1112,6 +1198,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          days?: number | null
           decided_at?: string | null
           decided_by?: string | null
           decision_note?: string | null
@@ -1128,6 +1215,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          days?: number | null
           decided_at?: string | null
           decided_by?: string | null
           decision_note?: string | null
@@ -1147,6 +1235,13 @@ export type Database = {
             foreignKeyName: "leave_requests_decided_by_fkey"
             columns: ["decided_by"]
             isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "leave_requests_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["id"]
           },
@@ -1156,6 +1251,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "leave_requests_user_id_fkey"
@@ -1208,6 +1310,13 @@ export type Database = {
           visit_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "location_pings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "location_pings_user_id_fkey"
             columns: ["user_id"]
@@ -1308,6 +1417,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "attendance"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "notifications_user_id_fkey"
@@ -1431,6 +1547,13 @@ export type Database = {
             foreignKeyName: "public_holidays_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "public_holidays_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["id"]
           },
@@ -1469,6 +1592,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "push_subscriptions_user_id_fkey"
             columns: ["user_id"]
@@ -1722,6 +1852,13 @@ export type Database = {
             foreignKeyName: "sale_orders_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "sale_orders_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["id"]
           },
@@ -1848,6 +1985,13 @@ export type Database = {
             foreignKeyName: "sync_definitions_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "sync_definitions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["id"]
           },
@@ -1908,6 +2052,13 @@ export type Database = {
           sync_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "sync_runs_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "sync_runs_actor_id_fkey"
             columns: ["actor_id"]
@@ -1988,6 +2139,13 @@ export type Database = {
             foreignKeyName: "translation_overrides_updated_by_fkey"
             columns: ["updated_by"]
             isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "translation_overrides_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["id"]
           },
@@ -2034,6 +2192,13 @@ export type Database = {
             foreignKeyName: "user_permission_overrides_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_permission_overrides_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["id"]
           },
@@ -2073,6 +2238,13 @@ export type Database = {
             foreignKeyName: "user_pins_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: true
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_pins_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
             referencedRelation: "user_directory"
             referencedColumns: ["id"]
           },
@@ -2105,6 +2277,13 @@ export type Database = {
           view_key?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "user_views_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "user_views_user_id_fkey"
             columns: ["user_id"]
@@ -2167,6 +2346,13 @@ export type Database = {
             foreignKeyName: "user_visit_quotas_updated_by_fkey"
             columns: ["updated_by"]
             isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_visit_quotas_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["id"]
           },
@@ -2176,6 +2362,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_visit_quotas_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "user_visit_quotas_user_id_fkey"
@@ -2299,6 +2492,13 @@ export type Database = {
             foreignKeyName: "users_manager_id_fkey"
             columns: ["manager_id"]
             isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "users_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["id"]
           },
@@ -2315,6 +2515,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "roles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_status_changed_by_fkey"
+            columns: ["status_changed_by"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "users_status_changed_by_fkey"
@@ -2452,6 +2659,13 @@ export type Database = {
             foreignKeyName: "visit_photos_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "visit_photos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["id"]
           },
@@ -2519,6 +2733,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_plan_items_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "visit_plan_items_user_id_fkey"
@@ -2686,6 +2907,13 @@ export type Database = {
             foreignKeyName: "visits_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "visits_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["id"]
           },
@@ -2747,6 +2975,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "work_locations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "work_locations_created_by_fkey"
             columns: ["created_by"]
@@ -2832,6 +3067,13 @@ export type Database = {
             foreignKeyName: "work_schedules_updated_by_fkey"
             columns: ["updated_by"]
             isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "work_schedules_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["id"]
           },
@@ -2872,6 +3114,13 @@ export type Database = {
           zipcode: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "customers_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "customers_owner_id_fkey"
             columns: ["owner_id"]
@@ -2948,29 +3197,19 @@ export type Database = {
       }
       leave_balance_summary: {
         Row: {
+          carry_days: number | null
+          default_days: number | null
+          is_custom: boolean | null
           leave_type: Database["public"]["Enums"]["leave_type"] | null
+          note: string | null
+          prorated: boolean | null
           quota_days: number | null
           remaining_days: number | null
           used_days: number | null
           user_id: string | null
           year: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "leave_balances_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_directory"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "leave_balances_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       notification_feed: {
         Row: {
@@ -2994,6 +3233,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "attendance"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "notifications_user_id_fkey"
@@ -3091,6 +3337,13 @@ export type Database = {
             foreignKeyName: "users_manager_id_fkey"
             columns: ["manager_id"]
             isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "users_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["id"]
           },
@@ -3112,6 +3365,31 @@ export type Database = {
       }
     }
     Functions: {
+      attendance_days: {
+        Args: { p_from: string; p_to: string }
+        Returns: {
+          day: string
+          first_in: string
+          holiday_name: string
+          is_working: boolean
+          last_out: string
+          late_minutes: number
+          leave_fraction: number
+          leave_type: Database["public"]["Enums"]["leave_type"]
+          scheduled_end: string
+          scheduled_start: string
+          status: string
+          user_id: string
+          worked_minutes: number
+        }[]
+      }
+      attendance_settings: {
+        Args: never
+        Returns: {
+          attendance_cycle_close_day: number
+          late_grace_minutes: number
+        }[]
+      }
       can: {
         Args: {
           p_action: Database["public"]["Enums"]["permission_action"]
@@ -3127,6 +3405,7 @@ export type Database = {
         Args: { p_id: string }
         Returns: {
           created_at: string
+          days: number | null
           decided_at: string | null
           decided_by: string | null
           decision_note: string | null
@@ -3390,6 +3669,7 @@ export type Database = {
         Args: { p_approve: boolean; p_id: string; p_note?: string }
         Returns: {
           created_at: string
+          days: number | null
           decided_at: string | null
           decided_by: string | null
           decision_note: string | null
@@ -3416,6 +3696,15 @@ export type Database = {
         Returns: Json
       }
       ensure_my_cart: { Args: never; Returns: string }
+      leave_policy: {
+        Args: never
+        Returns: {
+          carry_over_max_days: number
+          default_annual_days: number
+          default_sick_days: number
+          prorata_new_joiners: boolean
+        }[]
+      }
       manageable_users: {
         Args: never
         Returns: {
@@ -3603,6 +3892,15 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      preview_leave_days: {
+        Args: {
+          p_end_date: string
+          p_end_period?: Database["public"]["Enums"]["leave_day_period"]
+          p_start_date: string
+          p_start_period?: Database["public"]["Enums"]["leave_day_period"]
+        }
+        Returns: number
+      }
       record_location_ping: {
         Args: {
           p_accuracy?: number
@@ -3623,6 +3921,7 @@ export type Database = {
         }
         Returns: {
           created_at: string
+          days: number | null
           decided_at: string | null
           decided_by: string | null
           decision_note: string | null
@@ -3657,6 +3956,10 @@ export type Database = {
         Args: { p_break_paid: boolean; p_days: Json; p_department: string }
         Returns: string
       }
+      set_attendance_cycle: {
+        Args: { p_close_day: number }
+        Returns: undefined
+      }
       set_customer_tier: {
         Args: { p_customer: string; p_tier: string }
         Returns: {
@@ -3673,6 +3976,16 @@ export type Database = {
         }
       }
       set_default_printer: { Args: { p_printer: string }; Returns: undefined }
+      set_leave_allowance: {
+        Args: {
+          p_leave_type: Database["public"]["Enums"]["leave_type"]
+          p_note?: string
+          p_quota_days: number
+          p_user_id: string
+          p_year: number
+        }
+        Returns: undefined
+      }
       set_leave_balance: {
         Args: {
           p_leave_type: Database["public"]["Enums"]["leave_type"]
@@ -3682,6 +3995,7 @@ export type Database = {
         }
         Returns: {
           leave_type: Database["public"]["Enums"]["leave_type"]
+          note: string | null
           quota_days: number
           updated_at: string
           updated_by: string | null
@@ -3694,6 +4008,15 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      set_leave_policy: {
+        Args: {
+          p_annual: number
+          p_carry_max: number
+          p_prorata: boolean
+          p_sick: number
+        }
+        Returns: undefined
       }
       set_my_pin: { Args: { p_pin: string }; Returns: undefined }
       set_user_telegram_id: {
