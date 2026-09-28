@@ -148,7 +148,11 @@ export function CheckInPage() {
           )}
           <span className="flex h-[30px] items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 text-xs font-semibold text-neutral-600">
             <Clock className="h-3.5 w-3.5" aria-hidden />
-            {t('checkIn.shift', { start: settings.workStartTime, end: settings.workEndTime })}
+            {settings.holidayName
+              ? settings.holidayName
+              : !settings.isWorkingDay
+                ? 'Day off'
+                : t('checkIn.shift', { start: settings.workStartTime.slice(0, 5), end: settings.workEndTime.slice(0, 5) })}
           </span>
         </div>
 

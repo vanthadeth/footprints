@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { AlertTriangle, Check, ShieldAlert } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { AlertTriangle, Check, ChevronRight, ShieldAlert } from 'lucide-react'
 import { useProfile } from '@/features/auth/useProfile'
 import { AppearanceControl } from '@/components/AppearanceControl'
 import { ALLOWED_CHECKIN_RADII_METERS, ALLOWED_LOCATION_PING_MINUTES } from '@/lib/config'
@@ -141,49 +142,23 @@ function SettingsForm() {
       </Section>
 
       <Section title="Working Hours">
-        <Field label="Start Time">
-          <input
-            type="time"
-            value={settings.workStartTime}
-            onChange={(e) => patch({ workStartTime: e.target.value })}
-            className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm font-medium text-neutral-900"
-          />
-        </Field>
-        <Field label="End Time">
-          <input
-            type="time"
-            value={settings.workEndTime}
-            onChange={(e) => patch({ workEndTime: e.target.value })}
-            className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm font-medium text-neutral-900"
-          />
-        </Field>
-        <Field label="Allow Clock In" hint="Minutes before Start Time that clocking in is still allowed.">
-          <NumberInput
-            value={settings.allowEarlyClockinMinutes}
-            min={0}
-            suffix="min before"
-            onChange={(v) => patch({ allowEarlyClockinMinutes: v })}
-          />
-        </Field>
-        <Field label="Auto Clock Out" hint="Minutes after End Time before an open attendance is clocked out automatically.">
-          <NumberInput
-            value={settings.autoClockoutGraceMinutes}
-            min={0}
-            suffix="min after"
-            onChange={(v) => patch({ autoClockoutGraceMinutes: v })}
-          />
-        </Field>
+        <Link to="/settings/working-hours" className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white px-3.5 py-3 tap-target">
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-neutral-900">Working hours &amp; days</span>
+            <span className="block text-xs text-neutral-500">Company and team schedules, early clock-in, late grace, auto clock-out</span>
+          </span>
+          <ChevronRight className="h-4 w-4 text-neutral-400" aria-hidden />
+        </Link>
+        <Link to="/settings/holidays" className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white px-3.5 py-3 tap-target">
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-neutral-900">Public holidays</span>
+            <span className="block text-xs text-neutral-500">Days off that never count as absent or use leave</span>
+          </span>
+          <ChevronRight className="h-4 w-4 text-neutral-400" aria-hidden />
+        </Link>
       </Section>
 
       <Section title="Notifications">
-        <Field label="Late Clock-In Threshold" hint="Minutes after Start Time before a clock-in is flagged as late.">
-          <NumberInput
-            value={settings.lateClockinThresholdMinutes}
-            min={0}
-            suffix="min after start"
-            onChange={(v) => patch({ lateClockinThresholdMinutes: v })}
-          />
-        </Field>
         <Field label="Idle Alert Threshold" hint="Minutes clocked in with no open visit before an idling notification fires.">
           <NumberInput
             value={settings.idleAlertThresholdMinutes}

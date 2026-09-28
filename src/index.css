@@ -173,3 +173,8 @@
     color: #b48a5a; /* earth-400 */
   }
 }
+
+/* Public-holiday cells in the attendance summaries. */
+.holiday-stripes {
+  background: repeating-linear-gradient(135deg, rgba(150, 112, 63, 0.18) 0 4px, transparent 4px 8px);
+}

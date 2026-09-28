@@ -42,6 +42,9 @@ export const km: TranslationKey = {
     leaveApprovals: 'អនុម័តច្បាប់',
     plan: 'ផែនការថ្ងៃនេះ',
     coverage: 'ការគ្របដណ្តប់អតិថិជន',
+    leaveAllowances: 'សិទ្ធិច្បាប់ឈប់សម្រាក',
+    workingHours: 'ម៉ោង និងថ្ងៃធ្វើការ',
+    holidays: 'ថ្ងៃឈប់សម្រាកសាធារណៈ',
   },
   welcome: {
     tagline: 'ថ្ងៃរបស់អ្នក។ អតិថិជនរបស់អ្នក។ វឌ្ឍនភាពរបស់អ្នក។',

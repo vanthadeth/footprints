@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { scheduleService } from '@/features/schedule/scheduleService'
 import {
   DEFAULT_ALLOW_EARLY_CLOCKIN_MINUTES,
   DEFAULT_AUTO_CHECKOUT_ENABLED,
@@ -21,6 +22,10 @@ export interface AppSettings {
   workEndTime: string
   allowEarlyClockinMinutes: number
   autoClockoutGraceMinutes: number
+  /** Today is a working day for the signed-in person (their team schedule, minus public holidays). */
+  isWorkingDay: boolean
+  /** Today's public holiday, if any. */
+  holidayName: string | null
 }
 
 const FALLBACK: AppSettings = {
@@ -32,6 +37,8 @@ const FALLBACK: AppSettings = {
   workEndTime: DEFAULT_WORK_END_TIME,
   allowEarlyClockinMinutes: DEFAULT_ALLOW_EARLY_CLOCKIN_MINUTES,
   autoClockoutGraceMinutes: DEFAULT_AUTO_CLOCKOUT_GRACE_MINUTES,
+  isWorkingDay: true,
+  holidayName: null,
 }
 
 /** Live, super-admin-editable settings from `public.app_settings`. Falls
@@ -42,6 +49,9 @@ export function useAppSettings(): AppSettings {
 
   useEffect(() => {
     let cancelled = false
+    // Set once the person's own day arrives, so the company-wide times
+    // (which can land later) never overwrite it.
+    let personal: { workStartTime: string; workEndTime: string } | null = null
     supabase
       .from('app_settings')
       .select(
@@ -50,7 +60,8 @@ export function useAppSettings(): AppSettings {
       .maybeSingle()
       .then(({ data }) => {
         if (cancelled || !data) return
-        setSettings({
+        setSettings((prev) => ({
+          ...prev,
           checkinRadiusM: data.checkin_radius_m,
           locationPingIntervalMinutes: data.location_ping_interval_minutes,
           maxLocationAccuracyM: data.max_location_accuracy_m,
@@ -59,7 +70,22 @@ export function useAppSettings(): AppSettings {
           workEndTime: data.work_end_time,
           allowEarlyClockinMinutes: data.allow_early_clockin_minutes,
           autoClockoutGraceMinutes: data.auto_clockout_grace_minutes,
-        })
+          ...(personal ?? {}),
+        }))
+      })
+    // The signed-in person's own hours today (team schedule or company
+    // schedule, minus holidays -- app.work_day). Overrides the company-wide
+    // times above so the clock-in window and shift chip match what the
+    // server enforces for them.
+    scheduleService
+      .myWorkDay()
+      .then((day) => {
+        if (cancelled || !day) return
+        personal = { workStartTime: day.start, workEndTime: day.end }
+        setSettings((prev) => ({ ...prev, ...personal, isWorkingDay: day.isWorking, holidayName: day.holidayName }))
+      })
+      .catch(() => {
+        // Keep the company-wide times.
       })
     return () => {
       cancelled = true

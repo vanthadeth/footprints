@@ -18,6 +18,7 @@ import { LATE_GRACE_MINUTES } from '@/lib/config'
 import { FleetStatusBadge } from './FleetStatusBadge'
 import type { FleetMemberSnapshot } from './types'
 import { useApprovedLeaveOnDate } from '@/features/leave/useApprovedLeaveOnDate'
+import { useAttendanceDays } from '@/features/attendanceSummary/useAttendanceDays'
 import type { LeaveType } from '@/features/leave/types'
 
 const LEAVE_TYPE_LABEL: Record<LeaveType, string> = { annual: 'Annual', sick: 'Sick', unpaid: 'Unpaid' }
@@ -34,6 +35,14 @@ export function CheckInOutTab({ snapshots }: { snapshots: FleetMemberSnapshot[] 
   const userIds = useMemo(() => team.map((m) => m.id), [team])
   const { journeysByUserId, loading, error } = useTeamDayJourneys(userIds, range, selectedDate)
   const leaveByUserId = useApprovedLeaveOnDate(userIds, selectedDate)
+  // Lateness per person against their OWN schedule (team hours, grace) from
+  // the server; until it loads, fall back to the company start time.
+  const { rows: dayRows } = useAttendanceDays(selectedDate, selectedDate, userIds)
+  const serverLate = useMemo(() => {
+    const m: Record<string, number> = {}
+    for (const r of dayRows) m[r.userId] = r.status === 'late' ? Math.max(1, r.lateMinutes) : 0
+    return m
+  }, [dayRows])
 
   const locationIds = useMemo(
     () => Object.values(journeysByUserId).flatMap((day) => day.attendance.flatMap((a) => [a.clock_in_location_id, a.clock_out_location_id])),
@@ -47,11 +56,13 @@ export function CheckInOutTab({ snapshots }: { snapshots: FleetMemberSnapshot[] 
     const firstIns = days.map((d) => d.attendance[0]?.clock_in_at).filter((t): t is string => !!t)
     return {
       clockedIn: firstIns.length,
-      late: firstIns.filter((t) => minutesLate(formatTime(t), workStartTime) > LATE_GRACE_MINUTES).length,
+      late: dayRows.length
+        ? Object.values(serverLate).filter((m) => m > 0).length
+        : firstIns.filter((t) => minutesLate(formatTime(t), workStartTime) > LATE_GRACE_MINUTES).length,
       onLeave: userIds.filter((id) => leaveByUserId[id] && !journeysByUserId[id]).length,
       stillWorking: days.filter((d) => d.attendance.some((a) => !a.clock_out_at)).length,
     }
-  }, [journeysByUserId, leaveByUserId, userIds, workStartTime])
+  }, [journeysByUserId, leaveByUserId, userIds, workStartTime, dayRows.length, serverLate])
 
   const groups = groupBy(snapshots, (s) => s.member.departmentName ?? NO_DEPARTMENT)
   const orderedKeys = sortGroupKeys(groups.keys(), NO_DEPARTMENT)
@@ -99,6 +110,7 @@ export function CheckInOutTab({ snapshots }: { snapshots: FleetMemberSnapshot[] 
                     locationNames={locationNames}
                     leaveType={leaveByUserId[snapshot.member.id]}
                     workStartTime={workStartTime}
+                    serverLateMinutes={snapshot.member.id in serverLate ? serverLate[snapshot.member.id] : null}
                   />
                 ))}
               </div>
@@ -121,12 +133,15 @@ function MemberCheckInOutCard({
   locationNames,
   leaveType,
   workStartTime,
+  serverLateMinutes,
 }: {
   snapshot: FleetMemberSnapshot
   day: DayJourney | null
   locationNames: Record<string, string>
   leaveType: LeaveType | undefined
   workStartTime: string
+  /** Minutes late against the person's own schedule (0 = on time), or null while unknown. */
+  serverLateMinutes: number | null
 }) {
   const { member, status } = snapshot
   const [footprintsOpen, setFootprintsOpen] = useState(false)
@@ -138,8 +153,8 @@ function MemberCheckInOutCard({
   // Only overrides the placeholder when there's no attendance at all that
   // day -- an actual clock-in/out session is ground truth and always wins.
   const onLeaveLabel = !day && leaveType ? `On ${LEAVE_TYPE_LABEL[leaveType]} Leave` : null
-  const lateMinutes = firstSession ? minutesLate(formatTime(firstSession.clock_in_at), workStartTime) : 0
-  const isLate = lateMinutes > LATE_GRACE_MINUTES
+  const lateMinutes = serverLateMinutes ?? (firstSession ? minutesLate(formatTime(firstSession.clock_in_at), workStartTime) : 0)
+  const isLate = serverLateMinutes !== null ? serverLateMinutes > 0 : lateMinutes > LATE_GRACE_MINUTES
   const initials = member.fullName
     .split(' ')
     .map((w) => w[0])

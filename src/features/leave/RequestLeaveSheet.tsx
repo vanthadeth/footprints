@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Calendar } from 'lucide-react'
 import { BottomSheet } from '@/components/BottomSheet'
 import { MonthCalendar } from '@/components/MonthCalendar'
@@ -23,7 +23,29 @@ export function RequestLeaveSheet({ open, onClose, onSubmitted }: { open: boolea
   const [error, setError] = useState<string | null>(null)
   const [pickerFor, setPickerFor] = useState<'start' | 'end' | null>(null)
 
-  const days = endDate >= startDate ? leaveRequestDays(startDate, endDate, startPeriod, endPeriod) : 0
+  // The server counts working days only (weekends/days off for the person's
+  // team and public holidays skipped); the calendar-day count is just a
+  // placeholder until that answer arrives or if it can't be fetched.
+  const calendarDays = endDate >= startDate ? leaveRequestDays(startDate, endDate, startPeriod, endPeriod) : 0
+  const [workingDays, setWorkingDays] = useState<number | null>(null)
+  useEffect(() => {
+    if (!open || endDate < startDate) return
+    let cancelled = false
+    setWorkingDays(null)
+    const t = window.setTimeout(() => {
+      leaveService
+        .previewDays(startDate, endDate, startPeriod, endPeriod)
+        .then((n) => !cancelled && setWorkingDays(n))
+        .catch(() => {
+          // Falls back to the calendar-day count.
+        })
+    }, 250)
+    return () => {
+      cancelled = true
+      window.clearTimeout(t)
+    }
+  }, [open, startDate, endDate, startPeriod, endPeriod])
+  const days = workingDays ?? calendarDays
 
   function reset() {
     setLeaveType('annual')
@@ -106,7 +128,10 @@ export function RequestLeaveSheet({ open, onClose, onSubmitted }: { open: boolea
           </div>
 
           <p className="text-sm text-neutral-500">
-            Total: <span className="font-semibold text-neutral-900">{days > 0 ? `${days} day${days === 1 ? '' : 's'}` : '—'}</span>
+            Total:{' '}
+            <span className="font-semibold text-neutral-900">
+              {workingDays === 0 ? 'No working days — all days off or holidays' : days > 0 ? `${days} working day${days === 1 ? '' : 's'}` : '—'}
+            </span>
           </p>
 
           {error && <p className="rounded-lg bg-status-danger/10 px-3 py-2 text-sm text-status-danger">{error}</p>}

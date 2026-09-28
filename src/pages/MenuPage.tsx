@@ -6,6 +6,9 @@ import {
   Building2,
   CalendarCheck,
   CalendarDays,
+  CalendarRange,
+  Clock,
+  Scale,
   ChevronRight,
   Footprints as FootprintsIcon,
   Globe,
@@ -67,6 +70,7 @@ export function MenuPage() {
   // notifications_center migration), not a role_name string check.
   const isSuperAdmin = profile?.is_super_admin === true
   const isManager = isSuperAdmin || hasTeam
+  const isHr = profile?.role_name === 'HR'
   const { unreadCount } = useNotificationsContext()
 
   useEffect(() => {
@@ -170,9 +174,19 @@ export function MenuPage() {
           <GroupedList title="Administration">
             <ListRow icon={UsersIcon} iconBg="bg-status-visiting" label="Users" to="/users" />
             <ListRow icon={Building2} iconBg="bg-status-working" label="Work locations" to="/locations" />
+            <ListRow icon={Clock} iconBg="bg-brand-500" label="Working hours & days" to="/settings/working-hours" />
+            <ListRow icon={CalendarRange} iconBg="bg-status-warn" label="Public holidays" to="/settings/holidays" />
+            <ListRow icon={Scale} iconBg="bg-status-visiting" label="Leave allowances" to="/leave/allowances" />
             <ListRow icon={Bell} iconBg="bg-status-danger" label="Notifications" badge={unreadCount} to="/notifications" />
             <ListRow icon={Languages} iconBg="bg-brand-600" label="Translations" to="/translations" />
             <ListRow icon={Settings} iconBg="bg-neutral-600" label="System settings" to="/settings" />
+          </GroupedList>
+        )}
+
+        {!isSuperAdmin && isHr && (
+          <GroupedList title="HR">
+            <ListRow icon={Scale} iconBg="bg-status-visiting" label="Leave allowances" to="/leave/allowances" />
+            <ListRow icon={CalendarRange} iconBg="bg-status-warn" label="Public holidays" to="/settings/holidays" />
           </GroupedList>
         )}
 

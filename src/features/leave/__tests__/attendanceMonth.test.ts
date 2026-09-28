@@ -16,6 +16,7 @@ function req(p: Partial<LeaveRequest>): LeaveRequest {
     decision_note: null,
     decided_at: null,
     decided_by: null,
+    days: null,
     created_at: '2026-08-01T00:00:00Z',
     updated_at: '2026-08-01T00:00:00Z',
     ...p,

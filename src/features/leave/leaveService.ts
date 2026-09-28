@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { callRpc } from '@/lib/rpc'
 import type { LeaveBalanceSummary, LeaveDayPeriod, LeaveRequest, LeaveType } from './types'
 
 export interface RequestLeavePayload {
@@ -60,6 +61,50 @@ export const leaveService = {
     return data
   },
 
+  /** Working days a request would use (weekends/days off and public holidays skipped), from the server's own counter. */
+  async previewDays(startDate: string, endDate: string, startPeriod: LeaveDayPeriod, endPeriod: LeaveDayPeriod): Promise<number> {
+    const n = await callRpc<number | string>('preview_leave_days', { p_start_date: startDate, p_end_date: endDate, p_start_period: startPeriod, p_end_period: endPeriod })
+    return Number(n)
+  },
+
+  async policy(): Promise<LeavePolicy> {
+    const rows = await callRpc<{ default_annual_days: number | string; default_sick_days: number | string; prorata_new_joiners: boolean; carry_over_max_days: number | string }[]>('leave_policy')
+    const r = rows?.[0]
+    return {
+      annualDays: Number(r?.default_annual_days ?? 18),
+      sickDays: Number(r?.default_sick_days ?? 7),
+      prorata: r?.prorata_new_joiners ?? true,
+      carryOverMaxDays: Number(r?.carry_over_max_days ?? 0),
+    }
+  },
+
+  async setPolicy(p: LeavePolicy): Promise<void> {
+    await callRpc<null>('set_leave_policy', { p_annual: p.annualDays, p_sick: p.sickDays, p_prorata: p.prorata, p_carry_max: p.carryOverMaxDays })
+  },
+
+  /** Every person's allowance for a year (custom or default), with what's used and left. */
+  async allowances(year: number): Promise<AllowanceRow[]> {
+    const { data, error } = await supabase.from('leave_balance_summary').select('*').eq('year', year)
+    if (error) throw error
+    return ((data ?? []) as unknown as AllowanceDbRow[]).map((r) => ({
+      userId: r.user_id,
+      leaveType: r.leave_type,
+      quotaDays: Number(r.quota_days ?? 0),
+      usedDays: Number(r.used_days ?? 0),
+      remainingDays: Number(r.remaining_days ?? 0),
+      defaultDays: Number(r.default_days ?? 0),
+      isCustom: !!r.is_custom,
+      note: r.note ?? null,
+      carryDays: Number(r.carry_days ?? 0),
+      prorated: !!r.prorated,
+    }))
+  },
+
+  /** Set one person's allowance for a type and year; null resets them to the company default. */
+  async setAllowance(userId: string, leaveType: LeaveType, year: number, quotaDays: number | null, note: string | null): Promise<void> {
+    await callRpc<null>('set_leave_allowance', { p_user_id: userId, p_leave_type: leaveType, p_year: year, p_quota_days: quotaDays, p_note: note })
+  },
+
   async setLeaveBalance(userId: string, leaveType: LeaveType, year: number, quotaDays: number): Promise<void> {
     const { error } = await supabase.rpc('set_leave_balance', {
       p_user_id: userId,
@@ -69,6 +114,39 @@ export const leaveService = {
     })
     if (error) throw error
   },
+}
+
+export interface LeavePolicy {
+  annualDays: number
+  sickDays: number
+  prorata: boolean
+  carryOverMaxDays: number
+}
+
+type AllowanceDbRow = {
+  user_id: string
+  leave_type: LeaveType
+  quota_days: number | string | null
+  used_days: number | string | null
+  remaining_days: number | string | null
+  default_days?: number | string | null
+  is_custom?: boolean | null
+  note?: string | null
+  carry_days?: number | string | null
+  prorated?: boolean | null
+}
+
+export interface AllowanceRow {
+  userId: string
+  leaveType: LeaveType
+  quotaDays: number
+  usedDays: number
+  remainingDays: number
+  defaultDays: number
+  isCustom: boolean
+  note: string | null
+  carryDays: number
+  prorated: boolean
 }
 
 /** The friendly text from a raised RPC exception (e.g. app.request_leave's over_quota/overlapping_request), falling back to the raw error message. */
