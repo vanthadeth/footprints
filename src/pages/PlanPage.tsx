@@ -343,11 +343,8 @@ export function PlanPage() {
 
       {suggestions.length > 0 && (
         <section aria-label="Overdue nearby">
-          <div className="mb-2 flex items-center justify-between px-1">
+          <div className="mb-2 px-1">
             <h2 className="text-[17px] font-bold text-neutral-900">Overdue nearby</h2>
-            <Link to="/customers/coverage" className="text-sm font-bold text-brand-600">
-              See all
-            </Link>
           </div>
           <ul className="divide-y divide-neutral-100 overflow-hidden rounded-2xl bg-white shadow-card dark:divide-neutral-800">
             {suggestions.map((s) => (

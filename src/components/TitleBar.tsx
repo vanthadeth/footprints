@@ -20,7 +20,6 @@ const TITLE_KEYS: Record<string, string> = {
   '/users': 'nav.users',
   '/home': 'nav.home',
   '/customers': 'nav.customers',
-  '/customers/coverage': 'nav.coverage',
   '/plan': 'nav.plan',
   '/visits': 'nav.visits',
   '/notifications': 'nav.notifications',
