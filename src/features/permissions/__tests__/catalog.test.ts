@@ -66,12 +66,18 @@ describe('deriveState', () => {
     expect(s.users).toBeNull()
   })
 
+  it('turns the customer briefing on and off as customer_briefing.view', () => {
+    expect(deriveState(SALES).customer_briefing).toBeNull()
+    expect(deriveState(rows('customer_briefing:view:any')).customer_briefing).toEqual({ scope: null })
+    expect(roleChanges(SALES, edit(SALES, { customer_briefing: { scope: null } }))).toEqual([{ module_key: 'customer_briefing', action: 'view', scope: 'any' }])
+  })
+
   it('treats deny like no access', () => {
     expect(deriveState(rows('footprints:view:deny')).footprints).toBeNull()
   })
 
-  it('has a label for all 16 functions', () => {
-    expect(FNS).toHaveLength(16)
+  it('has a label for all 17 functions', () => {
+    expect(FNS).toHaveLength(17)
   })
 })
 

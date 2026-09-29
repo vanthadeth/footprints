@@ -63,6 +63,13 @@ export interface Visitor {
   visits: number
 }
 
+export interface Owner {
+  user_id: string
+  full_name: string
+  nickname: string | null
+  customers: number
+}
+
 /** The filters every book call shares (search, owner, and the "visited by" section). */
 export interface BookScope {
   search?: string
@@ -119,6 +126,10 @@ export const customerBookService = {
 
   activity(customerId: string): Promise<ActivityRow[]> {
     return callRpc<ActivityRow[]>('customer_visit_activity', { p_customer: customerId }).then((r) => r ?? [])
+  },
+
+  owners(): Promise<Owner[]> {
+    return callRpc<Owner[]>('customer_owners').then((r) => r ?? [])
   },
 
   visitors(months = 12): Promise<Visitor[]> {

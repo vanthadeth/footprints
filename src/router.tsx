@@ -17,6 +17,7 @@ import { RequirePermission } from '@/features/permissions/RequirePermission'
 // visits a page that needs them, instead of bloating the initial bundle
 // every user pays for just to see the Check In screen.
 const FootprintsPage = lazy(() => import('@/pages/FootprintsPage').then((m) => ({ default: m.FootprintsPage })))
+const CustomerBriefingPage = lazy(() => import('@/pages/CustomerBriefingPage').then((m) => ({ default: m.CustomerBriefingPage })))
 const FleetPage = lazy(() => import('@/pages/FleetPage').then((m) => ({ default: m.FleetPage })))
 const SettingsPage = lazy(() => import('@/features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })))
 const UsersPage = lazy(() => import('@/pages/UsersPage').then((m) => ({ default: m.UsersPage })))
@@ -122,6 +123,16 @@ export const router = createBrowserRouter([
           <RequirePermission module="footprints">
             <Suspense fallback={<PageFallback />}>
               <FootprintsPage />
+            </Suspense>
+          </RequirePermission>
+        ),
+      },
+      {
+        path: '/team/customers',
+        element: (
+          <RequirePermission module="customer_briefing">
+            <Suspense fallback={<PageFallback />}>
+              <CustomerBriefingPage />
             </Suspense>
           </RequirePermission>
         ),

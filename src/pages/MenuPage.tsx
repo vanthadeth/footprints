@@ -24,6 +24,7 @@ import {
   Settings,
   Shield,
   ShieldCheck,
+  Table2,
   User,
   Users as UsersIcon,
   type LucideIcon,
@@ -66,6 +67,7 @@ export function MenuPage() {
   const canFootprints = useCan('footprints')
   const canPlan = useCan('plan')
   const canTeamMap = useCan('team_map')
+  const canBriefing = useCan('customer_briefing')
   const canManagePermissions = useCan('role_permission', 'edit')
   const { language, setLanguage } = useLanguage()
   const { mode, setMode } = useTheme()
@@ -79,7 +81,7 @@ export function MenuPage() {
   // Deciding on others' leave is leave.edit at Team or All; own is just cancelling your own.
   const leaveEditScope = scope('leave', 'edit')
   const canApproveLeave = isSuperAdmin || leaveEditScope === 'sub' || leaveEditScope === 'any'
-  const isManager = canTeamMap || canApproveLeave
+  const isManager = canTeamMap || canApproveLeave || canBriefing
   const isHr = profile?.role_name === 'HR'
   const { unreadCount } = useNotificationsContext()
   const { unreadCount: unreadMessages } = useMessages()
@@ -145,6 +147,7 @@ export function MenuPage() {
         {isManager && (
           <GroupedList title="Team">
             {canTeamMap && <ListRow icon={UsersIcon} iconBg="bg-brand-500" label="Team" sublabel="Status, map, reports, logs & attendance" to="/fleet" />}
+            {canBriefing && <ListRow icon={Table2} iconBg="bg-status-visiting" label="Customer briefing" sublabel="Customers by province, last visit and who" to="/team/customers" />}
             {canApproveLeave && <ListRow icon={CalendarCheck} iconBg="bg-status-warn" label="Leave approvals" badge={pendingApprovals} to="/leave/approvals" />}
           </GroupedList>
         )}
