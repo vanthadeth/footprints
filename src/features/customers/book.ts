@@ -1,6 +1,6 @@
 import { APP_TIMEZONE } from '@/lib/config'
 import { displayName } from '@/lib/displayName'
-import type { BookRow, Bucket, SummaryRow, Visitor } from './customerBookService'
+import type { ActivityRow, BookRow, Bucket, SummaryRow, Visitor } from './customerBookService'
 import { provinceEnglish } from './provinces'
 
 /**
@@ -267,4 +267,71 @@ export function pageButtons(pages: number, page: number): (number | '…')[] {
     out.push(n)
   })
   return out
+}
+
+// ---------------------------------------------------------------- detail
+
+export interface VisitMetrics {
+  /** Latest non-voided visit. */
+  last: ActivityRow | null
+  lastDays: number | null
+  visits90: number
+  people90: number
+  /** Average gap between the last 90 days' visits, when there are 2 or more. */
+  freqDays: number | null
+  /** Earliest follow-up still ahead ("YYYY-MM-DD"), and who set it. */
+  next: { day: string; by: string } | null
+}
+
+/** The detail page's tiles, from customer_visit_activity (newest first). Voided visits don't count. */
+export function visitMetrics(rows: ActivityRow[], today: string): VisitMetrics {
+  const live = rows.filter((r) => !r.cancelled_at)
+  const in90 = live.filter((r) => dayDiff(localDay(r.checked_in_at), today) <= 90)
+  const last = live[0] ?? null
+  let freqDays: number | null = null
+  if (in90.length >= 2) {
+    const span = dayDiff(localDay(in90[in90.length - 1].checked_in_at), localDay(in90[0].checked_in_at))
+    freqDays = Math.max(1, Math.round(span / (in90.length - 1)))
+  }
+  const ahead = live
+    .filter((r) => r.next_visit && localDay(r.next_visit) >= today)
+    .map((r) => ({ day: localDay(r.next_visit!), by: firstName(r.full_name, r.nickname) }))
+    .sort((a, b) => a.day.localeCompare(b.day))
+  return {
+    last,
+    lastDays: last ? dayDiff(localDay(last.checked_in_at), today) : null,
+    visits90: in90.length,
+    people90: new Set(in90.map((r) => r.user_id)).size,
+    freqDays,
+    next: ahead[0] ?? null,
+  }
+}
+
+export type ChipTone = 'ok' | 'warn' | 'bad' | 'plain' | 'visit'
+
+export const CHIP_TONE: Record<ChipTone, string> = {
+  ok: 'bg-status-working/10 text-status-working dark:bg-emerald-400/15 dark:text-emerald-300',
+  warn: 'bg-status-warn/10 text-status-warn dark:bg-amber-400/15 dark:text-amber-300',
+  bad: 'bg-status-danger/10 text-status-danger dark:bg-red-400/15 dark:text-red-300',
+  plain: 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300',
+  visit: 'bg-status-visiting/10 text-status-visiting dark:bg-violet-400/15 dark:text-violet-300',
+}
+
+const VISIT_TONE: Record<string, ChipTone> = { 'Met the owner': 'visit', 'Met a staff member': 'visit', 'Nobody there': 'bad', 'Shop closed': 'bad' }
+const ORDER_TONE: Record<string, ChipTone> = { Ordered: 'ok', 'Will order later': 'warn', 'No order': 'plain' }
+const PAY_TONE: Record<string, ChipTone> = { 'Paid in full': 'ok', 'Part paid': 'warn', 'Nothing collected': 'bad', 'Not due': 'plain' }
+
+/** Outcome chips for one visit: status, order (+ amount), payment (+ collected when not paid in full). */
+export function outcomeChips(r: ActivityRow): { label: string; tone: ChipTone }[] {
+  if (r.cancelled_at) return []
+  const chips: { label: string; tone: ChipTone }[] = []
+  if (r.visit_status) chips.push({ label: r.visit_status, tone: VISIT_TONE[r.visit_status] ?? 'visit' })
+  if (r.order_status) chips.push({ label: r.order_status + (r.order_amount ? ` · ${formatUsd0(r.order_amount)}` : ''), tone: ORDER_TONE[r.order_status] ?? 'plain' })
+  if (r.payment_status) {
+    const collected = r.collected && r.payment_status !== 'Paid in full' ? ` · ${formatUsd0(r.collected)} collected` : ''
+    chips.push({ label: r.payment_status + collected, tone: PAY_TONE[r.payment_status] ?? 'plain' })
+  } else if (r.collected) {
+    chips.push({ label: `${formatUsd0(r.collected)} collected`, tone: 'ok' })
+  }
+  return chips
 }

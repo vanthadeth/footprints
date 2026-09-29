@@ -1,18 +1,17 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Banknote, Camera, Construction, MapPin, Navigation, NotebookPen, Phone, ShoppingCart, Store, type LucideIcon } from 'lucide-react'
+import { ArrowLeft, Banknote, Camera, Construction, MapPin, Navigation, NotebookPen, Phone, ShoppingCart, UserRound, type LucideIcon } from 'lucide-react'
 import { customersService, type CustomerDirectoryRow } from '@/features/customers/customersService'
 import { VisitFlow, type PresetCustomer } from '@/features/visits/VisitFlow'
 import { TierCard } from '@/features/customers/TierCard'
-import { formatUsd } from '@/features/visits/visitOutcome'
-import type { VisitRow } from '@/features/attendance/types'
+import { CustomerVisitActivity } from '@/features/customers/CustomerVisitActivity'
+import { useCustomerActivity } from '@/features/customers/useCustomerBook'
 import { CUSTOMER_MANAGEMENT_ENABLED } from '@/lib/featureFlags'
 import { useProfile } from '@/features/auth/useProfile'
 import { ConversationSection } from '@/features/conversations/ConversationSection'
 import { LogCallSheet } from '@/features/conversations/LogCallSheet'
 import { conversationsService } from '@/features/conversations/conversationsService'
 import type { ConversationKind } from '@/features/conversations/conversationMeta'
-import { formatDate, formatTime } from '@/lib/datetime'
 
 const STATUS_STYLES: Record<string, string> = {
   active: 'bg-status-working/10 text-status-working',
@@ -38,7 +37,8 @@ function CustomerDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [customer, setCustomer] = useState<CustomerDirectoryRow | null>(null)
-  const [recentVisits, setRecentVisits] = useState<VisitRow[]>([])
+  const [activityKey, setActivityKey] = useState(0)
+  const activity = useCustomerActivity(id, activityKey)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [visitOpen, setVisitOpen] = useState(false)
@@ -60,11 +60,10 @@ function CustomerDetail() {
       .catch(() => {
         // Without the answer we just don't offer Log call; the server would refuse anyway.
       })
-    Promise.all([customersService.get(id), customersService.recentVisits(id)])
-      .then(([c, visits]) => {
-        if (cancelled) return
-        setCustomer(c)
-        setRecentVisits(visits)
+    customersService
+      .get(id)
+      .then((c) => {
+        if (!cancelled) setCustomer(c)
       })
       .catch((e) => {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load customer.')
@@ -126,6 +125,11 @@ function CustomerDetail() {
               <Phone className="h-3.5 w-3.5 shrink-0" /> {customer.primary_contact_phone}
             </p>
           )}
+          {customer.owner_name && (
+            <p className="mt-1 flex items-center gap-1.5 text-sm text-neutral-500">
+              <UserRound className="h-3.5 w-3.5 shrink-0" /> Salesperson: {customer.owner_name}
+            </p>
+          )}
 
           <div className="mt-4 grid grid-cols-3 gap-2">
             <a
@@ -158,6 +162,9 @@ function CustomerDetail() {
           </div>
         </div>
 
+        {activity.error && <p className="mt-3 rounded-lg bg-status-danger/10 px-3 py-2 text-sm text-status-danger">{activity.error}</p>}
+        <CustomerVisitActivity rows={activity.data} loading={activity.loading} />
+
         <TierCard customerId={customer.id!} />
 
         <div className="mt-4">
@@ -176,36 +183,16 @@ function CustomerDetail() {
           refreshKey={conversationKey}
           onLogCall={canLog ? () => setLogKind('call') : undefined}
         />
-
-        <div className="mt-4">
-          <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-neutral-400">Recent Activity</p>
-          {recentVisits.length === 0 ? (
-            <p className="rounded-xl2 bg-white p-4 text-sm text-neutral-500 shadow-card">No visits recorded yet.</p>
-          ) : (
-            <div className="space-y-2">
-              {recentVisits.map((v) => (
-                <div key={v.id} className="flex items-center gap-3 rounded-xl2 bg-white p-3.5 shadow-card">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-400">
-                    <Store className="h-4 w-4" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-neutral-900">
-                      {formatDate(v.checked_in_at)} · Visit{v.cancelled_at ? ' (Voided)' : !v.checked_out_at ? ' (In progress)' : ''}
-                    </p>
-                    <p className="text-xs text-neutral-400">
-                      {formatTime(v.checked_in_at)}
-                      {v.order_amount_usd != null && ` · Order ${formatUsd(v.order_amount_usd)}`}
-                      {v.collected_usd != null && ` · Collected ${formatUsd(v.collected_usd)}`}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
 
-      <VisitFlow open={visitOpen} onClose={() => setVisitOpen(false)} presetCustomer={presetCustomer} />
+      <VisitFlow
+        open={visitOpen}
+        onClose={() => {
+          setVisitOpen(false)
+          setActivityKey((k) => k + 1)
+        }}
+        presetCustomer={presetCustomer}
+      />
       <LogCallSheet
         open={logKind != null}
         onClose={() => setLogKind(null)}

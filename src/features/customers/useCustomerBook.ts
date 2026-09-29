@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { customerBookService, type BookQuery, type BookRow, type BookScope, type SummaryRow, type Visitor } from './customerBookService'
+import { customerBookService, type ActivityRow, type BookQuery, type BookRow, type BookScope, type SummaryRow, type Visitor } from './customerBookService'
 import { PAGE_SIZE } from './book'
 
 /** `value`, but only after it has stopped changing for `ms` -- typing doesn't fire a request per key. */
@@ -102,4 +102,9 @@ export function useBookGroup(query: BookQuery, pages: number, enabled: boolean):
 export function useVisitors(): Visitor[] {
   const { data } = useKeyed('visitors', [] as Visitor[], () => customerBookService.visitors(12))
   return data
+}
+
+/** Everyone's visits to one customer (newest first) -- the detail page's metrics and activity. */
+export function useCustomerActivity(customerId: string | undefined, refreshKey = 0) {
+  return useKeyed(`${customerId}:${refreshKey}`, [] as ActivityRow[], () => customerBookService.activity(customerId!), !!customerId)
 }

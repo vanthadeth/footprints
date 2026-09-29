@@ -16,8 +16,10 @@ import {
   summarize,
   toggle,
   urgency,
+  outcomeChips,
+  visitMetrics,
 } from '../book'
-import type { SummaryRow } from '../customerBookService'
+import type { ActivityRow, SummaryRow } from '../customerBookService'
 
 const names = { a: 'Dara Pich', b: 'Sokha Meas', c: 'Sina Kim' }
 
@@ -132,5 +134,42 @@ describe('paging', () => {
     expect(pageButtons(55, 10)).toEqual([1, '…', 9, 10, 11, '…', 55])
     expect(pageButtons(3, 2)).toEqual([1, 2, 3])
     expect(pageButtons(1, 1)).toEqual([1])
+  })
+})
+
+describe('visit metrics', () => {
+  const v = (id: string, iso: string, user: string, over: Partial<ActivityRow> = {}): ActivityRow => ({
+    visit_id: id, checked_in_at: iso, user_id: user, full_name: user === 'a' ? 'Dara Pich' : 'Sokha Meas', nickname: null,
+    visit_status: 'Met the owner', order_status: 'Ordered', payment_status: 'Part paid', order_amount: 86, collected: 40,
+    remarks: null, next_visit: null, cancelled_at: null, cancel_reason: null, ...over,
+  })
+  // Newest first, as customer_visit_activity returns them.
+  const rows = [
+    v('1', '2026-09-18T03:00:00Z', 'a', { next_visit: '2026-10-02T02:00:00Z' }),
+    v('x', '2026-09-15T03:00:00Z', 'a', { cancelled_at: '2026-09-15T04:00:00Z', cancel_reason: 'Checked in by mistake' }),
+    v('2', '2026-09-07T03:00:00Z', 'b'),
+    v('3', '2026-08-27T03:00:00Z', 'a'),
+    v('old', '2026-05-01T03:00:00Z', 'b'),
+  ]
+
+  it('skips voided visits and counts the last 90 days', () => {
+    const m = visitMetrics(rows, '2026-09-30')
+    expect(m.last?.visit_id).toBe('1')
+    expect(m.lastDays).toBe(12)
+    expect(m.visits90).toBe(3)
+    expect(m.people90).toBe(2)
+    // 27 Aug -> 18 Sep is 22 days over 2 gaps.
+    expect(m.freqDays).toBe(11)
+    expect(m.next).toEqual({ day: '2026-10-02', by: 'Dara' })
+  })
+
+  it('handles no visits', () => {
+    expect(visitMetrics([], '2026-09-30')).toMatchObject({ last: null, lastDays: null, visits90: 0, freqDays: null, next: null })
+  })
+
+  it('builds outcome chips', () => {
+    expect(outcomeChips(rows[0]).map((c) => c.label)).toEqual(['Met the owner', 'Ordered · $86', 'Part paid · $40 collected'])
+    expect(outcomeChips(rows[1])).toEqual([])
+    expect(outcomeChips(v('p', '2026-09-01T00:00:00Z', 'a', { payment_status: 'Paid in full', collected: 86, order_status: 'No order', order_amount: null })).map((c) => c.label)).toEqual(['Met the owner', 'No order', 'Paid in full'])
   })
 })
