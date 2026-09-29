@@ -1,6 +1,6 @@
 import { APP_TIMEZONE } from '@/lib/config'
 import { displayName } from '@/lib/displayName'
-import type { BookRow, Bucket, SummaryRow } from './customerBookService'
+import type { BookRow, Bucket, SummaryRow, Visitor } from './customerBookService'
 import { provinceEnglish } from './provinces'
 
 /**
@@ -106,6 +106,11 @@ export function filterChips(f: CustomerFilter, names: Record<string, string>): F
 export function removeChip(f: CustomerFilter, key: string): CustomerFilter {
   if (key === 'people') return { ...f, people: [], mode: 'visited' }
   return { ...f, ranges: f.ranges.filter((r) => `r:${r}` !== key) }
+}
+
+/** user id -> display name, for chips and the people picker. */
+export function visitorNames(visitors: Visitor[]): Record<string, string> {
+  return Object.fromEntries(visitors.map((v) => [v.user_id, displayName(v.full_name, v.nickname)]))
 }
 
 // ---------------------------------------------------------------- summary

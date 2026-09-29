@@ -1,28 +1,29 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CUSTOMER_DUE_AFTER_DAYS } from '@/lib/config'
-import { useNavigate } from 'react-router-dom'
-import { Construction, MapPin, Search, Store } from 'lucide-react'
-import { EmptyState } from '@/components/EmptyState'
-import { useCustomers } from '@/features/customers/useCustomers'
-import type { CustomerDirectoryRow } from '@/features/customers/customersService'
+import { Link } from 'react-router-dom'
+import { ChevronRight, Construction, Loader2, Search } from 'lucide-react'
+import { SegmentedControl } from '@/components/SegmentedControl'
 import { VisitFlow, type PresetCustomer } from '@/features/visits/VisitFlow'
 import { locationService } from '@/features/location/locationService'
 import { CUSTOMER_MANAGEMENT_ENABLED } from '@/lib/featureFlags'
-import { distanceInMeters, formatDistance } from '@/lib/geo'
-import { timeAgo } from '@/lib/datetime'
+import { displayName } from '@/lib/displayName'
+import { formatDistance } from '@/lib/geo'
+import type { BookRow, BookScope, Bucket } from '@/features/customers/customerBookService'
+import { useBookGroup, useBookPage, useBookSummary, useDebounced, useVisitors } from '@/features/customers/useCustomerBook'
+import { CustomerFilterSheet, FilterButton, FilterChips } from '@/features/customers/CustomerFilterSheet'
+import { DUE_RANGES, EMPTY_FILTER, PAGE_SIZE, URGENCY, activeCount, lastVisitChip, summarize, urgency, visitorNames, type CustomerFilter, type ProvinceGroup } from '@/features/customers/book'
+import { PHNOM_PENH } from '@/features/customers/provinces'
 
-type Filter = 'all' | 'active' | 'nearby' | 'due'
+type Tab = 'all' | 'nearby' | 'due'
 
-const FILTERS: { key: Filter; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'active', label: 'Active' },
-  { key: 'nearby', label: 'Nearby' },
-  { key: 'due', label: 'Due' },
-]
+/** Groups this small open by themselves while searching or filtering. */
+const AUTO_OPEN_MAX = 60
 
-/** A customer with no visit in this many days (or none at all) shows up under "Due" -- a stated assumption, not a configured business rule. */
-
-/** The field-sales customer book: search, a few practical filters, and a fast path into a visit -- no sales/outstanding figures (see redesign plan), just what helps decide who to see next. */
+/**
+ * The field-sales customer book, grouped by province. Counts come from
+ * customer_book_summary and each open province loads 20 customers at a
+ * time, so nothing here ever pulls the whole book -- that (and filtering
+ * 2,000 rows on every keystroke) is what made the old list slow.
+ */
 export function CustomersPage() {
   if (!CUSTOMER_MANAGEMENT_ENABLED) {
     return (
@@ -37,158 +38,240 @@ export function CustomersPage() {
 }
 
 function CustomersList() {
-  const { customers, loading, error } = useCustomers()
   const [query, setQuery] = useState('')
-  const [filter, setFilter] = useState<Filter>('all')
+  const search = useDebounced(query.trim())
+  const [tab, setTab] = useState<Tab>('all')
+  const [filter, setFilter] = useState<CustomerFilter>(EMPTY_FILTER)
+  const [sheetOpen, setSheetOpen] = useState(false)
+  // Pages shown per province; 0 = closed by hand. Phnom Penh starts open.
+  const [open, setOpen] = useState<Record<string, number>>({ [PHNOM_PENH]: 1 })
   const [position, setPosition] = useState<{ latitude: number; longitude: number } | null>(null)
   const [positionError, setPositionError] = useState(false)
-  const [presetCustomer, setPresetCustomer] = useState<PresetCustomer | null>(null)
-  const [visitOpen, setVisitOpen] = useState(false)
-  const navigate = useNavigate()
+  const [preset, setPreset] = useState<PresetCustomer | null>(null)
+  const visitors = useVisitors()
+  const names = useMemo(() => visitorNames(visitors), [visitors])
 
   useEffect(() => {
-    if (filter !== 'nearby' || position) return
+    if (tab !== 'nearby' || position) return
     locationService
       .getCurrentPosition()
       .then((reading) => setPosition({ latitude: reading.latitude, longitude: reading.longitude }))
       .catch(() => setPositionError(true))
-  }, [filter, position])
+  }, [tab, position])
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    let list = customers.filter((c) => {
-      if (!q) return true
-      return (c.shop_name?.toLowerCase().includes(q) ?? false) || (c.province_name?.toLowerCase().includes(q) ?? false)
-    })
+  const scope: BookScope = { search, people: filter.people, mode: filter.mode, months: filter.months }
+  // Due = not seen in two weeks or never; the filter's ranges narrow that further.
+  const ranges: Bucket[] = tab === 'due' ? (filter.ranges.length ? filter.ranges.filter((r) => DUE_RANGES.includes(r)) : DUE_RANGES) : filter.ranges
+  const nothingInTab = tab === 'due' && filter.ranges.length > 0 && ranges.length === 0
+  const filtering = activeCount(filter) > 0
 
-    if (filter === 'active') list = list.filter((c) => c.status === 'active')
-    if (filter === 'due') {
-      list = list.filter((c) => !c.last_visit_date || daysSince(c.last_visit_date) >= CUSTOMER_DUE_AFTER_DAYS)
-    }
-    if (filter === 'nearby' && position) {
-      list = [...list].sort((a, b) => distanceOf(a, position) - distanceOf(b, position))
-    }
-    return list
-  }, [customers, query, filter, position])
+  const summaryRes = useBookSummary(scope)
+  const summary = summarize(summaryRes.data, ranges)
+  const groups = nothingInTab ? [] : summary.provinces.filter((g) => g.matching > 0)
+  const matching = nothingInTab ? 0 : summary.matching
 
-  function handleVisit(customer: CustomerDirectoryRow) {
-    if (!customer.id) return
-    setPresetCustomer({ id: customer.id, shopName: customer.shop_name ?? 'Customer' })
-    setVisitOpen(true)
+  // What each Last-visit option would show on this tab.
+  const rangeCounts = tab === 'due' ? { ...summary.rangeCounts, '0-14': 0 } : summary.rangeCounts
+
+  const nearby = useBookPage(
+    { ...scope, ranges: filter.ranges, sort: 'distance', lat: position?.latitude, lng: position?.longitude, limit: PAGE_SIZE },
+    tab === 'nearby' && !!position
+  )
+
+  const summaryLine =
+    tab === 'nearby'
+      ? position
+        ? 'Nearest 20 to you'
+        : positionError
+          ? 'Couldn’t get your location'
+          : 'Finding your location…'
+      : search || filtering
+        ? matching === 0
+          ? 'No matches'
+          : `${matching.toLocaleString('en-US')} ${matching === 1 ? 'match' : 'matches'} in ${groups.length} ${groups.length === 1 ? 'province' : 'provinces'}`
+        : tab === 'due'
+          ? `${matching.toLocaleString('en-US')} customers due, overdue or never visited`
+          : `${summary.total.toLocaleString('en-US')} customers · ${summary.provinces.filter((p) => p.code !== 'none').length} provinces`
+
+  function isOpen(g: ProvinceGroup): boolean {
+    const set = open[g.code]
+    if (set !== undefined) return set > 0
+    return (!!search || filtering) && g.matching <= AUTO_OPEN_MAX
   }
+
+  const showEmpty = tab === 'nearby' ? !!position && !nearby.loading && nearby.data.length === 0 && (!!search || filtering) : !summaryRes.loading && groups.length === 0
 
   return (
     <div className="mx-auto max-w-lg pb-6 md:max-w-2xl">
-      <div className="px-4 pt-4 md:px-8">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search customer…"
-            className="w-full rounded-xl border border-neutral-200 bg-white py-2.5 pl-10 pr-3 text-sm text-neutral-900 placeholder:text-neutral-400"
-          />
+      <div className="flex flex-col gap-2.5 border-b border-neutral-100 px-4 pb-2.5 pt-3 md:px-8 dark:border-neutral-800">
+        <div className="flex gap-2">
+          <label className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border-[1.5px] border-neutral-200 bg-white px-3">
+            <Search className="h-4 w-4 shrink-0 text-neutral-400" />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search name, code, phone…"
+              aria-label="Search customers"
+              className="min-w-0 flex-1 bg-transparent text-[15px] text-neutral-900 outline-none placeholder:text-neutral-400"
+            />
+          </label>
+          <FilterButton filter={filter} onClick={() => setSheetOpen(true)} />
         </div>
+        <SegmentedControl
+          ariaLabel="Customer filter"
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: 'all', label: 'All' },
+            { value: 'nearby', label: 'Nearby' },
+            { value: 'due', label: 'Due' },
+          ]}
+        />
+        <FilterChips filter={filter} names={names} onChange={setFilter} />
+        <p className="flex items-center gap-1.5 text-xs text-neutral-500">
+          {summaryLine}
+          {(summaryRes.refreshing || nearby.refreshing) && !summaryRes.loading && <Loader2 className="h-3 w-3 animate-spin" aria-label="Updating" />}
+        </p>
+      </div>
 
-        <div className="mt-3 flex gap-1 rounded-full bg-neutral-100 p-1">
-          {FILTERS.map((f) => (
-            <button
-              key={f.key}
-              onClick={() => setFilter(f.key)}
-              className={`flex-1 rounded-full px-3 py-2 text-sm font-semibold tap-target ${
-                filter === f.key ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500'
-              }`}
-            >
-              {f.label}
-            </button>
+      <div className="flex flex-col gap-2.5 px-4 pt-2.5 md:px-8">
+        {summaryRes.error && <p className="rounded-lg bg-status-danger/10 px-3 py-2 text-sm text-status-danger">{summaryRes.error}</p>}
+
+        {tab !== 'nearby' &&
+          (summaryRes.loading ? (
+            <>
+              <div className="h-16 animate-pulse rounded-2xl bg-neutral-100" />
+              <div className="h-16 animate-pulse rounded-2xl bg-neutral-100" />
+              <div className="h-16 animate-pulse rounded-2xl bg-neutral-100" />
+            </>
+          ) : (
+            groups.map((g) => (
+              <ProvinceCard
+                key={g.code}
+                group={g}
+                scope={scope}
+                ranges={ranges}
+                sort={tab === 'due' ? 'last' : 'name'}
+                expanded={isOpen(g)}
+                pages={open[g.code] || 1}
+                showBadge={tab !== 'due' && !filtering}
+                onToggle={() => setOpen((o) => ({ ...o, [g.code]: isOpen(g) ? 0 : 1 }))}
+                onMore={() => setOpen((o) => ({ ...o, [g.code]: (o[g.code] || 1) + 1 }))}
+                onVisit={setPreset}
+              />
+            ))
           ))}
-        </div>
 
-        {filter === 'nearby' && positionError && (
-          <p className="mt-2 text-xs text-status-warn">Couldn't get your location -- showing unsorted.</p>
+        {tab === 'nearby' && position && nearby.data.length > 0 && (
+          <>
+            <p className="mx-0.5 text-xs text-neutral-500">Closest first, across all provinces.</p>
+            <div className="overflow-hidden rounded-2xl bg-white shadow-card">
+              {nearby.data.map((c, i) => (
+                <CustomerLine key={c.customer_id} row={c} first={i === 0} extra={c.distance_m != null ? `${formatDistance(c.distance_m)}` : undefined} onVisit={setPreset} />
+              ))}
+            </div>
+          </>
         )}
 
-        {error && <p className="mt-3 rounded-lg bg-status-danger/10 px-3 py-2 text-sm text-status-danger">{error}</p>}
-
-        {loading ? (
-          <div className="mt-4 space-y-2">
-            <div className="h-20 animate-pulse rounded-xl2 bg-neutral-100" />
-            <div className="h-20 animate-pulse rounded-xl2 bg-neutral-100" />
-            <div className="h-20 animate-pulse rounded-xl2 bg-neutral-100" />
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="mt-4">
-            <EmptyState icon={Store} title="No customers found" body="Try a different search or filter." />
-          </div>
-        ) : (
-          <div className="mt-4 space-y-2">
-            {filtered.map((c) => (
-              <CustomerRow
-                key={c.id}
-                customer={c}
-                distance={filter === 'nearby' && position ? distanceOf(c, position) : null}
-                onOpen={() => navigate(`/customers/${c.id}`)}
-                onVisit={() => handleVisit(c)}
-              />
-            ))}
+        {showEmpty && (
+          <div className="rounded-2xl border-[1.5px] border-dashed border-neutral-200 px-4 py-7 text-center">
+            <p className="text-[15px] font-bold text-neutral-900">{search ? `No customers match “${search}”` : 'No customers match these filters'}</p>
+            <p className="mt-1 text-[13px] text-neutral-500">Try fewer filters, part of the shop name, the customer code or a phone number.</p>
           </div>
         )}
       </div>
 
-      <VisitFlow
-        open={visitOpen}
-        onClose={() => {
-          setVisitOpen(false)
-          setPresetCustomer(null)
-        }}
-        presetCustomer={presetCustomer}
+      <CustomerFilterSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        filter={filter}
+        onChange={setFilter}
+        rangeCounts={rangeCounts}
+        showCount={tab === 'nearby' ? summary.matching : matching}
+        visitors={visitors}
       />
+
+      <VisitFlow open={!!preset} onClose={() => setPreset(null)} presetCustomer={preset} />
     </div>
   )
 }
 
-function daysSince(dateStr: string): number {
-  return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86_400_000)
-}
-
-function distanceOf(c: CustomerDirectoryRow, position: { latitude: number; longitude: number }): number {
-  if (c.latitude == null || c.longitude == null) return Infinity
-  return distanceInMeters(position.latitude, position.longitude, c.latitude, c.longitude)
-}
-
-function CustomerRow({
-  customer,
-  distance,
-  onOpen,
+function ProvinceCard({
+  group,
+  scope,
+  ranges,
+  sort,
+  expanded,
+  pages,
+  showBadge,
+  onToggle,
+  onMore,
   onVisit,
 }: {
-  customer: CustomerDirectoryRow
-  distance: number | null
-  onOpen: () => void
-  onVisit: () => void
+  group: ProvinceGroup
+  scope: BookScope
+  ranges: Bucket[]
+  sort: 'name' | 'last'
+  expanded: boolean
+  pages: number
+  showBadge: boolean
+  onToggle: () => void
+  onMore: () => void
+  onVisit: (c: PresetCustomer) => void
 }) {
+  const { rows, total, loading, error } = useBookGroup({ ...scope, province: group.code, ranges, sort }, pages, expanded)
+  const count = total || group.matching
+  const left = count - rows.length
   return (
-    <div className="rounded-xl2 bg-white p-3.5 shadow-card">
-      <button onClick={onOpen} className="flex w-full items-start gap-3 text-left tap-target">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-500">
-          <Store className="h-5 w-5" />
-        </span>
+    <div className="overflow-hidden rounded-2xl bg-white shadow-card">
+      <button type="button" onClick={onToggle} aria-expanded={expanded} className="flex w-full items-center gap-2.5 px-3.5 py-3 text-left tap-target">
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-semibold text-neutral-900">{customer.shop_name}</span>
-          {customer.province_name && (
-            <span className="mt-0.5 flex items-center gap-1 text-xs text-neutral-500">
-              <MapPin className="h-3 w-3" /> {customer.province_name}
-            </span>
-          )}
-          <span className="mt-0.5 block text-xs text-neutral-400">
-            {distance != null && Number.isFinite(distance) && `${formatDistance(distance)} away · `}
-            Last visit: {customer.last_visit_date ? timeAgo(customer.last_visit_date) : 'Never'}
+          <span className="block text-[15px] font-extrabold text-neutral-900">{group.km}</span>
+          <span className="mt-px block text-xs text-neutral-500">
+            {group.en ? `${group.en} · ` : ''}
+            {group.matching.toLocaleString('en-US')} {group.matching === 1 ? 'customer' : 'customers'}
           </span>
         </span>
+        {showBadge && group.late > 0 && (
+          <span className="shrink-0 rounded-full bg-status-danger/10 px-2 py-0.5 text-[11px] font-extrabold text-status-danger dark:bg-red-400/15 dark:text-red-300">{group.late} to visit</span>
+        )}
+        <ChevronRight className={`h-4 w-4 shrink-0 text-neutral-400 transition-transform ${expanded ? 'rotate-90' : ''}`} />
       </button>
+      {expanded && (
+        <>
+          {error && <p className="border-t border-neutral-100 px-3.5 py-2 text-sm text-status-danger">{error}</p>}
+          {rows.length === 0 && loading && <div className="mx-3.5 mb-3 h-12 animate-pulse rounded-xl bg-neutral-100" />}
+          {rows.map((c) => (
+            <CustomerLine key={c.customer_id} row={c} onVisit={onVisit} />
+          ))}
+          {left > 0 && rows.length > 0 && (
+            <button type="button" onClick={onMore} disabled={loading} className="flex h-11 w-full items-center justify-center gap-1.5 border-t border-neutral-100 text-[13.5px] font-bold text-brand-500">
+              {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              Show {Math.min(PAGE_SIZE, left)} more · {left.toLocaleString('en-US')} left
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+function CustomerLine({ row, first = false, extra, onVisit }: { row: BookRow; first?: boolean; extra?: string; onVisit: (c: PresetCustomer) => void }) {
+  const u = URGENCY[urgency(row.days_since)]
+  const owner = row.owner_name ? displayName(row.owner_name, row.owner_nickname) : null
+  const sub = [extra, row.district, owner].filter(Boolean).join(' · ')
+  return (
+    <div className={`flex items-center gap-2.5 px-3.5 py-2.5 ${first ? '' : 'border-t border-neutral-100'}`}>
+      <Link to={`/customers/${row.customer_id}`} className="min-w-0 flex-1">
+        <span className="block truncate text-[14.5px] font-bold text-neutral-900">{row.shop_name}</span>
+        {sub && <span className="mt-0.5 block truncate text-xs text-neutral-500">{sub}</span>}
+        <span className={`mt-1.5 inline-flex rounded-full px-2 py-0.5 text-[11.5px] font-bold ${u.chip}`}>{lastVisitChip(row)}</span>
+      </Link>
       <button
-        onClick={onVisit}
-        className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-xl bg-brand-500 py-2.5 text-xs font-semibold uppercase tracking-wide text-white tap-target"
+        type="button"
+        onClick={() => onVisit({ id: row.customer_id, shopName: row.shop_name })}
+        className="h-[34px] shrink-0 rounded-[10px] bg-brand-50 px-3 text-[13px] font-bold text-brand-600 tap-target dark:bg-brand-500/20 dark:text-brand-300"
       >
         Visit
       </button>
