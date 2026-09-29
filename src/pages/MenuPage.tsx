@@ -132,7 +132,6 @@ export function MenuPage() {
           />
           <ListRow icon={Store} iconBg="bg-status-working" label="Customers" sublabel="Calls, notes and visits by customer" to="/customers" />
           <ListRow icon={Route} iconBg="bg-brand-500" label="Today's plan" sublabel="Your stops, route and next customer" to="/plan" />
-          <ListRow icon={Store} iconBg="bg-status-warn" label="Customer coverage" sublabel="Who's due or overdue for a visit" to="/customers/coverage" />
         </GroupedList>
 
         {isManager && (

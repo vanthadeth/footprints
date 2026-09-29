@@ -29,7 +29,6 @@ const WorkingHoursPage = lazy(() => import('@/pages/WorkingHoursPage').then((m) 
 const HolidaysPage = lazy(() => import('@/pages/HolidaysPage').then((m) => ({ default: m.HolidaysPage })))
 const LeaveAllowancesPage = lazy(() => import('@/pages/LeaveAllowancesPage').then((m) => ({ default: m.LeaveAllowancesPage })))
 const PlanPage = lazy(() => import('@/pages/PlanPage').then((m) => ({ default: m.PlanPage })))
-const CoveragePage = lazy(() => import('@/pages/CoveragePage').then((m) => ({ default: m.CoveragePage })))
 const MessagesPage = lazy(() => import('@/pages/MessagesPage').then((m) => ({ default: m.MessagesPage })))
 const MessageThreadPage = lazy(() => import('@/pages/MessageThreadPage').then((m) => ({ default: m.MessageThreadPage })))
 const NotificationsPage = lazy(() => import('@/pages/NotificationsPage').then((m) => ({ default: m.NotificationsPage })))
@@ -86,14 +85,6 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageFallback />}>
             <CustomersPage />
-          </Suspense>
-        ),
-      },
-      {
-        path: '/customers/coverage',
-        element: (
-          <Suspense fallback={<PageFallback />}>
-            <CoveragePage />
           </Suspense>
         ),
       },
