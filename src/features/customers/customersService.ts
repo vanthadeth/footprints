@@ -1,6 +1,5 @@
 import { supabase } from '@/lib/supabase'
 import type { Tables } from '@/types/database.types'
-import type { VisitRow } from '@/features/attendance/types'
 
 export type CustomerDirectoryRow = Tables<'customer_directory'>
 
@@ -32,18 +31,6 @@ export const customersService = {
     const { data, error } = await supabase.from('customer_directory').select('*').eq('id', customerId).maybeSingle()
     if (error) throw error
     return data
-  },
-
-  /** That customer's own recent visits (any rep, not just the caller) -- Customer Detail's Recent Activity. */
-  async recentVisits(customerId: string, limit = 5): Promise<VisitRow[]> {
-    const { data, error } = await supabase
-      .from('visits')
-      .select('*')
-      .eq('customer_id', customerId)
-      .order('checked_in_at', { ascending: false })
-      .limit(limit)
-    if (error) throw error
-    return data ?? []
   },
 
   /** Quick-add from the field: just enough to check in against right away -- owner_id is the creator, matching customers_insert's 'own' scope for Sales Team. */

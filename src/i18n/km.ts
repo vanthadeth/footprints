@@ -29,6 +29,7 @@ export const km: TranslationKey = {
     settings: 'ការកំណត់',
     home: 'ទំព័រដើម',
     customers: 'អតិថិជន',
+    customerBriefing: 'សង្ខេបអតិថិជន',
     visits: 'ការទស្សនា',
     more: 'ច្រើនទៀត',
     performance: 'សមិទ្ធផល',

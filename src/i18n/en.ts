@@ -21,6 +21,7 @@ export const en = {
     settings: 'Settings',
     home: 'Home',
     customers: 'Customers',
+    customerBriefing: 'Customer briefing',
     visits: 'Visits',
     more: 'More',
     performance: 'Performance',

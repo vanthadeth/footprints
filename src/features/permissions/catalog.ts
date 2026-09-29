@@ -34,6 +34,7 @@ export type FnKey =
   | 'conversation_view'
   | 'customer_call'
   | 'customer_edit'
+  | 'customer_briefing'
   | 'att_view'
   | 'att_override'
   | 'team_map'
@@ -76,6 +77,7 @@ export const GROUPS: { name: string; fns: FnMeta[] }[] = [
       { key: 'conversation_view', label: 'Read & reply to conversations', help: 'See calls and notes on customers, reply and react', scopes: ['any'] },
       { key: 'customer_call', label: 'Call customers & log calls', help: 'Outgoing and incoming calls with purpose and notes', scopes: ['own', 'sub', 'any'] },
       { key: 'customer_edit', label: 'Add / edit customers', help: 'Create customers and change their details', scopes: ['own', 'sub', 'any'] },
+      { key: 'customer_briefing', label: 'Customer briefing', help: 'Customers by province with visit history (Hub › Team)', scopes: null },
     ],
   },
   {
@@ -122,6 +124,7 @@ const OWNED: { m: string; a: Action; from: FnKey[]; value: (s: FnState, current:
   { m: 'customer', a: 'view', from: ['customer_view'], value: (s) => s.customer_view?.scope ?? null },
   { m: 'customer', a: 'add', from: ['customer_edit'], value: (s) => s.customer_edit?.scope ?? null },
   { m: 'customer', a: 'edit', from: ['customer_edit'], value: (s) => s.customer_edit?.scope ?? null },
+  { m: 'customer_briefing', a: 'view', from: ['customer_briefing'], value: (s) => (s.customer_briefing ? 'any' : null) },
   { m: 'customer_conversation', a: 'view', from: ['conversation_view'], value: (s) => s.conversation_view?.scope ?? null },
   { m: 'customer_conversation', a: 'add', from: ['customer_call'], value: (s) => s.customer_call?.scope ?? null },
   { m: 'team_map', a: 'view', from: ['team_map'], value: (s) => s.team_map?.scope ?? null },
@@ -170,6 +173,7 @@ export function deriveState(rows: PermRow[]): FnState {
     conversation_view: scoped(get('customer_conversation', 'view')),
     customer_call: scoped(get('customer_conversation', 'add')),
     customer_edit: scoped(get('customer', 'edit')),
+    customer_briefing: onOff(get('customer_briefing', 'view')),
     att_view: scoped(get('attendance', 'view')),
     att_override: wide(get('attendance', 'edit')),
     team_map: scoped(get('team_map', 'view')),
