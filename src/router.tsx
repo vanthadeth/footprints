@@ -30,6 +30,8 @@ const HolidaysPage = lazy(() => import('@/pages/HolidaysPage').then((m) => ({ de
 const LeaveAllowancesPage = lazy(() => import('@/pages/LeaveAllowancesPage').then((m) => ({ default: m.LeaveAllowancesPage })))
 const PlanPage = lazy(() => import('@/pages/PlanPage').then((m) => ({ default: m.PlanPage })))
 const CoveragePage = lazy(() => import('@/pages/CoveragePage').then((m) => ({ default: m.CoveragePage })))
+const MessagesPage = lazy(() => import('@/pages/MessagesPage').then((m) => ({ default: m.MessagesPage })))
+const MessageThreadPage = lazy(() => import('@/pages/MessageThreadPage').then((m) => ({ default: m.MessageThreadPage })))
 const NotificationsPage = lazy(() => import('@/pages/NotificationsPage').then((m) => ({ default: m.NotificationsPage })))
 const LocationsPage = lazy(() => import('@/pages/LocationsPage').then((m) => ({ default: m.LocationsPage })))
 const TranslationsPage = lazy(() => import('@/pages/TranslationsPage').then((m) => ({ default: m.TranslationsPage })))
@@ -201,6 +203,22 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageFallback />}>
             <UsersPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/messages',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <MessagesPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/messages/:postId',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <MessageThreadPage />
           </Suspense>
         ),
       },

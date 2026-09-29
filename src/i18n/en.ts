@@ -25,6 +25,8 @@ export const en = {
     more: 'More',
     performance: 'Performance',
     notifications: 'Notifications',
+    messages: 'Messages',
+    messageThread: 'Conversation',
     locations: 'Locations',
     translations: 'Translations',
     customer: 'Customer',

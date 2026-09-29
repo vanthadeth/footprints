@@ -443,6 +443,175 @@ export type Database = {
           },
         ]
       }
+      conversation_mentions: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          post_id: string
+          reason: string
+          reply_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          post_id: string
+          reason?: string
+          reply_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          post_id?: string
+          reason?: string
+          reply_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_mentions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "conversation_mentions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_mentions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_mentions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "customer_conversation_feed"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_mentions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "customer_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_mentions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "my_conversation_threads"
+            referencedColumns: ["post_id"]
+          },
+          {
+            foreignKeyName: "conversation_mentions_reply_id_fkey"
+            columns: ["reply_id"]
+            isOneToOne: false
+            referencedRelation: "customer_conversation_replies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_mentions_reply_id_fkey"
+            columns: ["reply_id"]
+            isOneToOne: false
+            referencedRelation: "customer_post_replies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_mentions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "conversation_mentions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_mentions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversation_reads: {
+        Row: {
+          last_read_at: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          last_read_at?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          last_read_at?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_reads_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "customer_conversation_feed"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_reads_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "customer_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_reads_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "my_conversation_threads"
+            referencedColumns: ["post_id"]
+          },
+          {
+            foreignKeyName: "conversation_reads_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "conversation_reads_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_reads_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_contacts: {
         Row: {
           active: boolean
@@ -544,6 +713,270 @@ export type Database = {
           },
           {
             foreignKeyName: "customer_pictures_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_post_reactions: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          reaction: string
+          reply_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          reaction: string
+          reply_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          reaction?: string
+          reply_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_post_reactions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "customer_conversation_feed"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_post_reactions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "customer_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_post_reactions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "my_conversation_threads"
+            referencedColumns: ["post_id"]
+          },
+          {
+            foreignKeyName: "customer_post_reactions_reply_id_fkey"
+            columns: ["reply_id"]
+            isOneToOne: false
+            referencedRelation: "customer_conversation_replies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_post_reactions_reply_id_fkey"
+            columns: ["reply_id"]
+            isOneToOne: false
+            referencedRelation: "customer_post_replies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_post_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "customer_post_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_post_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_post_replies: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          post_id: string
+          reply_to_id: string | null
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          post_id: string
+          reply_to_id?: string | null
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          post_id?: string
+          reply_to_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_post_replies_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "customer_post_replies_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_post_replies_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_post_replies_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "customer_conversation_feed"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_post_replies_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "customer_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_post_replies_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "my_conversation_threads"
+            referencedColumns: ["post_id"]
+          },
+          {
+            foreignKeyName: "customer_post_replies_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "customer_conversation_replies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_post_replies_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "customer_post_replies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_posts: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          customer_id: string
+          deleted_at: string | null
+          direction: Database["public"]["Enums"]["call_direction"] | null
+          edited_at: string | null
+          follow_up_at: string | null
+          follow_up_done_at: string | null
+          id: string
+          kind: Database["public"]["Enums"]["conversation_kind"]
+          outcome_conflict: string | null
+          outcome_delivery: string | null
+          outcome_order: string | null
+          outcome_payment: string | null
+          purposes: Database["public"]["Enums"]["call_purpose"][]
+        }
+        Insert: {
+          author_id: string
+          body?: string
+          created_at?: string
+          customer_id: string
+          deleted_at?: string | null
+          direction?: Database["public"]["Enums"]["call_direction"] | null
+          edited_at?: string | null
+          follow_up_at?: string | null
+          follow_up_done_at?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["conversation_kind"]
+          outcome_conflict?: string | null
+          outcome_delivery?: string | null
+          outcome_order?: string | null
+          outcome_payment?: string | null
+          purposes?: Database["public"]["Enums"]["call_purpose"][]
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          customer_id?: string
+          deleted_at?: string | null
+          direction?: Database["public"]["Enums"]["call_direction"] | null
+          edited_at?: string | null
+          follow_up_at?: string | null
+          follow_up_done_at?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["conversation_kind"]
+          outcome_conflict?: string | null
+          outcome_delivery?: string | null
+          outcome_order?: string | null
+          outcome_payment?: string | null
+          purposes?: Database["public"]["Enums"]["call_purpose"][]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "customer_posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_posts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_posts_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
@@ -3088,6 +3521,213 @@ export type Database = {
       }
     }
     Views: {
+      customer_conversation_feed: {
+        Row: {
+          author_id: string | null
+          author_name: string | null
+          body: string | null
+          created_at: string | null
+          customer_id: string | null
+          customer_name: string | null
+          customer_owner_id: string | null
+          direction: Database["public"]["Enums"]["call_direction"] | null
+          follow_up_at: string | null
+          follow_up_done_at: string | null
+          id: string | null
+          kind: Database["public"]["Enums"]["conversation_kind"] | null
+          my_reactions: string[] | null
+          notified: Json | null
+          outcome_conflict: string | null
+          outcome_delivery: string | null
+          outcome_order: string | null
+          outcome_payment: string | null
+          purposes: Database["public"]["Enums"]["call_purpose"][] | null
+          reaction_counts: Json | null
+          reply_count: number | null
+        }
+        Insert: {
+          author_id?: string | null
+          author_name?: never
+          body?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          customer_name?: never
+          customer_owner_id?: never
+          direction?: Database["public"]["Enums"]["call_direction"] | null
+          follow_up_at?: string | null
+          follow_up_done_at?: string | null
+          id?: string | null
+          kind?: Database["public"]["Enums"]["conversation_kind"] | null
+          my_reactions?: never
+          notified?: never
+          outcome_conflict?: string | null
+          outcome_delivery?: string | null
+          outcome_order?: string | null
+          outcome_payment?: string | null
+          purposes?: Database["public"]["Enums"]["call_purpose"][] | null
+          reaction_counts?: never
+          reply_count?: never
+        }
+        Update: {
+          author_id?: string | null
+          author_name?: never
+          body?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          customer_name?: never
+          customer_owner_id?: never
+          direction?: Database["public"]["Enums"]["call_direction"] | null
+          follow_up_at?: string | null
+          follow_up_done_at?: string | null
+          id?: string | null
+          kind?: Database["public"]["Enums"]["conversation_kind"] | null
+          my_reactions?: never
+          notified?: never
+          outcome_conflict?: string | null
+          outcome_delivery?: string | null
+          outcome_order?: string | null
+          outcome_payment?: string | null
+          purposes?: Database["public"]["Enums"]["call_purpose"][] | null
+          reaction_counts?: never
+          reply_count?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "customer_posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_posts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_posts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_conversation_replies: {
+        Row: {
+          author_id: string | null
+          author_name: string | null
+          body: string | null
+          created_at: string | null
+          id: string | null
+          mentions_me: boolean | null
+          my_reactions: string[] | null
+          post_id: string | null
+          reaction_counts: Json | null
+          reply_to_id: string | null
+          reply_to_name: string | null
+        }
+        Insert: {
+          author_id?: string | null
+          author_name?: never
+          body?: string | null
+          created_at?: string | null
+          id?: string | null
+          mentions_me?: never
+          my_reactions?: never
+          post_id?: string | null
+          reaction_counts?: never
+          reply_to_id?: string | null
+          reply_to_name?: never
+        }
+        Update: {
+          author_id?: string | null
+          author_name?: never
+          body?: string | null
+          created_at?: string | null
+          id?: string | null
+          mentions_me?: never
+          my_reactions?: never
+          post_id?: string | null
+          reaction_counts?: never
+          reply_to_id?: string | null
+          reply_to_name?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_post_replies_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "customer_post_replies_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_post_replies_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_post_replies_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "customer_conversation_feed"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_post_replies_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "customer_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_post_replies_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "my_conversation_threads"
+            referencedColumns: ["post_id"]
+          },
+          {
+            foreignKeyName: "customer_post_replies_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "customer_conversation_replies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_post_replies_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "customer_post_replies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_directory: {
         Row: {
           business_type: string | null
@@ -3210,6 +3850,47 @@ export type Database = {
           year: number | null
         }
         Relationships: []
+      }
+      my_conversation_threads: {
+        Row: {
+          customer_id: string | null
+          customer_name: string | null
+          direction: Database["public"]["Enums"]["call_direction"] | null
+          follow_up_at: string | null
+          is_due: boolean | null
+          is_mention: boolean | null
+          is_mine: boolean | null
+          is_reply: boolean | null
+          kind: Database["public"]["Enums"]["conversation_kind"] | null
+          last_at: string | null
+          last_author_id: string | null
+          last_author_name: string | null
+          last_body: string | null
+          outcome_conflict: string | null
+          outcome_delivery: string | null
+          outcome_order: string | null
+          outcome_payment: string | null
+          post_id: string | null
+          purposes: Database["public"]["Enums"]["call_purpose"][] | null
+          reason: string | null
+          unread_count: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_posts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_posts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notification_feed: {
         Row: {
@@ -3365,6 +4046,29 @@ export type Database = {
       }
     }
     Functions: {
+      add_conversation_reply: {
+        Args: {
+          p_body: string
+          p_mentions?: string[]
+          p_post_id: string
+          p_reply_to_id?: string
+        }
+        Returns: {
+          author_id: string
+          body: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          post_id: string
+          reply_to_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "customer_post_replies"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       attendance_days: {
         Args: { p_from: string; p_to: string }
         Returns: {
@@ -3401,6 +4105,10 @@ export type Database = {
       can_delete_user: { Args: { p_user: string }; Returns: boolean }
       can_edit_user: { Args: { p_user: string }; Returns: boolean }
       can_edit_visit_quota: { Args: { p_user: string }; Returns: boolean }
+      can_log_conversation: {
+        Args: { p_customer_id: string }
+        Returns: boolean
+      }
       cancel_leave_request: {
         Args: { p_id: string }
         Returns: {
@@ -3618,6 +4326,33 @@ export type Database = {
         Returns: Json
       }
       close_stale_visits: { Args: never; Returns: number }
+      complete_follow_up: {
+        Args: { p_done?: boolean; p_post_id: string }
+        Returns: {
+          author_id: string
+          body: string
+          created_at: string
+          customer_id: string
+          deleted_at: string | null
+          direction: Database["public"]["Enums"]["call_direction"] | null
+          edited_at: string | null
+          follow_up_at: string | null
+          follow_up_done_at: string | null
+          id: string
+          kind: Database["public"]["Enums"]["conversation_kind"]
+          outcome_conflict: string | null
+          outcome_delivery: string | null
+          outcome_order: string | null
+          outcome_payment: string | null
+          purposes: Database["public"]["Enums"]["call_purpose"][]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "customer_posts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       confirm_cart: {
         Args: never
         Returns: {
@@ -3705,6 +4440,46 @@ export type Database = {
           prorata_new_joiners: boolean
         }[]
       }
+      log_customer_post: {
+        Args: {
+          p_body?: string
+          p_customer_id: string
+          p_direction?: Database["public"]["Enums"]["call_direction"]
+          p_follow_up_at?: string
+          p_kind: Database["public"]["Enums"]["conversation_kind"]
+          p_mentions?: string[]
+          p_notify?: string[]
+          p_outcome_conflict?: string
+          p_outcome_delivery?: string
+          p_outcome_order?: string
+          p_outcome_payment?: string
+          p_purposes?: Database["public"]["Enums"]["call_purpose"][]
+        }
+        Returns: {
+          author_id: string
+          body: string
+          created_at: string
+          customer_id: string
+          deleted_at: string | null
+          direction: Database["public"]["Enums"]["call_direction"] | null
+          edited_at: string | null
+          follow_up_at: string | null
+          follow_up_done_at: string | null
+          id: string
+          kind: Database["public"]["Enums"]["conversation_kind"]
+          outcome_conflict: string | null
+          outcome_delivery: string | null
+          outcome_order: string | null
+          outcome_payment: string | null
+          purposes: Database["public"]["Enums"]["call_purpose"][]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "customer_posts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       manageable_users: {
         Args: never
         Returns: {
@@ -3729,9 +4504,25 @@ export type Database = {
           telegram_id: string
         }[]
       }
+      mark_all_conversations_read: { Args: never; Returns: number }
+      mark_conversation_read: {
+        Args: { p_post_id: string }
+        Returns: undefined
+      }
       mark_notifications_pushed: {
         Args: { p_ids: string[] }
         Returns: undefined
+      }
+      mentionable_users: {
+        Args: never
+        Returns: {
+          full_name: string
+          id: string
+          nickname: string
+          photo_path: string
+          role_key: string
+          role_name: string
+        }[]
       }
       my_modules: {
         Args: { p_view: string }
@@ -4048,6 +4839,10 @@ export type Database = {
           is_required: boolean
         }[]
       }
+      toggle_conversation_reaction: {
+        Args: { p_post_id: string; p_reaction: string; p_reply_id?: string }
+        Returns: boolean
+      }
       unvoid_visit: {
         Args: { p_visit: string }
         Returns: {
@@ -4191,6 +4986,15 @@ export type Database = {
     }
     Enums: {
       audit_action: "insert" | "update" | "delete"
+      call_direction: "outgoing" | "incoming"
+      call_purpose:
+        | "care"
+        | "delivery"
+        | "discount"
+        | "collection"
+        | "followup"
+        | "conflict"
+      conversation_kind: "call" | "note"
       currency: "usd" | "khr"
       customer_status: "active" | "inactive" | "banned"
       discount_mode: "percent" | "amount"
@@ -4361,6 +5165,16 @@ export const Constants = {
   public: {
     Enums: {
       audit_action: ["insert", "update", "delete"],
+      call_direction: ["outgoing", "incoming"],
+      call_purpose: [
+        "care",
+        "delivery",
+        "discount",
+        "collection",
+        "followup",
+        "conflict",
+      ],
+      conversation_kind: ["call", "note"],
       currency: ["usd", "khr"],
       customer_status: ["active", "inactive", "banned"],
       discount_mode: ["percent", "amount"],

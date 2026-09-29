@@ -24,6 +24,7 @@ const TITLE_KEYS: Record<string, string> = {
   '/plan': 'nav.plan',
   '/visits': 'nav.visits',
   '/notifications': 'nav.notifications',
+  '/messages': 'nav.messages',
   '/locations': 'nav.locations',
   '/translations': 'nav.translations',
 }
@@ -35,6 +36,7 @@ const TAB_ROOTS = new Set(['/check-in', '/footprints', '/leave', '/report', '/me
 function backTarget(pathname: string): string {
   if (pathname === '/plan') return '/check-in'
   if (pathname.startsWith('/customers/')) return '/customers'
+  if (pathname.startsWith('/messages/')) return '/messages'
   return '/menu'
 }
 
@@ -55,7 +57,9 @@ export function TitleBar() {
         : t('nav.clockIn')
       : pathname.startsWith('/customers/') && !TITLE_KEYS[pathname]
         ? t('nav.customer')
-        : t(TITLE_KEYS[pathname] ?? 'nav.footprints')
+        : pathname.startsWith('/messages/')
+          ? t('nav.messageThread')
+          : t(TITLE_KEYS[pathname] ?? 'nav.footprints')
   const isRoot = TAB_ROOTS.has(pathname)
 
   const actions = (
