@@ -15,6 +15,7 @@ const TITLE_KEYS: Record<string, string> = {
   '/leave/allowances': 'nav.leaveAllowances',
   '/settings/working-hours': 'nav.workingHours',
   '/settings/holidays': 'nav.holidays',
+  '/settings/permissions': 'nav.permissions',
   '/report': 'nav.report',
   '/settings': 'nav.settings',
   '/users': 'nav.users',

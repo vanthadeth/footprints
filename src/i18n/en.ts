@@ -38,6 +38,7 @@ export const en = {
     leaveAllowances: 'Leave Allowances',
     workingHours: 'Working Hours & Days',
     holidays: 'Public Holidays',
+    permissions: 'Permissions',
   },
   welcome: {
     tagline: 'Your day. Your customers. Your progress.',
@@ -120,6 +121,11 @@ export const en = {
     reasonOutsideRadius: 'Moved outside visit area',
     reasonClockOut: 'Clocked out while visit was active',
     distanceLabel: 'Distance: {{n}} m',
+    clockInAt: 'Clock in at {{places}}',
+    clockOutAt: 'Clock out at {{places}}',
+    wrongPlaceTitle: 'Not at a clock location',
+    wrongPlaceInBody: 'You need to be at {{places}} to clock in. Nearest is {{nearest}}, {{distance}} away.',
+    wrongPlaceOutBody: 'You need to be at {{places}} to clock out. Nearest is {{nearest}}, {{distance}} away.',
   },
   profile: {
     couldNotLoad: "We couldn't load your profile.",

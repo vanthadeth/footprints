@@ -14,6 +14,7 @@ import { useLanguage } from '@/i18n/LanguageContext'
 import { displayName } from '@/lib/displayName'
 import { useInstallPrompt } from '@/hooks/useInstallPrompt'
 import { formatDuration, formatTime } from '@/lib/datetime'
+import { useCan } from '@/features/permissions/PermissionsContext'
 import { haptic } from '@/lib/haptic'
 
 export function ProfilePage() {
@@ -226,14 +227,17 @@ function TodaySummary({
 }) {
   const navigate = useNavigate()
   const { t } = useLanguage()
+  const canFootprints = useCan('footprints')
 
   return (
     <div className="mt-3 rounded-xl2 bg-white p-4 shadow-card">
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">{t('profile.todaysSummary')}</p>
-        <button onClick={() => navigate('/footprints')} className="flex items-center gap-0.5 text-xs font-semibold text-brand-600 tap-target">
-          {t('profile.fullReport')} <ChevronRight className="h-3.5 w-3.5" aria-hidden />
-        </button>
+        {canFootprints && (
+          <button onClick={() => navigate('/footprints')} className="flex items-center gap-0.5 text-xs font-semibold text-brand-600 tap-target">
+            {t('profile.fullReport')} <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+          </button>
+        )}
       </div>
 
       <div className="mt-2.5 grid grid-cols-3 divide-x divide-neutral-100 text-center dark:divide-neutral-700">

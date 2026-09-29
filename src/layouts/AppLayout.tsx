@@ -6,11 +6,11 @@ import { TitleBar } from '@/components/TitleBar'
 import { JourneyProvider, useJourneyContext } from '@/features/attendance/JourneyContext'
 import { NotificationsProvider } from '@/features/notifications/NotificationsContext'
 import { MessagesProvider } from '@/features/conversations/MessagesContext'
-import { useHasTeam } from '@/features/fleet/useHasTeam'
+import { PermissionsProvider, useCan } from '@/features/permissions/PermissionsContext'
 import { useProfile, type Profile } from '@/features/auth/useProfile'
 import { useLanguage } from '@/i18n/LanguageContext'
 
-/** The five destinations every user gets, in bottom-bar order (Check In sits in the middle of the phone bar as the raised action). */
+/** The five bottom-bar destinations (Footprints only with footprints.view), in bottom-bar order (Check In sits in the middle of the phone bar as the raised action). */
 const PRIMARY_TABS = [
   { to: '/footprints', labelKey: 'nav.footprints', icon: FootprintsIcon },
   { to: '/leave', labelKey: 'nav.leave', icon: CalendarDays },
@@ -23,7 +23,8 @@ const PRIMARY_TABS = [
  * Mobile-first shell. One nav for everyone: a 5-item bottom bar on phones
  * (Footprints / Leave / Check In (raised, center) / Report / Hub) and the
  * same five on the desktop rail, plus Team and Users there for the people
- * who can see them. On phones Team, Users, Profile and the admin screens
+ * who can see them. Footprints and Team follow the Permissions settings
+ * (footprints.view / team_map.view). On phones Team, Users, Profile and the admin screens
  * live in Hub (/menu).
  */
 export function AppLayout() {
@@ -31,47 +32,50 @@ export function AppLayout() {
   const { profile } = useProfile()
 
   return (
-    <JourneyProvider>
-      <NotificationsProvider>
-        <MessagesProvider>
-          <div className="flex min-h-dvh flex-col bg-neutral-50 md:flex-row">
-            <OfflineBanner />
-            <DesktopSidebar profile={profile} />
+    <PermissionsProvider>
+      <JourneyProvider>
+        <NotificationsProvider>
+          <MessagesProvider>
+            <div className="flex min-h-dvh flex-col bg-neutral-50 md:flex-row">
+              <OfflineBanner />
+              <DesktopSidebar profile={profile} />
 
-            <div className="flex min-w-0 flex-1 flex-col">
-              <TitleBar />
+              <div className="flex min-w-0 flex-1 flex-col">
+                <TitleBar />
 
-              <main className="flex-1 pb-[calc(4.75rem+env(safe-area-inset-bottom))] md:pb-0">
-                {/* Keying by path remounts this div on every tab switch, which
-                    restarts the fade-in-up animation -- a lightweight stand-in
-                    for a real route-transition library. */}
-                <div key={location.pathname} className="animate-fade-in-up">
-                  <Outlet />
-                </div>
-              </main>
+                <main className="flex-1 pb-[calc(4.75rem+env(safe-area-inset-bottom))] md:pb-0">
+                  {/* Keying by path remounts this div on every tab switch, which
+                      restarts the fade-in-up animation -- a lightweight stand-in
+                      for a real route-transition library. */}
+                  <div key={location.pathname} className="animate-fade-in-up">
+                    <Outlet />
+                  </div>
+                </main>
+              </div>
+
+              <MobileTabBar />
             </div>
-
-            <MobileTabBar />
-          </div>
-        </MessagesProvider>
-      </NotificationsProvider>
-    </JourneyProvider>
+          </MessagesProvider>
+        </NotificationsProvider>
+      </JourneyProvider>
+    </PermissionsProvider>
   )
 }
 
 function DesktopSidebar({ profile }: { profile: Profile | null }) {
   const { attendance } = useJourneyContext()
   const { t } = useLanguage()
-  const hasTeam = useHasTeam()
+  const canFootprints = useCan('footprints')
+  const canTeam = useCan('team_map')
   const isSuperAdmin = profile?.is_super_admin === true
   const checkInLabel = attendance === 'CLOCKED_IN' ? t('nav.checkIn') : t('nav.clockIn')
 
   const tabs: { to: string; labelKey: string; icon: LucideIcon }[] = [
     PRIMARY_TABS[2],
-    PRIMARY_TABS[0],
+    ...(canFootprints ? [PRIMARY_TABS[0]] : []),
     PRIMARY_TABS[1],
     PRIMARY_TABS[3],
-    ...(isSuperAdmin || hasTeam ? [{ to: '/fleet', labelKey: 'nav.fleet', icon: Truck }] : []),
+    ...(canTeam ? [{ to: '/fleet', labelKey: 'nav.fleet', icon: Truck }] : []),
     ...(isSuperAdmin ? [{ to: '/users', labelKey: 'nav.users', icon: UsersIcon }] : []),
     PRIMARY_TABS[4],
   ]
@@ -106,6 +110,7 @@ function MobileTabBar() {
   const isClockedIn = attendance === 'CLOCKED_IN'
   const checkInLabel = isClockedIn ? t('nav.checkIn') : t('nav.clockIn')
   const CheckInIcon = isClockedIn ? MapPin : Clock
+  const canFootprints = useCan('footprints')
 
   return (
     <nav
@@ -113,7 +118,7 @@ function MobileTabBar() {
       aria-label="Primary"
     >
       <div className="mx-auto flex max-w-lg items-start justify-between px-1 pt-2">
-        <MobileTabLink to="/footprints" icon={FootprintsIcon} label={t('nav.footprints')} />
+        {canFootprints && <MobileTabLink to="/footprints" icon={FootprintsIcon} label={t('nav.footprints')} />}
         <MobileTabLink to="/leave" icon={CalendarDays} label={t('nav.leave')} />
 
         <NavLink to="/check-in" onClick={() => haptic('light')} className="relative -mt-8 flex flex-1 flex-col items-center gap-1">

@@ -11,6 +11,7 @@ import { CheckInPage } from '@/pages/CheckInPage'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { MenuPage } from '@/pages/MenuPage'
 import { StartPage } from '@/pages/StartPage'
+import { RequirePermission } from '@/features/permissions/RequirePermission'
 
 // Map libraries (leaflet/react-leaflet) only load once someone actually
 // visits a page that needs them, instead of bloating the initial bundle
@@ -34,6 +35,7 @@ const MessageThreadPage = lazy(() => import('@/pages/MessageThreadPage').then((m
 const NotificationsPage = lazy(() => import('@/pages/NotificationsPage').then((m) => ({ default: m.NotificationsPage })))
 const LocationsPage = lazy(() => import('@/pages/LocationsPage').then((m) => ({ default: m.LocationsPage })))
 const TranslationsPage = lazy(() => import('@/pages/TranslationsPage').then((m) => ({ default: m.TranslationsPage })))
+const PermissionsPage = lazy(() => import('@/pages/PermissionsPage').then((m) => ({ default: m.PermissionsPage })))
 const LeavePage = lazy(() => import('@/pages/LeavePage').then((m) => ({ default: m.LeavePage })))
 
 function PageFallback() {
@@ -91,9 +93,11 @@ export const router = createBrowserRouter([
       {
         path: '/plan',
         element: (
-          <Suspense fallback={<PageFallback />}>
-            <PlanPage />
-          </Suspense>
+          <RequirePermission module="plan">
+            <Suspense fallback={<PageFallback />}>
+              <PlanPage />
+            </Suspense>
+          </RequirePermission>
         ),
       },
       {
@@ -115,17 +119,21 @@ export const router = createBrowserRouter([
       {
         path: '/footprints',
         element: (
-          <Suspense fallback={<PageFallback />}>
-            <FootprintsPage />
-          </Suspense>
+          <RequirePermission module="footprints">
+            <Suspense fallback={<PageFallback />}>
+              <FootprintsPage />
+            </Suspense>
+          </RequirePermission>
         ),
       },
       {
         path: '/fleet',
         element: (
-          <Suspense fallback={<PageFallback />}>
-            <FleetPage />
-          </Suspense>
+          <RequirePermission module="team_map">
+            <Suspense fallback={<PageFallback />}>
+              <FleetPage />
+            </Suspense>
+          </RequirePermission>
         ),
       },
       {
@@ -187,6 +195,16 @@ export const router = createBrowserRouter([
           <Suspense fallback={<PageFallback />}>
             <SettingsPage />
           </Suspense>
+        ),
+      },
+      {
+        path: '/settings/permissions',
+        element: (
+          <RequirePermission module="role_permission" action="edit" fallback="/menu">
+            <Suspense fallback={<PageFallback />}>
+              <PermissionsPage />
+            </Suspense>
+          </RequirePermission>
         ),
       },
       {
