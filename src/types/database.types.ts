@@ -443,6 +443,89 @@ export type Database = {
           },
         ]
       }
+      clock_location_rules: {
+        Row: {
+          direction: string
+          id: string
+          location_ids: string[]
+          note: string | null
+          role_id: string | null
+          updated_at: string
+          updated_by: string | null
+          user_id: string | null
+        }
+        Insert: {
+          direction: string
+          id?: string
+          location_ids?: string[]
+          note?: string | null
+          role_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          direction?: string
+          id?: string
+          location_ids?: string[]
+          note?: string | null
+          role_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clock_location_rules_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clock_location_rules_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "clock_location_rules_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clock_location_rules_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clock_location_rules_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "clock_location_rules_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clock_location_rules_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_mentions: {
         Row: {
           created_at: string
@@ -2594,23 +2677,32 @@ export type Database = {
       user_permission_overrides: {
         Row: {
           action: Database["public"]["Enums"]["permission_action"]
+          expires_at: string | null
           module_key: string
           note: string | null
           scope: Database["public"]["Enums"]["permission_scope"]
+          updated_at: string
+          updated_by: string | null
           user_id: string
         }
         Insert: {
           action: Database["public"]["Enums"]["permission_action"]
+          expires_at?: string | null
           module_key: string
           note?: string | null
           scope: Database["public"]["Enums"]["permission_scope"]
+          updated_at?: string
+          updated_by?: string | null
           user_id: string
         }
         Update: {
           action?: Database["public"]["Enums"]["permission_action"]
+          expires_at?: string | null
           module_key?: string
           note?: string | null
           scope?: Database["public"]["Enums"]["permission_scope"]
+          updated_at?: string
+          updated_by?: string | null
           user_id?: string
         }
         Relationships: [
@@ -2620,6 +2712,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "modules"
             referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "user_permission_overrides_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_permission_overrides_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_permission_overrides_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "user_permission_overrides_user_id_fkey"
@@ -4524,6 +4637,7 @@ export type Database = {
           role_name: string
         }[]
       }
+      my_clock_rules: { Args: never; Returns: Json }
       my_modules: {
         Args: { p_view: string }
         Returns: {
@@ -4751,6 +4865,16 @@ export type Database = {
         Args: { p_close_day: number }
         Returns: undefined
       }
+      set_clock_location_rule: {
+        Args: {
+          p_direction: string
+          p_location_ids: string[]
+          p_note?: string
+          p_role_id: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       set_customer_tier: {
         Args: { p_customer: string; p_tier: string }
         Returns: {
@@ -4810,6 +4934,14 @@ export type Database = {
         Returns: undefined
       }
       set_my_pin: { Args: { p_pin: string }; Returns: undefined }
+      set_role_permissions: {
+        Args: { p_role_id: string; p_rows: Json }
+        Returns: number
+      }
+      set_user_overrides: {
+        Args: { p_rows: Json; p_user_id: string }
+        Returns: number
+      }
       set_user_telegram_id: {
         Args: { p_telegram_id: string; p_user_id: string }
         Returns: undefined

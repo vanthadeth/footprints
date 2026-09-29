@@ -22,6 +22,8 @@ import { locationService } from '@/features/location/locationService'
 import { greeting, formatDuration, formatTime, isPastTimeOfDay, isWithinClockInWindow, shiftTimeOfDay } from '@/lib/datetime'
 import { useProfile } from '@/features/auth/useProfile'
 import { useLanguage } from '@/i18n/LanguageContext'
+import { useCan } from '@/features/permissions/PermissionsContext'
+import { clockBlock, joinNames, useClockRules, type ClockBlock } from '@/features/permissions/clockRules'
 
 type PendingAction = 'clock-in' | 'clock-out' | null
 
@@ -35,6 +37,10 @@ export function CheckInPage() {
   const [flowOpen, setFlowOpen] = useState(false)
   const [checkingLocation, setCheckingLocation] = useState(false)
   const [lowAccuracyM, setLowAccuracyM] = useState<number | null>(null)
+  const [wrongPlace, setWrongPlace] = useState<(ClockBlock & { direction: 'in' | 'out' }) | null>(null)
+  const clockRules = useClockRules()
+  const canPlan = useCan('plan')
+  const canFootprints = useCan('footprints')
 
   const autoCheckoutCustomerId = journey.lastAutoCheckout?.visit.customer_id ?? null
   // Most recent completed visits today, newest first -- shown under the
@@ -74,12 +80,39 @@ export function CheckInPage() {
         setLowAccuracyM(reading.accuracy)
         return
       }
+      const block = clockBlock(clockRules.in, reading)
+      if (block) {
+        setWrongPlace({ ...block, direction: 'in' })
+        return
+      }
       setPendingAction('clock-in')
     } catch {
       // Couldn't get a reading at all -- let the normal clock-in flow surface
       // that (it re-fetches location and reports "location required" itself)
       // rather than duplicating that error message here.
       setPendingAction('clock-in')
+    } finally {
+      setCheckingLocation(false)
+    }
+  }
+
+  // Same idea for clock-out location rules (Permissions → Clock in / out);
+  // without a rule this goes straight to the selfie as before.
+  async function handleClockOutTap() {
+    if (clockRules.out.length === 0) {
+      setPendingAction('clock-out')
+      return
+    }
+    setCheckingLocation(true)
+    try {
+      const block = clockBlock(clockRules.out, await locationService.getCurrentPosition())
+      if (block) {
+        setWrongPlace({ ...block, direction: 'out' })
+        return
+      }
+      setPendingAction('clock-out')
+    } catch {
+      setPendingAction('clock-out')
     } finally {
       setCheckingLocation(false)
     }
@@ -194,7 +227,12 @@ export function CheckInPage() {
         </div>
 
         {isClockedIn ? (
-          <SlideToConfirm label={t('checkIn.slideToClockOut')} variant="danger" busy={journey.busy} onConfirm={() => setPendingAction('clock-out')} />
+          <SlideToConfirm
+            label={checkingLocation ? t('home.checkingLocation') : t('checkIn.slideToClockOut')}
+            variant="danger"
+            busy={checkingLocation || journey.busy}
+            onConfirm={() => void handleClockOutTap()}
+          />
         ) : (
           <SlideToConfirm
             label={checkingLocation ? t('home.checkingLocation') : t('checkIn.slideToClockIn')}
@@ -207,6 +245,12 @@ export function CheckInPage() {
           {/* app.clock_out force-checks-out a still-open visit rather than blocking the clock-out -- flagged AUTO_CHECKOUT_CLOCK_OUT. */}
           {isClockedIn && isVisiting ? t('checkIn.alsoCheckOut') : t('checkIn.selfieHint')}
         </p>
+        {(isClockedIn ? clockRules.out : clockRules.in).length > 0 && (
+          <p className="-mt-2 flex items-center justify-center gap-1 text-center text-xs font-semibold text-neutral-600">
+            <Building2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            {isClockedIn ? t('checkIn.clockOutAt', { places: joinNames(clockRules.out) }) : t('checkIn.clockInAt', { places: joinNames(clockRules.in) })}
+          </p>
+        )}
 
         {/* Only one visit can ever be open at a time (app.check_in enforces
             this server-side) -- so once checked in, show that visit instead
@@ -228,7 +272,7 @@ export function CheckInPage() {
             </button>
           ))}
 
-        <PlanCard />
+        {canPlan && <PlanCard />}
 
         <div className="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-card">
           <ActivityRings
@@ -251,7 +295,7 @@ export function CheckInPage() {
           </div>
         </div>
 
-        {recentVisits.length > 0 && <RecentVisits visits={recentVisits} customerNames={customerNames} />}
+        {recentVisits.length > 0 && <RecentVisits visits={recentVisits} customerNames={customerNames} showJourney={canFootprints} />}
       </div>
 
       <SelfieCaptureSheet
@@ -262,6 +306,34 @@ export function CheckInPage() {
       />
 
       <VisitFlow open={flowOpen} onClose={() => setFlowOpen(false)} />
+
+      <BottomSheet open={wrongPlace !== null} onClose={() => setWrongPlace(null)} title={t('checkIn.wrongPlaceTitle')}>
+        <div className="p-4">
+          <p className="text-sm text-neutral-600">
+            {wrongPlace &&
+              t(wrongPlace.direction === 'in' ? 'checkIn.wrongPlaceInBody' : 'checkIn.wrongPlaceOutBody', {
+                places: wrongPlace.names,
+                nearest: wrongPlace.nearest,
+                distance: wrongPlace.distance,
+              })}
+          </p>
+          <button
+            onClick={() => {
+              const direction = wrongPlace?.direction
+              setWrongPlace(null)
+              void (direction === 'out' ? handleClockOutTap() : handleClockInTap())
+            }}
+            disabled={checkingLocation}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 py-3.5 text-sm font-semibold text-white tap-target disabled:opacity-60"
+          >
+            {checkingLocation && <Loader2 className="h-4 w-4 animate-spin" />}
+            {checkingLocation ? t('home.checkingLocation') : t('common.tryAgain')}
+          </button>
+          <button onClick={() => setWrongPlace(null)} className="mt-2 w-full rounded-xl py-3.5 text-sm font-semibold text-neutral-500 tap-target">
+            {t('common.cancel')}
+          </button>
+        </div>
+      </BottomSheet>
 
       <BottomSheet open={lowAccuracyM !== null} onClose={() => setLowAccuracyM(null)} title={t('home.lowAccuracyTitle')}>
         <div className="p-4">
@@ -345,15 +417,17 @@ function CurrentVisitCard({
   )
 }
 
-function RecentVisits({ visits, customerNames }: { visits: VisitRow[]; customerNames: Record<string, string> }) {
+function RecentVisits({ visits, customerNames, showJourney }: { visits: VisitRow[]; customerNames: Record<string, string>; showJourney: boolean }) {
   const { t, language } = useLanguage()
   return (
     <div>
       <div className="mb-2 flex items-baseline justify-between px-0.5">
         <p className="text-[17px] font-bold text-neutral-900">{t('checkIn.recentVisits')}</p>
-        <Link to="/footprints" className="py-1.5 text-[13px] font-semibold text-brand-500">
-          {t('checkIn.seeJourney')}
-        </Link>
+        {showJourney && (
+          <Link to="/footprints" className="py-1.5 text-[13px] font-semibold text-brand-500">
+            {t('checkIn.seeJourney')}
+          </Link>
+        )}
       </div>
       <div className="divide-y divide-neutral-100 overflow-hidden rounded-2xl bg-white shadow-card dark:divide-neutral-800">
         {visits.map((v) => {

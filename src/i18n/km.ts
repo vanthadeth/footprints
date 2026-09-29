@@ -46,6 +46,7 @@ export const km: TranslationKey = {
     leaveAllowances: 'សិទ្ធិច្បាប់ឈប់សម្រាក',
     workingHours: 'ម៉ោង និងថ្ងៃធ្វើការ',
     holidays: 'ថ្ងៃឈប់សម្រាកសាធារណៈ',
+    permissions: 'សិទ្ធិប្រើប្រាស់',
   },
   welcome: {
     tagline: 'ថ្ងៃរបស់អ្នក។ អតិថិជនរបស់អ្នក។ វឌ្ឍនភាពរបស់អ្នក។',
@@ -127,6 +128,11 @@ export const km: TranslationKey = {
     reasonOutsideRadius: 'បានផ្លាស់ទីចេញក្រៅតំបន់ទស្សនា',
     reasonClockOut: 'បានចេញម៉ោងខណៈពេលកំពុងទស្សនា',
     distanceLabel: 'ចម្ងាយ៖ {{n}} ម៉ែត្រ',
+    clockInAt: 'ចូលម៉ោងនៅ {{places}}',
+    clockOutAt: 'ចេញម៉ោងនៅ {{places}}',
+    wrongPlaceTitle: 'មិននៅទីតាំងចូល/ចេញម៉ោង',
+    wrongPlaceInBody: 'អ្នកត្រូវនៅ {{places}} ដើម្បីចូលម៉ោង។ ជិតបំផុតគឺ {{nearest}} ចម្ងាយ {{distance}}។',
+    wrongPlaceOutBody: 'អ្នកត្រូវនៅ {{places}} ដើម្បីចេញម៉ោង។ ជិតបំផុតគឺ {{nearest}} ចម្ងាយ {{distance}}។',
   },
   profile: {
     couldNotLoad: 'យើងមិនអាចផ្ទុកប្រវត្តិរូបរបស់អ្នកបានទេ។',

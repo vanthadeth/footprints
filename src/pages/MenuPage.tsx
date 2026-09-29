@@ -23,6 +23,7 @@ import {
   Moon,
   Settings,
   Shield,
+  ShieldCheck,
   User,
   Users as UsersIcon,
   type LucideIcon,
@@ -35,7 +36,7 @@ import { SegmentedControl } from '@/components/SegmentedControl'
 import { LocationPermissionSheet } from '@/features/location/LocationPermissionSheet'
 import { useProfile } from '@/features/auth/useProfile'
 import { useAvatarUrl } from '@/features/auth/useAvatarUrl'
-import { useHasTeam } from '@/features/fleet/useHasTeam'
+import { useCan, usePermissions } from '@/features/permissions/PermissionsContext'
 import { leaveService } from '@/features/leave/leaveService'
 import { useNotificationsContext } from '@/features/notifications/NotificationsContext'
 import { useMessages } from '@/features/conversations/MessagesContext'
@@ -55,13 +56,17 @@ const QUICK: { to: string; label: string; icon: LucideIcon; tone: string }[] = [
 
 /**
  * Hub (bottom-bar tab, /menu): the signed-in user's profile card and
- * shortcuts, then iOS Settings-style groups -- Team (managers), Preferences,
+ * shortcuts, then iOS Settings-style groups -- Team (team map / leave approvers), Preferences,
  * Administration (super admins) and Support -- and Log out.
  */
 export function MenuPage() {
   const { profile } = useProfile()
   const avatarUrl = useAvatarUrl(profile?.photo_path)
-  const hasTeam = useHasTeam()
+  const { scope } = usePermissions()
+  const canFootprints = useCan('footprints')
+  const canPlan = useCan('plan')
+  const canTeamMap = useCan('team_map')
+  const canManagePermissions = useCan('role_permission', 'edit')
   const { language, setLanguage } = useLanguage()
   const { mode, setMode } = useTheme()
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false)
@@ -71,13 +76,16 @@ export function MenuPage() {
   // that's the flag app.effective_scope() actually keys off of (see the
   // notifications_center migration), not a role_name string check.
   const isSuperAdmin = profile?.is_super_admin === true
-  const isManager = isSuperAdmin || hasTeam
+  // Deciding on others' leave is leave.edit at Team or All; own is just cancelling your own.
+  const leaveEditScope = scope('leave', 'edit')
+  const canApproveLeave = isSuperAdmin || leaveEditScope === 'sub' || leaveEditScope === 'any'
+  const isManager = canTeamMap || canApproveLeave
   const isHr = profile?.role_name === 'HR'
   const { unreadCount } = useNotificationsContext()
   const { unreadCount: unreadMessages } = useMessages()
 
   useEffect(() => {
-    if (!isManager || !profile) return
+    if (!canApproveLeave || !profile) return
     let cancelled = false
     leaveService
       .listRequests()
@@ -90,7 +98,7 @@ export function MenuPage() {
     return () => {
       cancelled = true
     }
-  }, [isManager, profile])
+  }, [canApproveLeave, profile])
 
   const name = profile ? displayName(profile.full_name, profile.nickname) : ''
   const roleLine = [profile?.position, profile?.role_name].filter(Boolean).join(' · ')
@@ -111,7 +119,7 @@ export function MenuPage() {
         </Link>
 
         <div className="grid grid-cols-4 gap-2">
-          {QUICK.map((q) => (
+          {QUICK.filter((q) => canFootprints || q.to !== '/footprints').map((q) => (
             <Link key={q.to} to={q.to} className="flex flex-col items-center gap-1.5">
               <span className={`flex h-[54px] w-[54px] items-center justify-center rounded-full border border-neutral-200 bg-white ${q.tone}`}>
                 <q.icon className="h-[22px] w-[22px]" aria-hidden />
@@ -131,13 +139,13 @@ export function MenuPage() {
             to="/messages"
           />
           <ListRow icon={Store} iconBg="bg-status-working" label="Customers" sublabel="Calls, notes and visits by customer" to="/customers" />
-          <ListRow icon={Route} iconBg="bg-brand-500" label="Today's plan" sublabel="Your stops, route and next customer" to="/plan" />
+          {canPlan && <ListRow icon={Route} iconBg="bg-brand-500" label="Today's plan" sublabel="Your stops, route and next customer" to="/plan" />}
         </GroupedList>
 
         {isManager && (
           <GroupedList title="Team">
-            <ListRow icon={UsersIcon} iconBg="bg-brand-500" label="Team" sublabel="Status, map, reports, logs & attendance" to="/fleet" />
-            <ListRow icon={CalendarCheck} iconBg="bg-status-warn" label="Leave approvals" badge={pendingApprovals} to="/leave/approvals" />
+            {canTeamMap && <ListRow icon={UsersIcon} iconBg="bg-brand-500" label="Team" sublabel="Status, map, reports, logs & attendance" to="/fleet" />}
+            {canApproveLeave && <ListRow icon={CalendarCheck} iconBg="bg-status-warn" label="Leave approvals" badge={pendingApprovals} to="/leave/approvals" />}
           </GroupedList>
         )}
 
@@ -184,6 +192,7 @@ export function MenuPage() {
         {isSuperAdmin && (
           <GroupedList title="Administration">
             <ListRow icon={UsersIcon} iconBg="bg-status-visiting" label="Users" to="/users" />
+            <ListRow icon={ShieldCheck} iconBg="bg-brand-700" label="Permissions" sublabel="Who can do what, by role or person" to="/settings/permissions" />
             <ListRow icon={Building2} iconBg="bg-status-working" label="Work locations" to="/locations" />
             <ListRow icon={Clock} iconBg="bg-brand-500" label="Working hours & days" to="/settings/working-hours" />
             <ListRow icon={CalendarRange} iconBg="bg-status-warn" label="Public holidays" to="/settings/holidays" />
@@ -191,6 +200,12 @@ export function MenuPage() {
             <ListRow icon={Bell} iconBg="bg-status-danger" label="Notifications" badge={unreadCount} to="/notifications" />
             <ListRow icon={Languages} iconBg="bg-brand-600" label="Translations" to="/translations" />
             <ListRow icon={Settings} iconBg="bg-neutral-600" label="System settings" to="/settings" />
+          </GroupedList>
+        )}
+
+        {!isSuperAdmin && canManagePermissions && (
+          <GroupedList title="Administration">
+            <ListRow icon={ShieldCheck} iconBg="bg-brand-700" label="Permissions" sublabel="Who can do what, by role or person" to="/settings/permissions" />
           </GroupedList>
         )}
 
