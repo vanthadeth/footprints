@@ -18,6 +18,7 @@ import { RequirePermission } from '@/features/permissions/RequirePermission'
 // every user pays for just to see the Check In screen.
 const FootprintsPage = lazy(() => import('@/pages/FootprintsPage').then((m) => ({ default: m.FootprintsPage })))
 const CustomerBriefingPage = lazy(() => import('@/pages/CustomerBriefingPage').then((m) => ({ default: m.CustomerBriefingPage })))
+const OrgPage = lazy(() => import('@/pages/OrgPage').then((m) => ({ default: m.OrgPage })))
 const FleetPage = lazy(() => import('@/pages/FleetPage').then((m) => ({ default: m.FleetPage })))
 const SettingsPage = lazy(() => import('@/features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })))
 const UsersPage = lazy(() => import('@/pages/UsersPage').then((m) => ({ default: m.UsersPage })))
@@ -205,6 +206,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageFallback />}>
             <SettingsPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/settings/org',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <OrgPage />
           </Suspense>
         ),
       },

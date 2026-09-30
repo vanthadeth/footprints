@@ -141,7 +141,7 @@ export const usersService = {
   },
 
   async listRoles(): Promise<Option[]> {
-    const { data, error } = await supabase.from('roles').select('id, name').order('name')
+    const { data, error } = await supabase.from('roles').select('id, name').eq('active', true).order('sort_order')
     if (error) throw error
     return data ?? []
   },

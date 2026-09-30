@@ -48,6 +48,7 @@ export const km: TranslationKey = {
     workingHours: 'ម៉ោង និងថ្ងៃធ្វើការ',
     holidays: 'ថ្ងៃឈប់សម្រាកសាធារណៈ',
     permissions: 'សិទ្ធិប្រើប្រាស់',
+    org: 'ផ្នែក និងតួនាទី',
   },
   welcome: {
     tagline: 'ថ្ងៃរបស់អ្នក។ អតិថិជនរបស់អ្នក។ វឌ្ឍនភាពរបស់អ្នក។',
