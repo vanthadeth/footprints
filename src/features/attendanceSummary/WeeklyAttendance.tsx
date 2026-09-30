@@ -182,6 +182,7 @@ function dayDetail(r: AttendanceDay | undefined): string {
   if (r.status === 'leave') return `${r.leaveFraction < 1 ? 'Half day' : 'Full day'}`
   if (r.status === 'off') return 'Day off'
   if (r.status === 'absent') return 'No clock-in, no leave'
+  if (r.status === 'dayoff') return 'No clock-in · uses a flexible day off'
   if (r.status === 'upcoming') return r.scheduledStart ? `${r.scheduledStart} – ${r.scheduledEnd}` : ''
   return ''
 }
@@ -192,7 +193,8 @@ function StatusTag({ row }: { row: AttendanceDay | undefined }) {
     present: ['On time', 'bg-status-working/10 text-status-working dark:text-emerald-300'],
     late: [`${row.lateMinutes} min late`, 'bg-status-warn/10 text-status-warn'],
     absent: ['Absent', 'bg-status-danger/10 text-status-danger'],
-    leave: [`${row.leaveType ? row.leaveType[0].toUpperCase() + row.leaveType.slice(1) : ''} leave`, 'bg-brand-50 text-brand-700'],
+    dayoff: ['Day off (auto)', 'bg-status-visiting/10 text-status-visiting dark:text-violet-300'],
+    leave: [row.leaveType === 'flex' ? 'Day off' : `${row.leaveType ? row.leaveType[0].toUpperCase() + row.leaveType.slice(1) : ''} leave`, 'bg-brand-50 text-brand-700'],
     holiday: ['Holiday', 'bg-earth-50 text-earth-500'],
     off: ['Off', 'bg-neutral-100 text-neutral-500'],
     upcoming: ['Upcoming', 'bg-neutral-100 text-neutral-500'],

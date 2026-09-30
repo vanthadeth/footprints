@@ -6,7 +6,7 @@ import { buildAttendanceMonth, type AttendanceCell } from './attendanceMonth'
 import { LEAVE_TYPE_COLOR, type LeaveRequest } from './types'
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-const LEAVE_CODE = { annual: 'AL', sick: 'SL', unpaid: 'UL' } as const
+const LEAVE_CODE = { annual: 'AL', sick: 'SL', unpaid: 'UL', flex: 'FD' } as const
 
 /** Month calendar of the signed-in user's own attendance: P for days clocked in, AL/SL/UL for approved leave. */
 export function AttendanceCalendar({ userId, requests }: { userId: string; requests: LeaveRequest[] }) {

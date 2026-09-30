@@ -37,6 +37,8 @@ export const en = {
     leaveApprovals: 'Leave Approvals',
     plan: "Today's Plan",
     calendar: 'Calendar',
+    daysOff: 'Days off',
+    settlement: 'Settlement',
     leaveAllowances: 'Leave Allowances',
     workingHours: 'Working Hours & Days',
     holidays: 'Public Holidays',

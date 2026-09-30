@@ -8,7 +8,9 @@ import { LeaveStatusBadge } from './LeaveStatusBadge'
 import { BalanceCards } from './BalanceCards'
 import { leaveErrorMessage, leaveService } from './leaveService'
 import { leaveDateRangeLabel } from './leaveDate'
-import { LEAVE_TYPE_LABEL, type LeaveBalanceSummary, type LeaveRequest } from './types'
+import { FlexCard } from '@/features/flex/FlexCard'
+import { useFlexCycle } from '@/features/flex/useFlexCycle'
+import { leaveTitle, type LeaveBalanceSummary, type LeaveRequest } from './types'
 
 export function MyLeaveTab({
   requests,
@@ -26,6 +28,7 @@ export function MyLeaveTab({
   const [busyId, setBusyId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const today = todayDateString()
+  const flex = useFlexCycle()
 
   async function cancel(id: string) {
     setBusyId(id)
@@ -47,6 +50,7 @@ export function MyLeaveTab({
 
   return (
     <div className="space-y-4">
+      {flex.cycle?.isFlexible && <FlexCard cycle={flex.cycle} />}
       <BalanceCards balances={balances} requests={requests} linkTo="/leave?tab=balance" />
 
       <button
@@ -66,7 +70,7 @@ export function MyLeaveTab({
               <div className="flex items-center gap-3">
                 <DateTile date={r.start_date} accent />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[15px] font-bold text-neutral-900">{LEAVE_TYPE_LABEL[r.leave_type]} Leave</p>
+                  <p className="text-[15px] font-bold text-neutral-900">{leaveTitle(r.leave_type)}</p>
                   <p className="mt-0.5 text-[12.5px] text-neutral-500">{leaveDateRangeLabel(r.start_date, r.end_date, r.start_period, r.end_period)}</p>
                 </div>
                 <LeaveStatusBadge status={r.status} />
@@ -100,7 +104,7 @@ export function MyLeaveTab({
               <div key={r.id} className="flex items-center gap-3 px-3.5 py-3">
                 <DateTile date={r.start_date} />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[14.5px] font-semibold text-neutral-900">{LEAVE_TYPE_LABEL[r.leave_type]} Leave</p>
+                  <p className="text-[14.5px] font-semibold text-neutral-900">{leaveTitle(r.leave_type)}</p>
                   <p className="mt-0.5 text-xs text-neutral-500">{leaveDateRangeLabel(r.start_date, r.end_date, r.start_period, r.end_period)}</p>
                   {r.status !== 'pending' && r.decision_note && <p className="mt-0.5 text-xs text-neutral-400">Note: {r.decision_note}</p>}
                 </div>
@@ -111,7 +115,15 @@ export function MyLeaveTab({
         )}
       </section>
 
-      <RequestLeaveSheet open={requestOpen} onClose={() => setRequestOpen(false)} onSubmitted={onChanged} />
+      <RequestLeaveSheet
+        open={requestOpen}
+        onClose={() => setRequestOpen(false)}
+        flex={flex.cycle}
+        onSubmitted={() => {
+          onChanged()
+          flex.reload()
+        }}
+      />
     </div>
   )
 }

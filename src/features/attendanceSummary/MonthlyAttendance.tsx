@@ -223,7 +223,7 @@ function CycleView({
 }
 
 function leaveDetail(byType: AttendanceDayTotals): string {
-  const parts = (['annual', 'sick', 'unpaid'] as const).filter((t) => byType[t]).map((t) => `${formatDays(byType[t]!)} ${t}`)
+  const parts = (['annual', 'sick', 'unpaid', 'flex'] as const).filter((t) => byType[t]).map((t) => `${formatDays(byType[t]!)} ${t === 'flex' ? 'days off' : t}`)
   return parts.length ? parts.join(' · ') : 'No leave'
 }
 type AttendanceDayTotals = Partial<Record<NonNullable<AttendanceDay['leaveType']>, number>>

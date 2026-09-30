@@ -21,7 +21,7 @@ import { useApprovedLeaveOnDate } from '@/features/leave/useApprovedLeaveOnDate'
 import { useAttendanceDays } from '@/features/attendanceSummary/useAttendanceDays'
 import type { LeaveType } from '@/features/leave/types'
 
-const LEAVE_TYPE_LABEL: Record<LeaveType, string> = { annual: 'Annual', sick: 'Sick', unpaid: 'Unpaid' }
+const LEAVE_TYPE_LABEL: Record<LeaveType, string> = { annual: 'Annual', sick: 'Sick', unpaid: 'Unpaid', flex: 'Day off' }
 
 const PhotoZoomViewer = lazy(() => import('@/components/PhotoZoomViewer').then((m) => ({ default: m.PhotoZoomViewer })))
 
@@ -152,7 +152,7 @@ function MemberCheckInOutCard({
   const effectivenessRatio = stats.totalWorkingMs > 0 ? Math.round((stats.totalVisitingMs / stats.totalWorkingMs) * 100) : 0
   // Only overrides the placeholder when there's no attendance at all that
   // day -- an actual clock-in/out session is ground truth and always wins.
-  const onLeaveLabel = !day && leaveType ? `On ${LEAVE_TYPE_LABEL[leaveType]} Leave` : null
+  const onLeaveLabel = !day && leaveType ? leaveType === 'flex' ? 'On a day off' : `On ${LEAVE_TYPE_LABEL[leaveType]} Leave` : null
   const lateMinutes = serverLateMinutes ?? (firstSession ? minutesLate(formatTime(firstSession.clock_in_at), workStartTime) : 0)
   const isLate = serverLateMinutes !== null ? serverLateMinutes > 0 : lateMinutes > LATE_GRACE_MINUTES
   const initials = member.fullName

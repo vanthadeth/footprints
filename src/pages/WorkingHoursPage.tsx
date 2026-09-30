@@ -7,6 +7,18 @@ import { ScheduleEditor } from '@/features/schedule/ScheduleEditor'
 import { commonHours, dayHours, formatHours, fromMinutes, scheduleProblems, toMinutes, weekFrom, weekHours, workingDaysLabel, type DaySchedule } from '@/features/schedule/schedule'
 import { scheduleService, type ClockRules, type WorkSchedule } from '@/features/schedule/scheduleService'
 import { usersService } from '@/features/users/usersService'
+import { summaryService } from '@/features/attendanceSummary/summaryService'
+import { flexService } from '@/features/flex/flexService'
+import { days as fmtDays, rate } from '@/features/flex/flex'
+import { Link } from 'react-router-dom'
+
+interface FlexDraft {
+  closeDay: number
+  sat: number
+  sun: number
+}
+
+const ordinal = (n: number) => `${n}${n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th'}`
 
 interface Draft {
   days: DaySchedule[]
@@ -30,6 +42,9 @@ export function WorkingHoursPage() {
   const [savedCompany, setSavedCompany] = useState<string>('')
   const [rules, setRules] = useState<ClockRules | null>(null)
   const [savedRules, setSavedRules] = useState<string>('')
+  const [flex, setFlex] = useState<FlexDraft | null>(null)
+  const [savedFlex, setSavedFlex] = useState<string>('')
+  const [flexPeople, setFlexPeople] = useState(0)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null)
@@ -37,7 +52,11 @@ export function WorkingHoursPage() {
 
   const load = useCallback(async () => {
     try {
-      const [list, r, depts] = await Promise.all([scheduleService.list(), scheduleService.rules(), usersService.listDepartments()])
+      const [list, r, depts, fs] = await Promise.all([scheduleService.list(), scheduleService.rules(), usersService.listDepartments(), flexService.settings()])
+      const fd = { closeDay: fs.closeDay, sat: fs.satRate, sun: fs.sunRate }
+      setFlex(fd)
+      setSavedFlex(JSON.stringify(fd))
+      setFlexPeople(fs.flexiblePeople)
       setSchedules(list)
       setDepartments(depts)
       const c = list.find((s) => s.departmentId === null)
@@ -59,7 +78,8 @@ export function WorkingHoursPage() {
 
   const teams = useMemo(() => schedules.filter((s) => s.departmentId !== null), [schedules])
   const deptName = (id: string | null) => departments.find((d) => d.id === id)?.name ?? 'Team'
-  const dirty = !!company && !!rules && (JSON.stringify(company) !== savedCompany || JSON.stringify(rules) !== savedRules)
+  const flexDirty = !!flex && JSON.stringify(flex) !== savedFlex
+  const dirty = !!company && !!rules && (JSON.stringify(company) !== savedCompany || JSON.stringify(rules) !== savedRules || flexDirty)
   const problems = company ? scheduleProblems(company.days) : []
 
   async function save() {
@@ -69,6 +89,11 @@ export function WorkingHoursPage() {
     try {
       if (JSON.stringify(company) !== savedCompany) await scheduleService.save(null, company.breakPaid, company.days)
       if (JSON.stringify(rules) !== savedRules) await scheduleService.saveRules(rules)
+      if (flex && flexDirty) {
+        const before = JSON.parse(savedFlex) as FlexDraft
+        if (before.closeDay !== flex.closeDay) await summaryService.setCycleCloseDay(flex.closeDay)
+        if (before.sat !== flex.sat || before.sun !== flex.sun) await flexService.setRates(flex.sat, flex.sun)
+      }
       await load()
       setMessage({ tone: 'ok', text: 'Saved. Clock-in, alerts and summaries use the new hours from now on.' })
     } catch (e) {
@@ -163,6 +188,34 @@ export function WorkingHoursPage() {
           </div>
         </div>
       </section>
+
+      {flex && (
+        <section className="space-y-2" aria-label="Attendance cycle and flexible days off">
+          <div className="px-0.5">
+            <h2 className="text-[17px] font-bold text-neutral-900">Attendance cycle &amp; flexible days off</h2>
+            <p className="text-xs text-neutral-500">Attendance is counted to this day each month, not the month end.</p>
+          </div>
+          <div className="overflow-hidden rounded-2xl bg-white shadow-card">
+            <RuleRow title="Cycle closes on" sub={flex.closeDay === 0 ? 'Counts the calendar month' : `Counts the ${ordinal(flex.closeDay + 1)} to the ${ordinal(flex.closeDay)}`}>
+              <Stepper label="Cycle day" value={flex.closeDay} max={28} format={(v) => (v === 0 ? 'Month end' : ordinal(v))} disabled={!canEdit} onChange={(v) => setFlex({ ...flex, closeDay: v })} />
+            </RuleRow>
+            <RuleRow title="Saturday worked earns" sub="For people on Flexible (travel) days off">
+              <Stepper label="Saturday rate" value={flex.sat} step={0.5} max={2} format={(v) => `${rate(v)} day`} disabled={!canEdit} onChange={(v) => setFlex({ ...flex, sat: v })} />
+            </RuleRow>
+            <RuleRow title="Sunday worked earns" sub={`4 Sat + 4 Sun a cycle = ${fmtDays(4 * flex.sat + 4 * flex.sun)} days`}>
+              <Stepper label="Sunday rate" value={flex.sun} step={0.5} max={2} format={(v) => `${rate(v)} day`} disabled={!canEdit} onChange={(v) => setFlex({ ...flex, sun: v })} />
+            </RuleRow>
+            <Link to="/users" className="flex items-center gap-3 border-t border-neutral-100 px-4 py-3 dark:border-neutral-800">
+              <span className="flex-1 text-[15px] font-semibold text-neutral-900">
+                {flexPeople} {flexPeople === 1 ? 'person' : 'people'} on Flexible (travel)
+              </span>
+              <span className="text-xs text-neutral-500">Set in Users › Edit</span>
+              <ChevronRight className="h-4 w-4 text-neutral-400" aria-hidden />
+            </Link>
+          </div>
+          <p className="px-0.5 text-xs text-neutral-500">Flexible days off can be taken in advance and settle on the close day: unused days aren’t carried over, and extra days come from annual leave.</p>
+        </section>
+      )}
 
       <section className="space-y-2" aria-label="Team schedules">
         <div className="px-0.5">

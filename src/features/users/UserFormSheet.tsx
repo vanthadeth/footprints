@@ -7,6 +7,8 @@ import { displayName } from '@/lib/displayName'
 import { haptic } from '@/lib/haptic'
 import { generateSuggestedPassword, PasswordBox } from './PasswordBox'
 import { usersService, type ManagedUser, type Option, type UserStatus } from './usersService'
+import { flexService, type DayOffMode, type DayOffModeInfo } from '@/features/flex/flexService'
+import { dayDate, rate, shortDate } from '@/features/flex/flex'
 
 const STATUSES: UserStatus[] = ['active', 'suspended', 'discharged']
 const MIN_PASSWORD_LENGTH = 8
@@ -40,6 +42,12 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
   const [suspendedFrom, setSuspendedFrom] = useState('')
   const [suspendedTo, setSuspendedTo] = useState('')
   const [dischargedDate, setDischargedDate] = useState('')
+  // Days off rule (0100): company schedule or flexible (travel), changed
+  // from the next attendance cycle unless "start this cycle" is ticked.
+  const [modeInfo, setModeInfo] = useState<DayOffModeInfo | null>(null)
+  const [dayOffMode, setDayOffMode] = useState<DayOffMode>('company')
+  const [thisCycle, setThisCycle] = useState(false)
+  const [rates, setRates] = useState({ sat: 0.5, sun: 1 })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -82,7 +90,25 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
     setTelegramId((mode === 'edit' && user?.telegramId) || '')
     setTelegramIdSet(false)
     setTelegramError(null)
+    setModeInfo(null)
+    setDayOffMode('company')
+    setThisCycle(false)
+    if (mode === 'edit' && user) {
+      flexService
+        .modeInfo(user.id)
+        .then((info) => {
+          setModeInfo(info)
+          if (info) setDayOffMode(info.nextMode ?? info.mode)
+        })
+        .catch(() => setModeInfo(null))
+      flexService
+        .settings()
+        .then((st) => setRates({ sat: st.satRate, sun: st.sunRate }))
+        .catch(() => {})
+    }
   }, [open, mode, user])
+
+  const modeChanges = !!modeInfo && (dayOffMode !== (modeInfo.nextMode ?? modeInfo.mode) || (thisCycle && dayOffMode !== modeInfo.mode))
 
   const statusNeedsMoreInput =
     (status === 'suspended' && (!suspendedFrom || !suspendedTo)) || (status === 'discharged' && !dischargedDate)
@@ -128,6 +154,7 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
           suspendedTo: suspendedTo || null,
           dischargedDate: dischargedDate || null,
         })
+        if (modeChanges) await flexService.setMode(user.id, dayOffMode, thisCycle && dayOffMode !== modeInfo?.mode)
         haptic('success')
         onSaved()
         onClose()
@@ -252,6 +279,54 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
             <Switch checked={isFieldSales} onChange={setIsFieldSales} />
           </Field>
         </Section>
+
+        {mode === 'edit' && modeInfo && (
+          <Section title="Days off">
+            <div role="radiogroup" aria-label="Days off" className="space-y-2">
+              {(
+                [
+                  ['company', 'Company schedule', 'Works the company’s working days and hours. Weekends and public holidays are days off.'],
+                  ['flexible', 'Flexible (travel)', `Works through weekends while travelling. Public holidays are off; instead of a fixed weekend they get ${rate(rates.sat)} day per Saturday and ${rate(rates.sun)} per Sunday to take when it suits their trips — in advance too. Settles each attendance cycle.`],
+                ] as [DayOffMode, string, string][]
+              ).map(([value, label, text]) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="radio"
+                  aria-checked={dayOffMode === value}
+                  onClick={() => setDayOffMode(value)}
+                  className={`flex w-full items-start gap-3 rounded-xl border-[1.5px] p-3 text-left ${dayOffMode === value ? 'border-brand-500 bg-brand-50 dark:bg-brand-500/15' : 'border-neutral-200 dark:border-neutral-700'}`}
+                >
+                  <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${dayOffMode === value ? 'border-brand-500' : 'border-neutral-300'}`}>
+                    {dayOffMode === value && <span className="h-2.5 w-2.5 rounded-full bg-brand-500" />}
+                  </span>
+                  <span>
+                    <span className="block text-sm font-bold text-neutral-900">{label}</span>
+                    <span className="mt-0.5 block text-xs leading-snug text-neutral-500">{text}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+            {modeInfo.nextMode && modeInfo.nextFrom && !modeChanges && (
+              <p className="rounded-lg bg-brand-50 px-3 py-2 text-xs text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
+                Changes to {modeInfo.nextMode === 'flexible' ? 'Flexible (travel)' : 'Company schedule'} on {dayDate(modeInfo.nextFrom)}.
+              </p>
+            )}
+            {dayOffMode !== modeInfo.mode && (
+              <label className="flex items-start gap-2.5 text-xs text-neutral-600">
+                <input type="checkbox" checked={thisCycle} onChange={(e) => setThisCycle(e.target.checked)} className="mt-0.5 h-4 w-4 accent-brand-500" />
+                <span>
+                  <span className="font-semibold text-neutral-800">Start this cycle</span> — from {shortDate(modeInfo.cycleStart)}, recounting the days so far under the new rule.
+                </span>
+              </label>
+            )}
+            <p className="text-xs text-neutral-400">
+              {thisCycle && dayOffMode !== modeInfo.mode
+                ? `Takes effect from ${shortDate(modeInfo.cycleStart)}, the start of this attendance cycle.`
+                : `Changing this takes effect from the next attendance cycle (${shortDate(modeInfo.nextCycleStart)}), so the current cycle isn’t recounted.`}
+            </p>
+          </Section>
+        )}
 
         {mode === 'edit' && (
           <Section title="Status">
