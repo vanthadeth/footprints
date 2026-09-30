@@ -39,6 +39,8 @@ const LocationsPage = lazy(() => import('@/pages/LocationsPage').then((m) => ({ 
 const TranslationsPage = lazy(() => import('@/pages/TranslationsPage').then((m) => ({ default: m.TranslationsPage })))
 const PermissionsPage = lazy(() => import('@/pages/PermissionsPage').then((m) => ({ default: m.PermissionsPage })))
 const CalendarPage = lazy(() => import('@/pages/CalendarPage').then((m) => ({ default: m.CalendarPage })))
+const DaysOffPage = lazy(() => import('@/pages/DaysOffPage').then((m) => ({ default: m.DaysOffPage })))
+const FlexSettlementPage = lazy(() => import('@/pages/FlexSettlementPage').then((m) => ({ default: m.FlexSettlementPage })))
 const LeavePage = lazy(() => import('@/pages/LeavePage').then((m) => ({ default: m.LeavePage })))
 
 function PageFallback() {
@@ -162,6 +164,22 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageFallback />}>
             <LeavePage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/leave/days-off',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <DaysOffPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/leave/days-off/settlement',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <FlexSettlementPage />
           </Suspense>
         ),
       },

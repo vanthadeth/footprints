@@ -1,6 +1,7 @@
 import type { LeaveType } from '@/features/leave/types'
 
-export type DayStatus = 'present' | 'late' | 'absent' | 'leave' | 'holiday' | 'off' | 'upcoming'
+/** dayoff: someone on flexible days off didn't clock in -- one of their days off (0100), not an absence. */
+export type DayStatus = 'present' | 'late' | 'absent' | 'dayoff' | 'leave' | 'holiday' | 'off' | 'upcoming'
 
 /** One person on one date, as returned by the attendance_days RPC (0091). */
 export interface AttendanceDay {
@@ -55,6 +56,10 @@ export function totalsByPerson(rows: AttendanceDay[]): Map<string, PersonTotals>
       t.scheduled++
     }
     if (r.status === 'holiday') t.holidays++
+    if (r.status === 'dayoff') {
+      t.leaveDays += 1
+      t.leaveByType.flex = (t.leaveByType.flex ?? 0) + 1
+    }
     if (r.leaveFraction > 0 && r.leaveType) {
       t.leaveDays += r.leaveFraction
       t.leaveByType[r.leaveType] = (t.leaveByType[r.leaveType] ?? 0) + r.leaveFraction

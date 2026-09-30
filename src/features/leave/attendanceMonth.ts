@@ -42,7 +42,7 @@ export function buildAttendanceMonth(
   const firstWeekday = (new Date(Date.UTC(year, month - 1, 1)).getUTCDay() + 6) % 7 // Mon=0
   const approved = requests.filter((r) => r.status === 'approved')
 
-  const leaveDays: Record<LeaveType, number> = { annual: 0, sick: 0, unpaid: 0 }
+  const leaveDays: Record<LeaveType, number> = { annual: 0, sick: 0, unpaid: 0, flex: 0 }
   let presentDays = 0
   const cells: (AttendanceCell | null)[] = Array.from({ length: firstWeekday }, () => null)
 

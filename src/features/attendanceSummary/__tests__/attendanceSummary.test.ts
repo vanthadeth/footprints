@@ -32,6 +32,12 @@ const rows: AttendanceDay[] = [
 ]
 
 describe('totalsByPerson', () => {
+  it('counts a flexible person\'s day without a clock-in as a day off, not an absence', () => {
+    const t = totalsByPerson([day('f', '2026-09-26', 'dayoff'), day('f', '2026-09-27', 'present'), day('f', '2026-09-28', 'leave', { leaveType: 'flex', leaveFraction: 1 })])
+    expect(t.get('f')).toMatchObject({ scheduled: 1, absent: 0, leaveDays: 2 })
+    expect(t.get('f')!.leaveByType).toEqual({ flex: 2 })
+  })
+
   it('counts present, late, absent, leave and holidays per person', () => {
     const t = totalsByPerson(rows)
     expect(t.get('a')).toMatchObject({ scheduled: 3, present: 2, late: 1, lateMinutes: 12, absent: 1, leaveDays: 1, holidays: 1, workedMinutes: 960 })

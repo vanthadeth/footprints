@@ -54,7 +54,7 @@ describe('buildAttendanceMonth', () => {
       ],
       '2026-09-24'
     )
-    expect(m.leaveDays).toEqual({ annual: 3, sick: 0.5, unpaid: 0 })
+    expect(m.leaveDays).toEqual({ annual: 3, sick: 0.5, unpaid: 0, flex: 0 })
     expect(m.presentDays).toBe(0.5)
     const sick = m.weeks.flat().find((c) => c?.date === '2026-09-10')!
     expect(sick).toMatchObject({ kind: 'leave', leaveType: 'sick', half: true, alsoPresent: true })

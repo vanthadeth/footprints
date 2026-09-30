@@ -25,6 +25,8 @@ const TITLE_KEYS: Record<string, string> = {
   '/team/customers': 'nav.customerBriefing',
   '/plan': 'nav.plan',
   '/calendar': 'nav.calendar',
+  '/leave/days-off': 'nav.daysOff',
+  '/leave/days-off/settlement': 'nav.settlement',
   '/visits': 'nav.visits',
   '/notifications': 'nav.notifications',
   '/messages': 'nav.messages',
@@ -38,6 +40,8 @@ const TAB_ROOTS = new Set(['/check-in', '/footprints', '/leave', '/report', '/me
 /** Where a sub-page's back link goes -- almost every secondary screen is reached from Hub. */
 function backTarget(pathname: string): string {
   if (pathname === '/plan') return '/check-in'
+  if (pathname === '/leave/days-off') return '/leave'
+  if (pathname === '/leave/days-off/settlement') return '/leave/days-off'
   if (pathname.startsWith('/customers/')) return '/customers'
   if (pathname.startsWith('/messages/')) return '/messages'
   return '/menu'

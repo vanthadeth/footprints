@@ -1,6 +1,6 @@
 import type { AttendanceDay } from './attendanceSummary'
 
-const LEAVE_SHORT = { annual: 'AL', sick: 'SL', unpaid: 'UL' } as const
+const LEAVE_SHORT = { annual: 'AL', sick: 'SL', unpaid: 'UL', flex: 'FD' } as const
 
 /** One person-day in the weekly grid: ✓ on time, minutes late, A absent, AL/SL/UL leave (½ for a half day), striped holiday, · day off. */
 export function DayCell({ row, dow }: { row: AttendanceDay | undefined; dow: string }) {
@@ -23,6 +23,12 @@ export function DayCell({ row, dow }: { row: AttendanceDay | undefined; dow: str
       return (
         <span className={`${base} border-[1.5px] border-status-danger bg-status-danger/10 text-status-danger`} aria-label={`${dow}: absent`}>
           A
+        </span>
+      )
+    case 'dayoff':
+      return (
+        <span className={`${base} bg-status-visiting/10 text-status-visiting dark:text-violet-300`} aria-label={`${dow}: day off, no clock-in`}>
+          Off
         </span>
       )
     case 'leave':

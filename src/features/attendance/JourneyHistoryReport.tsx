@@ -16,7 +16,7 @@ import { useLanguage } from '@/i18n/LanguageContext'
 import { formatDuration } from '@/lib/datetime'
 import { getCustomRange, todayDateString } from '@/lib/dateRange'
 
-const LEAVE_TYPE_LABEL: Record<string, string> = { annual: 'Annual', sick: 'Sick', unpaid: 'Unpaid' }
+const LEAVE_TYPE_LABEL: Record<string, string> = { annual: 'Annual', sick: 'Sick', unpaid: 'Unpaid', flex: 'Day Off' }
 
 /**
  * Day-by-day journey history for one user at a time: a 5-day picker, that
@@ -76,7 +76,7 @@ export function JourneyHistoryReport({
         ) : !day ? (
           <div className="mt-4">
             {leaveType ? (
-              <EmptyState icon={FootprintsIcon} title={t('footprints.onLeaveTitle', { type: LEAVE_TYPE_LABEL[leaveType] })} />
+              <EmptyState icon={FootprintsIcon} title={leaveType === 'flex' ? 'On a day off' : t('footprints.onLeaveTitle', { type: LEAVE_TYPE_LABEL[leaveType] })} />
             ) : (
               <EmptyState icon={FootprintsIcon} title={t('footprints.emptyTitle')} body={t('footprints.emptyBody')} />
             )}

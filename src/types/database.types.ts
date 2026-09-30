@@ -26,6 +26,8 @@ export type Database = {
           daily_working_hours: number | null
           default_annual_leave_days: number
           default_sick_leave_days: number
+          flex_saturday_rate: number
+          flex_sunday_rate: number
           id: boolean
           idle_alert_threshold_minutes: number
           late_clockin_threshold_minutes: number
@@ -55,6 +57,8 @@ export type Database = {
           daily_working_hours?: number | null
           default_annual_leave_days?: number
           default_sick_leave_days?: number
+          flex_saturday_rate?: number
+          flex_sunday_rate?: number
           id?: boolean
           idle_alert_threshold_minutes?: number
           late_clockin_threshold_minutes?: number
@@ -84,6 +88,8 @@ export type Database = {
           daily_working_hours?: number | null
           default_annual_leave_days?: number
           default_sick_leave_days?: number
+          flex_saturday_rate?: number
+          flex_sunday_rate?: number
           id?: boolean
           idle_alert_threshold_minutes?: number
           late_clockin_threshold_minutes?: number
@@ -1255,6 +1261,73 @@ export type Database = {
           },
         ]
       }
+      day_off_modes: {
+        Row: {
+          effective_from: string
+          mode: string
+          set_at: string
+          set_by: string | null
+          user_id: string
+        }
+        Insert: {
+          effective_from: string
+          mode: string
+          set_at?: string
+          set_by?: string | null
+          user_id: string
+        }
+        Update: {
+          effective_from?: string
+          mode?: string
+          set_at?: string
+          set_by?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "day_off_modes_set_by_fkey"
+            columns: ["set_by"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "day_off_modes_set_by_fkey"
+            columns: ["set_by"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "day_off_modes_set_by_fkey"
+            columns: ["set_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "day_off_modes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "day_off_modes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "day_off_modes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departments: {
         Row: {
           active: boolean
@@ -1281,6 +1354,76 @@ export type Database = {
           sort_order?: number
         }
         Relationships: []
+      }
+      flex_settlements: {
+        Row: {
+          allowance: number
+          annual_days: number
+          auto_days: number
+          cycle_end: string
+          cycle_start: string
+          over_days: number
+          requested: number
+          saturdays: number
+          settled_at: string
+          sundays: number
+          unpaid_days: number
+          unused_days: number
+          user_id: string
+        }
+        Insert: {
+          allowance: number
+          annual_days: number
+          auto_days: number
+          cycle_end: string
+          cycle_start: string
+          over_days: number
+          requested: number
+          saturdays: number
+          settled_at?: string
+          sundays: number
+          unpaid_days: number
+          unused_days: number
+          user_id: string
+        }
+        Update: {
+          allowance?: number
+          annual_days?: number
+          auto_days?: number
+          cycle_end?: string
+          cycle_start?: string
+          over_days?: number
+          requested?: number
+          saturdays?: number
+          settled_at?: string
+          sundays?: number
+          unpaid_days?: number
+          unused_days?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flex_settlements_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "flex_settlements_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flex_settlements_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       geo_communes: {
         Row: {
@@ -2628,6 +2771,105 @@ export type Database = {
         }
         Relationships: []
       }
+      tasks: {
+        Row: {
+          created_at: string
+          created_by: string
+          customer_id: string | null
+          done_at: string | null
+          due_date: string
+          due_time: string | null
+          id: string
+          note: string | null
+          owner_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          customer_id?: string | null
+          done_at?: string | null
+          due_date: string
+          due_time?: string | null
+          id?: string
+          note?: string | null
+          owner_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          customer_id?: string | null
+          done_at?: string | null
+          due_date?: string
+          due_time?: string | null
+          id?: string
+          note?: string | null
+          owner_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "tasks_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       translation_overrides: {
         Row: {
           key: string
@@ -3325,6 +3567,7 @@ export type Database = {
           customer_id: string | null
           distance_m: number | null
           flags: string[]
+          follow_up_done_at: string | null
           id: string
           in_accuracy_m: number | null
           in_latitude: number | null
@@ -3359,6 +3602,7 @@ export type Database = {
           customer_id?: string | null
           distance_m?: number | null
           flags?: string[]
+          follow_up_done_at?: string | null
           id?: string
           in_accuracy_m?: number | null
           in_latitude?: number | null
@@ -3393,6 +3637,7 @@ export type Database = {
           customer_id?: string | null
           distance_m?: number | null
           flags?: string[]
+          follow_up_done_at?: string | null
           id?: string
           in_accuracy_m?: number | null
           in_latitude?: number | null
@@ -4207,6 +4452,25 @@ export type Database = {
           late_grace_minutes: number
         }[]
       }
+      calendar_items: {
+        Args: { p_from: string; p_to: string; p_user: string }
+        Returns: {
+          amount: number
+          assigned_by: string
+          at_time: string
+          can_edit: boolean
+          customer_id: string
+          customer_name: string
+          day: string
+          done: boolean
+          kind: string
+          ref_id: string
+          sort_order: number
+          source_date: string
+          source_label: string
+          title: string
+        }[]
+      }
       can: {
         Args: {
           p_action: Database["public"]["Enums"]["permission_action"]
@@ -4264,6 +4528,7 @@ export type Database = {
           customer_id: string | null
           distance_m: number | null
           flags: string[]
+          follow_up_done_at: string | null
           id: string
           in_accuracy_m: number | null
           in_latitude: number | null
@@ -4312,6 +4577,7 @@ export type Database = {
           customer_id: string | null
           distance_m: number | null
           flags: string[]
+          follow_up_done_at: string | null
           id: string
           in_accuracy_m: number | null
           in_latitude: number | null
@@ -4368,6 +4634,7 @@ export type Database = {
           customer_id: string | null
           distance_m: number | null
           flags: string[]
+          follow_up_done_at: string | null
           id: string
           in_accuracy_m: number | null
           in_latitude: number | null
@@ -4466,6 +4733,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      complete_task: {
+        Args: { p_done?: boolean; p_id: string }
+        Returns: undefined
+      }
+      complete_visit_follow_up: {
+        Args: { p_done?: boolean; p_visit: string }
+        Returns: undefined
+      }
       confirm_cart: {
         Args: never
         Returns: {
@@ -4489,6 +4764,65 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      customer_book: {
+        Args: {
+          p_desc?: boolean
+          p_lat?: number
+          p_limit?: number
+          p_lng?: number
+          p_mode?: string
+          p_months?: number
+          p_offset?: number
+          p_owner?: string
+          p_people?: string[]
+          p_province?: string
+          p_ranges?: string[]
+          p_search?: string
+          p_sort?: string
+        }
+        Returns: {
+          bucket: string
+          code: string
+          customer_id: string
+          days_since: number
+          distance_m: number
+          district: string
+          freq_days: number
+          last_amount: number
+          last_by_id: string
+          last_by_name: string
+          last_by_nickname: string
+          last_collected: number
+          last_order_status: string
+          last_payment: string
+          last_visit_at: string
+          last_visit_status: string
+          next_visit: string
+          owner_id: string
+          owner_name: string
+          owner_nickname: string
+          province_code: string
+          province_name: string
+          shop_name: string
+          total_count: number
+          visits_90: number
+        }[]
+      }
+      customer_book_summary: {
+        Args: {
+          p_mode?: string
+          p_months?: number
+          p_owner?: string
+          p_people?: string[]
+          p_search?: string
+        }
+        Returns: {
+          bucket: string
+          n: number
+          province_code: string
+          province_name: string
+        }[]
+      }
       customer_coverage: {
         Args: {
           p_lat?: number
@@ -4511,6 +4845,53 @@ export type Database = {
           shop_name: string
           tier: string
           visited_by_me: boolean
+        }[]
+      }
+      customer_owners: {
+        Args: never
+        Returns: {
+          customers: number
+          full_name: string
+          nickname: string
+          user_id: string
+        }[]
+      }
+      customer_visit_activity: {
+        Args: { p_customer: string }
+        Returns: {
+          cancel_reason: string
+          cancelled_at: string
+          checked_in_at: string
+          collected: number
+          full_name: string
+          next_visit: string
+          nickname: string
+          order_amount: number
+          order_status: string
+          payment_status: string
+          remarks: string
+          user_id: string
+          visit_id: string
+          visit_status: string
+        }[]
+      }
+      customer_visitors: {
+        Args: { p_months?: number }
+        Returns: {
+          full_name: string
+          nickname: string
+          user_id: string
+          visits: number
+        }[]
+      }
+      day_off_mode_info: {
+        Args: { p_user?: string }
+        Returns: {
+          cycle_start: string
+          mode: string
+          next_cycle_start: string
+          next_from: string
+          next_mode: string
         }[]
       }
       decide_leave_request: {
@@ -4539,11 +4920,58 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      delete_task: { Args: { p_id: string }; Returns: undefined }
       enforce_working_hours: {
         Args: { p_accuracy?: number; p_latitude: number; p_longitude: number }
         Returns: Json
       }
       ensure_my_cart: { Args: never; Returns: string }
+      flex_cycle: {
+        Args: { p_date?: string; p_user?: string }
+        Returns: {
+          allowance: number
+          annual_days: number
+          auto_days: number
+          close_day: number
+          closed: boolean
+          cycle_end: string
+          cycle_start: string
+          is_flexible: boolean
+          left_days: number
+          over_days: number
+          planned: number
+          requested: number
+          sat_rate: number
+          saturdays: number
+          settled: boolean
+          settled_at: string
+          sun_rate: number
+          sundays: number
+          taken: number
+          unpaid_days: number
+          unused_days: number
+        }[]
+      }
+      flex_days: {
+        Args: { p_from: string; p_to: string; p_user: string }
+        Returns: {
+          cost: number
+          day: string
+          holiday_name: string
+          kind: string
+          request_id: string
+          weekday: number
+        }[]
+      }
+      flex_settings: {
+        Args: never
+        Returns: {
+          close_day: number
+          flexible_people: number
+          sat_rate: number
+          sun_rate: number
+        }[]
+      }
       leave_policy: {
         Args: never
         Returns: {
@@ -4741,6 +5169,19 @@ export type Database = {
           street_address: string
         }[]
       }
+      org_overview: {
+        Args: never
+        Returns: {
+          active: boolean
+          description: string
+          id: string
+          key: string
+          kind: string
+          name: string
+          people: number
+          sort_order: number
+        }[]
+      }
       pending_push_notifications: {
         Args: never
         Returns: {
@@ -4857,6 +5298,32 @@ export type Database = {
           telegram_id: string
         }[]
       }
+      save_department: {
+        Args: { p_active?: boolean; p_id: string; p_name: string }
+        Returns: string
+      }
+      save_role: {
+        Args: {
+          p_active?: boolean
+          p_copy_from?: string
+          p_description?: string
+          p_id: string
+          p_name: string
+        }
+        Returns: string
+      }
+      save_task: {
+        Args: {
+          p_customer?: string
+          p_due_date: string
+          p_due_time?: string
+          p_id: string
+          p_note?: string
+          p_owner: string
+          p_title: string
+        }
+        Returns: string
+      }
       save_work_schedule: {
         Args: { p_break_paid: boolean; p_days: Json; p_department: string }
         Returns: string
@@ -4890,7 +5357,15 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      set_day_off_mode: {
+        Args: { p_mode: string; p_this_cycle?: boolean; p_user: string }
+        Returns: string
+      }
       set_default_printer: { Args: { p_printer: string }; Returns: undefined }
+      set_flex_rates: {
+        Args: { p_sat: number; p_sun: number }
+        Returns: undefined
+      }
       set_leave_allowance: {
         Args: {
           p_leave_type: Database["public"]["Enums"]["leave_type"]
@@ -4991,6 +5466,7 @@ export type Database = {
           customer_id: string | null
           distance_m: number | null
           flags: string[]
+          follow_up_done_at: string | null
           id: string
           in_accuracy_m: number | null
           in_latitude: number | null
@@ -5044,6 +5520,7 @@ export type Database = {
           customer_id: string | null
           distance_m: number | null
           flags: string[]
+          follow_up_done_at: string | null
           id: string
           in_accuracy_m: number | null
           in_latitude: number | null
@@ -5088,6 +5565,7 @@ export type Database = {
           customer_id: string | null
           distance_m: number | null
           flags: string[]
+          follow_up_done_at: string | null
           id: string
           in_accuracy_m: number | null
           in_latitude: number | null
@@ -5133,7 +5611,7 @@ export type Database = {
       gender: "male" | "female" | "other"
       leave_day_period: "full" | "morning" | "afternoon"
       leave_status: "pending" | "approved" | "rejected" | "cancelled"
-      leave_type: "annual" | "sick" | "unpaid"
+      leave_type: "annual" | "sick" | "unpaid" | "flex"
       notification_kind:
         | "late_clock_in"
         | "idling_too_long"
@@ -5313,7 +5791,7 @@ export const Constants = {
       gender: ["male", "female", "other"],
       leave_day_period: ["full", "morning", "afternoon"],
       leave_status: ["pending", "approved", "rejected", "cancelled"],
-      leave_type: ["annual", "sick", "unpaid"],
+      leave_type: ["annual", "sick", "unpaid", "flex"],
       notification_kind: [
         "late_clock_in",
         "idling_too_long",
