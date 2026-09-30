@@ -223,7 +223,7 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
         <Section title="Organisation">
           <Field label="Department">
             <Select value={departmentId} onChange={setDepartmentId} placeholder="No department">
-              {departments.map((d) => (
+              {withCurrent(departments, mode === 'edit' ? user?.departmentId : null, user?.departmentName).map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.name}
                 </option>
@@ -232,7 +232,7 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
           </Field>
           <Field label="Role">
             <Select value={roleId} onChange={setRoleId} placeholder="Select a role" required>
-              {roles.map((r) => (
+              {withCurrent(roles, mode === 'edit' ? user?.roleId : null, user?.roleName).map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.name}
                 </option>
@@ -432,6 +432,12 @@ function TextInput({
       className="w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400"
     />
   )
+}
+
+/** The picker's active options, plus the person's current one when it has since been switched off -- so editing them doesn't silently change it. */
+function withCurrent(options: Option[], currentId: string | null | undefined, currentName: string | null | undefined): Option[] {
+  if (!currentId || options.some((o) => o.id === currentId)) return options
+  return [...options, { id: currentId, name: `${currentName ?? 'Current'} (inactive)` }]
 }
 
 function Select({

@@ -4,6 +4,7 @@ import {
   BarChart3,
   Bell,
   Building2,
+  Network,
   CalendarCheck,
   CalendarDays,
   CalendarRange,
@@ -196,6 +197,7 @@ export function MenuPage() {
           <GroupedList title="Administration">
             <ListRow icon={UsersIcon} iconBg="bg-status-visiting" label="Users" to="/users" />
             <ListRow icon={ShieldCheck} iconBg="bg-brand-700" label="Permissions" sublabel="Who can do what, by role or person" to="/settings/permissions" />
+            <ListRow icon={Network} iconBg="bg-earth-500" label="Departments & roles" sublabel="Add or rename departments and roles" to="/settings/org" />
             <ListRow icon={Building2} iconBg="bg-status-working" label="Work locations" to="/locations" />
             <ListRow icon={Clock} iconBg="bg-brand-500" label="Working hours & days" to="/settings/working-hours" />
             <ListRow icon={CalendarRange} iconBg="bg-status-warn" label="Public holidays" to="/settings/holidays" />

@@ -40,6 +40,7 @@ export const en = {
     workingHours: 'Working Hours & Days',
     holidays: 'Public Holidays',
     permissions: 'Permissions',
+    org: 'Departments & roles',
   },
   welcome: {
     tagline: 'Your day. Your customers. Your progress.',
