@@ -4,6 +4,8 @@ import { ProfileBadge } from '@/components/ProfileBadge'
 import { NotificationBell } from '@/components/NotificationBell'
 import { useJourneyContext } from '@/features/attendance/JourneyContext'
 import { useLanguage } from '@/i18n/LanguageContext'
+import { useRoleGroup } from '@/features/nav/useRoleGroup'
+import { tabsFor } from '@/features/nav/navConfig'
 
 const TITLE_KEYS: Record<string, string> = {
   '/footprints': 'nav.footprints',
@@ -33,14 +35,18 @@ const TITLE_KEYS: Record<string, string> = {
   '/messages': 'nav.messages',
   '/locations': 'nav.locations',
   '/translations': 'nav.translations',
+  '/today': 'nav.today',
+  '/team': 'nav.team',
+  '/people': 'nav.people',
+  '/approvals': 'nav.approvals',
+  '/admin': 'nav.admin',
 }
 
-/** The bottom-bar destinations -- these get the large title; everything else is a sub-page with a back link. */
-const TAB_ROOTS = new Set(['/check-in', '/footprints', '/leave', '/report', '/menu'])
 
 /** Where a sub-page's back link goes -- almost every secondary screen is reached from Hub. */
 function backTarget(pathname: string, search = ''): string {
   if (pathname === '/plan') return '/check-in'
+  if (pathname === '/footprints' || pathname === '/report') return '/menu'
   // Someone else's days off (a manager/HR from Flexible days off) goes back to that list.
   const user = new URLSearchParams(search).get('user')
   if (pathname === '/leave/days-off') return user ? '/leave/flexible' : '/leave'
@@ -70,7 +76,9 @@ export function TitleBar() {
         : pathname.startsWith('/messages/')
           ? t('nav.messageThread')
           : t(TITLE_KEYS[pathname] ?? 'nav.footprints')
-  const isRoot = TAB_ROOTS.has(pathname)
+  // The person's tabs get the large title; everything else is a sub-page with a back link.
+  const { group, ctx } = useRoleGroup()
+  const isRoot = tabsFor(group, ctx).some((tab) => tab.to === pathname)
 
   const actions = (
     <div className="flex items-center gap-1">

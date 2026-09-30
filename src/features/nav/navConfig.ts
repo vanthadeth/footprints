@@ -1,0 +1,195 @@
+import {
+  BarChart3,
+  Bell,
+  Building2,
+  Calendar as CalendarIcon,
+  CalendarCheck,
+  CalendarDays,
+  CalendarRange,
+  CheckSquare,
+  Clock,
+  Footprints as FootprintsIcon,
+  History,
+  Languages,
+  LayoutGrid,
+  MapPin,
+  MessagesSquare,
+  Network,
+  Route,
+  Scale,
+  Settings,
+  ShieldCheck,
+  Store,
+  Table2,
+  UserRound,
+  Users as UsersIcon,
+  type LucideIcon,
+} from 'lucide-react'
+import type { Action, Scope } from '@/features/permissions/catalog'
+
+/**
+ * Role-based navigation (canvas: "Navigation by role"): each person falls in
+ * one group, picked from their permissions -- not their role's name, so new
+ * or custom roles land in the right place -- and each group gets its own
+ * tabs, Hub "For you" shortcuts and Hub sections. Every screen stays
+ * reachable from Hub for anyone allowed to use it.
+ */
+export type RoleGroup = 'field' | 'manager' | 'hr' | 'office' | 'admin'
+
+export interface NavContext {
+  isSuperAdmin: boolean
+  scope: (module: string, action: Action) => Scope | null
+  /** On flexible (travel) days off -- shows "My days off". */
+  flexible?: boolean
+}
+
+/** First match wins: Admin → HR → Manager → Field → Office. */
+export function roleGroup(ctx: NavContext): RoleGroup {
+  const s = ctx.scope
+  if (ctx.isSuperAdmin || s('role_permission', 'edit')) return 'admin'
+  const hasTeam = s('team_map', 'view') === 'sub' || s('leave', 'edit') === 'sub'
+  if (s('leave_balance', 'edit') === 'any' && !hasTeam) return 'hr'
+  if (hasTeam || s('leave', 'edit') === 'any') return 'manager'
+  if (s('plan', 'view') || s('footprints', 'view') || s('visit', 'add')) return 'field'
+  return 'office'
+}
+
+/** Can the person approve other people's leave (leave.edit at Team or All)? */
+export function canApprove(ctx: NavContext): boolean {
+  const e = ctx.scope('leave', 'edit')
+  return ctx.isSuperAdmin || e === 'sub' || e === 'any'
+}
+
+type Need = (ctx: NavContext) => boolean
+const can = (module: string, action: Action = 'view'): Need => (ctx) => ctx.isSuperAdmin || ctx.scope(module, action) !== null
+const admin: Need = (ctx) => ctx.isSuperAdmin
+const hrOrAdmin: Need = (ctx) => ctx.isSuperAdmin || ctx.scope('leave_balance', 'edit') === 'any'
+const seesOthersLeave: Need = (ctx) => ctx.isSuperAdmin || ['sub', 'any'].includes(ctx.scope('leave', 'view') ?? '') || ['sub', 'any'].includes(ctx.scope('leave_balance', 'view') ?? '')
+
+export type TabKey = 'today' | 'calendar' | 'customers' | 'briefing' | 'checkin' | 'leave' | 'messages' | 'team' | 'approvals' | 'people' | 'admin' | 'hub'
+
+export interface TabDef {
+  key: TabKey
+  to: string
+  labelKey: string
+  icon: LucideIcon
+  needs?: Need
+}
+
+export const TAB: Record<TabKey, TabDef> = {
+  today: { key: 'today', to: '/today', labelKey: 'nav.today', icon: CalendarDays },
+  calendar: { key: 'calendar', to: '/calendar', labelKey: 'nav.calendar', icon: CalendarIcon },
+  customers: { key: 'customers', to: '/customers', labelKey: 'nav.customers', icon: Store },
+  briefing: { key: 'briefing', to: '/team/customers', labelKey: 'nav.briefing', icon: Table2, needs: can('customer_briefing') },
+  checkin: { key: 'checkin', to: '/check-in', labelKey: 'nav.checkIn', icon: MapPin },
+  leave: { key: 'leave', to: '/leave', labelKey: 'nav.leave', icon: CalendarDays },
+  messages: { key: 'messages', to: '/messages', labelKey: 'nav.messages', icon: MessagesSquare },
+  team: { key: 'team', to: '/team', labelKey: 'nav.team', icon: UsersIcon },
+  approvals: { key: 'approvals', to: '/approvals', labelKey: 'nav.approvals', icon: CheckSquare, needs: canApprove },
+  people: { key: 'people', to: '/people', labelKey: 'nav.people', icon: UserRound },
+  admin: { key: 'admin', to: '/admin', labelKey: 'nav.admin', icon: ShieldCheck },
+  hub: { key: 'hub', to: '/menu', labelKey: 'nav.hub', icon: LayoutGrid },
+}
+
+const GROUP_TABS: Record<RoleGroup, TabKey[]> = {
+  field: ['calendar', 'messages', 'checkin', 'briefing', 'hub'],
+  manager: ['team', 'customers', 'checkin', 'approvals', 'hub'],
+  hr: ['people', 'leave', 'checkin', 'approvals', 'hub'],
+  office: ['today', 'customers', 'checkin', 'messages', 'hub'],
+  admin: ['team', 'customers', 'checkin', 'admin', 'hub'],
+}
+
+/** The phone tab bar (and the top of the desktop sidebar) for a group, minus tabs the person can't use. */
+export function tabsFor(group: RoleGroup, ctx: NavContext): TabDef[] {
+  return GROUP_TABS[group].map((k) => TAB[k]).filter((t) => !t.needs || t.needs(ctx))
+}
+
+/** Where a group lands after sign-in: the Check In tab for salespeople (their main tab), else the first tab. */
+export function homeFor(group: RoleGroup, ctx: NavContext): string {
+  if (group === 'field') return '/check-in'
+  return tabsFor(group, ctx)[0]?.to ?? '/check-in'
+}
+
+export type RowKey =
+  | 'plan' | 'calendar' | 'journey' | 'report' | 'messages' | 'customers' | 'leave' | 'daysoff'
+  | 'team' | 'attendance' | 'reports' | 'logs' | 'briefing' | 'flexteam' | 'approvals'
+  | 'allowances' | 'holidays' | 'users' | 'permissions' | 'org' | 'hours' | 'locations' | 'notifications' | 'translations' | 'settings'
+
+export interface RowDef {
+  key: RowKey
+  label: string
+  sub: string
+  to: string
+  icon: LucideIcon
+  /** Tailwind background for the icon tile. */
+  tone: string
+  needs?: Need
+}
+
+export const ROW: Record<RowKey, RowDef> = {
+  plan: { key: 'plan', label: 'Today’s plan', sub: 'Your stops, route and next customer', to: '/plan', icon: Route, tone: 'bg-brand-500', needs: can('plan') },
+  calendar: { key: 'calendar', label: 'Calendar', sub: 'Tasks, appointments and follow-ups', to: '/calendar', icon: CalendarIcon, tone: 'bg-status-visiting' },
+  journey: { key: 'journey', label: 'Journey history', sub: 'Past days’ routes and time on the road', to: '/footprints', icon: FootprintsIcon, tone: 'bg-earth-500', needs: can('footprints') },
+  report: { key: 'report', label: 'My numbers', sub: 'Visits, orders and collections', to: '/report', icon: BarChart3, tone: 'bg-status-working' },
+  messages: { key: 'messages', label: 'Messages', sub: 'Mentions, replies and your customers', to: '/messages', icon: MessagesSquare, tone: 'bg-brand-700' },
+  customers: { key: 'customers', label: 'Customers', sub: 'Calls, notes and visits by customer', to: '/customers', icon: Store, tone: 'bg-status-working' },
+  leave: { key: 'leave', label: 'My leave', sub: 'Requests, balance and attendance', to: '/leave', icon: CalendarDays, tone: 'bg-brand-500' },
+  daysoff: { key: 'daysoff', label: 'My days off', sub: 'Flexible allowance this cycle', to: '/leave/days-off', icon: CalendarRange, tone: 'bg-status-visiting', needs: (ctx) => !!ctx.flexible },
+  team: { key: 'team', label: 'Team map', sub: 'Status, map, routes and customers', to: '/fleet', icon: UsersIcon, tone: 'bg-brand-500', needs: can('team_map') },
+  attendance: { key: 'attendance', label: 'Team attendance', sub: 'Daily, weekly and by cycle', to: '/fleet?tab=attendance', icon: CalendarCheck, tone: 'bg-status-working', needs: can('team_map') },
+  reports: { key: 'reports', label: 'Team reports', sub: 'Visits, orders, effectiveness', to: '/fleet?tab=reports', icon: BarChart3, tone: 'bg-status-visiting', needs: can('team_map') },
+  logs: { key: 'logs', label: 'Activity logs', sub: 'What happened, by person', to: '/fleet?tab=logs', icon: History, tone: 'bg-neutral-600', needs: can('team_map') },
+  briefing: { key: 'briefing', label: 'Customer briefing', sub: 'Customers by province, last visit and who', to: '/team/customers', icon: Table2, tone: 'bg-status-visiting', needs: can('customer_briefing') },
+  flexteam: { key: 'flexteam', label: 'Flexible days off', sub: 'Day off balance of people who travel', to: '/leave/flexible', icon: CalendarRange, tone: 'bg-status-visiting', needs: seesOthersLeave },
+  approvals: { key: 'approvals', label: 'Leave approvals', sub: 'Leave and days off waiting for you', to: '/approvals', icon: CheckSquare, tone: 'bg-status-warn', needs: canApprove },
+  allowances: { key: 'allowances', label: 'Leave allowances', sub: 'Company default and each person’s allowance', to: '/leave/allowances', icon: Scale, tone: 'bg-status-visiting', needs: hrOrAdmin },
+  holidays: { key: 'holidays', label: 'Public holidays', sub: 'Holidays and company days off', to: '/settings/holidays', icon: CalendarRange, tone: 'bg-status-warn', needs: hrOrAdmin },
+  users: { key: 'users', label: 'Users', sub: 'People, roles and days-off rules', to: '/users', icon: UsersIcon, tone: 'bg-status-visiting', needs: admin },
+  permissions: { key: 'permissions', label: 'Permissions', sub: 'Who can do what, by role or person', to: '/settings/permissions', icon: ShieldCheck, tone: 'bg-brand-700', needs: can('role_permission', 'edit') },
+  org: { key: 'org', label: 'Departments & roles', sub: 'Add or rename departments and roles', to: '/settings/org', icon: Network, tone: 'bg-earth-500', needs: admin },
+  hours: { key: 'hours', label: 'Working hours & days', sub: 'Schedules, cycle and weekend rates', to: '/settings/working-hours', icon: Clock, tone: 'bg-brand-500', needs: admin },
+  locations: { key: 'locations', label: 'Work locations', sub: 'Where clock-in is allowed', to: '/locations', icon: Building2, tone: 'bg-status-working', needs: admin },
+  notifications: { key: 'notifications', label: 'Notifications', sub: 'Alerts sent to managers', to: '/notifications', icon: Bell, tone: 'bg-status-danger', needs: admin },
+  translations: { key: 'translations', label: 'Translations', sub: 'English and Khmer text', to: '/translations', icon: Languages, tone: 'bg-brand-600', needs: admin },
+  settings: { key: 'settings', label: 'System settings', sub: 'Company-wide options', to: '/settings', icon: Settings, tone: 'bg-neutral-600', needs: admin },
+}
+
+const FOR_YOU: Record<RoleGroup, RowKey[]> = {
+  field: ['plan', 'leave', 'report', 'customers'],
+  manager: ['attendance', 'briefing', 'flexteam', 'reports'],
+  hr: ['allowances', 'holidays', 'flexteam', 'attendance'],
+  office: ['calendar', 'customers', 'team', 'leave'],
+  admin: ['users', 'permissions', 'hours', 'notifications'],
+}
+
+const SECTIONS: Record<RoleGroup, [string, RowKey[]][]> = {
+  field: [['My work', ['plan', 'report', 'customers', 'journey']], ['Leave', ['leave', 'daysoff']]],
+  manager: [['Team', ['team', 'attendance', 'reports', 'logs', 'briefing', 'flexteam']], ['My work', ['calendar', 'plan', 'journey', 'report', 'messages', 'leave', 'daysoff']]],
+  hr: [['HR', ['attendance', 'allowances', 'holidays', 'flexteam', 'team']], ['My work', ['calendar', 'customers', 'messages']]],
+  office: [['My work', ['calendar', 'customers', 'report', 'leave', 'daysoff']], ['Company', ['team', 'briefing', 'approvals']]],
+  admin: [['Administration', ['users', 'permissions', 'org', 'hours', 'holidays', 'allowances', 'locations', 'notifications', 'translations', 'settings']], ['Team', ['attendance', 'reports', 'logs', 'briefing', 'flexteam', 'approvals']], ['My work', ['calendar', 'messages', 'leave', 'daysoff']]],
+}
+
+/** Admin tab: the Administration rows the person can use. */
+export const ADMIN_ROWS: RowKey[] = ['users', 'permissions', 'org', 'hours', 'holidays', 'allowances', 'locations', 'notifications', 'translations', 'settings']
+
+const allowed = (ctx: NavContext) => (r: RowDef) => !r.needs || r.needs(ctx)
+
+/** Hub "For you": up to four shortcuts for the group. */
+export function forYou(group: RoleGroup, ctx: NavContext): RowDef[] {
+  return FOR_YOU[group].map((k) => ROW[k]).filter(allowed(ctx))
+}
+
+/** Hub sections for the group: rows the person can use, minus anything already a tab; empty sections dropped. */
+export function hubSections(group: RoleGroup, ctx: NavContext): { title: string; rows: RowDef[] }[] {
+  const tabRoutes = new Set(tabsFor(group, ctx).map((t) => t.to))
+  return SECTIONS[group]
+    .map(([title, keys]) => ({ title, rows: keys.map((k) => ROW[k]).filter(allowed(ctx)).filter((r) => !tabRoutes.has(r.to)) }))
+    .filter((s) => s.rows.length > 0)
+}
+
+/** Every Admin-tab row the person can use. */
+export function adminRows(ctx: NavContext): RowDef[] {
+  return ADMIN_ROWS.map((k) => ROW[k]).filter(allowed(ctx))
+}
+

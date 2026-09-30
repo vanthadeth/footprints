@@ -1,35 +1,27 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { MapPin, Clock, Footprints as FootprintsIcon, Truck, CalendarDays, BarChart3, LayoutGrid, Users as UsersIcon, type LucideIcon } from 'lucide-react'
+import { MapPin, Clock, LayoutGrid, type LucideIcon } from 'lucide-react'
 import { haptic } from '@/lib/haptic'
 import { OfflineBanner } from '@/components/OfflineBanner'
 import { TitleBar } from '@/components/TitleBar'
 import { JourneyProvider, useJourneyContext } from '@/features/attendance/JourneyContext'
 import { NotificationsProvider } from '@/features/notifications/NotificationsContext'
-import { MessagesProvider } from '@/features/conversations/MessagesContext'
-import { PermissionsProvider, useCan } from '@/features/permissions/PermissionsContext'
-import { useProfile, type Profile } from '@/features/auth/useProfile'
+import { MessagesProvider, useMessages } from '@/features/conversations/MessagesContext'
+import { PermissionsProvider } from '@/features/permissions/PermissionsContext'
+import { useRoleGroup } from '@/features/nav/useRoleGroup'
+import { usePendingApprovals } from '@/features/nav/usePendingApprovals'
+import { canApprove, hubSections, tabsFor, type NavContext, type TabKey } from '@/features/nav/navConfig'
 import { useLanguage } from '@/i18n/LanguageContext'
 
-/** The five bottom-bar destinations (Footprints only with footprints.view), in bottom-bar order (Check In sits in the middle of the phone bar as the raised action). */
-const PRIMARY_TABS = [
-  { to: '/footprints', labelKey: 'nav.footprints', icon: FootprintsIcon },
-  { to: '/leave', labelKey: 'nav.leave', icon: CalendarDays },
-  { to: '/check-in', labelKey: 'nav.checkIn', icon: MapPin },
-  { to: '/report', labelKey: 'nav.report', icon: BarChart3 },
-  { to: '/menu', labelKey: 'nav.hub', icon: LayoutGrid },
-] as const
-
 /**
- * Mobile-first shell. One nav for everyone: a 5-item bottom bar on phones
- * (Footprints / Leave / Check In (raised, center) / Report / Hub) and the
- * same five on the desktop rail, plus Team and Users there for the people
- * who can see them. Footprints and Team follow the Permissions settings
- * (footprints.view / team_map.view). On phones Team, Users, Profile and the admin screens
- * live in Hub (/menu).
+ * Mobile-first shell. The tabs follow the person's role group
+ * (features/nav/navConfig): salespeople get Calendar · Messages · ●Check In
+ * · Briefing · Hub, managers Team · Customers · ●Check In · Approvals · Hub,
+ * and so on -- Check In always raised in the middle. The desktop rail lists
+ * the same tabs, then the group's Hub sections, so office screens don't
+ * need a trip to Hub.
  */
 export function AppLayout() {
   const location = useLocation()
-  const { profile } = useProfile()
 
   return (
     <PermissionsProvider>
@@ -38,7 +30,7 @@ export function AppLayout() {
           <MessagesProvider>
             <div className="flex min-h-dvh flex-col bg-neutral-50 md:flex-row">
               <OfflineBanner />
-              <DesktopSidebar profile={profile} />
+              <DesktopSidebar />
 
               <div className="flex min-w-0 flex-1 flex-col">
                 <TitleBar />
@@ -62,98 +54,111 @@ export function AppLayout() {
   )
 }
 
-function DesktopSidebar({ profile }: { profile: Profile | null }) {
+function DesktopSidebar() {
   const { attendance } = useJourneyContext()
   const { t } = useLanguage()
-  const canFootprints = useCan('footprints')
-  const canTeam = useCan('team_map')
-  const isSuperAdmin = profile?.is_super_admin === true
+  const { group, ctx } = useRoleGroup()
+  const badges = useTabBadges(ctx)
   const checkInLabel = attendance === 'CLOCKED_IN' ? t('nav.checkIn') : t('nav.clockIn')
-
-  const tabs: { to: string; labelKey: string; icon: LucideIcon }[] = [
-    PRIMARY_TABS[2],
-    ...(canFootprints ? [PRIMARY_TABS[0]] : []),
-    PRIMARY_TABS[1],
-    PRIMARY_TABS[3],
-    ...(canTeam ? [{ to: '/fleet', labelKey: 'nav.fleet', icon: Truck }] : []),
-    ...(isSuperAdmin ? [{ to: '/users', labelKey: 'nav.users', icon: UsersIcon }] : []),
-    PRIMARY_TABS[4],
-  ]
+  const tabs = tabsFor(group, ctx).filter((tab) => tab.key !== 'hub')
+  const sections = hubSections(group, ctx)
 
   return (
-    <nav
-      className="hidden shrink-0 flex-col gap-1 border-r border-neutral-200 bg-white p-3 pt-4 md:flex md:w-56"
-      aria-label="Primary"
-    >
+    <nav className="hidden shrink-0 flex-col gap-1 overflow-y-auto border-r border-neutral-200 bg-white p-3 pt-4 md:flex md:w-60" aria-label="Primary">
       {/* No logo/brand block here -- TitleBar (to the right) already shows it, alongside the current page's title. */}
       {tabs.map((tab) => (
         <NavLink
           key={tab.to}
           to={tab.to}
           className={({ isActive }) =>
-            `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-              isActive ? 'bg-brand-50 text-brand-700' : 'text-neutral-600 hover:bg-neutral-100'
-            }`
+            `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${isActive ? 'bg-brand-50 text-brand-700' : 'text-neutral-600 hover:bg-neutral-100'}`
           }
         >
           <tab.icon className="h-5 w-5" aria-hidden />
-          {tab.to === '/check-in' ? checkInLabel : t(tab.labelKey)}
+          <span className="flex-1">{tab.key === 'checkin' ? checkInLabel : t(tab.labelKey)}</span>
+          {badges[tab.key] ? <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-status-danger px-1.5 text-[11px] font-bold text-white">{badges[tab.key]}</span> : null}
         </NavLink>
       ))}
+      {sections.map((section) => (
+        <div key={section.title} className="mt-4">
+          <p className="px-3 pb-1 text-[10.5px] font-extrabold uppercase tracking-wider text-neutral-400">{section.title}</p>
+          {section.rows.map((row) => (
+            <NavLink
+              key={row.key}
+              to={row.to}
+              end
+              className={({ isActive }) => `flex items-center gap-2.5 rounded-md px-3 py-1.5 text-[13.5px] ${isActive ? 'bg-brand-50 font-semibold text-brand-700' : 'text-neutral-600 hover:bg-neutral-100'}`}
+            >
+              <span className={`h-2 w-2 shrink-0 rounded-full ${row.tone}`} />
+              {row.label}
+            </NavLink>
+          ))}
+        </div>
+      ))}
+      <NavLink
+        to="/menu"
+        className={({ isActive }) => `mt-4 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium ${isActive ? 'bg-brand-50 text-brand-700' : 'text-neutral-600 hover:bg-neutral-100'}`}
+      >
+        <LayoutGrid className="h-5 w-5" aria-hidden />
+        {t('nav.hub')}
+      </NavLink>
     </nav>
   )
+}
+
+/** Badge counts per tab: approvals waiting on the caller, unread messages. */
+function useTabBadges(ctx: NavContext): Partial<Record<TabKey, number>> {
+  const approvals = usePendingApprovals(canApprove(ctx))
+  const { unreadCount } = useMessages()
+  return { approvals, messages: unreadCount }
 }
 
 function MobileTabBar() {
   const { attendance } = useJourneyContext()
   const { t } = useLanguage()
+  const { group, ctx } = useRoleGroup()
+  const badges = useTabBadges(ctx)
   const isClockedIn = attendance === 'CLOCKED_IN'
   const checkInLabel = isClockedIn ? t('nav.checkIn') : t('nav.clockIn')
   const CheckInIcon = isClockedIn ? MapPin : Clock
-  const canFootprints = useCan('footprints')
+  const tabs = tabsFor(group, ctx)
 
   return (
-    <nav
-      className="fixed inset-x-0 bottom-0 z-20 border-t border-neutral-200 bg-white/95 backdrop-blur safe-bottom md:hidden"
-      aria-label="Primary"
-    >
+    <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-neutral-200 bg-white/95 backdrop-blur safe-bottom md:hidden" aria-label="Primary">
       <div className="mx-auto flex max-w-lg items-start justify-between px-1 pt-2">
-        {canFootprints && <MobileTabLink to="/footprints" icon={FootprintsIcon} label={t('nav.footprints')} />}
-        <MobileTabLink to="/leave" icon={CalendarDays} label={t('nav.leave')} />
-
-        <NavLink to="/check-in" onClick={() => haptic('light')} className="relative -mt-8 flex flex-1 flex-col items-center gap-1">
-          {({ isActive }) => (
-            <>
-              <span className="flex h-[58px] w-[58px] items-center justify-center rounded-full bg-brand-500 text-white shadow-[0_6px_16px_rgba(22,104,184,0.35)] ring-4 ring-neutral-50 dark:ring-neutral-950">
-                <CheckInIcon className="h-6 w-6" aria-hidden />
-              </span>
-              <span className={`pb-2 text-[11px] font-bold ${isActive ? 'text-brand-700' : 'text-neutral-500'}`}>{checkInLabel}</span>
-            </>
-          )}
-        </NavLink>
-
-        <MobileTabLink to="/report" icon={BarChart3} label={t('nav.report')} />
-        <MobileTabLink to="/menu" icon={LayoutGrid} label={t('nav.hub')} />
+        {tabs.map((tab) =>
+          tab.key === 'checkin' ? (
+            <NavLink key={tab.key} to="/check-in" onClick={() => haptic('light')} className="relative -mt-8 flex flex-1 flex-col items-center gap-1">
+              {({ isActive }) => (
+                <>
+                  <span className="flex h-[58px] w-[58px] items-center justify-center rounded-full bg-brand-500 text-white shadow-[0_6px_16px_rgba(22,104,184,0.35)] ring-4 ring-neutral-50 dark:ring-neutral-950">
+                    <CheckInIcon className="h-6 w-6" aria-hidden />
+                  </span>
+                  <span className={`pb-2 text-[11px] font-bold ${isActive ? 'text-brand-700' : 'text-neutral-500'}`}>{checkInLabel}</span>
+                </>
+              )}
+            </NavLink>
+          ) : (
+            <MobileTabLink key={tab.key} to={tab.to} icon={tab.icon} label={t(tab.labelKey)} badge={badges[tab.key]} />
+          ),
+        )}
       </div>
     </nav>
   )
 }
 
-function MobileTabLink({ to, icon: Icon, label }: { to: string; icon: LucideIcon; label: string }) {
+function MobileTabLink({ to, icon: Icon, label, badge }: { to: string; icon: LucideIcon; label: string; badge?: number }) {
   return (
     <NavLink
       to={to}
       onClick={() => haptic('light')}
-      className={({ isActive }) =>
-        `flex flex-1 flex-col items-center gap-1 pb-2 text-[11px] tap-target ${isActive ? 'font-bold text-brand-700' : 'font-semibold text-neutral-500'}`
-      }
+      className={({ isActive }) => `flex flex-1 flex-col items-center gap-1 pb-2 text-[11px] tap-target ${isActive ? 'font-bold text-brand-700' : 'font-semibold text-neutral-500'}`}
     >
       {({ isActive }) => (
         <>
-          <span
-            className={`flex h-[30px] w-14 items-center justify-center rounded-full ${isActive ? 'bg-brand-50' : ''}`}
-          >
+          <span className={`relative flex h-[30px] w-14 items-center justify-center rounded-full ${isActive ? 'bg-brand-50' : ''}`}>
             <Icon className="h-[22px] w-[22px]" strokeWidth={isActive ? 2.3 : 1.9} aria-hidden />
+            {badge ? <span className="absolute -top-1 right-2 flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-status-danger px-1 text-[10px] font-bold text-white">{badge > 99 ? '99+' : badge}</span> : null}
           </span>
           {label}
         </>
