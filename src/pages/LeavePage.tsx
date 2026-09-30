@@ -17,7 +17,7 @@ const TABS: Tab[] = ['leave', 'balance', 'attendance']
 /**
  * The Leave tab (bottom bar): the signed-in user's own leave -- requests,
  * balances, and a month calendar of their attendance. Approving other
- * people's requests lives at /leave/approvals (Hub › Team), scoped by the
+ * people's requests lives at /approvals (a tab for managers and HR), scoped by the
  * same app.can('leave', ...) RLS as before.
  */
 export function LeavePage() {

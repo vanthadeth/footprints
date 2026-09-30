@@ -38,6 +38,10 @@ const NotificationsPage = lazy(() => import('@/pages/NotificationsPage').then((m
 const LocationsPage = lazy(() => import('@/pages/LocationsPage').then((m) => ({ default: m.LocationsPage })))
 const TranslationsPage = lazy(() => import('@/pages/TranslationsPage').then((m) => ({ default: m.TranslationsPage })))
 const PermissionsPage = lazy(() => import('@/pages/PermissionsPage').then((m) => ({ default: m.PermissionsPage })))
+const TodayPage = lazy(() => import('@/pages/TodayPage').then((m) => ({ default: m.TodayPage })))
+const TeamHomePage = lazy(() => import('@/pages/TeamHomePage').then((m) => ({ default: m.TeamHomePage })))
+const PeoplePage = lazy(() => import('@/pages/PeoplePage').then((m) => ({ default: m.PeoplePage })))
+const AdminPage = lazy(() => import('@/pages/AdminPage').then((m) => ({ default: m.AdminPage })))
 const CalendarPage = lazy(() => import('@/pages/CalendarPage').then((m) => ({ default: m.CalendarPage })))
 const FlexTeamPage = lazy(() => import('@/pages/FlexTeamPage').then((m) => ({ default: m.FlexTeamPage })))
 const DaysOffPage = lazy(() => import('@/pages/DaysOffPage').then((m) => ({ default: m.DaysOffPage })))
@@ -104,6 +108,38 @@ export const router = createBrowserRouter([
               <PlanPage />
             </Suspense>
           </RequirePermission>
+        ),
+      },
+      {
+        path: '/today',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <TodayPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/team',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <TeamHomePage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/people',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <PeoplePage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/admin',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <AdminPage />
+          </Suspense>
         ),
       },
       {
@@ -217,13 +253,14 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: '/leave/approvals',
+        path: '/approvals',
         element: (
           <Suspense fallback={<PageFallback />}>
             <LeaveApprovalsPage />
           </Suspense>
         ),
       },
+      { path: '/leave/approvals', element: <Navigate to="/approvals" replace /> },
       { path: '/profile', element: <ProfilePage /> },
       { path: '/menu', element: <MenuPage /> },
       {

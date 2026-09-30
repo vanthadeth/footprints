@@ -1,36 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import {
-  BarChart3,
-  Bell,
-  Building2,
-  Network,
-  CalendarCheck,
-  Calendar as CalendarIcon,
-  CalendarDays,
-  CalendarRange,
-  Clock,
-  Scale,
-  ChevronRight,
-  Footprints as FootprintsIcon,
-  Globe,
-  HelpCircle,
-  Info,
-  Languages,
-  LogOut,
-  MapPin,
-  MessagesSquare,
-  Route,
-  Store,
-  Moon,
-  Settings,
-  Shield,
-  ShieldCheck,
-  Table2,
-  User,
-  Users as UsersIcon,
-  type LucideIcon,
-} from 'lucide-react'
+import { ChevronRight, Globe, HelpCircle, Info, LogOut, MapPin, Moon, Shield, User } from 'lucide-react'
 import { InfoSheet } from '@/components/InfoSheet'
 import { AppBuildInfo } from '@/components/AppBuildInfo'
 import { LogoutConfirmSheet } from '@/components/LogoutConfirmSheet'
@@ -39,8 +9,10 @@ import { SegmentedControl } from '@/components/SegmentedControl'
 import { LocationPermissionSheet } from '@/features/location/LocationPermissionSheet'
 import { useProfile } from '@/features/auth/useProfile'
 import { useAvatarUrl } from '@/features/auth/useAvatarUrl'
-import { useCan, usePermissions } from '@/features/permissions/PermissionsContext'
-import { leaveService } from '@/features/leave/leaveService'
+import { useRoleGroup } from '@/features/nav/useRoleGroup'
+import { usePendingApprovals } from '@/features/nav/usePendingApprovals'
+import { canApprove, forYou, hubSections } from '@/features/nav/navConfig'
+import { useFlexCycle } from '@/features/flex/useFlexCycle'
 import { useNotificationsContext } from '@/features/notifications/NotificationsContext'
 import { useMessages } from '@/features/conversations/MessagesContext'
 import { useLanguage } from '@/i18n/LanguageContext'
@@ -50,59 +22,28 @@ import type { ThemeMode } from '@/lib/theme'
 
 type SheetKey = 'help' | 'location' | 'about' | 'privacy' | null
 
-const QUICK: { to: string; label: string; icon: LucideIcon; tone: string }[] = [
-  { to: '/leave', label: 'Leave', icon: CalendarDays, tone: 'text-brand-500' },
-  { to: '/footprints', label: 'Journey', icon: FootprintsIcon, tone: 'text-earth-500' },
-  { to: '/report', label: 'Report', icon: BarChart3, tone: 'text-status-visiting dark:text-violet-300' },
-  { to: '/leave?tab=attendance', label: 'Attendance', icon: CalendarCheck, tone: 'text-status-working dark:text-emerald-300' },
-]
 
 /**
- * Hub (bottom-bar tab, /menu): the signed-in user's profile card and
- * shortcuts, then iOS Settings-style groups -- Team (team map / leave approvers), Preferences,
- * Administration (super admins) and Support -- and Log out.
+ * Hub (bottom-bar tab, /menu): the profile card, then the person's role
+ * group's "For you" shortcuts and Hub sections (features/nav/navConfig) --
+ * only rows they can use, nothing that's already a tab -- then Preferences,
+ * Support and Log out.
  */
 export function MenuPage() {
   const { profile } = useProfile()
   const avatarUrl = useAvatarUrl(profile?.photo_path)
-  const { scope } = usePermissions()
-  const canFootprints = useCan('footprints')
-  const canPlan = useCan('plan')
-  const canTeamMap = useCan('team_map')
-  const canBriefing = useCan('customer_briefing')
-  const canManagePermissions = useCan('role_permission', 'edit')
   const { language, setLanguage } = useLanguage()
   const { mode, setMode } = useTheme()
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false)
   const [openSheet, setOpenSheet] = useState<SheetKey>(null)
-  const [pendingApprovals, setPendingApprovals] = useState(0)
-  // Notifications visibility is gated on is_super_admin specifically --
-  // that's the flag app.effective_scope() actually keys off of (see the
-  // notifications_center migration), not a role_name string check.
-  const isSuperAdmin = profile?.is_super_admin === true
-  // Deciding on others' leave is leave.edit at Team or All; own is just cancelling your own.
-  const leaveEditScope = scope('leave', 'edit')
-  const canApproveLeave = isSuperAdmin || leaveEditScope === 'sub' || leaveEditScope === 'any'
-  const isManager = canTeamMap || canApproveLeave || canBriefing
-  const isHr = profile?.role_name === 'HR'
+  const flex = useFlexCycle()
+  const { group, ctx } = useRoleGroup(!!flex.cycle?.isFlexible)
+  const pendingApprovals = usePendingApprovals(canApprove(ctx))
   const { unreadCount } = useNotificationsContext()
   const { unreadCount: unreadMessages } = useMessages()
-
-  useEffect(() => {
-    if (!canApproveLeave || !profile) return
-    let cancelled = false
-    leaveService
-      .listRequests()
-      .then((rows) => {
-        if (!cancelled) setPendingApprovals(rows.filter((r) => r.status === 'pending' && r.user_id !== profile.id).length)
-      })
-      .catch(() => {
-        // Only a badge -- a failed count just means no number, not an error on the whole Hub.
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [canApproveLeave, profile])
+  const badge = (key: string) => (key === 'approvals' ? pendingApprovals : key === 'messages' ? unreadMessages : key === 'notifications' ? unreadCount : undefined)
+  const shortcuts = forYou(group, ctx)
+  const sections = hubSections(group, ctx)
 
   const name = profile ? displayName(profile.full_name, profile.nickname) : ''
   const roleLine = [profile?.position, profile?.role_name].filter(Boolean).join(' · ')
@@ -122,39 +63,29 @@ export function MenuPage() {
           <ChevronRight className="h-4 w-4 text-neutral-400" aria-hidden />
         </Link>
 
-        <div className="grid grid-cols-4 gap-2">
-          {QUICK.filter((q) => canFootprints || q.to !== '/footprints').map((q) => (
-            <Link key={q.to} to={q.to} className="flex flex-col items-center gap-1.5">
-              <span className={`flex h-[54px] w-[54px] items-center justify-center rounded-full border border-neutral-200 bg-white ${q.tone}`}>
-                <q.icon className="h-[22px] w-[22px]" aria-hidden />
-              </span>
-              <span className="text-xs font-semibold text-neutral-600">{q.label}</span>
-            </Link>
-          ))}
-        </div>
-
-        <GroupedList title="Selling">
-          <ListRow
-            icon={MessagesSquare}
-            iconBg="bg-brand-600"
-            label="Messages"
-            sublabel="Mentions, replies and your customers"
-            badge={unreadMessages}
-            to="/messages"
-          />
-          <ListRow icon={Store} iconBg="bg-status-working" label="Customers" sublabel="Calls, notes and visits by customer" to="/customers" />
-          <ListRow icon={CalendarIcon} iconBg="bg-status-visiting" label="Calendar" sublabel="Tasks, appointments and follow-ups" to="/calendar" />
-          {canPlan && <ListRow icon={Route} iconBg="bg-brand-500" label="Today's plan" sublabel="Your stops, route and next customer" to="/plan" />}
-        </GroupedList>
-
-        {isManager && (
-          <GroupedList title="Team">
-            {canTeamMap && <ListRow icon={UsersIcon} iconBg="bg-brand-500" label="Team" sublabel="Status, map, reports, logs & attendance" to="/fleet" />}
-            {canBriefing && <ListRow icon={Table2} iconBg="bg-status-visiting" label="Customer briefing" sublabel="Customers by province, last visit and who" to="/team/customers" />}
-            {canApproveLeave && <ListRow icon={CalendarCheck} iconBg="bg-status-warn" label="Leave approvals" badge={pendingApprovals} to="/leave/approvals" />}
-            {!isSuperAdmin && !isHr && <ListRow icon={CalendarRange} iconBg="bg-status-visiting" label="Flexible days off" sublabel="Day off balance of people who travel" to="/leave/flexible" />}
-          </GroupedList>
+        {shortcuts.length > 0 && (
+          <section className="space-y-2">
+            <h2 className="px-0.5 text-[11px] font-bold uppercase tracking-wider text-neutral-500">For you</h2>
+            <div className="grid grid-cols-4 gap-2">
+              {shortcuts.map((q) => (
+                <Link key={q.key} to={q.to} className="flex flex-col items-center gap-1.5">
+                  <span className={`flex h-[54px] w-[54px] items-center justify-center rounded-2xl text-white ${q.tone}`}>
+                    <q.icon className="h-[22px] w-[22px]" aria-hidden />
+                  </span>
+                  <span className="text-center text-xs font-semibold leading-tight text-neutral-600">{q.label}</span>
+                </Link>
+              ))}
+            </div>
+          </section>
         )}
+
+        {sections.map((section) => (
+          <GroupedList key={section.title} title={section.title}>
+            {section.rows.map((r) => (
+              <ListRow key={r.key} icon={r.icon} iconBg={r.tone} label={r.label} sublabel={r.sub} to={r.to} badge={badge(r.key)} />
+            ))}
+          </GroupedList>
+        ))}
 
         <GroupedList title="Preferences">
           <ListRow
@@ -195,36 +126,6 @@ export function MenuPage() {
             }
           />
         </GroupedList>
-
-        {isSuperAdmin && (
-          <GroupedList title="Administration">
-            <ListRow icon={UsersIcon} iconBg="bg-status-visiting" label="Users" to="/users" />
-            <ListRow icon={ShieldCheck} iconBg="bg-brand-700" label="Permissions" sublabel="Who can do what, by role or person" to="/settings/permissions" />
-            <ListRow icon={Network} iconBg="bg-earth-500" label="Departments & roles" sublabel="Add or rename departments and roles" to="/settings/org" />
-            <ListRow icon={Building2} iconBg="bg-status-working" label="Work locations" to="/locations" />
-            <ListRow icon={Clock} iconBg="bg-brand-500" label="Working hours & days" to="/settings/working-hours" />
-            <ListRow icon={CalendarRange} iconBg="bg-status-warn" label="Public holidays" to="/settings/holidays" />
-            <ListRow icon={Scale} iconBg="bg-status-visiting" label="Leave allowances" to="/leave/allowances" />
-            <ListRow icon={CalendarRange} iconBg="bg-status-visiting" label="Flexible days off" sublabel="Day off balance of people who travel" to="/leave/flexible" />
-            <ListRow icon={Bell} iconBg="bg-status-danger" label="Notifications" badge={unreadCount} to="/notifications" />
-            <ListRow icon={Languages} iconBg="bg-brand-600" label="Translations" to="/translations" />
-            <ListRow icon={Settings} iconBg="bg-neutral-600" label="System settings" to="/settings" />
-          </GroupedList>
-        )}
-
-        {!isSuperAdmin && canManagePermissions && (
-          <GroupedList title="Administration">
-            <ListRow icon={ShieldCheck} iconBg="bg-brand-700" label="Permissions" sublabel="Who can do what, by role or person" to="/settings/permissions" />
-          </GroupedList>
-        )}
-
-        {!isSuperAdmin && isHr && (
-          <GroupedList title="HR">
-            <ListRow icon={Scale} iconBg="bg-status-visiting" label="Leave allowances" to="/leave/allowances" />
-            <ListRow icon={CalendarRange} iconBg="bg-status-visiting" label="Flexible days off" sublabel="Day off balance of people who travel" to="/leave/flexible" />
-            <ListRow icon={CalendarRange} iconBg="bg-status-warn" label="Public holidays" to="/settings/holidays" />
-          </GroupedList>
-        )}
 
         <GroupedList title="Support">
           <ListRow icon={HelpCircle} iconBg="bg-brand-500" label="Help & support" onClick={() => setOpenSheet('help')} />

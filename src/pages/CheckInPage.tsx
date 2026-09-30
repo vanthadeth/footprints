@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AlertTriangle, Building2, ChevronRight, Clock, Loader2, MapPin, X } from 'lucide-react'
 import { ActivityRings } from '@/components/ActivityRings'
@@ -26,6 +26,9 @@ import { useLanguage } from '@/i18n/LanguageContext'
 import { useCan } from '@/features/permissions/PermissionsContext'
 import { clockBlock, joinNames, useClockRules, type ClockBlock } from '@/features/permissions/clockRules'
 
+// Leaflet stays out of the Check In bundle until the journey card shows.
+const JourneyMap = lazy(() => import('@/features/attendance/JourneyMap').then((m) => ({ default: m.JourneyMap })))
+
 type PendingAction = 'clock-in' | 'clock-out' | null
 
 export function CheckInPage() {
@@ -51,7 +54,7 @@ export function CheckInPage() {
     .filter((v) => v.checked_out_at && !v.cancelled_at)
     .sort((a, b) => b.checked_out_at!.localeCompare(a.checked_out_at!))
     .slice(0, 5)
-  const customerNames = useCustomerNames([autoCheckoutCustomerId, journey.openVisit?.customer_id ?? null, ...recentVisits.map((v) => v.customer_id)])
+  const customerNames = useCustomerNames([autoCheckoutCustomerId, journey.openVisit?.customer_id ?? null, ...journey.todaysVisits.map((v) => v.customer_id)])
   // Computed above the loading guard below (hooks can't follow a
   // conditional return) -- summarizeAttendanceTimes handles an empty
   // todaysAttendance fine, returning all-null.
@@ -297,7 +300,23 @@ export function CheckInPage() {
           </div>
         </div>
 
-        {recentVisits.length > 0 && <RecentVisits visits={recentVisits} customerNames={customerNames} showJourney={canFootprints} />}
+        {canFootprints && journey.todaysAttendance.length > 0 && (
+          <div>
+            <div className="mb-2 flex items-baseline justify-between px-0.5">
+              <p className="text-[17px] font-bold text-neutral-900">{t('checkIn.footprintsToday')}</p>
+              <Link to="/footprints" className="py-1.5 text-[13px] font-semibold text-brand-500">
+                {t('checkIn.fullJourney')}
+              </Link>
+            </div>
+            <div className="overflow-hidden rounded-2xl bg-white shadow-card">
+              <Suspense fallback={<div className="h-[180px] animate-pulse bg-neutral-100" />}>
+                <JourneyMap visits={journey.todaysVisits.filter((v) => !v.cancelled_at)} attendance={journey.todaysAttendance} customerNames={customerNames} height={180} />
+              </Suspense>
+            </div>
+          </div>
+        )}
+
+        {recentVisits.length > 0 && <RecentVisits visits={recentVisits} customerNames={customerNames} showJourney={canFootprints && journey.todaysAttendance.length === 0} />}
       </div>
 
       <SelfieCaptureSheet
