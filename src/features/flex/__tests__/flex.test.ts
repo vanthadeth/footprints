@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cellTag, cycleCells, cycleLabel, cycleStatus, dayDate, days, leftAfter, rate, usedRows, type FlexCycle, type FlexDay } from '../flex'
+import { teamStatus, cellTag, cycleCells, cycleLabel, cycleStatus, dayDate, days, leftAfter, rate, usedRows, type FlexCycle, type FlexDay } from '../flex'
 
 const d = (day: string, kind: FlexDay['kind'], cost = 0, weekday = 1): FlexDay => ({ day, kind, cost, weekday, requestId: null, holidayName: null })
 const cycle = (over: Partial<FlexCycle> = {}): FlexCycle => ({
@@ -42,5 +42,12 @@ describe('flexible days off helpers', () => {
   it('works out what a request leaves', () => {
     expect(leftAfter(cycle(), 2)).toBe(0)
     expect(leftAfter(cycle(), 5)).toBe(-3)
+  })
+
+  it('reads a team row status', () => {
+    expect(teamStatus({ isFlexible: false, nextFrom: '2026-10-21', settled: false, left: 0 }).label).toBe('Starts 21 Oct')
+    expect(teamStatus({ isFlexible: true, nextFrom: null, settled: false, left: -1.5 })).toEqual({ label: 'Over by 1.5', tone: 'danger' })
+    expect(teamStatus({ isFlexible: true, nextFrom: null, settled: true, left: 2 }).label).toBe('Settled')
+    expect(teamStatus({ isFlexible: true, nextFrom: null, settled: false, left: 4 }).label).toBe('On track')
   })
 })

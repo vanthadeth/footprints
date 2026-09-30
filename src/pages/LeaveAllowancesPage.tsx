@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ChevronLeft, ChevronRight, Loader2, Search } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { CalendarRange, ChevronLeft, ChevronRight, Loader2, Search } from 'lucide-react'
 import { BottomSheet } from '@/components/BottomSheet'
 import { Stepper } from '@/components/Stepper'
 import { Switch } from '@/components/Switch'
@@ -155,6 +156,17 @@ export function LeaveAllowancesPage() {
       </div>
 
       {error && <p className="rounded-xl bg-status-danger/10 px-3 py-2 text-sm text-status-danger">{error}</p>}
+
+      <Link to="/leave/flexible" className="flex items-center gap-3 rounded-2xl bg-white p-4 shadow-card">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-status-visiting/10 text-status-visiting dark:text-violet-300">
+          <CalendarRange className="h-5 w-5" aria-hidden />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[15px] font-bold text-neutral-900">Flexible days off</span>
+          <span className="block text-[13px] text-neutral-500">Each cycle’s day off balance for people who travel</span>
+        </span>
+        <ChevronRight className="h-4 w-4 text-neutral-400" aria-hidden />
+      </Link>
 
       <section className="space-y-3.5 rounded-2xl bg-white p-4 shadow-card" aria-label="Company default">
         <div>

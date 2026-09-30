@@ -1,4 +1,5 @@
 import { callRpc } from '@/lib/rpc'
+import { displayName } from '@/lib/displayName'
 import type { FlexCycle, FlexDay, FlexKind } from './flex'
 
 type N = number | string | null
@@ -36,6 +37,25 @@ export interface DayOffModeInfo {
   nextFrom: string | null
   cycleStart: string
   nextCycleStart: string
+}
+
+/** One person on flexible days off, for managers/HR (flex_team): the cycle's balance. */
+export interface FlexTeamRow {
+  userId: string
+  name: string
+  departmentName: string | null
+  isFlexible: boolean
+  /** When their flexible rule starts, if not this cycle. */
+  nextFrom: string | null
+  cycleStart: string
+  cycleEnd: string
+  allowance: number
+  taken: number
+  planned: number
+  left: number
+  settled: boolean
+  overDays: number
+  annualDays: number | null
 }
 
 export interface FlexSettings {
@@ -90,6 +110,29 @@ export const flexService = {
   /** Returns the date the change takes effect, or null if nothing changed. */
   setMode(userId: string, mode: DayOffMode, thisCycle: boolean): Promise<string | null> {
     return callRpc<string | null>('set_day_off_mode', { p_user: userId, p_mode: mode, p_this_cycle: thisCycle })
+  },
+
+  /** Everyone on flexible days off the caller may see, with the cycle containing `date`. */
+  async team(date: string | null = null): Promise<FlexTeamRow[]> {
+    const rows = await callRpc<
+      { user_id: string; full_name: string; nickname: string | null; department_name: string | null; is_flexible: boolean; next_from: string | null; cycle_start: string; cycle_end: string; allowance: N; taken: N; planned: N; left_days: N; settled: boolean; over_days: N; annual_days: N }[]
+    >('flex_team', { p_date: date })
+    return (rows ?? []).map((r) => ({
+      userId: r.user_id,
+      name: displayName(r.full_name, r.nickname),
+      departmentName: r.department_name,
+      isFlexible: r.is_flexible,
+      nextFrom: r.next_from,
+      cycleStart: r.cycle_start,
+      cycleEnd: r.cycle_end,
+      allowance: num(r.allowance),
+      taken: num(r.taken),
+      planned: num(r.planned),
+      left: num(r.left_days),
+      settled: r.settled,
+      overDays: num(r.over_days),
+      annualDays: r.annual_days == null ? null : num(r.annual_days),
+    }))
   },
 
   async settings(): Promise<FlexSettings> {

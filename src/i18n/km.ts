@@ -46,6 +46,7 @@ export const km: TranslationKey = {
     plan: 'ផែនការថ្ងៃនេះ',
     calendar: 'ប្រតិទិន',
     daysOff: 'ថ្ងៃឈប់សម្រាក',
+    flexTeam: 'ថ្ងៃឈប់សម្រាកបត់បែន',
     settlement: 'ការទូទាត់',
     leaveAllowances: 'សិទ្ធិច្បាប់ឈប់សម្រាក',
     workingHours: 'ម៉ោង និងថ្ងៃធ្វើការ',
