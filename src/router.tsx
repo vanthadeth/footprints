@@ -38,6 +38,7 @@ const NotificationsPage = lazy(() => import('@/pages/NotificationsPage').then((m
 const LocationsPage = lazy(() => import('@/pages/LocationsPage').then((m) => ({ default: m.LocationsPage })))
 const TranslationsPage = lazy(() => import('@/pages/TranslationsPage').then((m) => ({ default: m.TranslationsPage })))
 const PermissionsPage = lazy(() => import('@/pages/PermissionsPage').then((m) => ({ default: m.PermissionsPage })))
+const CalendarPage = lazy(() => import('@/pages/CalendarPage').then((m) => ({ default: m.CalendarPage })))
 const LeavePage = lazy(() => import('@/pages/LeavePage').then((m) => ({ default: m.LeavePage })))
 
 function PageFallback() {
@@ -100,6 +101,14 @@ export const router = createBrowserRouter([
               <PlanPage />
             </Suspense>
           </RequirePermission>
+        ),
+      },
+      {
+        path: '/calendar',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <CalendarPage />
+          </Suspense>
         ),
       },
       {

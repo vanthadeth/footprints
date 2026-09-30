@@ -27,19 +27,7 @@ import {
   type CustomerFilter,
 } from '@/features/customers/book'
 import { PHNOM_PENH } from '@/features/customers/provinces'
-
-function useIsDesktop(): boolean {
-  const query = '(min-width: 768px)'
-  const [desktop, setDesktop] = useState(() => typeof window !== 'undefined' && !!window.matchMedia?.(query).matches)
-  useEffect(() => {
-    const mq = window.matchMedia?.(query)
-    if (!mq) return
-    const on = () => setDesktop(mq.matches)
-    mq.addEventListener('change', on)
-    return () => mq.removeEventListener('change', on)
-  }, [])
-  return desktop
-}
+import { useIsDesktop } from '@/hooks/useIsDesktop'
 
 /** Column key -> customer_book sort; null = not sortable. */
 const COLS: { sort: BookSort | null; label: string; right?: boolean }[] = [

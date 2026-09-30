@@ -13,6 +13,7 @@ import { computeJourneyStats } from '@/features/attendance/journeyStats'
 import type { DayJourney } from '@/features/attendance/useJourneyHistory'
 import { VisitFlow } from '@/features/visits/VisitFlow'
 import { PlanCard } from '@/features/plan/PlanCard'
+import { CalendarCard } from '@/features/calendar/CalendarCard'
 import { useCustomerNames } from '@/features/customers/useCustomerNames'
 import { useLocationNames } from '@/features/locations/useLocationNames'
 import { displayName } from '@/lib/displayName'
@@ -273,6 +274,7 @@ export function CheckInPage() {
           ))}
 
         {canPlan && <PlanCard />}
+        <CalendarCard />
 
         <div className="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-card">
           <ActivityRings

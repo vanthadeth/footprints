@@ -44,6 +44,7 @@ export const km: TranslationKey = {
     hub: 'មជ្ឈមណ្ឌល',
     leaveApprovals: 'អនុម័តច្បាប់',
     plan: 'ផែនការថ្ងៃនេះ',
+    calendar: 'ប្រតិទិន',
     leaveAllowances: 'សិទ្ធិច្បាប់ឈប់សម្រាក',
     workingHours: 'ម៉ោង និងថ្ងៃធ្វើការ',
     holidays: 'ថ្ងៃឈប់សម្រាកសាធារណៈ',
