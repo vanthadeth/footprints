@@ -6,6 +6,7 @@ import {
   Building2,
   Network,
   CalendarCheck,
+  Calendar as CalendarIcon,
   CalendarDays,
   CalendarRange,
   Clock,
@@ -142,6 +143,7 @@ export function MenuPage() {
             to="/messages"
           />
           <ListRow icon={Store} iconBg="bg-status-working" label="Customers" sublabel="Calls, notes and visits by customer" to="/customers" />
+          <ListRow icon={CalendarIcon} iconBg="bg-status-visiting" label="Calendar" sublabel="Tasks, appointments and follow-ups" to="/calendar" />
           {canPlan && <ListRow icon={Route} iconBg="bg-brand-500" label="Today's plan" sublabel="Your stops, route and next customer" to="/plan" />}
         </GroupedList>
 
