@@ -152,6 +152,7 @@ export function MenuPage() {
             {canTeamMap && <ListRow icon={UsersIcon} iconBg="bg-brand-500" label="Team" sublabel="Status, map, reports, logs & attendance" to="/fleet" />}
             {canBriefing && <ListRow icon={Table2} iconBg="bg-status-visiting" label="Customer briefing" sublabel="Customers by province, last visit and who" to="/team/customers" />}
             {canApproveLeave && <ListRow icon={CalendarCheck} iconBg="bg-status-warn" label="Leave approvals" badge={pendingApprovals} to="/leave/approvals" />}
+            {!isSuperAdmin && !isHr && <ListRow icon={CalendarRange} iconBg="bg-status-visiting" label="Flexible days off" sublabel="Day off balance of people who travel" to="/leave/flexible" />}
           </GroupedList>
         )}
 
@@ -204,6 +205,7 @@ export function MenuPage() {
             <ListRow icon={Clock} iconBg="bg-brand-500" label="Working hours & days" to="/settings/working-hours" />
             <ListRow icon={CalendarRange} iconBg="bg-status-warn" label="Public holidays" to="/settings/holidays" />
             <ListRow icon={Scale} iconBg="bg-status-visiting" label="Leave allowances" to="/leave/allowances" />
+            <ListRow icon={CalendarRange} iconBg="bg-status-visiting" label="Flexible days off" sublabel="Day off balance of people who travel" to="/leave/flexible" />
             <ListRow icon={Bell} iconBg="bg-status-danger" label="Notifications" badge={unreadCount} to="/notifications" />
             <ListRow icon={Languages} iconBg="bg-brand-600" label="Translations" to="/translations" />
             <ListRow icon={Settings} iconBg="bg-neutral-600" label="System settings" to="/settings" />
@@ -219,6 +221,7 @@ export function MenuPage() {
         {!isSuperAdmin && isHr && (
           <GroupedList title="HR">
             <ListRow icon={Scale} iconBg="bg-status-visiting" label="Leave allowances" to="/leave/allowances" />
+            <ListRow icon={CalendarRange} iconBg="bg-status-visiting" label="Flexible days off" sublabel="Day off balance of people who travel" to="/leave/flexible" />
             <ListRow icon={CalendarRange} iconBg="bg-status-warn" label="Public holidays" to="/settings/holidays" />
           </GroupedList>
         )}

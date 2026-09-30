@@ -14,7 +14,9 @@ import { addDays, cycleLabel, dayDate, days, rate, usedRows, type FlexCycle, typ
 export function FlexSettlementPage() {
   const [params] = useSearchParams()
   const end = params.get('end')
+  const userId = params.get('user')
   const { profile } = useProfile()
+  const [personName, setPersonName] = useState<string | null>(null)
   const [cycle, setCycle] = useState<FlexCycle | null>(null)
   const [list, setList] = useState<FlexDay[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -22,9 +24,9 @@ export function FlexSettlementPage() {
   useEffect(() => {
     let cancelled = false
     flexService
-      .cycle(null, end)
+      .cycle(userId, end)
       .then(async (c) => {
-        const d = c ? await flexService.days(null, c.cycleStart, c.cycleEnd) : []
+        const d = c ? await flexService.days(userId, c.cycleStart, c.cycleEnd) : []
         if (cancelled) return
         setCycle(c)
         setList(d)
@@ -33,7 +35,19 @@ export function FlexSettlementPage() {
     return () => {
       cancelled = true
     }
-  }, [end])
+  }, [end, userId])
+
+  useEffect(() => {
+    if (!userId) return
+    let cancelled = false
+    flexService
+      .team(end)
+      .then((rows) => !cancelled && setPersonName(rows.find((r) => r.userId === userId)?.name ?? null))
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [userId, end])
 
   if (error) return <p className="mx-auto max-w-lg px-4 pt-4 text-sm text-status-danger">{error}</p>
   if (!cycle) {
@@ -49,7 +63,7 @@ export function FlexSettlementPage() {
   const overdrawn = cycle.overDays > 0
   const annualTaken = cycle.annualDays ?? cycle.overDays
   const unpaid = cycle.unpaidDays ?? 0
-  const name = profile ? displayName(profile.full_name, profile.nickname) : ''
+  const name = userId ? (personName ?? '') : profile ? displayName(profile.full_name, profile.nickname) : ''
   const lines: { label: string; sub?: string; value: string; tone: string; strong?: boolean }[] = [
     { label: 'Allowance earned', sub: `${cycle.saturdays} Saturdays × ${rate(cycle.satRate)} + ${cycle.sundays} Sundays × ${rate(cycle.sunRate)}`, value: days(cycle.allowance), tone: 'text-neutral-900', strong: true },
     { label: 'Requested days off', value: `−${days(requested)}`, tone: 'text-status-visiting dark:text-violet-300' },

@@ -26,6 +26,7 @@ const TITLE_KEYS: Record<string, string> = {
   '/plan': 'nav.plan',
   '/calendar': 'nav.calendar',
   '/leave/days-off': 'nav.daysOff',
+  '/leave/flexible': 'nav.flexTeam',
   '/leave/days-off/settlement': 'nav.settlement',
   '/visits': 'nav.visits',
   '/notifications': 'nav.notifications',
@@ -38,10 +39,12 @@ const TITLE_KEYS: Record<string, string> = {
 const TAB_ROOTS = new Set(['/check-in', '/footprints', '/leave', '/report', '/menu'])
 
 /** Where a sub-page's back link goes -- almost every secondary screen is reached from Hub. */
-function backTarget(pathname: string): string {
+function backTarget(pathname: string, search = ''): string {
   if (pathname === '/plan') return '/check-in'
-  if (pathname === '/leave/days-off') return '/leave'
-  if (pathname === '/leave/days-off/settlement') return '/leave/days-off'
+  // Someone else's days off (a manager/HR from Flexible days off) goes back to that list.
+  const user = new URLSearchParams(search).get('user')
+  if (pathname === '/leave/days-off') return user ? '/leave/flexible' : '/leave'
+  if (pathname === '/leave/days-off/settlement') return user ? `/leave/days-off?user=${user}` : '/leave/days-off'
   if (pathname.startsWith('/customers/')) return '/customers'
   if (pathname.startsWith('/messages/')) return '/messages'
   return '/menu'
@@ -54,7 +57,7 @@ function backTarget(pathname: string): string {
  * back link.
  */
 export function TitleBar() {
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
   const { attendance } = useJourneyContext()
   const { t, language } = useLanguage()
   const title =
@@ -101,7 +104,7 @@ export function TitleBar() {
       className="sticky top-0 z-10 flex items-center gap-1 border-b border-neutral-200 bg-white/95 pb-2 pl-1.5 pr-4 backdrop-blur dark:border-neutral-800 md:px-8"
     >
       <Link
-        to={backTarget(pathname)}
+        to={backTarget(pathname, search)}
         aria-label={t('common.back')}
         className="flex h-11 w-11 items-center justify-center rounded-full text-neutral-600 md:hidden"
       >

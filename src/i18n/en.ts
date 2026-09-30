@@ -38,6 +38,7 @@ export const en = {
     plan: "Today's Plan",
     calendar: 'Calendar',
     daysOff: 'Days off',
+    flexTeam: 'Flexible days off',
     settlement: 'Settlement',
     leaveAllowances: 'Leave Allowances',
     workingHours: 'Working Hours & Days',

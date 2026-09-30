@@ -42,6 +42,9 @@ export function DaysOffPage() {
   const [params, setParams] = useSearchParams()
   const today = todayDateString()
   const date = params.get('d') ?? today
+  // A manager/HR opening someone else's days off (from Flexible days off): read-only.
+  const userId = params.get('user')
+  const [personName, setPersonName] = useState<string | null>(null)
   const [cycle, setCycle] = useState<FlexCycle | null>(null)
   const [list, setList] = useState<FlexDay[]>([])
   const [loading, setLoading] = useState(true)
@@ -54,9 +57,9 @@ export function DaysOffPage() {
     let cancelled = false
     setLoading(true)
     flexService
-      .cycle(null, date)
+      .cycle(userId, date)
       .then(async (c) => {
-        const d = c ? await flexService.days(null, c.cycleStart, c.cycleEnd) : []
+        const d = c ? await flexService.days(userId, c.cycleStart, c.cycleEnd) : []
         if (cancelled) return
         setCycle(c)
         setList(d)
@@ -67,10 +70,22 @@ export function DaysOffPage() {
     return () => {
       cancelled = true
     }
-  }, [date, nonce])
+  }, [date, userId, nonce])
+
+  useEffect(() => {
+    if (!userId) return setPersonName(null)
+    let cancelled = false
+    flexService
+      .team(date)
+      .then((rows) => !cancelled && setPersonName(rows.find((r) => r.userId === userId)?.name ?? null))
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [userId, date])
 
   const isCurrent = !!cycle && cycle.cycleStart <= today && today <= cycle.cycleEnd
-  const go = (d: string | null) => setParams(d ? { d } : {}, { replace: true })
+  const go = (d: string | null) => setParams({ ...(d ? { d } : {}), ...(userId ? { user: userId } : {}) }, { replace: true })
 
   if (loading && !cycle) {
     return (
@@ -111,10 +126,16 @@ export function DaysOffPage() {
           </button>
         </div>
 
+        {userId && (
+          <p className="rounded-xl bg-brand-50 px-3 py-2.5 text-[13px] text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
+            Viewing {personName ?? 'their'}{personName ? '’s' : ''} days off. Only they can request days off here.
+          </p>
+        )}
+
         {!cycle.isFlexible ? (
           <div className="rounded-2xl bg-white p-4 text-[14px] text-neutral-600 shadow-card">
             <p className="font-bold text-neutral-900">Company schedule this cycle</p>
-            <p className="mt-1">You follow the company’s working days, so weekends are days off and there’s no flexible allowance for {cycleLabel(cycle)}.</p>
+            <p className="mt-1">{userId ? 'They follow' : 'You follow'} the company’s working days, so weekends are days off and there’s no flexible allowance for {cycleLabel(cycle)}.</p>
           </div>
         ) : (
           <>
@@ -155,10 +176,10 @@ export function DaysOffPage() {
             )}
 
             {done ? (
-              <Link to={`/leave/days-off/settlement?end=${cycle.cycleEnd}`} className="flex h-[50px] items-center justify-center rounded-2xl border-[1.5px] border-neutral-200 bg-white text-[15px] font-bold text-brand-600 dark:border-neutral-800">
+              <Link to={`/leave/days-off/settlement?end=${cycle.cycleEnd}${userId ? `&user=${userId}` : ''}`} className="flex h-[50px] items-center justify-center rounded-2xl border-[1.5px] border-neutral-200 bg-white text-[15px] font-bold text-brand-600 dark:border-neutral-800">
                 See settlement
               </Link>
-            ) : (
+            ) : userId ? null : (
               <button type="button" onClick={() => setRequestOpen(true)} className="flex h-[50px] w-full items-center justify-center gap-2 rounded-2xl bg-brand-500 text-[15px] font-bold text-white shadow-[0_4px_14px_rgba(22,104,184,0.28)]">
                 <Plus className="h-[18px] w-[18px]" strokeWidth={2.4} /> Request day off
               </button>
@@ -219,7 +240,7 @@ export function DaysOffPage() {
         )}
       </div>
 
-      {isCurrent && cycle.isFlexible && (
+      {isCurrent && cycle.isFlexible && !userId && (
         <RequestLeaveSheet
           open={requestOpen}
           onClose={() => setRequestOpen(false)}

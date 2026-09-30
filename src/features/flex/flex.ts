@@ -156,3 +156,12 @@ export function usedRows(list: FlexDay[]): UsedRow[] {
 export function leftAfter(c: Pick<FlexCycle, 'allowance' | 'taken' | 'planned'>, n: number): number {
   return c.allowance - c.taken - c.planned - n
 }
+
+/** A team row's status pill (Flexible days off, for managers/HR). */
+export function teamStatus(r: { isFlexible: boolean; nextFrom: string | null; settled: boolean; left: number }): CycleStatus {
+  if (!r.isFlexible) return { label: r.nextFrom ? `Starts ${shortDate(r.nextFrom)}` : 'Company schedule', tone: 'muted' }
+  if (r.left < 0) return { label: `Over by ${days(-r.left)}`, tone: 'danger' }
+  if (r.settled) return { label: 'Settled', tone: 'muted' }
+  if (r.left <= 1) return { label: 'Almost used', tone: 'warn' }
+  return { label: 'On track', tone: 'ok' }
+}

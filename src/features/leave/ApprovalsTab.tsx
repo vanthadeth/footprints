@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { CheckCheck } from 'lucide-react'
 import { EmptyState } from '@/components/EmptyState'
 import { leaveErrorMessage, leaveService } from './leaveService'
 import { leaveDateRangeLabel } from './leaveDate'
 import type { LeaveRequest, LeaveType } from './types'
+import { flexService } from '@/features/flex/flexService'
+import { cycleLabel, days as fmtDays, type FlexCycle } from '@/features/flex/flex'
 
 const LEAVE_TYPE_LABEL: Record<LeaveType, string> = { annual: 'Annual', sick: 'Sick', unpaid: 'Unpaid', flex: 'Flexible day off' }
 
@@ -56,6 +58,7 @@ function ApprovalRow({ request, name, onChanged }: { request: LeaveRequest; name
         {request.leave_type === 'flex' ? 'Flexible day off' : `${LEAVE_TYPE_LABEL[request.leave_type]} Leave`} · {leaveDateRangeLabel(request.start_date, request.end_date, request.start_period, request.end_period)}
       </p>
       {request.reason && <p className="mt-1 text-xs text-neutral-400">{request.reason}</p>}
+      {request.leave_type === 'flex' && <FlexBalance userId={request.user_id} date={request.start_date} />}
 
       <input
         value={note}
@@ -83,5 +86,28 @@ function ApprovalRow({ request, name, onChanged }: { request: LeaveRequest; name
         </button>
       </div>
     </div>
+  )
+}
+
+/** For a flexible day off request: the person's balance for that cycle, counting this request as planned. */
+function FlexBalance({ userId, date }: { userId: string; date: string }) {
+  const [cycle, setCycle] = useState<FlexCycle | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    flexService
+      .cycle(userId, date)
+      .then((c) => !cancelled && setCycle(c))
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [userId, date])
+  if (!cycle) return null
+  const over = cycle.left < 0
+  return (
+    <p className={`mt-2 rounded-lg px-2.5 py-2 text-xs leading-snug ${over ? 'bg-status-warn/10 text-status-warn' : 'bg-status-visiting/10 text-status-visiting dark:text-violet-300'}`}>
+      <span className="font-bold">Cycle {cycleLabel(cycle)}:</span> {fmtDays(cycle.allowance)} days · taken {fmtDays(cycle.taken)} · planned {fmtDays(cycle.planned)} incl. this ·{' '}
+      {over ? `goes ${fmtDays(-cycle.left)} over — the extra comes from annual leave when the cycle settles` : `${fmtDays(cycle.left)} left after this`}
+    </p>
   )
 }
