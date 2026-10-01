@@ -50,7 +50,7 @@ export function TripDetailPage() {
   const plan = planTrip(trip.start_date, toDays(trip))
   const n = trip.people_count
   const special = trip.specials.map((s) => ({ reason: s.reason, note: s.note ?? '', amount: s.amount }))
-  const cost = costOf(plan, tripRates(trip, rates), n, special)
+  const cost = costOf(plan, tripRates(trip, rates), n, special, trip.fuel_amount)
   const mine = trip.user_id === profile?.id
   const canCancel = mine && ['pending', 'changes', 'approved'].includes(trip.status) && trip.start_date > ppToday()
 

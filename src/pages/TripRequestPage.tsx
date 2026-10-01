@@ -72,6 +72,7 @@ export function TripRequestPage() {
   // Special allowance lines whose amount is empty; removing a line remounts the rest (specialRev) so they report again.
   const [badAmounts, setBadAmounts] = useState<Set<number>>(new Set())
   const [specialRev, setSpecialRev] = useState(0)
+  const [fuelOk, setFuelOk] = useState(true)
 
   // Rates, then the trip being edited, the saved draft, or a fresh one.
   useEffect(() => {
@@ -87,13 +88,13 @@ export function TripRequestPage() {
           const t = (await tripService.mine()).find((x) => x.id === id)
           if (cancelled) return
           if (!t || t.user_id !== meId) return setError('That trip can’t be edited.')
-          setDraft({ start: t.start_date, days: toDays(t), people: t.people.map((p) => p.user_id), special: t.specials.map((s) => ({ reason: s.reason, note: s.note ?? '', amount: s.amount })), note: t.note ?? '' })
+          setDraft({ start: t.start_date, days: toDays(t), people: t.people.map((p) => p.user_id), special: t.specials.map((s) => ({ reason: s.reason, note: s.note ?? '', amount: s.amount })), fuel: t.fuel_amount || null, note: t.note ?? '' })
           setKnownNames(Object.fromEntries(t.people.map((p) => [p.user_id, p.name])))
           setDecisionNote(t.status === 'changes' ? t.decision_note : null)
         } else {
           const saved = tripDraftStore.load()
           const first = earliestStart(r.noticeHours, r.leaveAt)
-          setDraft(saved && saved.days?.length ? { ...saved, people: [meId, ...saved.people.filter((p) => p !== meId)] } : { start: first, days: [emptyDay()], people: [meId], special: [], note: '' })
+          setDraft(saved && saved.days?.length ? { ...saved, fuel: saved.fuel ?? null, people: [meId, ...saved.people.filter((p) => p !== meId)] } : { start: first, days: [emptyDay()], people: [meId], special: [], fuel: null, note: '' })
         }
       })
       .catch((e) => !cancelled && setError(tripErrorMessage(e)))
@@ -149,7 +150,7 @@ export function TripRequestPage() {
 
   const plan = useMemo(() => (draft ? planTrip(draft.start, draft.days) : null), [draft])
   const people = draft?.people.length ?? 1
-  const cost = useMemo(() => (plan && draft ? costOf(plan, rates, people, draft.special) : null), [plan, draft, rates, people])
+  const cost = useMemo(() => (plan && draft ? costOf(plan, rates, people, draft.special, draft.fuel ?? 0) : null), [plan, draft, rates, people])
 
   if (error && !draft) return <p className="mx-auto max-w-lg px-4 py-10 text-center text-sm text-status-danger">{error}</p>
   if (!draft || !plan || !cost) return <div className="mx-auto mt-4 h-64 max-w-lg animate-pulse rounded-2xl bg-neutral-100 px-4" />
@@ -170,7 +171,7 @@ export function TripRequestPage() {
   const emptyAt = draft.days.findIndex((d) => d.provinces.length === 0)
   const noNightAt = draft.days.findIndex((d, i) => i < lastI && !d.night)
   const reasonMissing = rates.reasonRequired && draft.special.some((s) => !s.reason.trim())
-  const ok = !soon && emptyAt < 0 && noNightAt < 0 && !reasonMissing && badAmounts.size === 0
+  const ok = !soon && emptyAt < 0 && noNightAt < 0 && !reasonMissing && badAmounts.size === 0 && fuelOk
   const blocker = soon
     ? `Pick ${dayLabel(first)} or later to continue`
     : emptyAt >= 0
@@ -181,7 +182,9 @@ export function TripRequestPage() {
           ? 'Give each special allowance a reason'
           : badAmounts.size
             ? 'Enter each special allowance amount'
-            : ''
+            : !fuelOk
+              ? 'Fix the fuel amount'
+              : ''
 
   const addDay = () => {
     const days = draft.days.slice()
@@ -496,6 +499,14 @@ export function TripRequestPage() {
           <ChevronRight className="h-4 w-4 text-neutral-400" aria-hidden />
         </Link>
       )}
+
+      <div className={`${card} flex items-center gap-3 p-3.5`}>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[15px] font-bold text-neutral-900">Fuel / transport</span>
+          <span className="block text-[12.5px] leading-snug text-neutral-500">≈ {plan.totalKm} km on this route · one vehicle. Leave empty if there’s no fuel to claim.</span>
+        </span>
+        <MoneyInput optional label="Fuel / transport" value={draft.fuel} max={100000} onChange={(v) => set({ fuel: v })} onValidChange={setFuelOk} />
+      </div>
 
       <div className={`${card} space-y-2 p-3.5`}>
         <div className="flex items-baseline justify-between">

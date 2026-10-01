@@ -53,18 +53,26 @@ describe('rooms and cost', () => {
     expect(roomSplit(5, 2)).toEqual([3, 2])
   })
 
-  it('costs allowance per person-day, hotel per room-night, fuel once, plus special lines', () => {
-    const c = costOf(planTrip('2026-10-05', DEMO), DEFAULT_RATES, 3, [
+  it('costs allowance per person-day, hotel per room-night, the fuel typed, plus special lines', () => {
+    const plan = planTrip('2026-10-05', DEMO)
+    const c = costOf(plan, DEFAULT_RATES, 3, [
       { reason: 'Ferry / boat', note: '', amount: 24 },
       { reason: 'Parking & tolls', note: '', amount: 8 },
-    ])
-    expect(c.lines.map((l) => l.value)).toEqual([120, 75, 53.5, 32])
+    ], 55.5)
+    expect(c.lines.map((l) => l.value)).toEqual([120, 75, 55.5, 32])
+    expect(c.lines[2].calc).toBe('as requested · ≈ 535 km')
     expect(c.roomNights).toBe(5)
-    expect(c.total).toBe(280.5)
-    expect(c.perPerson).toBe(93.5)
+    expect(c.total).toBe(282.5)
+    expect(c.perPerson).toBeCloseTo(94.17, 2)
     expect(c.over).toBe(false)
-    expect(money(c.total)).toBe('$280.50')
+    expect(money(c.total)).toBe('$282.50')
     expect(money(1240)).toBe('$1,240')
+  })
+
+  it('never works fuel out from the route: no amount is $0', () => {
+    const c = costOf(planTrip('2026-10-05', DEMO), DEFAULT_RATES, 3, [])
+    expect(c.lines[2].value).toBe(0)
+    expect(c.total).toBe(195)
   })
 
   it('flags special allowance over the limit', () => {
