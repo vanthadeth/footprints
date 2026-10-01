@@ -5,13 +5,14 @@ import { NotificationBell } from '@/components/NotificationBell'
 import { useJourneyContext } from '@/features/attendance/JourneyContext'
 import { useLanguage } from '@/i18n/LanguageContext'
 import { useRoleGroup } from '@/features/nav/useRoleGroup'
-import { tabsFor } from '@/features/nav/navConfig'
+import { FN, fnForPath, tabsFor, type FnKey } from '@/features/nav/navConfig'
 
 const TITLE_KEYS: Record<string, string> = {
   '/footprints': 'nav.footprints',
   '/fleet': 'nav.fleet',
   '/profile': 'nav.profile',
   '/menu': 'nav.hub',
+  '/menu/account': 'nav.account',
   '/leave': 'nav.leave',
   '/leave/approvals': 'nav.leaveApprovals',
   '/leave/allowances': 'nav.leaveAllowances',
@@ -57,7 +58,10 @@ function backTarget(pathname: string, search = ''): string {
   if (pathname.startsWith('/trips/')) return '/trips'
   if (pathname.startsWith('/customers/')) return '/customers'
   if (pathname.startsWith('/messages/')) return '/messages'
-  return '/menu'
+  if (pathname.startsWith('/menu/')) return '/menu'
+  // A Hub screen goes back to its function page (Leave & days off, Company setup…).
+  const fn = fnForPath(pathname)
+  return fn ? `/menu/${fn}` : '/menu'
 }
 
 /**
@@ -79,6 +83,8 @@ export function TitleBar() {
         ? t('nav.customer')
         : pathname.startsWith('/messages/')
           ? t('nav.messageThread')
+          : pathname.startsWith('/menu/') && Object.prototype.hasOwnProperty.call(FN, pathname.slice(6))
+            ? t(FN[pathname.slice(6) as FnKey].titleKey)
           : pathname.startsWith('/trips/') && !TITLE_KEYS[pathname]
             ? t(pathname.endsWith('/edit') ? 'nav.editTrip' : 'nav.trip')
           : t(TITLE_KEYS[pathname] ?? 'nav.footprints')
