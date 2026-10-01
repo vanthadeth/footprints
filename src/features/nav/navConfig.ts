@@ -9,6 +9,7 @@ import {
   CheckSquare,
   Clock,
   Footprints as FootprintsIcon,
+  Map as MapIcon,
   History,
   Languages,
   LayoutGrid,
@@ -54,10 +55,11 @@ export function roleGroup(ctx: NavContext): RoleGroup {
   return 'office'
 }
 
-/** Can the person approve other people's leave (leave.edit at Team or All)? */
+/** Can the person approve other people's leave or sales trips (edit at Team or All)? */
 export function canApprove(ctx: NavContext): boolean {
   const e = ctx.scope('leave', 'edit')
-  return ctx.isSuperAdmin || e === 'sub' || e === 'any'
+  const trip = ctx.scope('sales_trip', 'edit')
+  return ctx.isSuperAdmin || e === 'sub' || e === 'any' || trip === 'sub' || trip === 'any'
 }
 
 type Need = (ctx: NavContext) => boolean
@@ -111,7 +113,7 @@ export function homeFor(group: RoleGroup, ctx: NavContext): string {
 }
 
 export type RowKey =
-  | 'plan' | 'calendar' | 'journey' | 'report' | 'messages' | 'customers' | 'leave' | 'daysoff'
+  | 'trips' | 'tripset' | 'plan' | 'calendar' | 'journey' | 'report' | 'messages' | 'customers' | 'leave' | 'daysoff'
   | 'team' | 'attendance' | 'reports' | 'logs' | 'briefing' | 'flexteam' | 'approvals'
   | 'allowances' | 'holidays' | 'users' | 'permissions' | 'org' | 'hours' | 'locations' | 'notifications' | 'translations' | 'settings'
 
@@ -127,6 +129,8 @@ export interface RowDef {
 }
 
 export const ROW: Record<RowKey, RowDef> = {
+  trips: { key: 'trips', label: 'Sales trips', sub: 'Plan a province trip day by day, get it approved', to: '/trips', icon: MapIcon, tone: 'bg-earth-500', needs: can('sales_trip') },
+  tripset: { key: 'tripset', label: 'Sales trip settings', sub: 'Standard rates, rooms, notice, special allowance', to: '/settings/trips', icon: MapIcon, tone: 'bg-earth-500', needs: (ctx) => ctx.isSuperAdmin || ctx.scope('settings', 'edit') !== null },
   plan: { key: 'plan', label: 'Today’s plan', sub: 'Your stops, route and next customer', to: '/plan', icon: Route, tone: 'bg-brand-500', needs: can('plan') },
   calendar: { key: 'calendar', label: 'Calendar', sub: 'Tasks, appointments and follow-ups', to: '/calendar', icon: CalendarIcon, tone: 'bg-status-visiting' },
   journey: { key: 'journey', label: 'Journey history', sub: 'Past days’ routes and time on the road', to: '/footprints', icon: FootprintsIcon, tone: 'bg-earth-500', needs: can('footprints') },
@@ -141,7 +145,7 @@ export const ROW: Record<RowKey, RowDef> = {
   logs: { key: 'logs', label: 'Activity logs', sub: 'What happened, by person', to: '/fleet?tab=logs', icon: History, tone: 'bg-neutral-600', needs: can('team_map') },
   briefing: { key: 'briefing', label: 'Customer briefing', sub: 'Customers by province, last visit and who', to: '/team/customers', icon: Table2, tone: 'bg-status-visiting', needs: can('customer_briefing') },
   flexteam: { key: 'flexteam', label: 'Flexible days off', sub: 'Day off balance of people who travel', to: '/leave/flexible', icon: CalendarRange, tone: 'bg-status-visiting', needs: seesOthersLeave },
-  approvals: { key: 'approvals', label: 'Leave approvals', sub: 'Leave and days off waiting for you', to: '/approvals', icon: CheckSquare, tone: 'bg-status-warn', needs: canApprove },
+  approvals: { key: 'approvals', label: 'Approvals', sub: 'Leave, days off and sales trips waiting for you', to: '/approvals', icon: CheckSquare, tone: 'bg-status-warn', needs: canApprove },
   allowances: { key: 'allowances', label: 'Leave allowances', sub: 'Company default and each person’s allowance', to: '/leave/allowances', icon: Scale, tone: 'bg-status-visiting', needs: hrOrAdmin },
   holidays: { key: 'holidays', label: 'Public holidays', sub: 'Holidays and company days off', to: '/settings/holidays', icon: CalendarRange, tone: 'bg-status-warn', needs: hrOrAdmin },
   users: { key: 'users', label: 'Users', sub: 'People, roles and days-off rules', to: '/users', icon: UsersIcon, tone: 'bg-status-visiting', needs: admin },
@@ -163,15 +167,15 @@ const FOR_YOU: Record<RoleGroup, RowKey[]> = {
 }
 
 const SECTIONS: Record<RoleGroup, [string, RowKey[]][]> = {
-  field: [['My work', ['plan', 'report', 'customers', 'journey']], ['Leave', ['leave', 'daysoff']]],
-  manager: [['Team', ['team', 'attendance', 'reports', 'logs', 'briefing', 'flexteam']], ['My work', ['calendar', 'plan', 'journey', 'report', 'messages', 'leave', 'daysoff']]],
+  field: [['My work', ['trips', 'plan', 'report', 'customers', 'journey']], ['Leave', ['leave', 'daysoff']]],
+  manager: [['Team', ['team', 'attendance', 'reports', 'logs', 'briefing', 'flexteam']], ['My work', ['calendar', 'trips', 'plan', 'journey', 'report', 'messages', 'leave', 'daysoff']]],
   hr: [['HR', ['attendance', 'allowances', 'holidays', 'flexteam', 'team']], ['My work', ['calendar', 'customers', 'messages']]],
   office: [['My work', ['calendar', 'customers', 'report', 'leave', 'daysoff']], ['Company', ['team', 'briefing', 'approvals']]],
-  admin: [['Administration', ['users', 'permissions', 'org', 'hours', 'holidays', 'allowances', 'locations', 'notifications', 'translations', 'settings']], ['Team', ['attendance', 'reports', 'logs', 'briefing', 'flexteam', 'approvals']], ['My work', ['calendar', 'messages', 'leave', 'daysoff']]],
+  admin: [['Administration', ['users', 'permissions', 'org', 'hours', 'holidays', 'allowances', 'tripset', 'locations', 'notifications', 'translations', 'settings']], ['Team', ['attendance', 'reports', 'logs', 'briefing', 'flexteam', 'approvals']], ['My work', ['calendar', 'messages', 'leave', 'daysoff']]],
 }
 
 /** Admin tab: the Administration rows the person can use. */
-export const ADMIN_ROWS: RowKey[] = ['users', 'permissions', 'org', 'hours', 'holidays', 'allowances', 'locations', 'notifications', 'translations', 'settings']
+export const ADMIN_ROWS: RowKey[] = ['users', 'permissions', 'org', 'hours', 'holidays', 'allowances', 'tripset', 'locations', 'notifications', 'translations', 'settings']
 
 const allowed = (ctx: NavContext) => (r: RowDef) => !r.needs || r.needs(ctx)
 

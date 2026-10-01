@@ -40,6 +40,9 @@ const TITLE_KEYS: Record<string, string> = {
   '/people': 'nav.people',
   '/approvals': 'nav.approvals',
   '/admin': 'nav.admin',
+  '/trips': 'nav.trips',
+  '/trips/new': 'nav.newTrip',
+  '/settings/trips': 'nav.tripSettings',
 }
 
 
@@ -51,6 +54,7 @@ function backTarget(pathname: string, search = ''): string {
   const user = new URLSearchParams(search).get('user')
   if (pathname === '/leave/days-off') return user ? '/leave/flexible' : '/leave'
   if (pathname === '/leave/days-off/settlement') return user ? `/leave/days-off?user=${user}` : '/leave/days-off'
+  if (pathname.startsWith('/trips/')) return '/trips'
   if (pathname.startsWith('/customers/')) return '/customers'
   if (pathname.startsWith('/messages/')) return '/messages'
   return '/menu'
@@ -75,6 +79,8 @@ export function TitleBar() {
         ? t('nav.customer')
         : pathname.startsWith('/messages/')
           ? t('nav.messageThread')
+          : pathname.startsWith('/trips/') && !TITLE_KEYS[pathname]
+            ? t(pathname.endsWith('/edit') ? 'nav.editTrip' : 'nav.trip')
           : t(TITLE_KEYS[pathname] ?? 'nav.footprints')
   // The person's tabs get the large title; everything else is a sub-page with a back link.
   const { group, ctx } = useRoleGroup()

@@ -41,6 +41,10 @@ const PermissionsPage = lazy(() => import('@/pages/PermissionsPage').then((m) =>
 const TodayPage = lazy(() => import('@/pages/TodayPage').then((m) => ({ default: m.TodayPage })))
 const TeamHomePage = lazy(() => import('@/pages/TeamHomePage').then((m) => ({ default: m.TeamHomePage })))
 const PeoplePage = lazy(() => import('@/pages/PeoplePage').then((m) => ({ default: m.PeoplePage })))
+const TripsPage = lazy(() => import('@/pages/TripsPage').then((m) => ({ default: m.TripsPage })))
+const TripRequestPage = lazy(() => import('@/pages/TripRequestPage').then((m) => ({ default: m.TripRequestPage })))
+const TripDetailPage = lazy(() => import('@/pages/TripDetailPage').then((m) => ({ default: m.TripDetailPage })))
+const TripSettingsPage = lazy(() => import('@/pages/TripSettingsPage').then((m) => ({ default: m.TripSettingsPage })))
 const AdminPage = lazy(() => import('@/pages/AdminPage').then((m) => ({ default: m.AdminPage })))
 const CalendarPage = lazy(() => import('@/pages/CalendarPage').then((m) => ({ default: m.CalendarPage })))
 const FlexTeamPage = lazy(() => import('@/pages/FlexTeamPage').then((m) => ({ default: m.FlexTeamPage })))
@@ -261,6 +265,48 @@ export const router = createBrowserRouter([
         ),
       },
       { path: '/leave/approvals', element: <Navigate to="/approvals" replace /> },
+      {
+        path: '/trips',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <TripsPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/trips/new',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <TripRequestPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/trips/:id/edit',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <TripRequestPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/trips/:id',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <TripDetailPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/settings/trips',
+        element: (
+          <RequirePermission module="settings" action="edit" fallback="/menu">
+            <Suspense fallback={<PageFallback />}>
+              <TripSettingsPage />
+            </Suspense>
+          </RequirePermission>
+        ),
+      },
       { path: '/profile', element: <ProfilePage /> },
       { path: '/menu', element: <MenuPage /> },
       {

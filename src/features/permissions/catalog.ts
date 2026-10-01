@@ -41,6 +41,8 @@ export type FnKey =
   | 'leave_request'
   | 'leave_approve'
   | 'leave_allow'
+  | 'trip_request'
+  | 'trip_approve'
   | 'users'
   | 'settings'
 
@@ -97,6 +99,13 @@ export const GROUPS: { name: string; fns: FnMeta[] }[] = [
     ],
   },
   {
+    name: 'Sales trips',
+    fns: [
+      { key: 'trip_request', label: 'Request sales trips', help: 'Plan province trips with people, rooms and special allowance', scopes: null },
+      { key: 'trip_approve', label: 'Approve / reject sales trips', help: 'Decide on trip requests', scopes: ['sub', 'any'] },
+    ],
+  },
+  {
     name: 'Admin',
     fns: [
       { key: 'users', label: 'Manage users', help: 'Add people, change their details', scopes: ['sub', 'any'] },
@@ -133,6 +142,10 @@ const OWNED: { m: string; a: Action; from: FnKey[]; value: (s: FnState, current:
   { m: 'leave', a: 'view', from: ['leave_approve', 'leave_request'], value: (s) => s.leave_approve?.scope ?? (s.leave_request ? 'own' : null) },
   { m: 'leave', a: 'edit', from: ['leave_approve', 'leave_request'], value: (s) => s.leave_approve?.scope ?? (s.leave_request ? 'own' : null) },
   { m: 'leave_balance', a: 'edit', from: ['leave_allow'], value: (s) => s.leave_allow?.scope ?? null },
+  // Requesting trips needs your own trips: add to send, view/edit to see and re-send them.
+  { m: 'sales_trip', a: 'add', from: ['trip_request'], value: (s, c) => (s.trip_request ? (c ?? 'own') : null) },
+  { m: 'sales_trip', a: 'view', from: ['trip_approve', 'trip_request'], value: (s) => s.trip_approve?.scope ?? (s.trip_request ? 'own' : null) },
+  { m: 'sales_trip', a: 'edit', from: ['trip_approve', 'trip_request'], value: (s) => s.trip_approve?.scope ?? (s.trip_request ? 'own' : null) },
   { m: 'user', a: 'add', from: ['users'], value: (s) => s.users?.scope ?? null },
   { m: 'user', a: 'edit', from: ['users'], value: (s) => s.users?.scope ?? null },
   { m: 'settings', a: 'edit', from: ['settings'], value: (s) => s.settings?.scope ?? null },
@@ -180,6 +193,8 @@ export function deriveState(rows: PermRow[]): FnState {
     leave_request: onOff(get('leave', 'add')),
     leave_approve: wide(get('leave', 'edit')),
     leave_allow: scoped(get('leave_balance', 'edit')),
+    trip_request: onOff(get('sales_trip', 'add')),
+    trip_approve: wide(get('sales_trip', 'edit')),
     users: wide(get('user', 'edit')),
     settings: scoped(get('settings', 'edit')),
   }

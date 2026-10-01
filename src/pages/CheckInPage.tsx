@@ -14,6 +14,7 @@ import type { DayJourney } from '@/features/attendance/useJourneyHistory'
 import { VisitFlow } from '@/features/visits/VisitFlow'
 import { PlanCard } from '@/features/plan/PlanCard'
 import { CalendarCard } from '@/features/calendar/CalendarCard'
+import { TripTodayCard } from '@/features/trips/TripTodayCard'
 import { useCustomerNames } from '@/features/customers/useCustomerNames'
 import { useLocationNames } from '@/features/locations/useLocationNames'
 import { displayName } from '@/lib/displayName'
@@ -276,6 +277,7 @@ export function CheckInPage() {
             </button>
           ))}
 
+        <TripTodayCard />
         {canPlan && <PlanCard />}
         <CalendarCard />
 
