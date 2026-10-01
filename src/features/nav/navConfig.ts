@@ -129,14 +129,14 @@ export interface RowDef {
 }
 
 export const ROW: Record<RowKey, RowDef> = {
-  trips: { key: 'trips', label: 'Sales trips', sub: 'Plan a province trip day by day, get it approved', to: '/trips', icon: MapIcon, tone: 'bg-earth-500', needs: can('sales_trip') },
+  trips: { key: 'trips', label: 'Sales trips', sub: 'Province trips, day by day', to: '/trips', icon: MapIcon, tone: 'bg-earth-500', needs: can('sales_trip') },
   tripset: { key: 'tripset', label: 'Sales trip settings', sub: 'Standard rates, rooms, notice, special allowance', to: '/settings/trips', icon: MapIcon, tone: 'bg-earth-500', needs: (ctx) => ctx.isSuperAdmin || ctx.scope('settings', 'edit') !== null },
   plan: { key: 'plan', label: 'Today’s plan', sub: 'Your stops, route and next customer', to: '/plan', icon: Route, tone: 'bg-brand-500', needs: can('plan') },
   calendar: { key: 'calendar', label: 'Calendar', sub: 'Tasks, appointments and follow-ups', to: '/calendar', icon: CalendarIcon, tone: 'bg-status-visiting' },
   journey: { key: 'journey', label: 'Journey history', sub: 'Past days’ routes and time on the road', to: '/footprints', icon: FootprintsIcon, tone: 'bg-earth-500', needs: can('footprints') },
   report: { key: 'report', label: 'My numbers', sub: 'Visits, orders and collections', to: '/report', icon: BarChart3, tone: 'bg-status-working' },
   messages: { key: 'messages', label: 'Messages', sub: 'Mentions, replies and your customers', to: '/messages', icon: MessagesSquare, tone: 'bg-brand-700' },
-  customers: { key: 'customers', label: 'Customers', sub: 'Calls, notes and visits by customer', to: '/customers', icon: Store, tone: 'bg-status-working' },
+  customers: { key: 'customers', label: 'Customers', sub: 'Calls, notes and visits by customer', to: '/customers', icon: Store, tone: 'bg-status-working', needs: can('customer') },
   leave: { key: 'leave', label: 'My leave', sub: 'Requests, balance and attendance', to: '/leave', icon: CalendarDays, tone: 'bg-brand-500' },
   daysoff: { key: 'daysoff', label: 'My days off', sub: 'Flexible allowance this cycle', to: '/leave/days-off', icon: CalendarRange, tone: 'bg-status-visiting', needs: (ctx) => !!ctx.flexible },
   team: { key: 'team', label: 'Team map', sub: 'Status, map, routes and customers', to: '/fleet', icon: UsersIcon, tone: 'bg-brand-500', needs: can('team_map') },
@@ -166,30 +166,96 @@ const FOR_YOU: Record<RoleGroup, RowKey[]> = {
   admin: ['users', 'permissions', 'hours', 'notifications'],
 }
 
-const SECTIONS: Record<RoleGroup, [string, RowKey[]][]> = {
-  field: [['My work', ['trips', 'plan', 'report', 'customers', 'journey']], ['Leave', ['leave', 'daysoff']]],
-  manager: [['Team', ['team', 'attendance', 'reports', 'logs', 'briefing', 'flexteam']], ['My work', ['calendar', 'trips', 'plan', 'journey', 'report', 'messages', 'leave', 'daysoff']]],
-  hr: [['HR', ['attendance', 'allowances', 'holidays', 'flexteam', 'team']], ['My work', ['calendar', 'customers', 'messages']]],
-  office: [['My work', ['calendar', 'customers', 'report', 'leave', 'daysoff']], ['Company', ['team', 'briefing', 'approvals']]],
-  admin: [['Administration', ['users', 'permissions', 'org', 'hours', 'holidays', 'allowances', 'tripset', 'locations', 'notifications', 'translations', 'settings']], ['Team', ['attendance', 'reports', 'logs', 'briefing', 'flexteam', 'approvals']], ['My work', ['calendar', 'messages', 'leave', 'daysoff']]],
+const allowed = (ctx: NavContext) => (r: RowDef) => !r.needs || r.needs(ctx)
+
+/**
+ * The Hub, grouped by function (canvas: "Hub redesign"): one card per
+ * function, each opening a page split into parts (Mine / Your team /
+ * Company...). Every screen the person can use appears in exactly one
+ * function; nothing that is already one of their tabs is repeated.
+ */
+export type FnKey = 'sell' | 'day' | 'time' | 'team' | 'company'
+export type PartKey = 'mine' | 'team' | 'company' | 'people' | 'rules' | 'system'
+
+export interface FnDef {
+  key: FnKey
+  /** i18n key for the title. */
+  titleKey: string
+  title: string
+  icon: LucideIcon
+  tone: string
+}
+
+export const FN: Record<FnKey, FnDef> = {
+  sell: { key: 'sell', titleKey: 'nav.hubSell', title: 'Customers & sales', icon: Store, tone: 'bg-status-working' },
+  day: { key: 'day', titleKey: 'nav.hubDay', title: 'My day', icon: CalendarIcon, tone: 'bg-status-visiting' },
+  time: { key: 'time', titleKey: 'nav.hubTime', title: 'Leave & days off', icon: CalendarDays, tone: 'bg-brand-500' },
+  team: { key: 'team', titleKey: 'nav.hubTeam', title: 'Team', icon: UsersIcon, tone: 'bg-earth-500' },
+  company: { key: 'company', titleKey: 'nav.hubCompany', title: 'Company setup', icon: ShieldCheck, tone: 'bg-brand-700' },
+}
+
+export const PART_TITLE: Record<PartKey, string> = { mine: 'Mine', team: 'Your team', company: 'Company', people: 'People & access', rules: 'Work rules', system: 'System' }
+
+/** Where each screen lives: function, then part. Order here is the order inside a function. */
+const ROW_FN: [RowKey, FnKey, PartKey][] = [
+  ['customers', 'sell', 'mine'], ['plan', 'sell', 'mine'], ['trips', 'sell', 'mine'], ['briefing', 'sell', 'team'],
+  ['calendar', 'day', 'mine'], ['messages', 'day', 'mine'], ['journey', 'day', 'mine'], ['report', 'day', 'mine'],
+  ['leave', 'time', 'mine'], ['daysoff', 'time', 'mine'], ['approvals', 'time', 'team'], ['flexteam', 'time', 'team'], ['allowances', 'time', 'company'], ['holidays', 'time', 'company'],
+  ['team', 'team', 'team'], ['attendance', 'team', 'team'], ['reports', 'team', 'team'], ['logs', 'team', 'team'],
+  ['users', 'company', 'people'], ['permissions', 'company', 'people'], ['org', 'company', 'people'],
+  ['hours', 'company', 'rules'], ['locations', 'company', 'rules'], ['tripset', 'company', 'rules'],
+  ['notifications', 'company', 'system'], ['translations', 'company', 'system'], ['settings', 'company', 'system'],
+]
+
+/** Which functions come first for each group. */
+const FN_ORDER: Record<RoleGroup, FnKey[]> = {
+  field: ['sell', 'day', 'time', 'team', 'company'],
+  manager: ['team', 'sell', 'time', 'day', 'company'],
+  hr: ['time', 'team', 'day', 'sell', 'company'],
+  office: ['day', 'team', 'time', 'sell', 'company'],
+  admin: ['company', 'team', 'time', 'sell', 'day'],
+}
+
+export interface HubFunction extends FnDef {
+  rows: RowDef[]
+  parts: { key: PartKey; title: string; rows: RowDef[] }[]
+}
+
+/** The Hub cards for a group: every screen the person can use, minus their tabs, by function; empty functions dropped. */
+export function hubFunctions(group: RoleGroup, ctx: NavContext): HubFunction[] {
+  const tabRoutes = new Set(tabsFor(group, ctx).map((t) => t.to))
+  const ok = (k: RowKey) => allowed(ctx)(ROW[k]) && !tabRoutes.has(ROW[k].to)
+  return FN_ORDER[group]
+    .map((f) => {
+      const here = ROW_FN.filter(([k, fn]) => fn === f && ok(k))
+      const partKeys = [...new Set(here.map(([, , p]) => p))]
+      return {
+        ...FN[f],
+        rows: here.map(([k]) => ROW[k]),
+        parts: partKeys.map((p) => ({ key: p, title: PART_TITLE[p], rows: here.filter(([, , q]) => q === p).map(([k]) => ROW[k]) })),
+      }
+    })
+    .filter((f) => f.rows.length > 0)
+}
+
+/** The function a screen lives in, for its back link (/menu/:fn); undefined for screens outside the Hub. */
+export function fnForPath(pathname: string): FnKey | undefined {
+  return ROW_FN.find(([k]) => ROW[k].to === pathname)?.[1]
+}
+
+/** Hub search: screens whose name or description matches, with the function they live in. */
+export function hubSearch(group: RoleGroup, ctx: NavContext, query: string): (RowDef & { fn: FnDef })[] {
+  const q = query.trim().toLowerCase()
+  if (!q) return []
+  return hubFunctions(group, ctx).flatMap((f) => f.rows.filter((r) => r.label.toLowerCase().includes(q) || r.sub.toLowerCase().includes(q)).map((r) => ({ ...r, fn: FN[f.key] })))
 }
 
 /** Admin tab: the Administration rows the person can use. */
 export const ADMIN_ROWS: RowKey[] = ['users', 'permissions', 'org', 'hours', 'holidays', 'allowances', 'tripset', 'locations', 'notifications', 'translations', 'settings']
 
-const allowed = (ctx: NavContext) => (r: RowDef) => !r.needs || r.needs(ctx)
-
 /** Hub "For you": up to four shortcuts for the group. */
 export function forYou(group: RoleGroup, ctx: NavContext): RowDef[] {
   return FOR_YOU[group].map((k) => ROW[k]).filter(allowed(ctx))
-}
-
-/** Hub sections for the group: rows the person can use, minus anything already a tab; empty sections dropped. */
-export function hubSections(group: RoleGroup, ctx: NavContext): { title: string; rows: RowDef[] }[] {
-  const tabRoutes = new Set(tabsFor(group, ctx).map((t) => t.to))
-  return SECTIONS[group]
-    .map(([title, keys]) => ({ title, rows: keys.map((k) => ROW[k]).filter(allowed(ctx)).filter((r) => !tabRoutes.has(r.to)) }))
-    .filter((s) => s.rows.length > 0)
 }
 
 /** Every Admin-tab row the person can use. */

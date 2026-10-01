@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { adminRows, forYou, homeFor, hubSections, roleGroup, tabsFor, type NavContext } from '../navConfig'
+import { adminRows, fnForPath, forYou, homeFor, hubFunctions, hubSearch, roleGroup, tabsFor, type NavContext } from '../navConfig'
 import type { Scope } from '@/features/permissions/catalog'
 
 /** A context from "module.action=scope" strings, like the role_permissions rows. */
@@ -44,12 +44,38 @@ describe('tabs', () => {
 })
 
 describe('hub', () => {
-  it('hides rows a person cannot use and anything already a tab', () => {
-    const rows = hubSections('field', ctx(SALES)).flatMap((s) => s.rows.map((r) => r.key))
-    expect(rows).toContain('plan')
-    expect(rows).not.toContain('daysoff')
-    expect(rows).not.toContain('calendar')
-    expect(hubSections('field', ctx(SALES, false, true)).flatMap((s) => s.rows.map((r) => r.key))).toContain('daysoff')
+  const keys = (fns: ReturnType<typeof hubFunctions>) => fns.flatMap((f) => f.rows.map((r) => r.key))
+
+  it('groups a salesperson into Customers & sales, My day and Leave, without tabs or rows they cannot use', () => {
+    const fns = hubFunctions('field', ctx(SALES))
+    expect(fns.map((f) => f.key)).toEqual(['sell', 'day', 'time'])
+    expect(keys(fns)).toContain('plan')
+    expect(keys(fns)).not.toContain('daysoff')
+    expect(keys(fns)).not.toContain('calendar')
+    expect(keys(fns)).not.toContain('messages')
+    expect(keys(hubFunctions('field', ctx(SALES, false, true)))).toContain('daysoff')
+  })
+
+  it('gives admins all five functions with Company setup first, split into parts', () => {
+    const fns = hubFunctions('admin', ctx([], true))
+    expect(fns.map((f) => f.key)).toEqual(['company', 'team', 'time', 'sell', 'day'])
+    const company = fns[0]
+    expect(company.rows).toHaveLength(9)
+    expect(company.parts.map((p) => p.title)).toEqual(['People & access', 'Work rules', 'System'])
+    expect(fns.find((f) => f.key === 'time')?.parts.map((p) => p.key)).toEqual(['mine', 'team', 'company'])
+  })
+
+  it('drops functions with nothing in them', () => {
+    expect(hubFunctions('manager', ctx(MANAGER)).map((f) => f.key)).not.toContain('company')
+  })
+
+  it('finds screens by name or description, with their function', () => {
+    const found = hubSearch('admin', ctx([], true), 'leave')
+    expect(found.map((r) => r.key)).toEqual(expect.arrayContaining(['leave', 'allowances']))
+    expect(found.find((r) => r.key === 'allowances')?.fn.key).toBe('time')
+    expect(hubSearch('admin', ctx([], true), '  ')).toEqual([])
+    expect(fnForPath('/settings/trips')).toBe('company')
+    expect(fnForPath('/check-in')).toBeUndefined()
   })
 
   it('shows HR the HR tools and admins everything in Administration', () => {

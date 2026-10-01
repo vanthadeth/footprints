@@ -1,5 +1,6 @@
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { MapPin, Clock, LayoutGrid, type LucideIcon } from 'lucide-react'
+import { MapPin, Clock, LayoutGrid, ChevronRight, Settings, type LucideIcon } from 'lucide-react'
 import { haptic } from '@/lib/haptic'
 import { OfflineBanner } from '@/components/OfflineBanner'
 import { TitleBar } from '@/components/TitleBar'
@@ -9,7 +10,7 @@ import { MessagesProvider, useMessages } from '@/features/conversations/Messages
 import { PermissionsProvider } from '@/features/permissions/PermissionsContext'
 import { useRoleGroup } from '@/features/nav/useRoleGroup'
 import { usePendingApprovals } from '@/features/nav/usePendingApprovals'
-import { canApprove, hubSections, tabsFor, type NavContext, type TabKey } from '@/features/nav/navConfig'
+import { canApprove, hubFunctions, tabsFor, type FnKey, type NavContext, type TabKey } from '@/features/nav/navConfig'
 import { useLanguage } from '@/i18n/LanguageContext'
 
 /**
@@ -17,8 +18,8 @@ import { useLanguage } from '@/i18n/LanguageContext'
  * (features/nav/navConfig): salespeople get Calendar · Messages · ●Check In
  * · Briefing · Hub, managers Team · Customers · ●Check In · Approvals · Hub,
  * and so on -- Check In always raised in the middle. The desktop rail lists
- * the same tabs, then the group's Hub sections, so office screens don't
- * need a trip to Hub.
+ * the same tabs, then the Hub's functions (one open at a time), so office
+ * screens don't need a trip to Hub.
  */
 export function AppLayout() {
   const location = useLocation()
@@ -61,7 +62,14 @@ function DesktopSidebar() {
   const badges = useTabBadges(ctx)
   const checkInLabel = attendance === 'CLOCKED_IN' ? t('nav.checkIn') : t('nav.clockIn')
   const tabs = tabsFor(group, ctx).filter((tab) => tab.key !== 'hub')
-  const sections = hubSections(group, ctx)
+  const functions = hubFunctions(group, ctx)
+  const { pathname, search } = useLocation()
+  // The function holding the current screen (or whose /menu/:fn page is open) starts open; one open at a time.
+  const here = functions.find((f) => pathname === `/menu/${f.key}` || f.rows.some((r) => r.to === pathname + search || r.to === pathname))?.key ?? null
+  const [open, setOpen] = useState<FnKey | null>(here)
+  useEffect(() => {
+    if (here) setOpen(here)
+  }, [here])
 
   return (
     <nav className="hidden shrink-0 flex-col gap-1 overflow-y-auto border-r border-neutral-200 bg-white p-3 pt-4 md:flex md:w-60" aria-label="Primary">
@@ -79,25 +87,53 @@ function DesktopSidebar() {
           {badges[tab.key] ? <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-status-danger px-1.5 text-[11px] font-bold text-white">{badges[tab.key]}</span> : null}
         </NavLink>
       ))}
-      {sections.map((section) => (
-        <div key={section.title} className="mt-4">
-          <p className="px-3 pb-1 text-[10.5px] font-extrabold uppercase tracking-wider text-neutral-400">{section.title}</p>
-          {section.rows.map((row) => (
-            <NavLink
-              key={row.key}
-              to={row.to}
-              end
-              className={({ isActive }) => `flex items-center gap-2.5 rounded-md px-3 py-1.5 text-[13.5px] ${isActive ? 'bg-brand-50 font-semibold text-brand-700' : 'text-neutral-600 hover:bg-neutral-100'}`}
+      <div className="mt-3 border-t border-neutral-100 pt-3 dark:border-neutral-800" />
+      {functions.map((f) => {
+        const isOpen = open === f.key
+        return (
+          <div key={f.key}>
+            <button
+              type="button"
+              aria-expanded={isOpen}
+              onClick={() => setOpen(isOpen ? null : f.key)}
+              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13.5px] font-bold text-neutral-800 hover:bg-neutral-100"
             >
-              <span className={`h-2 w-2 shrink-0 rounded-full ${row.tone}`} />
-              {row.label}
-            </NavLink>
-          ))}
-        </div>
-      ))}
+              <span className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md text-white ${f.tone}`}>
+                <f.icon className="h-3.5 w-3.5" aria-hidden />
+              </span>
+              <span className="flex-1">{t(f.titleKey)}</span>
+              <span className="text-[11px] font-bold text-neutral-400">{f.rows.length}</span>
+              <ChevronRight className={`h-3.5 w-3.5 text-neutral-400 transition-transform ${isOpen ? 'rotate-90' : ''}`} aria-hidden />
+            </button>
+            {isOpen && (
+              <div className="pb-1.5 pl-[42px]">
+                {f.rows.map((row) => (
+                  <NavLink
+                    key={row.key}
+                    to={row.to}
+                    end
+                    className={({ isActive }) => `flex items-center rounded-md px-2 py-1.5 text-[13px] ${isActive ? 'bg-brand-50 font-semibold text-brand-700' : 'text-neutral-600 hover:bg-neutral-100'}`}
+                  >
+                    <span className="flex-1">{row.label}</span>
+                    {row.key === 'approvals' && badges.approvals ? <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-status-danger px-1 text-[10.5px] font-bold text-white">{badges.approvals}</span> : null}
+                  </NavLink>
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      })}
+      <NavLink
+        to="/menu/account"
+        className={({ isActive }) => `mt-4 flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-medium ${isActive ? 'bg-brand-50 text-brand-700' : 'text-neutral-600 hover:bg-neutral-100'}`}
+      >
+        <Settings className="h-[18px] w-[18px]" aria-hidden />
+        {t('nav.account')}
+      </NavLink>
       <NavLink
         to="/menu"
-        className={({ isActive }) => `mt-4 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium ${isActive ? 'bg-brand-50 text-brand-700' : 'text-neutral-600 hover:bg-neutral-100'}`}
+        end
+        className={({ isActive }) => `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium ${isActive ? 'bg-brand-50 text-brand-700' : 'text-neutral-600 hover:bg-neutral-100'}`}
       >
         <LayoutGrid className="h-5 w-5" aria-hidden />
         {t('nav.hub')}
