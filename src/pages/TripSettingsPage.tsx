@@ -16,7 +16,7 @@ const EXAMPLE = planTrip('2026-10-05', [
   { provinces: ['KSP'], night: null, rooms: null },
 ])
 
-const AMOUNTS = ['day', 'night', 'km', 'special'] as const
+const AMOUNTS = ['day', 'night', 'special'] as const
 type AmountKey = (typeof AMOUNTS)[number]
 
 function Row({ label, sub, children, top = true }: { label: string; sub: string; children: React.ReactNode; top?: boolean }) {
@@ -92,7 +92,7 @@ export function TripSettingsPage() {
 
   return (
     <div className="mx-auto max-w-lg space-y-3 px-4 pb-8 pt-2 md:max-w-2xl md:px-8">
-      <p className="px-1 text-[13px] leading-snug text-neutral-500">Every trip request is costed with these standard rates. Changes apply to trips sent from now on — trips already sent keep their rates.</p>
+      <p className="px-1 text-[13px] leading-snug text-neutral-500">Every trip request is costed with these standard rates; fuel is typed by the requester on each trip. Changes apply to trips sent from now on — trips already sent keep their rates.</p>
 
       <div className={`${card} px-3.5`}>
         <p className={`${kicker} pt-3`}>Standard rates</p>
@@ -102,20 +102,23 @@ export function TripSettingsPage() {
         <Row label="Hotel" sub="Per room, each night away">
           <MoneyInput label="Hotel rate" value={r.nightRate} max={1000} onChange={(v) => set({ nightRate: v })} onValidChange={validity.night} />
         </Row>
-        <Row label="Fuel / transport" sub="Per km of the planned route, once per trip">
-          <MoneyInput label="Fuel rate" value={r.kmRate} max={5} onChange={(v) => set({ kmRate: v })} onValidChange={validity.km} />
-        </Row>
         <Row label="People per room" sub="Sets the default rooms a night; requests can change any night">
           <Stepper label="People per room" value={r.perRoom} min={1} max={6} onChange={(v) => set({ perRoom: v })} />
         </Row>
       </div>
 
       <div className="rounded-2xl bg-earth-50 p-3.5 dark:bg-amber-900/25">
-        <p className="text-[12px] font-extrabold uppercase tracking-wide text-earth-500 dark:text-amber-200">Example · 3 people, 4 days, 3 nights, ≈ {EXAMPLE.totalKm} km</p>
+        <p className="text-[12px] font-extrabold uppercase tracking-wide text-earth-500 dark:text-amber-200">Example · 3 people, 4 days, 3 nights</p>
         <p className="mt-1.5 text-[24px] font-extrabold tabular-nums text-neutral-900">
           {money(example.total)} <span className="text-[14px] font-bold text-neutral-600">· {money(example.perPerson)} per person</span>
         </p>
-        <p className="mt-0.5 text-[12.5px] leading-snug text-neutral-600">{example.lines.map((l) => `${l.label} ${l.calc} = ${money(l.value)}`).join(' · ')}</p>
+        <p className="mt-0.5 text-[12.5px] leading-snug text-neutral-600">
+          {example.lines
+            .filter((l) => l.label !== 'Fuel / transport')
+            .map((l) => `${l.label} ${l.calc} = ${money(l.value)}`)
+            .join(' · ')}{' '}
+          · plus the fuel each requester asks for — it isn’t worked out from the route.
+        </p>
       </div>
 
       <div className={`${card} px-3.5`}>

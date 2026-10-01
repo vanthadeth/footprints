@@ -2690,6 +2690,7 @@ export type Database = {
           decision_note: string | null
           end_date: string
           est_total: number
+          fuel_amount: number
           id: string
           km_rate: number
           night_rate: number
@@ -2711,6 +2712,7 @@ export type Database = {
           decision_note?: string | null
           end_date: string
           est_total: number
+          fuel_amount?: number
           id?: string
           km_rate: number
           night_rate: number
@@ -2732,6 +2734,7 @@ export type Database = {
           decision_note?: string | null
           end_date?: string
           est_total?: number
+          fuel_amount?: number
           id?: string
           km_rate?: number
           night_rate?: number
@@ -4782,6 +4785,7 @@ export type Database = {
           decision_note: string | null
           end_date: string
           est_total: number
+          fuel_amount: number
           id: string
           km_rate: number
           night_rate: number
@@ -5220,6 +5224,7 @@ export type Database = {
           decision_note: string | null
           end_date: string
           est_total: number
+          fuel_amount: number
           id: string
           km_rate: number
           night_rate: number
@@ -5634,6 +5639,7 @@ export type Database = {
       request_sales_trip: {
         Args: {
           p_days: Json
+          p_fuel?: number
           p_note?: string
           p_people: string[]
           p_special: Json
@@ -5648,6 +5654,7 @@ export type Database = {
           decision_note: string | null
           end_date: string
           est_total: number
+          fuel_amount: number
           id: string
           km_rate: number
           night_rate: number

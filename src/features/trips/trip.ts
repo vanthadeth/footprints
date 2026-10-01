@@ -163,7 +163,6 @@ export function strip(plan: TripPlan): StripStop[] {
 export interface TripRates {
   dayRate: number
   nightRate: number
-  kmRate: number
   perRoom: number
   specialCap: number
   reasonRequired: boolean
@@ -172,7 +171,7 @@ export interface TripRates {
   clockAnywhere: boolean
 }
 
-export const DEFAULT_RATES: TripRates = { dayRate: 10, nightRate: 15, kmRate: 0.1, perRoom: 2, specialCap: 100, reasonRequired: true, noticeHours: 24, leaveAt: '08:00', clockAnywhere: true }
+export const DEFAULT_RATES: TripRates = { dayRate: 10, nightRate: 15, perRoom: 2, specialCap: 100, reasonRequired: true, noticeHours: 24, leaveAt: '08:00', clockAnywhere: true }
 
 export interface SpecialLine {
   reason: string
@@ -220,18 +219,18 @@ export interface TripCost {
   over: boolean
 }
 
-/** The estimate at standard rates: allowance per person-day, hotel per room-night, fuel once for the route, plus special lines. */
-export function costOf(plan: TripPlan, rates: TripRates, people: number, special: SpecialLine[]): TripCost {
+/** The estimate: allowance per person-day and hotel per room-night at standard rates, the fuel the requester typed (one vehicle), plus special lines. */
+export function costOf(plan: TripPlan, rates: TripRates, people: number, special: SpecialLine[], fuelAmount = 0): TripCost {
   const n = Math.max(people, 1)
   const roomNights = plan.days.filter((d) => d.night).reduce((a, d) => a + roomsFor(d, n, rates.perRoom), 0)
   const allowance = plan.days.length * n * rates.dayRate
   const hotel = roomNights * rates.nightRate
-  const fuel = Math.round(plan.totalKm * rates.kmRate * 100) / 100
+  const fuel = Number.isFinite(fuelAmount) ? Math.max(0, Math.round(fuelAmount * 100) / 100) : 0
   const extra = special.reduce((a, s) => a + (Number.isFinite(s.amount) ? s.amount : 0), 0)
   const lines: CostLine[] = [
     { label: 'Daily allowance', calc: `${plural(plan.days.length, 'day')} × ${n === 1 ? '1 person' : `${n} people`} × ${money(rates.dayRate)}`, value: allowance },
     { label: 'Hotel', calc: `${plural(roomNights, 'room-night')} × ${money(rates.nightRate)}`, value: hotel },
-    { label: 'Fuel / transport', calc: `≈ ${plan.totalKm} km × ${money(rates.kmRate)} · one vehicle`, value: fuel },
+    { label: 'Fuel / transport', calc: `as requested · ≈ ${plan.totalKm} km`, value: fuel },
   ]
   if (special.length) lines.push({ label: 'Special allowance', calc: plural(special.length, 'item'), value: extra })
   const total = allowance + hotel + fuel + extra

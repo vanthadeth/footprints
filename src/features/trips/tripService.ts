@@ -34,6 +34,8 @@ export interface TripRow {
   day_rate: number
   night_rate: number
   km_rate: number
+  /** Fuel / transport the requester typed (0104); trips sent before then: km x rate. */
+  fuel_amount: number
   people_count: number
   room_nights: number
   special_total: number
@@ -62,6 +64,8 @@ export interface TripDraft {
   days: TripDayInput[]
   people: string[]
   special: SpecialLine[]
+  /** Fuel / transport asked for; null = left empty ($0). */
+  fuel: number | null
   note: string
 }
 
@@ -74,6 +78,7 @@ function normalize(t: TripRow): TripRow {
     day_rate: num(t.day_rate),
     night_rate: num(t.night_rate),
     km_rate: num(t.km_rate),
+    fuel_amount: num(t.fuel_amount),
     special_total: num(t.special_total),
     est_total: num(t.est_total),
     specials: (t.specials ?? []).map((s) => ({ ...s, amount: num(s.amount) })),
@@ -89,7 +94,7 @@ export function toDays(t: TripRow): TripDayInput[] {
 
 /** A trip as the rates it was sent with -- the estimate never moves when settings change later. */
 export function tripRates(t: TripRow, current: TripRates = DEFAULT_RATES): TripRates {
-  return { ...current, dayRate: t.day_rate, nightRate: t.night_rate, kmRate: t.km_rate }
+  return { ...current, dayRate: t.day_rate, nightRate: t.night_rate }
 }
 
 export const tripService = {
@@ -112,6 +117,7 @@ export const tripService = {
       p_people: draft.people,
       p_special: draft.special.map((s) => ({ reason: s.reason, note: s.note, amount: s.amount })),
       p_note: draft.note || null,
+      p_fuel: draft.fuel ?? 0,
     })
   },
 
@@ -132,14 +138,13 @@ export const tripService = {
     const { data, error } = await supabase
       .from('app_settings')
       .select(
-        'trip_day_rate, trip_night_rate, trip_km_rate, trip_people_per_room, trip_special_cap, trip_special_reason_required, trip_notice_hours, trip_leave_time, trip_clock_anywhere'
+        'trip_day_rate, trip_night_rate, trip_people_per_room, trip_special_cap, trip_special_reason_required, trip_notice_hours, trip_leave_time, trip_clock_anywhere'
       )
       .single()
     if (error) throw error
     return {
       dayRate: num(data.trip_day_rate),
       nightRate: num(data.trip_night_rate),
-      kmRate: num(data.trip_km_rate),
       perRoom: data.trip_people_per_room,
       specialCap: num(data.trip_special_cap),
       reasonRequired: data.trip_special_reason_required,
@@ -156,7 +161,6 @@ export const tripService = {
       .update({
         trip_day_rate: r.dayRate,
         trip_night_rate: r.nightRate,
-        trip_km_rate: r.kmRate,
         trip_people_per_room: r.perRoom,
         trip_special_cap: r.specialCap,
         trip_special_reason_required: r.reasonRequired,

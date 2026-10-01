@@ -20,7 +20,7 @@ export function TripApprovalCard({ trip, rates, onDecided }: { trip: TripRow; ra
   const plan = planTrip(trip.start_date, toDays(trip))
   const n = trip.people_count
   const special = trip.specials
-  const cost = costOf(plan, tripRates(trip, rates), n, special.map((s) => ({ reason: s.reason, note: s.note ?? '', amount: s.amount })))
+  const cost = costOf(plan, tripRates(trip, rates), n, special.map((s) => ({ reason: s.reason, note: s.note ?? '', amount: s.amount })), trip.fuel_amount)
 
   const decide = async (d: 'approved' | 'rejected' | 'changes') => {
     setBusy(true)

@@ -4,20 +4,11 @@ import { acceptMoneyText, moneyText, parseMoney } from '@/lib/moneyInput'
 /**
  * A typed dollar amount with up to 2 decimals (rates, limits). Keystrokes
  * that would make it anything else are ignored; an empty or over-max field
- * is flagged and reported through onValidChange so the form can hold Save.
+ * is flagged and reported through onValidChange so the form can hold Save
+ * (unless optional: then empty is fine and reads as null).
  * Same footprint as Stepper, so they line up in a settings row.
  */
-export function MoneyInput({
-  value,
-  onChange,
-  label,
-  min = 0,
-  max,
-  onValidChange,
-  size = 'md',
-}: {
-  value: number
-  onChange: (value: number) => void
+type MoneyInputProps = {
   /** What the amount is, for the field's accessible name ("Hotel rate"). */
   label: string
   min?: number
@@ -25,15 +16,24 @@ export function MoneyInput({
   onValidChange?: (ok: boolean) => void
   /** sm fits inside a list line (special allowance amounts). */
   size?: 'md' | 'sm'
-}) {
-  const [text, setText] = useState(() => moneyText(value))
+} & (
+  | { optional?: false; value: number; onChange: (value: number) => void }
+  /** Empty is allowed and reported as null (e.g. fuel: leave empty for none). */
+  | { optional: true; value: number | null; onChange: (value: number | null) => void }
+)
+
+export function MoneyInput(props: MoneyInputProps) {
+  const { value, label, min = 0, max, onValidChange, size = 'md' } = props
+  const optional = props.optional === true
+  const emit = props.onChange as (value: number | null) => void
+  const [text, setText] = useState(() => (value == null ? '' : moneyText(value)))
   const [focused, setFocused] = useState(false)
   const parsed = parseMoney(text)
-  const ok = parsed !== null && parsed >= min && parsed <= max
+  const ok = parsed === null ? optional && text.trim() === '' : parsed >= min && parsed <= max
 
   // Follow the value from outside (rates loading) unless the person is typing.
   useEffect(() => {
-    if (!focused && parseMoney(text) !== value) setText(moneyText(value))
+    if (!focused && parseMoney(text) !== value) setText(value == null ? '' : moneyText(value))
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only an outside change of value should rewrite the text
   }, [value])
 
@@ -72,7 +72,8 @@ export function MoneyInput({
             if (!acceptMoneyText(next)) return
             setText(next)
             const n = parseMoney(next)
-            if (n !== null && n >= min && n <= max) onChange(n)
+            if (n !== null && n >= min && n <= max) emit(n)
+            else if (optional && next === '') emit(null)
           }}
           className="min-w-0 flex-1 bg-transparent text-right text-sm font-extrabold tabular-nums text-neutral-900 outline-none placeholder:font-normal placeholder:text-neutral-400"
         />
