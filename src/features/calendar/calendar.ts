@@ -1,4 +1,5 @@
 import { shortDay } from '@/features/customers/book'
+import { provinceName } from '@/features/trips/trip'
 import { fromVisit, type CalendarItem, type CalendarKind } from './calendarService'
 
 /** Colour and label per kind -- the same scheme as the canvas design. */
@@ -9,10 +10,11 @@ export const KIND: Record<CalendarKind, { label: string; dot: string; chip: stri
   follow: { label: 'Call follow-up', dot: 'bg-status-warn', chip: 'bg-status-warn/10 text-status-warn dark:bg-amber-400/15 dark:text-amber-300', text: 'text-status-warn dark:text-amber-300' },
   plan: { label: 'Plan stop', dot: 'bg-status-working', chip: 'bg-status-working/10 text-status-working dark:bg-emerald-400/15 dark:text-emerald-300', text: 'text-status-working dark:text-emerald-300' },
   leave: { label: 'Leave', dot: 'bg-earth-500', chip: 'bg-earth-50 text-earth-500 dark:bg-amber-900/30 dark:text-amber-200', text: 'text-earth-500 dark:text-amber-200' },
+  trip: { label: 'Sales trip', dot: 'bg-brand-700', chip: 'bg-brand-50 text-brand-700 dark:bg-brand-500/20 dark:text-brand-100', text: 'text-brand-700 dark:text-brand-100' },
   holiday: { label: 'Holiday', dot: 'bg-earth-400', chip: 'bg-earth-50 text-earth-500 dark:bg-amber-900/30 dark:text-amber-200', text: 'text-earth-500 dark:text-amber-200' },
 }
 
-export type CalendarFilter = 'all' | 'task' | 'appt' | 'collect' | 'follow' | 'plan' | 'off'
+export type CalendarFilter = 'all' | 'task' | 'appt' | 'collect' | 'follow' | 'plan' | 'trip' | 'off'
 
 export const FILTERS: { key: CalendarFilter; label: string; dot?: string }[] = [
   { key: 'all', label: 'All' },
@@ -21,6 +23,7 @@ export const FILTERS: { key: CalendarFilter; label: string; dot?: string }[] = [
   { key: 'collect', label: 'Collections', dot: KIND.collect.dot },
   { key: 'follow', label: 'Call follow-ups', dot: KIND.follow.dot },
   { key: 'plan', label: 'Plan', dot: KIND.plan.dot },
+  { key: 'trip', label: 'Trips', dot: KIND.trip.dot },
   { key: 'off', label: 'Leave & holidays', dot: KIND.leave.dot },
 ]
 
@@ -65,6 +68,13 @@ export function overdue(items: CalendarItem[], today: string): CalendarItem[] {
   return items.filter((i) => i.day < today && !i.done && checkable(i.kind))
 }
 
+/** 'KEP,KMP|KMP' (calendar_items' trip source_label) → "Kep → Kampot · night in Kampot". */
+export function tripDaySub(label: string | null): string {
+  const [provs = '', night = ''] = (label ?? '').split('|')
+  const route = provs.split(',').filter(Boolean).map((c) => provinceName(c)).join(' → ')
+  return [route, night ? `night in ${provinceName(night)}` : 'back to Phnom Penh'].filter(Boolean).join(' · ')
+}
+
 export function itemTitle(i: CalendarItem): string {
   if (i.kind === 'collect') return i.amount ? `Collect $${Math.round(i.amount).toLocaleString('en-US')}` : 'Collect payment'
   if (i.kind === 'appt') return `Visit ${i.title}`
@@ -93,6 +103,9 @@ export function itemSub(i: CalendarItem): string {
       break
     case 'plan':
       from = i.done ? 'Today’s plan · checked in' : 'Today’s plan'
+      break
+    case 'trip':
+      from = tripDaySub(i.source_label)
       break
     default:
       from = null

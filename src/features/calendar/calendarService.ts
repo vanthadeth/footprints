@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase'
 import { callRpc } from '@/lib/rpc'
 
-export type CalendarKind = 'task' | 'appt' | 'collect' | 'follow' | 'plan' | 'leave' | 'holiday'
+export type CalendarKind = 'task' | 'appt' | 'collect' | 'follow' | 'plan' | 'leave' | 'holiday' | 'trip'
 
 /** One row of calendar_items (0098). Declared by hand: the generated RPC types mark every column non-null. */
 export interface CalendarItem {

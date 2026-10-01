@@ -84,6 +84,7 @@ export function CalendarPage() {
   function open(item: CalendarItem) {
     if (item.kind === 'task') return setSheet({ taskId: item.ref_id, customerName: item.customer_name })
     if (item.kind === 'leave') return navigate('/leave')
+    if (item.kind === 'trip') return navigate(`/trips/${item.ref_id}`)
     if (item.customer_id) return navigate(`/customers/${item.customer_id}`)
   }
 

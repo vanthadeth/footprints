@@ -38,6 +38,15 @@ export type Database = {
           max_location_accuracy_m: number
           primary_currency: Database["public"]["Enums"]["currency"]
           short_visit_threshold_minutes: number
+          trip_clock_anywhere: boolean
+          trip_day_rate: number
+          trip_km_rate: number
+          trip_leave_time: string
+          trip_night_rate: number
+          trip_notice_hours: number
+          trip_people_per_room: number
+          trip_special_cap: number
+          trip_special_reason_required: boolean
           updated_at: string
           updated_by: string | null
           weekly_active_hours: number | null
@@ -69,6 +78,15 @@ export type Database = {
           max_location_accuracy_m?: number
           primary_currency?: Database["public"]["Enums"]["currency"]
           short_visit_threshold_minutes?: number
+          trip_clock_anywhere?: boolean
+          trip_day_rate?: number
+          trip_km_rate?: number
+          trip_leave_time?: string
+          trip_night_rate?: number
+          trip_notice_hours?: number
+          trip_people_per_room?: number
+          trip_special_cap?: number
+          trip_special_reason_required?: boolean
           updated_at?: string
           updated_by?: string | null
           weekly_active_hours?: number | null
@@ -100,6 +118,15 @@ export type Database = {
           max_location_accuracy_m?: number
           primary_currency?: Database["public"]["Enums"]["currency"]
           short_visit_threshold_minutes?: number
+          trip_clock_anywhere?: boolean
+          trip_day_rate?: number
+          trip_km_rate?: number
+          trip_leave_time?: string
+          trip_night_rate?: number
+          trip_notice_hours?: number
+          trip_people_per_room?: number
+          trip_special_cap?: number
+          trip_special_reason_required?: boolean
           updated_at?: string
           updated_by?: string | null
           weekly_active_hours?: number | null
@@ -2530,6 +2557,239 @@ export type Database = {
           },
         ]
       }
+      sales_trip_days: {
+        Row: {
+          day: string
+          day_no: number
+          km: number
+          night_province: string | null
+          provinces: string[]
+          rooms: number | null
+          trip_id: string
+        }
+        Insert: {
+          day: string
+          day_no: number
+          km?: number
+          night_province?: string | null
+          provinces: string[]
+          rooms?: number | null
+          trip_id: string
+        }
+        Update: {
+          day?: string
+          day_no?: number
+          km?: number
+          night_province?: string | null
+          provinces?: string[]
+          rooms?: number | null
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_trip_days_night_province_fkey"
+            columns: ["night_province"]
+            isOneToOne: false
+            referencedRelation: "geo_provinces"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "sales_trip_days_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "sales_trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_trip_people: {
+        Row: {
+          trip_id: string
+          user_id: string
+        }
+        Insert: {
+          trip_id: string
+          user_id: string
+        }
+        Update: {
+          trip_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_trip_people_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "sales_trips"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_trip_people_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "sales_trip_people_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_trip_people_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_trip_specials: {
+        Row: {
+          amount: number
+          id: string
+          note: string | null
+          reason: string
+          sort_order: number
+          trip_id: string
+        }
+        Insert: {
+          amount: number
+          id?: string
+          note?: string | null
+          reason: string
+          sort_order?: number
+          trip_id: string
+        }
+        Update: {
+          amount?: number
+          id?: string
+          note?: string | null
+          reason?: string
+          sort_order?: number
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_trip_specials_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "sales_trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_trips: {
+        Row: {
+          created_at: string
+          day_rate: number
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          end_date: string
+          est_total: number
+          id: string
+          km_rate: number
+          night_rate: number
+          note: string | null
+          people_count: number
+          room_nights: number
+          special_total: number
+          start_date: string
+          status: Database["public"]["Enums"]["sales_trip_status"]
+          total_km: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          day_rate: number
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          end_date: string
+          est_total: number
+          id?: string
+          km_rate: number
+          night_rate: number
+          note?: string | null
+          people_count: number
+          room_nights: number
+          special_total?: number
+          start_date: string
+          status?: Database["public"]["Enums"]["sales_trip_status"]
+          total_km?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          day_rate?: number
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          end_date?: string
+          est_total?: number
+          id?: string
+          km_rate?: number
+          night_rate?: number
+          note?: string | null
+          people_count?: number
+          room_nights?: number
+          special_total?: number
+          start_date?: string
+          status?: Database["public"]["Enums"]["sales_trip_status"]
+          total_km?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_trips_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "sales_trips_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_trips_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_trips_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "sales_trips_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_trips_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sync_column_maps: {
         Row: {
           id: string
@@ -4512,6 +4772,36 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      cancel_sales_trip: {
+        Args: { p_id: string }
+        Returns: {
+          created_at: string
+          day_rate: number
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          end_date: string
+          est_total: number
+          id: string
+          km_rate: number
+          night_rate: number
+          note: string | null
+          people_count: number
+          room_nights: number
+          special_total: number
+          start_date: string
+          status: Database["public"]["Enums"]["sales_trip_status"]
+          total_km: number
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "sales_trips"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       cancel_visit: {
         Args: { p_reason?: string; p_visit: string }
         Returns: {
@@ -4920,6 +5210,36 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      decide_sales_trip: {
+        Args: { p_decision: string; p_id: string; p_note?: string }
+        Returns: {
+          created_at: string
+          day_rate: number
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          end_date: string
+          est_total: number
+          id: string
+          km_rate: number
+          night_rate: number
+          note: string | null
+          people_count: number
+          room_nights: number
+          special_total: number
+          start_date: string
+          status: Database["public"]["Enums"]["sales_trip_status"]
+          total_km: number
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "sales_trips"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       delete_task: { Args: { p_id: string }; Returns: undefined }
       enforce_working_hours: {
         Args: { p_accuracy?: number; p_latitude: number; p_longitude: number }
@@ -4970,6 +5290,28 @@ export type Database = {
           flexible_people: number
           sat_rate: number
           sun_rate: number
+        }[]
+      }
+      flex_team: {
+        Args: { p_date?: string }
+        Returns: {
+          allowance: number
+          annual_days: number
+          cycle_end: string
+          cycle_start: string
+          department_name: string
+          full_name: string
+          is_flexible: boolean
+          left_days: number
+          next_from: string
+          nickname: string
+          over_days: number
+          planned: number
+          saturdays: number
+          settled: boolean
+          sundays: number
+          taken: number
+          user_id: string
         }[]
       }
       leave_policy: {
@@ -5289,6 +5631,43 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      request_sales_trip: {
+        Args: {
+          p_days: Json
+          p_note?: string
+          p_people: string[]
+          p_special: Json
+          p_start: string
+          p_trip_id: string
+        }
+        Returns: {
+          created_at: string
+          day_rate: number
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          end_date: string
+          est_total: number
+          id: string
+          km_rate: number
+          night_rate: number
+          note: string | null
+          people_count: number
+          room_nights: number
+          special_total: number
+          start_date: string
+          status: Database["public"]["Enums"]["sales_trip_status"]
+          total_km: number
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "sales_trips"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       run_attendance_alerts: {
         Args: never
         Returns: {
@@ -5298,6 +5677,18 @@ export type Database = {
           telegram_id: string
         }[]
       }
+      sales_trip_candidates: {
+        Args: { p_from: string; p_to: string; p_trip?: string }
+        Returns: {
+          busy: Json
+          field_sales: boolean
+          full_name: string
+          name: string
+          role: string
+          user_id: string
+        }[]
+      }
+      sales_trips: { Args: { p_mode?: string }; Returns: Json }
       save_department: {
         Args: { p_active?: boolean; p_id: string; p_name: string }
         Returns: string
@@ -5621,6 +6012,12 @@ export type Database = {
       permission_effect: "allow" | "deny"
       permission_scope: "own" | "sub" | "any" | "deny"
       sale_order_status: "new" | "cancelled"
+      sales_trip_status:
+        | "pending"
+        | "approved"
+        | "changes"
+        | "rejected"
+        | "cancelled"
       sync_clear_scope: "imported" | "all"
       sync_match: "sheet_id" | "natural"
       sync_source: "manual" | "schedule" | "change"
@@ -5802,6 +6199,13 @@ export const Constants = {
       permission_effect: ["allow", "deny"],
       permission_scope: ["own", "sub", "any", "deny"],
       sale_order_status: ["new", "cancelled"],
+      sales_trip_status: [
+        "pending",
+        "approved",
+        "changes",
+        "rejected",
+        "cancelled",
+      ],
       sync_clear_scope: ["imported", "all"],
       sync_match: ["sheet_id", "natural"],
       sync_source: ["manual", "schedule", "change"],

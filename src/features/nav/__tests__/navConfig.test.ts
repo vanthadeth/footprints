@@ -54,7 +54,7 @@ describe('hub', () => {
 
   it('shows HR the HR tools and admins everything in Administration', () => {
     expect(forYou('hr', ctx(HR)).map((r) => r.key)).toEqual(['allowances', 'holidays', 'flexteam', 'attendance'])
-    expect(adminRows(ctx([], true))).toHaveLength(10)
+    expect(adminRows(ctx([], true))).toHaveLength(11)
     expect(adminRows(ctx(MANAGER))).toHaveLength(0)
   })
 })
