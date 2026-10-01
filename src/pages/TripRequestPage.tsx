@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { MoneyInput } from '@/components/MoneyInput'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { AlertTriangle, CalendarDays, ChevronRight, Home, Minus, Moon, Plus, X } from 'lucide-react'
 import { useProfile } from '@/features/auth/useProfile'
@@ -68,6 +69,9 @@ export function TripRequestPage() {
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [decisionNote, setDecisionNote] = useState<string | null>(null)
+  // Special allowance lines whose amount is empty; removing a line remounts the rest (specialRev) so they report again.
+  const [badAmounts, setBadAmounts] = useState<Set<number>>(new Set())
+  const [specialRev, setSpecialRev] = useState(0)
 
   // Rates, then the trip being edited, the saved draft, or a fresh one.
   useEffect(() => {
@@ -166,7 +170,7 @@ export function TripRequestPage() {
   const emptyAt = draft.days.findIndex((d) => d.provinces.length === 0)
   const noNightAt = draft.days.findIndex((d, i) => i < lastI && !d.night)
   const reasonMissing = rates.reasonRequired && draft.special.some((s) => !s.reason.trim())
-  const ok = !soon && emptyAt < 0 && noNightAt < 0 && !reasonMissing
+  const ok = !soon && emptyAt < 0 && noNightAt < 0 && !reasonMissing && badAmounts.size === 0
   const blocker = soon
     ? `Pick ${dayLabel(first)} or later to continue`
     : emptyAt >= 0
@@ -175,7 +179,9 @@ export function TripRequestPage() {
         ? `Pick where you sleep on Day ${noNightAt + 1}`
         : reasonMissing
           ? 'Give each special allowance a reason'
-          : ''
+          : badAmounts.size
+            ? 'Enter each special allowance amount'
+            : ''
 
   const addDay = () => {
     const days = draft.days.slice()
@@ -191,6 +197,19 @@ export function TripRequestPage() {
   }
   const setRooms = (i: number, v: number) => setDay(i, { ...draft.days[i], rooms: Math.max(1, Math.min(people, v)) })
   const setSpecial = (special: SpecialLine[]) => set({ special })
+  const removeSpecial = (i: number) => {
+    setSpecial(draft.special.filter((_, j) => j !== i))
+    setBadAmounts(new Set())
+    setSpecialRev((r) => r + 1)
+  }
+  const amountValid = (i: number) => (ok: boolean) =>
+    setBadAmounts((prev) => {
+      if (ok !== prev.has(i)) return prev
+      const next = new Set(prev)
+      if (ok) next.delete(i)
+      else next.add(i)
+      return next
+    })
   const clashes = draft.people.filter((p) => p !== meId).map((p) => ({ name: nameOf(p), busy: busyText(candidates.find((c) => c.user_id === p)?.busy ?? [], start, end) })).filter((c) => c.busy)
 
   const send = async () => {
@@ -493,20 +512,16 @@ export function TripRequestPage() {
               aria-label={`Note for ${s.reason}`}
               className="min-w-0 flex-1 bg-transparent text-[13px] text-neutral-900 outline-none placeholder:text-neutral-400"
             />
-            <span className="flex items-center rounded-lg border-[1.5px] border-neutral-200 px-1.5 dark:border-neutral-700">
-              <span className="text-[13px] text-neutral-500">$</span>
-              <input
-                type="number"
-                inputMode="decimal"
-                min={0}
-                step="0.5"
-                value={Number.isFinite(s.amount) ? s.amount : ''}
-                onChange={(e) => setSpecial(draft.special.map((x, j) => (j === i ? { ...x, amount: e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)) } : x)))}
-                aria-label={`Amount for ${s.reason}`}
-                className="h-8 w-14 bg-transparent text-right text-sm font-extrabold tabular-nums text-neutral-900 outline-none"
-              />
-            </span>
-            <button type="button" aria-label={`Remove ${s.reason}`} onClick={() => setSpecial(draft.special.filter((_, j) => j !== i))} className="flex h-6 w-6 items-center justify-center rounded-full text-neutral-500">
+            <MoneyInput
+              key={`${specialRev}-${i}`}
+              size="sm"
+              label={`Amount for ${s.reason}`}
+              value={s.amount}
+              max={10000}
+              onChange={(v) => setSpecial(draft.special.map((x, j) => (j === i ? { ...x, amount: v } : x)))}
+              onValidChange={amountValid(i)}
+            />
+            <button type="button" aria-label={`Remove ${s.reason}`} onClick={() => removeSpecial(i)} className="flex h-6 w-6 items-center justify-center rounded-full text-neutral-500">
               <X className="h-4 w-4" />
             </button>
           </div>

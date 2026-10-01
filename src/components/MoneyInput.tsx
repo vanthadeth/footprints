@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { acceptMoneyText, moneyText, parseMoney } from '@/lib/moneyInput'
 
 /**
@@ -14,6 +14,7 @@ export function MoneyInput({
   min = 0,
   max,
   onValidChange,
+  size = 'md',
 }: {
   value: number
   onChange: (value: number) => void
@@ -22,6 +23,8 @@ export function MoneyInput({
   min?: number
   max: number
   onValidChange?: (ok: boolean) => void
+  /** sm fits inside a list line (special allowance amounts). */
+  size?: 'md' | 'sm'
 }) {
   const [text, setText] = useState(() => moneyText(value))
   const [focused, setFocused] = useState(false)
@@ -34,18 +37,23 @@ export function MoneyInput({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only an outside change of value should rewrite the text
   }, [value])
 
+  // Report validity when it changes; the latest callback is kept so callers can pass an inline one.
+  const report = useRef(onValidChange)
   useEffect(() => {
-    onValidChange?.(ok)
-  }, [ok, onValidChange])
+    report.current = onValidChange
+  })
+  useEffect(() => {
+    report.current?.(ok)
+  }, [ok])
 
   return (
     <span className="flex shrink-0 flex-col items-end gap-1">
       <span
-        className={`flex h-10 w-[116px] items-center rounded-lg border-[1.5px] px-2.5 focus-within:border-brand-500 ${
+        className={`flex items-center rounded-lg border-[1.5px] focus-within:border-brand-500 ${size === 'sm' ? 'h-8 w-[88px] px-1.5' : 'h-10 w-[116px] px-2.5'} ${
           ok ? 'border-neutral-200 dark:border-neutral-700' : 'border-status-danger focus-within:border-status-danger'
         }`}
       >
-        <span className="text-sm font-bold text-neutral-500">$</span>
+        <span className={`font-bold text-neutral-500 ${size === 'sm' ? 'text-[13px]' : 'text-sm'}`}>$</span>
         <input
           type="text"
           inputMode="decimal"
