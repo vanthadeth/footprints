@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { countsText, newTab, scheduleText, tabProblem, whenText } from '../sheetSync'
+import { countsText, newContact, newTab, scheduleText, tabProblem, whenText } from '../sheetSync'
 
 describe('sheet sync page helpers', () => {
   it('says what the schedule means', () => {
@@ -26,5 +26,16 @@ describe('sheet sync page helpers', () => {
     const t = newTab(url, { key: 'Row ID', fields: { balance: 'Balance' } })
     expect(t.key.column).toBe('Row ID')
     expect(tabProblem(t)).toBeNull()
+  })
+
+  it('counts contacts and checks contact slots', () => {
+    expect(countsText({ updated: 2, created: 0, skipped: 0, unchanged: 10, contacts_updated: 3, contacts_created: 1 })).toBe('Updated 2 · added 0 · 10 already up to date · contacts: updated 3, added 1')
+    const url = 'https://docs.google.com/spreadsheets/d/abc/edit'
+    const t = newTab(url, { key: 'ID', fields: {}, contacts: [{ phone: 'PH1', label: 'PH1L', fallback: 'Phone 1' }] }, 'CUS')
+    expect(t.tab).toBe('CUS')
+    expect(tabProblem(t)).toBeNull()
+    expect(tabProblem({ ...t, contacts: [...t.contacts!, newContact(2)] })).toBe('Pick the phone column for each contact')
+    expect(tabProblem({ ...t, key: { column: 'Code', matches: 'code' } })).toBe('Contacts need the key column to be the sheet row ID')
+    expect(newContact(2)).toEqual({ phone: '', label: null, fallback: 'Phone 2' })
   })
 })

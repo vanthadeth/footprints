@@ -6,7 +6,7 @@
 // (supabase/migrations/0105_footprints_sheet_sync.sql), which do the writes.
 //
 // Actions (POST JSON):
-//   { action: 'headers', url }  -> the tab's headers, a sample and suggested mapping
+//   { action: 'headers', url, tab? } -> the tab's headers, a sample and suggested mapping
 //   { action: 'preview' }       -> what a sync would change (rolled back)
 //   { action: 'run' }           -> sync now
 //
@@ -15,7 +15,7 @@
 // against the Vault secret by sheet_sync_token_ok). Deployed with
 // verify_jwt = false because the cron call carries no user JWT.
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
-import { mapTab, mergeRows, parseCsv, resolveProvince, resolveUser, sheetCsvUrl, suggestMapping, type DateOrder, type MappedRow, type RowProblem, type TabConfig } from './parse.ts'
+import { gidForTab, linkGid, mapTab, mergeRows, parseCsv, resolveProvince, resolveUser, sheetCsvUrl, sheetId, suggestMapping, type DateOrder, type MappedRow, type RowProblem, type TabConfig } from './parse.ts'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -30,9 +30,25 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 /** A friendly reason for a failed sync. */
 class SyncError extends Error {}
 
-async function fetchCsv(url: string): Promise<string> {
-  const csvUrl = sheetCsvUrl(url)
-  if (!csvUrl) throw new SyncError('That isn’t a Google Sheets link (docs.google.com/spreadsheets/d/…).')
+/** The gid of a named tab, read from the sheet's htmlview page (shared sheets only). */
+async function tabGid(url: string, tab: string): Promise<string> {
+  let res: Response
+  try {
+    res = await fetch(`https://docs.google.com/spreadsheets/d/${sheetId(url)}/htmlview`, { redirect: 'follow', signal: AbortSignal.timeout(20_000) })
+  } catch {
+    throw new SyncError('Couldn’t reach Google Sheets. Try again in a minute.')
+  }
+  if (res.status === 404) throw new SyncError('Couldn’t find that sheet. Check the link.')
+  if (!res.ok) throw new SyncError('The sheet isn’t shared as “Anyone with the link can view”. Change its sharing in Google Sheets, then try again.')
+  const gid = gidForTab(await res.text(), tab)
+  if (!gid) throw new SyncError(`Couldn’t find a tab named “${tab.trim()}”. Check the name, or open the tab and copy its link instead.`)
+  return gid
+}
+
+async function fetchCsv(url: string, tab?: string | null): Promise<string> {
+  if (!sheetId(url)) throw new SyncError('That isn’t a Google Sheets link (docs.google.com/spreadsheets/d/…).')
+  const gid = !linkGid(url) && tab?.trim() ? await tabGid(url, tab) : null
+  const csvUrl = sheetCsvUrl(url, gid)!
   let res: Response
   try {
     res = await fetch(csvUrl, { redirect: 'follow', signal: AbortSignal.timeout(20_000) })
@@ -89,10 +105,15 @@ function toPayload(
       commune: r.commune ?? null,
       street_address: r.street_address ?? null,
       landmark: r.landmark ?? null,
+      zipcode: r.zipcode ?? null,
+      remarks: r.remarks ?? null,
+      latitude: r.latitude ?? null,
+      longitude: r.longitude ?? null,
       credit_limit: r.credit_limit ?? null,
       owner_id,
       last_purchase_date: r.last_purchase_date ?? null,
       balance_usd: r.balance_usd ?? null,
+      contacts: r.matches === 'sheet_id' ? r.contacts ?? [] : [],
     }
   })
   for (const p of [...unknownPeople].slice(0, 10)) warn(`Salesperson “${p}” doesn’t match one active user, so those customers keep their owner`)
@@ -107,12 +128,12 @@ Deno.serve(async (req) => {
   const who = await caller(req, admin)
   if (!who.ok) return who.res
 
-  const body = (await req.json().catch(() => ({}))) as { action?: string; url?: string }
+  const body = (await req.json().catch(() => ({}))) as { action?: string; url?: string; tab?: string }
   const action = who.schedule ? 'run' : body.action
 
   if (action === 'headers') {
     try {
-      const rows = parseCsv(await fetchCsv(body.url ?? ''))
+      const rows = parseCsv(await fetchCsv(body.url ?? '', body.tab))
       const headers = (rows[0] ?? []).map((h) => h.trim())
       return json({ ok: true, headers, sample: rows.slice(1, 6), rows: Math.max(rows.length - 1, 0), suggested: suggestMapping(headers) })
     } catch (e) {
@@ -127,12 +148,12 @@ Deno.serve(async (req) => {
   const { run_id: runId, tabs, date_order: order } = begun as { run_id: string; tabs: TabConfig[]; date_order: DateOrder }
 
   const problems: RowProblem[] = []
-  const counts = { rows_read: 0, updated: 0, created: 0, unchanged: 0, skipped: 0 }
+  const counts = { rows_read: 0, updated: 0, created: 0, unchanged: 0, skipped: 0, contacts_updated: 0, contacts_created: 0 }
   try {
     const mapped: { rows: MappedRow[]; balanceRows?: 'total' | 'sum' }[] = []
     for (let i = 0; i < tabs.length; i++) {
       const tab = tabs[i]
-      const out = mapTab(parseCsv(await fetchCsv(tab.url)), tab, i + 1, order)
+      const out = mapTab(parseCsv(await fetchCsv(tab.url, tab.tab)), tab, i + 1, order)
       if (out.missing.length) throw new SyncError(`Tab ${i + 1} has no column named ${out.missing.map((m) => `“${m}”`).join(', ')}. Check the sheet or the mapping.`)
       counts.rows_read += out.rows.length
       problems.push(...out.problems)
@@ -149,8 +170,10 @@ Deno.serve(async (req) => {
     for (let i = 0; i < payload.length; i += BATCH) {
       const { data, error } = await admin.rpc('sheet_sync_apply', { p_run: runId, p_rows: payload.slice(i, i + BATCH), p_dry: action === 'preview' })
       if (error) throw new SyncError(error.details || error.message)
-      const c = data as { updated: number; created: number; unchanged: number; skipped: number; skipped_rows: { key: string; reason: string }[] }
+      const c = data as { updated: number; created: number; unchanged: number; skipped: number; contacts_updated: number; contacts_created: number; skipped_rows: { key: string; reason: string }[] }
       counts.updated += c.updated
+      counts.contacts_updated += c.contacts_updated ?? 0
+      counts.contacts_created += c.contacts_created ?? 0
       counts.created += c.created
       counts.unchanged += c.unchanged
       counts.skipped += c.skipped
