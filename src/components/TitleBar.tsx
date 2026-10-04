@@ -44,6 +44,7 @@ const TITLE_KEYS: Record<string, string> = {
   '/trips': 'nav.trips',
   '/trips/new': 'nav.newTrip',
   '/settings/trips': 'nav.tripSettings',
+  '/settings/sheet-sync': 'nav.sheetSync',
 }
 
 

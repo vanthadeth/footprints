@@ -8,6 +8,7 @@ import {
   CalendarRange,
   CheckSquare,
   Clock,
+  FileSpreadsheet,
   Footprints as FootprintsIcon,
   Map as MapIcon,
   History,
@@ -115,7 +116,7 @@ export function homeFor(group: RoleGroup, ctx: NavContext): string {
 export type RowKey =
   | 'trips' | 'tripset' | 'plan' | 'calendar' | 'journey' | 'report' | 'messages' | 'customers' | 'leave' | 'daysoff'
   | 'team' | 'attendance' | 'reports' | 'logs' | 'briefing' | 'flexteam' | 'approvals'
-  | 'allowances' | 'holidays' | 'users' | 'permissions' | 'org' | 'hours' | 'locations' | 'notifications' | 'translations' | 'settings'
+  | 'allowances' | 'holidays' | 'users' | 'permissions' | 'org' | 'hours' | 'locations' | 'notifications' | 'translations' | 'settings' | 'sheetsync'
 
 export interface RowDef {
   key: RowKey
@@ -156,6 +157,7 @@ export const ROW: Record<RowKey, RowDef> = {
   notifications: { key: 'notifications', label: 'Notifications', sub: 'Alerts sent to managers', to: '/notifications', icon: Bell, tone: 'bg-status-danger', needs: admin },
   translations: { key: 'translations', label: 'Translations', sub: 'English and Khmer text', to: '/translations', icon: Languages, tone: 'bg-brand-600', needs: admin },
   settings: { key: 'settings', label: 'System settings', sub: 'Company-wide options', to: '/settings', icon: Settings, tone: 'bg-neutral-600', needs: admin },
+  sheetsync: { key: 'sheetsync', label: 'Google Sheet sync', sub: 'Customers, last purchase and balance from a sheet', to: '/settings/sheet-sync', icon: FileSpreadsheet, tone: 'bg-status-working', needs: admin },
 }
 
 const FOR_YOU: Record<RoleGroup, RowKey[]> = {
@@ -204,7 +206,7 @@ const ROW_FN: [RowKey, FnKey, PartKey][] = [
   ['team', 'team', 'team'], ['attendance', 'team', 'team'], ['reports', 'team', 'team'], ['logs', 'team', 'team'],
   ['users', 'company', 'people'], ['permissions', 'company', 'people'], ['org', 'company', 'people'],
   ['hours', 'company', 'rules'], ['locations', 'company', 'rules'], ['tripset', 'company', 'rules'],
-  ['notifications', 'company', 'system'], ['translations', 'company', 'system'], ['settings', 'company', 'system'],
+  ['notifications', 'company', 'system'], ['translations', 'company', 'system'], ['settings', 'company', 'system'], ['sheetsync', 'company', 'system'],
 ]
 
 /** Which functions come first for each group. */
@@ -251,7 +253,7 @@ export function hubSearch(group: RoleGroup, ctx: NavContext, query: string): (Ro
 }
 
 /** Admin tab: the Administration rows the person can use. */
-export const ADMIN_ROWS: RowKey[] = ['users', 'permissions', 'org', 'hours', 'holidays', 'allowances', 'tripset', 'locations', 'notifications', 'translations', 'settings']
+export const ADMIN_ROWS: RowKey[] = ['users', 'permissions', 'org', 'hours', 'holidays', 'allowances', 'tripset', 'locations', 'notifications', 'translations', 'settings', 'sheetsync']
 
 /** Hub "For you": up to four shortcuts for the group. */
 export function forYou(group: RoleGroup, ctx: NavContext): RowDef[] {

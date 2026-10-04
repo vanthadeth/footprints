@@ -63,6 +63,7 @@ export const km: TranslationKey = {
     newTrip: 'ដំណើរលក់ថ្មី',
     trip: 'ដំណើរលក់',
     editTrip: 'កែដំណើរលក់',
+    sheetSync: 'ធ្វើសមកាលកម្មពី Google Sheet',
     tripSettings: 'ការកំណត់ដំណើរលក់',
     settlement: 'ការទូទាត់',
     leaveAllowances: 'សិទ្ធិច្បាប់ឈប់សម្រាក',

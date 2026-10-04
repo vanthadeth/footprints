@@ -9,9 +9,13 @@ import { useCustomerActivity } from '@/features/customers/useCustomerBook'
 import { CUSTOMER_MANAGEMENT_ENABLED } from '@/lib/featureFlags'
 import { useProfile } from '@/features/auth/useProfile'
 import { ConversationSection } from '@/features/conversations/ConversationSection'
+import { sheetSyncService } from '@/features/sheetSync/sheetSyncService'
 import { LogCallSheet } from '@/features/conversations/LogCallSheet'
 import { conversationsService } from '@/features/conversations/conversationsService'
 import type { ConversationKind } from '@/features/conversations/conversationMeta'
+
+const usd = (n: number) => (n < 0 ? '-' : '') + '$' + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const shortDate = (iso: string) => new Date(iso.length === 10 ? iso + 'T00:00:00Z' : iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: iso.length === 10 ? 'UTC' : 'Asia/Phnom_Penh' })
 
 const STATUS_STYLES: Record<string, string> = {
   active: 'bg-status-working/10 text-status-working',
@@ -46,6 +50,12 @@ function CustomerDetail() {
   const [canLog, setCanLog] = useState(false)
   const [logKind, setLogKind] = useState<ConversationKind | null>(null)
   const [conversationKey, setConversationKey] = useState(0)
+  // When balances last came from the Google Sheet sync ("as of" next to the balance).
+  const [balanceAsOf, setBalanceAsOf] = useState<string | null>(null)
+
+  useEffect(() => {
+    sheetSyncService.balanceAsOf().then(setBalanceAsOf).catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (!id) return
@@ -129,6 +139,21 @@ function CustomerDetail() {
             <p className="mt-1 flex items-center gap-1.5 text-sm text-neutral-500">
               <UserRound className="h-3.5 w-3.5 shrink-0" /> Salesperson: {customer.owner_name}
             </p>
+          )}
+          {(customer.balance_usd != null || customer.last_purchase_date) && (
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <div className="rounded-xl bg-neutral-50 px-3 py-2 dark:bg-neutral-800">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-neutral-500">Balance</p>
+                <p className={`text-[17px] font-extrabold tabular-nums ${customer.balance_usd != null && customer.balance_usd > 0 ? 'text-status-danger' : 'text-neutral-900'}`}>
+                  {customer.balance_usd != null ? usd(customer.balance_usd) : '—'}
+                </p>
+                {customer.balance_usd != null && balanceAsOf && <p className="text-[11px] text-neutral-500">as of {shortDate(balanceAsOf)}</p>}
+              </div>
+              <div className="rounded-xl bg-neutral-50 px-3 py-2 dark:bg-neutral-800">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-neutral-500">Last purchase</p>
+                <p className="text-[17px] font-extrabold text-neutral-900">{customer.last_purchase_date ? shortDate(customer.last_purchase_date) : '—'}</p>
+              </div>
+            </div>
           )}
 
           <div className="mt-4 grid grid-cols-3 gap-2">

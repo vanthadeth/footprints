@@ -50,6 +50,7 @@ const CalendarPage = lazy(() => import('@/pages/CalendarPage').then((m) => ({ de
 const FlexTeamPage = lazy(() => import('@/pages/FlexTeamPage').then((m) => ({ default: m.FlexTeamPage })))
 const DaysOffPage = lazy(() => import('@/pages/DaysOffPage').then((m) => ({ default: m.DaysOffPage })))
 const FlexSettlementPage = lazy(() => import('@/pages/FlexSettlementPage').then((m) => ({ default: m.FlexSettlementPage })))
+const SheetSyncPage = lazy(() => import('@/pages/SheetSyncPage').then((m) => ({ default: m.SheetSyncPage })))
 const AccountPage = lazy(() => import('@/pages/AccountPage').then((m) => ({ default: m.AccountPage })))
 const HubFunctionPage = lazy(() => import('@/pages/HubFunctionPage').then((m) => ({ default: m.HubFunctionPage })))
 const LeavePage = lazy(() => import('@/pages/LeavePage').then((m) => ({ default: m.LeavePage })))
@@ -307,6 +308,14 @@ export const router = createBrowserRouter([
               <TripSettingsPage />
             </Suspense>
           </RequirePermission>
+        ),
+      },
+      {
+        path: '/settings/sheet-sync',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <SheetSyncPage />
+          </Suspense>
         ),
       },
       { path: '/profile', element: <ProfilePage /> },

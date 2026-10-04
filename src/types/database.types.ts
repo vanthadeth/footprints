@@ -1159,6 +1159,7 @@ export type Database = {
       }
       customers: {
         Row: {
+          balance_usd: number | null
           business_type: string | null
           code: string | null
           commune_text: string | null
@@ -1185,6 +1186,7 @@ export type Database = {
           zipcode: string | null
         }
         Insert: {
+          balance_usd?: number | null
           business_type?: string | null
           code?: string | null
           commune_text?: string | null
@@ -1211,6 +1213,7 @@ export type Database = {
           zipcode?: string | null
         }
         Update: {
+          balance_usd?: number | null
           business_type?: string | null
           code?: string | null
           commune_text?: string | null
@@ -2793,6 +2796,137 @@ export type Database = {
           },
         ]
       }
+      sheet_sync_runs: {
+        Row: {
+          created: number
+          errors: Json
+          finished_at: string | null
+          id: string
+          message: string | null
+          rows_read: number
+          skipped: number
+          started_at: string
+          started_by: string | null
+          status: string
+          trigger: string
+          unchanged: number
+          updated: number
+        }
+        Insert: {
+          created?: number
+          errors?: Json
+          finished_at?: string | null
+          id?: string
+          message?: string | null
+          rows_read?: number
+          skipped?: number
+          started_at?: string
+          started_by?: string | null
+          status?: string
+          trigger: string
+          unchanged?: number
+          updated?: number
+        }
+        Update: {
+          created?: number
+          errors?: Json
+          finished_at?: string | null
+          id?: string
+          message?: string | null
+          rows_read?: number
+          skipped?: number
+          started_at?: string
+          started_by?: string | null
+          status?: string
+          trigger?: string
+          unchanged?: number
+          updated?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sheet_sync_runs_started_by_fkey"
+            columns: ["started_by"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "sheet_sync_runs_started_by_fkey"
+            columns: ["started_by"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sheet_sync_runs_started_by_fkey"
+            columns: ["started_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sheet_sync_settings: {
+        Row: {
+          at_time: string
+          date_order: string
+          id: boolean
+          last_synced_at: string | null
+          next_run_at: string | null
+          schedule: string
+          tabs: Json
+          updated_at: string
+          updated_by: string | null
+          weekday: number
+        }
+        Insert: {
+          at_time?: string
+          date_order?: string
+          id?: boolean
+          last_synced_at?: string | null
+          next_run_at?: string | null
+          schedule?: string
+          tabs?: Json
+          updated_at?: string
+          updated_by?: string | null
+          weekday?: number
+        }
+        Update: {
+          at_time?: string
+          date_order?: string
+          id?: boolean
+          last_synced_at?: string | null
+          next_run_at?: string | null
+          schedule?: string
+          tabs?: Json
+          updated_at?: string
+          updated_by?: string | null
+          weekday?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sheet_sync_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "leave_balance_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "sheet_sync_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sheet_sync_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sync_column_maps: {
         Row: {
           id: string
@@ -4351,6 +4485,7 @@ export type Database = {
       }
       customer_directory: {
         Row: {
+          balance_usd: number | null
           business_type: string | null
           commune_name: string | null
           contact_count: number | null
@@ -5710,6 +5845,33 @@ export type Database = {
         }
         Returns: string
       }
+      save_sheet_sync: {
+        Args: {
+          p_at_time: string
+          p_date_order: string
+          p_schedule: string
+          p_tabs: Json
+          p_weekday: number
+        }
+        Returns: {
+          at_time: string
+          date_order: string
+          id: boolean
+          last_synced_at: string | null
+          next_run_at: string | null
+          schedule: string
+          tabs: Json
+          updated_at: string
+          updated_by: string | null
+          weekday: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "sheet_sync_settings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       save_task: {
         Args: {
           p_customer?: string
@@ -5819,6 +5981,26 @@ export type Database = {
         Args: { p_telegram_id: string; p_user_id: string }
         Returns: undefined
       }
+      sheet_balance_as_of: { Args: never; Returns: string }
+      sheet_sync_apply: {
+        Args: { p_dry?: boolean; p_rows: Json; p_run: string }
+        Returns: Json
+      }
+      sheet_sync_begin: {
+        Args: { p_trigger: string; p_user?: string }
+        Returns: Json
+      }
+      sheet_sync_finish: {
+        Args: {
+          p_counts: Json
+          p_errors: Json
+          p_message?: string
+          p_run: string
+          p_status: string
+        }
+        Returns: undefined
+      }
+      sheet_sync_token_ok: { Args: { p_token: string }; Returns: boolean }
       sync_apply: { Args: { p_rows: Json; p_sync: string }; Returns: number }
       sync_clear: {
         Args: {
