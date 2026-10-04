@@ -1,6 +1,6 @@
-import { FIELDS, type FieldKey, type TabConfig } from '../../../supabase/functions/sheet-sync/parse'
+import { FIELDS, MAX_CONTACTS, type ContactSlot, type FieldKey, type TabConfig } from '../../../supabase/functions/sheet-sync/parse'
 
-export { FIELDS, type FieldKey, type TabConfig }
+export { FIELDS, MAX_CONTACTS, type ContactSlot, type FieldKey, type TabConfig }
 
 export type Schedule = 'off' | 'hourly' | 'every6h' | 'daily' | 'weekly'
 export type DateOrder = 'dmy' | 'mdy'
@@ -27,6 +27,8 @@ export interface SheetSyncRun {
   created: number
   unchanged: number
   skipped: number
+  contacts_updated: number
+  contacts_created: number
   errors: { tab: number; row: number; reason: string }[]
   message: string | null
 }
@@ -36,7 +38,7 @@ export interface SyncResult {
   run_id?: string
   status?: SheetSyncRun['status']
   error?: string
-  counts?: { rows_read: number; updated: number; created: number; unchanged: number; skipped: number }
+  counts?: { rows_read: number; updated: number; created: number; unchanged: number; skipped: number; contacts_updated?: number; contacts_created?: number }
   errors?: SheetSyncRun['errors']
   more_errors?: number
 }
@@ -47,7 +49,7 @@ export interface SheetCheck {
   headers?: string[]
   sample?: string[][]
   rows?: number
-  suggested?: { key: string | null; fields: Partial<Record<FieldKey, string>> }
+  suggested?: { key: string | null; fields: Partial<Record<FieldKey, string>>; contacts?: ContactSlot[] }
 }
 
 export const SCHEDULES: { value: Schedule; label: string }[] = [
@@ -63,8 +65,16 @@ export const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 export const FIELD_GROUPS = ['Customer', 'Contact', 'Address', 'Sales'] as const
 
 /** A blank tab, mapped from a sheet's suggested columns when there are some. */
-export function newTab(url = '', suggested?: SheetCheck['suggested']): TabConfig {
-  return { url, key: { column: suggested?.key ?? '', matches: 'sheet_id' }, fields: { ...(suggested?.fields ?? {}) }, balance_rows: 'total' }
+export function newTab(url = '', suggested?: SheetCheck['suggested'], tab?: string | null): TabConfig {
+  const t: TabConfig = { url, key: { column: suggested?.key ?? '', matches: 'sheet_id' }, fields: { ...(suggested?.fields ?? {}) }, balance_rows: 'total' }
+  if (tab) t.tab = tab
+  if (suggested?.contacts?.length) t.contacts = suggested.contacts.slice(0, MAX_CONTACTS)
+  return t
+}
+
+/** The next empty contact slot: "Phone 2" for the second. */
+export function newContact(n: number): ContactSlot {
+  return { phone: '', label: null, fallback: `Phone ${n}` }
 }
 
 /** "Every day at 06:00" -- what the schedule means in words. */
@@ -94,18 +104,23 @@ export function whenText(iso: string | null): string {
 }
 
 /** "Updated 1,204 · added 12 · skipped 3" (or "would update …" for a preview). */
-export function countsText(c: { updated: number; created: number; skipped: number; unchanged?: number }, preview = false): string {
+export function countsText(c: { updated: number; created: number; skipped: number; unchanged?: number; contacts_updated?: number; contacts_created?: number }, preview = false): string {
   const n = (x: number) => x.toLocaleString('en-US')
   const parts = [`${preview ? 'Would update' : 'Updated'} ${n(c.updated)}`, `${preview ? 'add' : 'added'} ${n(c.created)}`]
   if (c.unchanged) parts.push(`${n(c.unchanged)} already up to date`)
   if (c.skipped) parts.push(`${preview ? 'skip' : 'skipped'} ${n(c.skipped)}`)
+  if (c.contacts_updated || c.contacts_created)
+    parts.push(`contacts: ${preview ? 'would update' : 'updated'} ${n(c.contacts_updated ?? 0)}, ${preview ? 'add' : 'added'} ${n(c.contacts_created ?? 0)}`)
   return parts.join(' · ')
 }
 
-/** Whether a tab is ready to save: a sheet link, a key column, and at least one field. */
+/** Whether a tab is ready to save: a sheet link, a key column, and at least one field or contact. */
 export function tabProblem(t: TabConfig): string | null {
   if (!/^https:\/\/docs\.google\.com\/spreadsheets\/d\/[A-Za-z0-9_-]+/.test(t.url.trim())) return 'Paste a Google Sheets link'
   if (!t.key.column) return 'Pick the column that identifies each customer'
-  if (!Object.values(t.fields).some(Boolean)) return 'Pick at least one column to sync'
+  const contacts = t.contacts ?? []
+  if (contacts.some((c) => !c.phone)) return 'Pick the phone column for each contact'
+  if (contacts.length && t.key.matches !== 'sheet_id') return 'Contacts need the key column to be the sheet row ID'
+  if (!Object.values(t.fields).some(Boolean) && !contacts.length) return 'Pick at least one column to sync'
   return null
 }

@@ -1,19 +1,22 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
-import { AlertTriangle, ChevronDown, ChevronRight, Plus, RefreshCw, Sheet, Trash2 } from 'lucide-react'
+import { AlertTriangle, ChevronDown, ChevronRight, Phone, Plus, RefreshCw, Sheet, Trash2, X } from 'lucide-react'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { useProfile } from '@/features/auth/useProfile'
 import { sheetSyncService } from '@/features/sheetSync/sheetSyncService'
 import {
   FIELD_GROUPS,
   FIELDS,
+  MAX_CONTACTS,
   SCHEDULES,
   WEEKDAYS,
   countsText,
+  newContact,
   newTab,
   scheduleText,
   tabProblem,
   whenText,
+  type ContactSlot,
   type DateOrder,
   type FieldKey,
   type Schedule,
@@ -27,6 +30,7 @@ import {
 const card = 'rounded-2xl bg-white shadow-card'
 const kicker = 'text-[12px] font-extrabold uppercase tracking-wide text-neutral-500'
 const select = 'h-10 w-full min-w-0 rounded-lg border-[1.5px] border-neutral-200 bg-white px-2 text-sm font-semibold text-neutral-900 dark:border-neutral-700'
+const input = 'h-10 w-full min-w-0 rounded-lg border-[1.5px] border-neutral-200 bg-white px-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 dark:border-neutral-700'
 
 const RUN_STATUS: Record<SheetSyncRun['status'], { label: string; tone: string }> = {
   ok: { label: 'Done', tone: 'bg-status-working/10 text-status-working dark:text-emerald-300' },
@@ -65,6 +69,9 @@ function TabCard({ n, tab, check, checking, onChange, onCheck, onRemove }: {
   const [allFields, setAllFields] = useState(() => !Object.values(tab.fields).some(Boolean))
   const mappedCount = Object.values(tab.fields).filter(Boolean).length
   const setField = (k: FieldKey, v: string | null) => onChange({ ...tab, fields: { ...tab.fields, [k]: v } })
+  const contacts = tab.contacts ?? []
+  const setContacts = (cs: ContactSlot[]) => onChange({ ...tab, contacts: cs })
+  const setContact = (i: number, c: Partial<ContactSlot>) => setContacts(contacts.map((x, j) => (j === i ? { ...x, ...c } : x)))
   const col = (name: string | null | undefined) => (name && headers ? headers.indexOf(name) : -1)
   const sample = check?.ok ? (check.sample ?? []).slice(0, 3) : []
   const shown: FieldKey[] = (['shop_name', 'balance', 'last_purchase_date'] as FieldKey[]).filter((k) => tab.fields[k])
@@ -100,7 +107,18 @@ function TabCard({ n, tab, check, checking, onChange, onCheck, onRemove }: {
             {checking ? 'Checking…' : 'Check sheet'}
           </button>
         </div>
-        <p className="text-[12px] leading-snug text-neutral-500">Open the tab in Google Sheets and copy the link from the address bar, so it includes that tab’s #gid.</p>
+        <p className="text-[12px] leading-snug text-neutral-500">Open the tab in Google Sheets and copy the link from the address bar, so it includes that tab’s #gid — or type the tab’s name below.</p>
+        <label className="flex items-center gap-2">
+          <span className="w-[108px] shrink-0 text-[13px] font-semibold text-neutral-700">Tab name</span>
+          <input
+            value={tab.tab ?? ''}
+            onChange={(e) => onChange({ ...tab, tab: e.target.value || null })}
+            placeholder="Optional, e.g. CUS"
+            autoComplete="off"
+            aria-label="Tab name"
+            className={input}
+          />
+        </label>
         {check && !check.ok && <p className="rounded-lg bg-status-danger/10 px-2.5 py-1.5 text-[12.5px] text-status-danger">{check.error}</p>}
         {check?.ok && (
           <p className="text-[12.5px] font-semibold text-status-working dark:text-emerald-300">
@@ -143,6 +161,45 @@ function TabCard({ n, tab, check, checking, onChange, onCheck, onRemove }: {
           {allFields ? `Show only the ${mappedCount} synced column${mappedCount === 1 ? '' : 's'}` : `Show all ${FIELDS.length} fields`}
         </button>
       )}
+
+      <div className="space-y-1.5">
+        <p className={kicker}>Contacts</p>
+        {contacts.length === 0 && <p className="text-[12.5px] leading-snug text-neutral-500">Sync up to three phones per row, each as its own contact (e.g. PH1 + PH1L, PH2 + PH2L).</p>}
+        {contacts.map((c, i) => (
+          <div key={i} className="space-y-1.5 rounded-xl bg-neutral-50 p-2.5 dark:bg-neutral-800" aria-label={`Contact ${i + 1}`} role="group">
+            <div className="flex items-center gap-2">
+              <Phone className="h-3.5 w-3.5 text-neutral-500" aria-hidden />
+              <p className="flex-1 text-[13px] font-extrabold text-neutral-800">Contact {i + 1}</p>
+              <button type="button" onClick={() => setContacts(contacts.filter((_, j) => j !== i))} aria-label={`Remove contact ${i + 1}`} className="flex h-7 w-7 items-center justify-center rounded-full text-neutral-500">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <label className="flex items-center gap-2">
+              <span className="w-[108px] shrink-0 text-[13px] font-semibold text-neutral-700">Phone</span>
+              <HeaderSelect label={`Contact ${i + 1} phone`} value={c.phone} headers={headers} allowNone={false} onChange={(v) => setContact(i, { phone: v ?? '' })} />
+            </label>
+            <label className="flex items-center gap-2">
+              <span className="w-[108px] shrink-0 text-[13px] font-semibold text-neutral-700">Name</span>
+              <HeaderSelect label={`Contact ${i + 1} name`} value={c.label} headers={headers} onChange={(v) => setContact(i, { label: v })} />
+            </label>
+            <label className="flex items-center gap-2">
+              <span className="w-[108px] shrink-0 text-[13px] font-semibold text-neutral-700">If no name</span>
+              <input value={c.fallback} onChange={(e) => setContact(i, { fallback: e.target.value })} aria-label={`Contact ${i + 1} name when empty`} className={input} />
+            </label>
+          </div>
+        ))}
+        {contacts.length > 0 && (
+          <p className="text-[12px] leading-snug text-neutral-500">
+            Each phone becomes its own contact, kept in step by the row ID + #1, #2, #3. A row with no phone leaves that contact as it is.
+            {tab.key.matches !== 'sheet_id' && <b className="text-status-danger"> Contacts need the key column to be the sheet row ID.</b>}
+          </p>
+        )}
+        {contacts.length < MAX_CONTACTS && (
+          <button type="button" onClick={() => setContacts([...contacts, newContact(contacts.length + 1)])} className="flex items-center gap-1 text-[13px] font-extrabold text-brand-600">
+            <Plus className="h-4 w-4" /> Add contact
+          </button>
+        )}
+      </div>
 
       {tab.fields.balance && (
         <div className="space-y-1.5">
@@ -254,11 +311,11 @@ export function SheetSyncPage() {
   const check = async (i: number) => {
     setChecking(i)
     try {
-      const c = await sheetSyncService.check(tabs[i].url)
+      const c = await sheetSyncService.check(tabs[i].url, tabs[i].tab)
       setChecks((prev) => ({ ...prev, [i]: c }))
       // First check of an unmapped tab: take the suggested columns.
-      if (c.ok && !tabs[i].key.column && !Object.values(tabs[i].fields).some(Boolean)) {
-        setTabs((prev) => prev.map((t, j) => (j === i ? { ...newTab(t.url, c.suggested), balance_rows: t.balance_rows } : t)))
+      if (c.ok && !tabs[i].key.column && !Object.values(tabs[i].fields).some(Boolean) && !tabs[i].contacts?.length) {
+        setTabs((prev) => prev.map((t, j) => (j === i ? { ...newTab(t.url, c.suggested, t.tab), balance_rows: t.balance_rows } : t)))
       }
     } catch (e) {
       setChecks((prev) => ({ ...prev, [i]: { ok: false, error: (e as Error).message } }))
@@ -299,7 +356,7 @@ export function SheetSyncPage() {
   return (
     <div className="mx-auto max-w-lg space-y-3 px-4 pb-8 pt-2 md:max-w-2xl md:px-8">
       <p className="px-1 text-[13px] leading-snug text-neutral-500">
-        Keep customers, their last purchase date and balance in step with a Google Sheet. Rows match customers by the key column; new rows become new customers, and customers missing from the sheet are left alone. Empty cells never erase what’s in the app.
+        Keep customers, their contacts, last purchase date and balance in step with a Google Sheet. Rows match customers by the key column; new rows become new customers, and customers missing from the sheet are left alone. Empty cells never erase what’s in the app.
       </p>
       <p className="flex gap-2 rounded-xl bg-status-warn/10 px-3 py-2.5 text-[12.5px] leading-snug text-neutral-800 dark:text-neutral-200">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-status-warn" aria-hidden />

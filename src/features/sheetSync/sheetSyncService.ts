@@ -51,8 +51,8 @@ export const sheetSyncService = {
   },
 
   /** Read a tab's header row, a sample and the suggested mapping. */
-  check(url: string): Promise<SheetCheck> {
-    return invoke<SheetCheck>({ action: 'headers', url })
+  check(url: string, tab?: string | null): Promise<SheetCheck> {
+    return invoke<SheetCheck>({ action: 'headers', url, tab: tab?.trim() || undefined })
   },
 
   /** What a sync would change, without changing anything. */

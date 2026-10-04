@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { mapTab, mergeRows, parseCsv, parseDate, parseMoney, resolveProvince, resolveUser, sheetCsvUrl, suggestMapping } from '../../../../supabase/functions/sheet-sync/parse'
+import { gidForTab, mapTab, mergeRows, parseCsv, parseDate, parseLatLong, parseMoney, resolveProvince, resolveUser, sheetCsvUrl, suggestMapping } from '../../../../supabase/functions/sheet-sync/parse'
 
 describe('sheet csv', () => {
   it('reads quotes, commas and newlines in cells, and a BOM', () => {
@@ -111,5 +111,78 @@ describe('mapping', () => {
     expect(resolveUser('seyha', users)).toBe('u1')
     expect(resolveUser('SEYHA@example.com', users)).toBe('u1')
     expect(resolveUser('Sok Dara', users)).toBeNull()
+  })
+})
+
+// The CUS tab the previous app synced customers and contacts from.
+const CUS_HEADER =
+  'ID,QBID,NAME,BIZ_TYPE,PH1,PH1L,PH2,PH2L,PH3,PH3L,STREET,COMMUNE,DISTRICT,PROVINCE_ID,LANDMARK,LAT/LONG,REMARKS,ASSIGN_TO,ACTIVE,CR,CRTS,MD,MDTS,PREFER_TRUCK_LIST,PIC_ID,CREDIT_LIMIT,EXT_AR_DAY,LAST_VISIT_DATE,LAST_PURCHASE_DATE,BIZ_TYPE_2,ZIPCODE,ZONE,CLASS'
+
+describe('previous app setup (CUS tab)', () => {
+  it('finds a tab by name in the htmlview page', () => {
+    const html =
+      '<ul id="sheet-menu"><li id="sheet-button-0"><a href="#">Read me</a></li><li id="sheet-button-1764533012"><a href="#">CUS</a></li></ul>' +
+      '<script>items.push({name: "Read me", pageUrl: "x", gid: "0",initialSheet: true});items.push({name: "Rock \\u0026 Roll", pageUrl: "y", gid: "77"});</script>'
+    expect(gidForTab(html, 'cus')).toBe('1764533012')
+    expect(gidForTab(html, ' Read  me ')).toBe('0')
+    expect(gidForTab(html, 'Rock & Roll')).toBe('77')
+    expect(gidForTab(html, 'Balances')).toBeNull()
+    expect(sheetCsvUrl('https://docs.google.com/spreadsheets/d/AbC/edit', '1764533012')).toBe('https://docs.google.com/spreadsheets/d/AbC/export?format=csv&gid=1764533012')
+  })
+
+  it('reads a map pin', () => {
+    expect(parseLatLong('11.047996, 103.803276')).toEqual({ lat: 11.047996, lng: 103.803276 })
+    expect(parseLatLong('(13.26,104.12)')).toEqual({ lat: 13.26, lng: 104.12 })
+    expect(parseLatLong('')).toBeNull()
+    expect(parseLatLong('near the market')).toBeUndefined()
+    expect(parseLatLong('200, 10')).toBeUndefined()
+    expect(parseLatLong('0, 0')).toBeUndefined()
+  })
+
+  it('suggests the old mapping, with three phone contacts', () => {
+    const s = suggestMapping(CUS_HEADER.split(','))
+    expect(s.key).toBe('ID')
+    expect(s.contacts).toEqual([
+      { phone: 'PH1', label: 'PH1L', fallback: 'Phone 1' },
+      { phone: 'PH2', label: 'PH2L', fallback: 'Phone 2' },
+      { phone: 'PH3', label: 'PH3L', fallback: 'Phone 3' },
+    ])
+    expect(s.fields).toMatchObject({
+      shop_name: 'NAME', business_type: 'BIZ_TYPE', street_address: 'STREET', commune: 'COMMUNE', district: 'DISTRICT',
+      province: 'PROVINCE_ID', landmark: 'LANDMARK', lat_long: 'LAT/LONG', remarks: 'REMARKS', zipcode: 'ZIPCODE',
+      last_purchase_date: 'LAST_PURCHASE_DATE', credit_limit: 'CREDIT_LIMIT',
+    })
+    expect(s.fields.phone).toBeUndefined()
+  })
+
+  it('maps contacts by slot, with the fallback name, skipping empty phones', () => {
+    const csv = `${CUS_HEADER}\n352A33FE,KKG/Chan,Chan Savan,Hardware,016 738 832,,088 905 9000,Dara,,,NR4,Chamkar,Kampong Seila,KKG,By the fork,"11.047996, 103.803276",Call first`
+    const tab = {
+      url: 'x',
+      tab: 'CUS',
+      key: { column: 'ID', matches: 'sheet_id' as const },
+      fields: { shop_name: 'NAME', lat_long: 'LAT/LONG', remarks: 'REMARKS', zipcode: 'ZIPCODE' },
+      contacts: [
+        { phone: 'PH1', label: 'PH1L', fallback: 'Phone 1' },
+        { phone: 'PH2', label: 'PH2L', fallback: 'Phone 2' },
+        { phone: 'PH3', label: 'PH3L', fallback: 'Phone 3' },
+      ],
+    }
+    const out = mapTab(parseCsv(csv), tab, 1, 'dmy')
+    expect(out.missing).toEqual([])
+    expect(out.problems).toEqual([])
+    expect(out.rows[0]).toEqual({
+      key: '352A33FE', matches: 'sheet_id', shop_name: 'Chan Savan', remarks: 'Call first', latitude: 11.047996, longitude: 103.803276,
+      contacts: [
+        { slot: 1, name: 'Phone 1', phone: '016 738 832' },
+        { slot: 2, name: 'Dara', phone: '088 905 9000' },
+      ],
+    })
+    expect(mapTab(parseCsv('ID,NAME\n1,A'), tab, 1, 'dmy').missing).toEqual(['LAT/LONG', 'REMARKS', 'ZIPCODE', 'PH1', 'PH1L', 'PH2', 'PH2L', 'PH3', 'PH3L'])
+    const merged = mergeRows([
+      { rows: [{ key: 'A', matches: 'sheet_id', contacts: [{ slot: 1, name: 'Phone 1', phone: '1' }] }] },
+      { rows: [{ key: 'A', matches: 'sheet_id', latitude: 11, longitude: 104, contacts: [{ slot: 1, name: 'X', phone: '9' }, { slot: 2, name: 'Phone 2', phone: '2' }] }] },
+    ])
+    expect(merged[0]).toEqual({ key: 'A', matches: 'sheet_id', latitude: 11, longitude: 104, contacts: [{ slot: 1, name: 'Phone 1', phone: '1' }, { slot: 2, name: 'Phone 2', phone: '2' }] })
   })
 })
