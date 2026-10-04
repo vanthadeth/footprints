@@ -55,6 +55,7 @@ export const en = {
     newTrip: 'New sales trip',
     trip: 'Sales trip',
     editTrip: 'Edit sales trip',
+    sheetSync: 'Google Sheet sync',
     tripSettings: 'Sales trip settings',
     settlement: 'Settlement',
     leaveAllowances: 'Leave Allowances',

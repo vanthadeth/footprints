@@ -60,7 +60,7 @@ describe('hub', () => {
     const fns = hubFunctions('admin', ctx([], true))
     expect(fns.map((f) => f.key)).toEqual(['company', 'team', 'time', 'sell', 'day'])
     const company = fns[0]
-    expect(company.rows).toHaveLength(9)
+    expect(company.rows).toHaveLength(10)
     expect(company.parts.map((p) => p.title)).toEqual(['People & access', 'Work rules', 'System'])
     expect(fns.find((f) => f.key === 'time')?.parts.map((p) => p.key)).toEqual(['mine', 'team', 'company'])
   })
@@ -80,7 +80,7 @@ describe('hub', () => {
 
   it('shows HR the HR tools and admins everything in Administration', () => {
     expect(forYou('hr', ctx(HR)).map((r) => r.key)).toEqual(['allowances', 'holidays', 'flexteam', 'attendance'])
-    expect(adminRows(ctx([], true))).toHaveLength(11)
+    expect(adminRows(ctx([], true))).toHaveLength(12)
     expect(adminRows(ctx(MANAGER))).toHaveLength(0)
   })
 })
