@@ -2798,6 +2798,8 @@ export type Database = {
       }
       sheet_sync_runs: {
         Row: {
+          contacts_created: number
+          contacts_updated: number
           created: number
           errors: Json
           finished_at: string | null
@@ -2813,6 +2815,8 @@ export type Database = {
           updated: number
         }
         Insert: {
+          contacts_created?: number
+          contacts_updated?: number
           created?: number
           errors?: Json
           finished_at?: string | null
@@ -2828,6 +2832,8 @@ export type Database = {
           updated?: number
         }
         Update: {
+          contacts_created?: number
+          contacts_updated?: number
           created?: number
           errors?: Json
           finished_at?: string | null

@@ -13,7 +13,8 @@
 --   * a tab can be found by name ("tab") instead of a #gid= in its link.
 -- sheet_sync_runs counts contact changes separately.
 --
--- Applied live in two steps (footprints_sheet_sync_contacts,
+-- Applied live in four steps (footprints_sheet_sync_contacts,
+-- footprints_sheet_sync_contacts_save, footprints_sheet_sync_contacts_rows,
 -- footprints_sheet_sync_contacts_apply); this file is their union.
 
 alter table public.sheet_sync_runs
@@ -88,12 +89,13 @@ $function$;
 
 -- ---------------------------------------------------------------- batch rows
 
-drop function app.sheet_rows(jsonb);
-
 -- The rows of one batch, parsed, with the customer each matches (by sheet_id
 -- or code) and whether a non-key code is unique within the batch. Called
 -- repeatedly by sheet_sync_apply, so later calls see customers it created.
-create function app.sheet_rows(p_rows jsonb)
+-- Replaces app.sheet_rows (0105), which sheet_sync_apply no longer calls; a
+-- new name because the row type changed and a drop can't run through the
+-- migration tool.
+create function app.sheet_batch_rows(p_rows jsonb)
 returns table (
   key text, matches text, shop_name text, code text, business_type text, contact_name text, phone text,
   province_code text, province_text text, district text, commune text, street_address text, landmark text,
@@ -125,7 +127,7 @@ as $function$
    where coalesce(btrim(s.key), '') <> '';
 $function$;
 
-revoke execute on function app.sheet_rows(jsonb) from public;
+revoke execute on function app.sheet_batch_rows(jsonb) from public;
 
 -- ---------------------------------------------------------------- apply
 
@@ -163,7 +165,7 @@ begin
            coalesce(jsonb_agg(jsonb_build_object('key', r.key, 'reason', 'New row has no shop name'))
                       filter (where r.customer_id is null and coalesce(btrim(r.shop_name), '') = ''), '[]'::jsonb)
       into v_matched, v_skipped
-      from app.sheet_rows(p_rows) r;
+      from app.sheet_batch_rows(p_rows) r;
 
     -- Updates: only customers whose values actually change.
     with n as (
@@ -187,7 +189,7 @@ begin
              coalesce(r.owner_id, c.owner_id) as owner_id,
              coalesce(r.last_purchase_date, c.last_purchase_date) as last_purchase_date,
              coalesce(round(r.balance_usd, 2), c.balance_usd) as balance_usd
-        from app.sheet_rows(p_rows) r
+        from app.sheet_batch_rows(p_rows) r
         join public.customers c on c.id = r.customer_id
     ), upd as (
       update public.customers c
@@ -226,7 +228,7 @@ begin
              nullif(btrim(r.zipcode), ''), nullif(btrim(r.remarks), ''), r.latitude, r.longitude,
              coalesce(case when r.credit_limit >= 0 then round(r.credit_limit, 2) end, app.default_credit_limit()),
              r.owner_id, r.last_purchase_date, round(r.balance_usd, 2), v_user, 'active'
-        from app.sheet_rows(p_rows) r
+        from app.sheet_batch_rows(p_rows) r
        where r.customer_id is null and coalesce(btrim(r.shop_name), '') <> ''
       returning id
     )
@@ -236,7 +238,7 @@ begin
     with first_contact as (
       select distinct on (x.customer_id) x.id, x.customer_id
         from public.customer_contacts x
-       where x.active and x.customer_id in (select r.customer_id from app.sheet_rows(p_rows) r)
+       where x.active and x.customer_id in (select r.customer_id from app.sheet_batch_rows(p_rows) r)
        order by x.customer_id, x.is_primary desc, x.sort_order, x.created_at
     ), changed as (
       update public.customer_contacts x
@@ -244,7 +246,7 @@ begin
              phone = coalesce(nullif(btrim(r.phone), ''), x.phone),
              updated_at = now()
         from first_contact f
-        join app.sheet_rows(p_rows) r on r.customer_id = f.customer_id
+        join app.sheet_batch_rows(p_rows) r on r.customer_id = f.customer_id
        where x.id = f.id
          and (coalesce(nullif(btrim(r.contact_name), ''), x.name), coalesce(nullif(btrim(r.phone), ''), x.phone))
              is distinct from (x.name, x.phone)
@@ -257,7 +259,7 @@ begin
     with added as (
       insert into public.customer_contacts (customer_id, name, phone, sort_order)
       select r.customer_id, coalesce(nullif(btrim(r.contact_name), ''), btrim(c.shop_name)), nullif(btrim(r.phone), ''), 0
-        from app.sheet_rows(p_rows) r
+        from app.sheet_batch_rows(p_rows) r
         join public.customers c on c.id = r.customer_id
        where (nullif(btrim(r.phone), '') is not null or nullif(btrim(r.contact_name), '') is not null)
          and not exists (select 1 from public.customer_contacts x where x.customer_id = r.customer_id and x.active)
@@ -273,7 +275,7 @@ begin
              btrim(r.key) || '#' || (e ->> 'slot') as sheet_id,
              coalesce(nullif(btrim(e ->> 'name'), ''), 'Phone ' || (e ->> 'slot')) as name,
              btrim(e ->> 'phone') as phone
-        from app.sheet_rows(p_rows) r
+        from app.sheet_batch_rows(p_rows) r
         cross join lateral jsonb_array_elements(r.contacts) e
        where r.matches = 'sheet_id' and r.customer_id is not null
          and (e ->> 'slot') ~ '^[1-3]$' and nullif(btrim(e ->> 'phone'), '') is not null
@@ -293,7 +295,7 @@ begin
              coalesce(nullif(btrim(e ->> 'name'), ''), 'Phone ' || (e ->> 'slot')) as name,
              btrim(e ->> 'phone') as phone,
              (e ->> 'slot')::integer as slot
-        from app.sheet_rows(p_rows) r
+        from app.sheet_batch_rows(p_rows) r
         cross join lateral jsonb_array_elements(r.contacts) e
        where r.matches = 'sheet_id' and r.customer_id is not null
          and (e ->> 'slot') ~ '^[1-3]$' and nullif(btrim(e ->> 'phone'), '') is not null

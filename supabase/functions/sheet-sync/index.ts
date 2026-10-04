@@ -8,7 +8,7 @@
 // Actions (POST JSON):
 //   { action: 'headers', url, tab? } -> the tab's headers, a sample and suggested mapping
 //   { action: 'preview' }       -> what a sync would change (rolled back)
-//   { action: 'run' }           -> sync now
+//   { action: 'run' }           -> sync now (the only action with the token, besides preview)
 //
 // Who may call: a signed-in Super Admin (Authorization: Bearer <user JWT>),
 // or the sheet-sync cron job with the x-sheet-sync-token header (checked
@@ -129,7 +129,8 @@ Deno.serve(async (req) => {
   if (!who.ok) return who.res
 
   const body = (await req.json().catch(() => ({}))) as { action?: string; url?: string; tab?: string }
-  const action = who.schedule ? 'run' : body.action
+  // The token caller (cron) runs the sync; it may ask for a preview instead, never headers.
+  const action = who.schedule ? (body.action === 'preview' ? 'preview' : 'run') : body.action
 
   if (action === 'headers') {
     try {
