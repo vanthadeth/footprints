@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BarChart3, CalendarRange, CheckSquare, ChevronRight, MapPin, UserX, type LucideIcon } from 'lucide-react'
 import { TeamPulseCard } from '@/features/fleet/TeamPulse'
+import { DAY_BAR_LEGEND, daySegments } from '@/features/fleet/dayBar'
+import { DayBar, DayBarSwatch } from '@/features/fleet/DayBar'
 import { useFleet } from '@/features/fleet/useFleet'
 import { flexService, type FlexTeamRow } from '@/features/flex/flexService'
 import { useRoleGroup } from '@/features/nav/useRoleGroup'
@@ -97,9 +99,20 @@ export function TeamHomePage() {
 
   const count = (k: Filter) => (k === 'all' ? field.length : field.filter((s) => statusOf(s) === k).length)
   const shown = field.filter((s) => filter === 'all' || statusOf(s) === filter)
-  const [eh, em] = settings.workEndTime.split(':').map(Number)
-  const dayStart = new Date(`${today}T${settings.workStartTime.slice(0, 5)}:00+07:00`).getTime()
-  const dayEnd = Math.max(new Date(`${today}T${String(eh).padStart(2, '0')}:${String(em).padStart(2, '0')}:00+07:00`).getTime(), now)
+  // One time range for every bar, so they line up under the ticks: half an hour before the shift to its end,
+  // stretched for anyone who clocked in earlier or is still working later.
+  const shiftStart = new Date(`${today}T${settings.workStartTime.slice(0, 5)}:00+07:00`).getTime()
+  const shiftEnd = new Date(`${today}T${settings.workEndTime.slice(0, 5)}:00+07:00`).getTime()
+  const clocked = field.filter((s) => s.attendance).map((s) => s.attendance!)
+  const rangeFrom = Math.min(shiftStart - 30 * 60_000, ...clocked.map((a) => Date.parse(a.clock_in_at)))
+  const rangeTo = Math.max(shiftEnd, ...clocked.map((a) => (a.clock_out_at ? Date.parse(a.clock_out_at) : now)))
+  const tickAt = (ms: number) => ((ms - rangeFrom) / (rangeTo - rangeFrom)) * 100
+  const noon = new Date(`${today}T12:00:00+07:00`).getTime()
+  const ticks = [
+    { at: shiftStart, label: settings.workStartTime.slice(0, 5) },
+    ...(noon > shiftStart + 90 * 60_000 && noon < shiftEnd - 90 * 60_000 ? [{ at: noon, label: '12:00' }] : []),
+    { at: shiftEnd, label: settings.workEndTime.slice(0, 5) },
+  ]
 
   return (
     <div className="mx-auto max-w-lg space-y-3 px-4 pb-8 pt-1 md:max-w-3xl md:px-8">
@@ -154,6 +167,15 @@ export function TeamHomePage() {
             )
           })}
         </div>
+        {shown.some((s) => statusOf(s) !== 'leave') && (
+          <div aria-hidden className="relative ml-12 mt-3 h-3.5 text-[10px] font-semibold text-neutral-500">
+            {ticks.map((k, i) => (
+              <span key={k.label} className="absolute whitespace-nowrap" style={{ left: `${tickAt(k.at).toFixed(2)}%`, transform: `translateX(${i === ticks.length - 1 && tickAt(k.at) > 90 ? '-100%' : '-50%'})` }}>
+                {k.label}
+              </span>
+            ))}
+          </div>
+        )}
         {loading && field.length === 0 && <div className="mt-2 h-24 animate-pulse rounded-xl bg-neutral-100" />}
         {shown.map((s) => {
           const st = statusOf(s)
@@ -172,8 +194,21 @@ export function TeamHomePage() {
                   : s.attendance?.clock_out_at
                     ? `Clocked out ${formatTime(s.attendance.clock_out_at)}`
                     : 'Not clocked in'
-          const pos = (t: number) => `${Math.min(100, Math.max(0, ((t - dayStart) / (dayEnd - dayStart)) * 100)).toFixed(2)}%`
-          const width = (a: number, b: number) => `${Math.max(0.8, ((Math.min(b, dayEnd) - Math.max(a, dayStart)) / (dayEnd - dayStart)) * 100).toFixed(2)}%`
+          const segs =
+            st === 'leave'
+              ? []
+              : daySegments({
+                  clockIn: s.attendance ? Date.parse(s.attendance.clock_in_at) : null,
+                  clockOut: s.attendance?.clock_out_at ? Date.parse(s.attendance.clock_out_at) : null,
+                  visits: done.map((v) => [Date.parse(v.checked_in_at), v.checked_out_at ? Date.parse(v.checked_out_at) : null]),
+                  shiftStart,
+                  shiftEnd,
+                  now,
+                  flagAfterMin: settings.idleAlertThresholdMinutes,
+                })
+          const barLabel = s.attendance
+            ? `Clocked in ${formatTime(s.attendance.clock_in_at)}, ${done.length} ${done.length === 1 ? 'visit' : 'visits'}, ${formatDuration(visitMs, language)} on visits`
+            : `No clock-in since ${settings.workStartTime.slice(0, 5)}`
           return (
             <Link key={s.member.id} to={`/fleet?member=${s.member.id}`} className="flex items-start gap-3 border-t border-neutral-100 py-2.5 first-of-type:border-t-0 dark:border-neutral-800">
               <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-[12px] font-extrabold text-brand-700 dark:bg-brand-500/20 dark:text-brand-100">
@@ -189,29 +224,18 @@ export function TeamHomePage() {
                   <span className={`truncate text-xs ${st === 'notin' ? 'font-semibold text-status-danger' : 'text-neutral-500'}`}>{sub}</span>
                   {eff != null && <span className={`shrink-0 text-xs font-bold ${eff >= 25 ? 'text-status-working' : 'text-status-warn'}`}>{eff}% effective</span>}
                 </span>
-                {s.attendance && (
-                  <span role="img" aria-label={`Clocked in ${formatTime(s.attendance.clock_in_at)}, ${done.length} visits`} className="relative mt-1.5 block h-2 overflow-hidden rounded-full bg-neutral-100">
-                    <span className="absolute inset-y-0 bg-neutral-300 dark:bg-neutral-600" style={{ left: pos(Date.parse(s.attendance.clock_in_at)), width: width(Date.parse(s.attendance.clock_in_at), s.attendance.clock_out_at ? Date.parse(s.attendance.clock_out_at) : now) }} />
-                    {done.map((v) => (
-                      <span key={v.id} className="absolute inset-y-0 bg-brand-500" style={{ left: pos(Date.parse(v.checked_in_at)), width: width(Date.parse(v.checked_in_at), v.checked_out_at ? Date.parse(v.checked_out_at) : now) }} />
-                    ))}
-                  </span>
-                )}
+                {segs.length > 0 && <DayBar segs={segs} from={rangeFrom} to={rangeTo} label={barLabel} />}
               </span>
             </Link>
           )
         })}
         {!loading && shown.length === 0 && <p className="py-3 text-[13px] text-neutral-500">Nobody here right now.</p>}
-        <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-neutral-500">
-          <span className="inline-flex items-center gap-1.5">
-            <span className="h-2 w-3 rounded-sm bg-brand-500" /> Visit
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="h-2 w-3 rounded-sm bg-neutral-300 dark:bg-neutral-600" /> Travel / gaps
-          </span>
-          <span className="ml-auto">
-            {settings.workStartTime.slice(0, 5)} – {settings.workEndTime.slice(0, 5)}
-          </span>
+        <div className="mt-1 flex flex-wrap gap-x-3.5 gap-y-1.5 border-t border-neutral-100 pt-2.5 text-[11px] text-neutral-500 dark:border-neutral-800">
+          {DAY_BAR_LEGEND.map(([k, l]) => (
+            <span key={k} className="inline-flex items-center gap-1.5">
+              <DayBarSwatch kind={k} /> {l}
+            </span>
+          ))}
         </div>
       </section>
 

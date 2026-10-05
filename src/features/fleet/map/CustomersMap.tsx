@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import { Marker, Popup } from 'react-leaflet'
 import { MapView } from '@/features/maps/MapView'
 import { pinIcon } from '@/features/maps/markers'
+import { ClusterLayer } from '@/features/maps/ClusterLayer'
+import { MAX_PINS } from '@/features/maps/cluster'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { useCustomers } from '@/features/customers/useCustomers'
 import { useFleetHistory } from '@/features/reports/useFleetHistory'
@@ -28,6 +30,7 @@ function dateInZone(iso: string): string {
 export function CustomersMap({ team }: { team: TeamMember[] }) {
   const [period, setPeriod] = useState<Period>('this_week')
   const [show, setShow] = useState<Record<CoverageStatus, boolean>>({ visited: true, unvisited: true, overdue: true })
+  const [bubbles, setBubbles] = useState(0)
   const range = useMemo(() => getPresetRange(period), [period])
   const { customers, loading: customersLoading } = useCustomers()
   const { visits, loading: visitsLoading } = useFleetHistory(
@@ -57,7 +60,10 @@ export function CustomersMap({ team }: { team: TeamMember[] }) {
   const counts = { visited: 0, unvisited: 0, overdue: 0 }
   for (const c of located) counts[coverage[c.id!]?.status ?? 'unvisited'] += 1
   const total = located.length || 1
-  const pins = located.filter((c) => show[coverage[c.id!]?.status ?? 'unvisited'])
+  const statusOf = (c: (typeof located)[number]) => coverage[c.id!]?.status ?? 'unvisited'
+  const pins = useMemo(() => located.filter((c) => show[coverage[c.id!]?.status ?? 'unvisited']), [located, coverage, show])
+  // Fit to every customer once, not on every filter toggle.
+  const fitPoints = useMemo(() => located.map((c) => [c.latitude!, c.longitude!] as [number, number]), [located])
   const needs = located
     .filter((c) => coverage[c.id!]?.status !== 'visited')
     .sort((a, b) => {
@@ -82,25 +88,49 @@ export function CustomersMap({ team }: { team: TeamMember[] }) {
       />
 
       {pins.length > 0 ? (
-        <MapView points={pins.map((c) => [c.latitude!, c.longitude!])} height={340}>
-          {pins.map((c) => {
-            const cov = coverage[c.id!]
-            const st = STATUS[cov.status]
-            return (
-              <Marker key={c.id} position={[c.latitude!, c.longitude!]} icon={pinIcon(st.color, { size: 26, label: st.glyph })} zIndexOffset={cov.status === 'overdue' ? 500 : 0}>
-                <Popup>
-                  <div className="space-y-0.5 text-sm">
-                    <p className="font-bold">{c.shop_name}</p>
-                    <p className="text-neutral-600">
-                      {st.label} · {cov.daysSince === null ? 'never visited' : cov.daysSince === 0 ? 'visited today' : `last visit ${cov.daysSince} days ago`}
+        <div className="space-y-1.5">
+          <MapView points={fitPoints} height={340}>
+            <ClusterLayer
+              items={pins}
+              position={(c) => [c.latitude!, c.longitude!]}
+              segments={(list) => (['overdue', 'unvisited', 'visited'] as const).map((k) => ({ color: STATUS[k].color, count: list.filter((c) => statusOf(c) === k).length }))}
+              onGroup={(_, n) => setBubbles(n)}
+              renderGroup={(list) => (
+                <div className="max-h-48 space-y-1 overflow-y-auto text-sm">
+                  <p className="font-bold">{list.length} customers at this spot</p>
+                  {list.slice(0, 12).map((c) => (
+                    <p key={c.id} className="flex items-center gap-1.5 text-neutral-700">
+                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: STATUS[statusOf(c)].color }} />
+                      {c.shop_name}
                     </p>
-                    {c.owner_name && <p className="text-xs text-neutral-500">Owner: {c.owner_name}</p>}
-                  </div>
-                </Popup>
-              </Marker>
-            )
-          })}
-        </MapView>
+                  ))}
+                  {list.length > 12 && <p className="text-xs text-neutral-500">+ {list.length - 12} more</p>}
+                </div>
+              )}
+              renderPin={(c) => {
+                const cov = coverage[c.id!]
+                const st = STATUS[cov.status]
+                return (
+                  <Marker key={c.id} position={[c.latitude!, c.longitude!]} icon={pinIcon(st.color, { size: 26, label: st.glyph })} zIndexOffset={cov.status === 'overdue' ? 500 : 0}>
+                    <Popup>
+                      <div className="space-y-0.5 text-sm">
+                        <p className="font-bold">{c.shop_name}</p>
+                        <p className="text-neutral-600">
+                          {st.label} · {cov.daysSince === null ? 'never visited' : cov.daysSince === 0 ? 'visited today' : `last visit ${cov.daysSince} days ago`}
+                        </p>
+                        {c.owner_name && <p className="text-xs text-neutral-500">Owner: {c.owner_name}</p>}
+                      </div>
+                    </Popup>
+                  </Marker>
+                )
+              }}
+            />
+          </MapView>
+          <p className="px-0.5 text-xs text-neutral-500">
+            {pins.length.toLocaleString('en-US')} customers on the map
+            {bubbles > 0 ? ` · nearby shops are grouped (at most ${MAX_PINS} pins) — tap a circle to zoom in` : ''}
+          </p>
+        </div>
       ) : (
         <div className="flex h-[200px] items-center justify-center rounded-xl2 bg-neutral-100 text-sm text-neutral-500">
           {loading ? 'Loading customers…' : 'No customers with a location to show'}
