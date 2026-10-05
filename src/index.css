@@ -228,9 +228,9 @@
   }
 }
 
-/* Public-holiday cells in the attendance summaries. */
+/* Public-holiday cells in every calendar (striped; leave is a plain grey cell). */
 .holiday-stripes {
-  background: repeating-linear-gradient(135deg, rgba(150, 112, 63, 0.18) 0 4px, transparent 4px 8px);
+  background: repeating-linear-gradient(135deg, rgba(120, 120, 120, 0.22) 0 4px, transparent 4px 8px);
 }
 
 /* Leaflet sets its own Helvetica stack on maps, popups and tooltips; keep
