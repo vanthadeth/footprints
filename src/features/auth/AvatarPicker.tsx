@@ -15,12 +15,15 @@ export function AvatarPicker({
   photoPath,
   onUploaded,
   initials,
+  large = false,
 }: {
   userId: string
   photoPath: string | null
   onUploaded: () => void
   /** Shown on a brand-blue circle when there's no photo yet. */
   initials?: string
+  /** The profile page's big 104px avatar (canvas Polish › Profile): gradient fill, a card-coloured ring and a white camera badge. */
+  large?: boolean
 }) {
   const url = useAvatarUrl(photoPath)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -47,7 +50,13 @@ export function AvatarPicker({
 
   return (
     <div className="relative inline-block">
-      <div className={`flex h-20 w-20 items-center justify-center overflow-hidden rounded-full ${initials ? 'bg-brand-500 text-2xl font-extrabold text-white' : 'bg-brand-50 text-brand-500'}`}>
+      <div
+        className={`flex items-center justify-center overflow-hidden rounded-full ${
+          large
+            ? 'h-[104px] w-[104px] bg-gradient-to-b from-[#45A5FF] to-[#006ACC] text-4xl font-extrabold text-white shadow-[0_0_0_5px_#ffffff,0_8px_24px_rgba(0,133,255,.25)] dark:shadow-[0_0_0_5px_#232323]'
+            : `h-20 w-20 ${initials ? 'bg-brand-500 text-2xl font-extrabold text-white' : 'bg-brand-50 text-brand-500'}`
+        }`}
+      >
         {url ? <img src={url} alt="" className="h-full w-full object-cover" /> : initials || <User className="h-10 w-10" aria-hidden />}
       </div>
       <button
@@ -58,9 +67,13 @@ export function AvatarPicker({
         }}
         disabled={uploading}
         aria-label="Change profile picture"
-        className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-brand-500 text-white shadow-card disabled:opacity-60 dark:border-neutral-900"
+        className={
+          large
+            ? 'absolute bottom-0.5 right-0.5 flex h-8 w-8 items-center justify-center rounded-full border-[3px] border-neutral-50 bg-[#ffffff] text-neutral-900 disabled:opacity-60 dark:border-[#1c1c1c] dark:bg-[#232323] dark:text-neutral-100'
+            : 'absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-brand-500 text-white shadow-card disabled:opacity-60 dark:border-neutral-900'
+        }
       >
-        {uploading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Camera className="h-4 w-4" aria-hidden />}
+        {uploading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Camera className={large ? 'h-[15px] w-[15px]' : 'h-4 w-4'} aria-hidden />}
       </button>
       <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleChange} />
       {error && (

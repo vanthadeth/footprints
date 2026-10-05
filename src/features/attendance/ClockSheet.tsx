@@ -10,6 +10,7 @@ import { clockBlock, type ClockBlock } from '@/features/permissions/clockRules'
 import type { RequiredLocation } from '@/features/permissions/permissionsService'
 import { locationService } from '@/features/location/locationService'
 import { useAppSettings } from '@/hooks/useAppSettings'
+import { useLocations } from '@/features/locations/useLocations'
 import { useLanguage } from '@/i18n/LanguageContext'
 import { distanceInMeters } from '@/lib/geo'
 import { formatDuration, formatLongDate, formatTime } from '@/lib/datetime'
@@ -37,6 +38,7 @@ function placeAt(required: RequiredLocation[], lat: number, lng: number): string
 export function ClockSheet({ open, direction, required, onClose }: { open: boolean; direction: Direction; required: RequiredLocation[]; onClose: () => void }) {
   const journey = useJourneyContext()
   const settings = useAppSettings()
+  const { locations } = useLocations()
   const { t, language } = useLanguage()
   const [loc, setLoc] = useState<LocState>({ status: 'checking' })
   const [selfie, setSelfie] = useState<{ blob: Blob; url: string } | null>(null)
@@ -51,7 +53,7 @@ export function ClockSheet({ open, direction, required, onClose }: { open: boole
       if (r.accuracy > settings.maxLocationAccuracyM) return setLoc({ status: 'low', accuracy: r.accuracy })
       const block = clockBlock(required, r)
       if (block) return setLoc({ status: 'blocked', accuracy: r.accuracy, block })
-      setLoc({ status: 'ok', accuracy: r.accuracy, place: placeAt(required, r.latitude, r.longitude) })
+      setLoc({ status: 'ok', accuracy: r.accuracy, place: placeAt(required.length ? required : locations.filter((l) => l.active), r.latitude, r.longitude) })
     } catch {
       setLoc({ status: 'error' })
     }
@@ -146,6 +148,13 @@ export function ClockSheet({ open, direction, required, onClose }: { open: boole
                 <DayStat label={t('nav.visits')} value={String(stats.totalVisits)} border />
                 <DayStat label={t('checkIn.statActive')} value={formatDuration(stats.totalVisitingMs, language)} border />
               </div>
+              {journey.openAttendance && (
+                <div className="mt-3 flex items-center justify-between rounded-xl bg-neutral-50 px-3 py-2 text-[13px] font-bold text-neutral-700">
+                  <span>{t('checkInFlow.inAt', { time: formatTime(journey.openAttendance.clock_in_at) })}</span>
+                  <span className="text-neutral-400">→</span>
+                  <span>{t('checkInFlow.outAt', { time: formatTime(now.toISOString()) })}</span>
+                </div>
+              )}
             </section>
           )}
 
