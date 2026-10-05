@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { Bell, Briefcase, CalendarCheck, ChevronRight, LogOut, Settings, User } from 'lucide-react'
 import { useProfile } from '@/features/auth/useProfile'
@@ -39,8 +40,17 @@ export function ProfileBadge() {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') setOpen(false)
     }
+    // A click anywhere outside the badge and its menu closes it -- the title
+    // bar, the tab bar, or the page under the dimmed backdrop.
+    function onClick(e: MouseEvent) {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false)
+    }
     document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
+    document.addEventListener('click', onClick)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.removeEventListener('click', onClick)
+    }
   }, [open])
 
   const name = profile ? displayName(profile.full_name, profile.nickname) : ''
@@ -61,7 +71,15 @@ export function ProfileBadge() {
 
   return (
     <div ref={rootRef} className="relative">
-      {open && <button type="button" aria-label={t('common.cancel')} onClick={() => setOpen(false)} className="fixed inset-0 z-30 cursor-default bg-[rgba(8,12,20,.42)]" />}
+      {/* Portalled to <body>: the title bar's backdrop-blur makes it the containing block for
+          `fixed` children, so an in-place backdrop would only cover the bar. It sits under the
+          bar (z-10) and tab bar (z-20) so the menu stays on top; clicks on it land here and
+          never reach the page underneath. */}
+      {open &&
+        createPortal(
+          <div aria-hidden onClick={() => setOpen(false)} className="fixed inset-0 z-[9] animate-fade-in bg-[rgba(8,12,20,.42)]" />,
+          document.body
+        )}
       <button
         onClick={() => {
           haptic('light')
