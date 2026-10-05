@@ -1,14 +1,13 @@
-import { lazy, Suspense, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { AlertTriangle, Building2, CalendarDays, CalendarPlus, Check, ChevronDown, ChevronRight, Clock, LogOut, MapPin, Moon, Store, X } from 'lucide-react'
+import { AlertTriangle, CalendarDays, CalendarPlus, Check, ChevronDown, ChevronRight, Clock, LogOut, MapPin, Moon, Store, X } from 'lucide-react'
 import { useJourneyContext } from '@/features/attendance/JourneyContext'
 import type { AttendanceRow, VisitRow } from '@/features/attendance/types'
 import { ClockSheet } from '@/features/attendance/ClockSheet'
 import { computeJourneyStats } from '@/features/attendance/journeyStats'
 import type { DayJourney } from '@/features/attendance/useJourneyHistory'
-import { VisitFlow } from '@/features/visits/VisitFlow'
-import { PlanCard } from '@/features/plan/PlanCard'
-import { CalendarCard } from '@/features/calendar/CalendarCard'
+import { VisitFlow, type PresetCustomer } from '@/features/visits/VisitFlow'
+import { HeroLocationCard, PlanSection, TodayCard, TodaysTimeline, WeekStrip } from '@/features/checkin/CheckInSections'
 import { TripTodayCard } from '@/features/trips/TripTodayCard'
 import { useCustomerNames } from '@/features/customers/useCustomerNames'
 import { useLocationNames } from '@/features/locations/useLocationNames'
@@ -22,10 +21,7 @@ import { todayDateString } from '@/lib/dateRange'
 import { useProfile } from '@/features/auth/useProfile'
 import { useLanguage } from '@/i18n/LanguageContext'
 import { useCan } from '@/features/permissions/PermissionsContext'
-import { joinNames, useClockRules } from '@/features/permissions/clockRules'
-
-// Leaflet stays out of the Check In bundle until the journey card shows.
-const JourneyMap = lazy(() => import('@/features/attendance/JourneyMap').then((m) => ({ default: m.JourneyMap })))
+import { useClockRules } from '@/features/permissions/clockRules'
 
 
 export function CheckInPage() {
@@ -35,6 +31,7 @@ export function CheckInPage() {
   const settings = useAppSettings()
   const [clockSheet, setClockSheet] = useState<'in' | 'out' | null>(null)
   const [flowOpen, setFlowOpen] = useState(false)
+  const [preset, setPreset] = useState<PresetCustomer | null>(null)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const clockRules = useClockRules()
   const canPlan = useCan('plan')
@@ -42,10 +39,10 @@ export function CheckInPage() {
   const leaveToday = useApprovedLeaveOnDate(profile ? [profile.id] : [], todayDateString())[profile?.id ?? ''] as LeaveType | undefined
 
   const autoCheckoutCustomerId = journey.lastAutoCheckout?.visit.customer_id ?? null
-  // Today's finished visits, newest first.
-  const recentVisits = [...journey.todaysVisits]
-    .filter((v) => v.checked_out_at && !v.cancelled_at)
-    .sort((a, b) => b.checked_out_at!.localeCompare(a.checked_out_at!))
+  const openFlow = (p: PresetCustomer | null = null) => {
+    setPreset(p)
+    setFlowOpen(true)
+  }
   const customerNames = useCustomerNames([autoCheckoutCustomerId, journey.openVisit?.customer_id ?? null, ...journey.todaysVisits.map((v) => v.customer_id)])
   // Computed above the loading guard below (hooks can't follow a
   // conditional return) -- summarizeAttendanceTimes handles an empty
@@ -166,7 +163,7 @@ export function CheckInPage() {
             {isVisiting && journey.openVisit ? (
               <button
                 type="button"
-                onClick={() => setFlowOpen(true)}
+                onClick={() => openFlow()}
                 className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-[#ffffff] p-3 text-left"
               >
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white">
@@ -190,7 +187,7 @@ export function CheckInPage() {
             ) : (
               <button
                 type="button"
-                onClick={() => setFlowOpen(true)}
+                onClick={() => openFlow()}
                 disabled={journey.busy}
                 className="mt-3 flex h-[50px] w-full items-center justify-center gap-2 rounded-[14px] bg-[#ffffff] text-base font-extrabold text-[#2b2b2b] disabled:opacity-60"
               >
@@ -296,14 +293,7 @@ export function CheckInPage() {
                   })}
                 </p>
               )}
-              {clockRules.in.length > 0 && (
-                <div className="relative mt-3.5 flex items-center gap-2.5 rounded-[14px] bg-white/[.07] px-3 py-2.5">
-                  <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[9px] bg-white/10">
-                    <Building2 className="h-4 w-4" aria-hidden />
-                  </span>
-                  <span className="min-w-0 flex-1 truncate text-sm font-bold">{t('checkIn.clockInAt', { places: joinNames(clockRules.in) })}</span>
-                </div>
-              )}
+              {canClockIn && <HeroLocationCard required={clockRules.in} />}
               <button
                 type="button"
                 onClick={() => setClockSheet('in')}
@@ -330,23 +320,31 @@ export function CheckInPage() {
         )}
 
         <TripTodayCard />
-        {canPlan && <PlanCard />}
-        <CalendarCard />
-
-        {recentVisits.length > 0 && <RecentVisits visits={recentVisits} customerNames={customerNames} showJourney={canFootprints} />}
-
-        {canFootprints && journey.todaysAttendance.length > 0 && (
-          <div className="overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-card">
-            <Suspense fallback={<div className="h-[180px] animate-pulse bg-neutral-100" />}>
-              <JourneyMap visits={journey.todaysVisits.filter((v) => !v.cancelled_at)} attendance={journey.todaysAttendance} customerNames={customerNames} height={180} />
-            </Suspense>
-          </div>
+        {isClockedIn ? (
+          /* On shift: the next stop and the plan (or a nudge to build one), then today as a timeline. */
+          <>
+            {canPlan && <PlanSection onCheckIn={(stop) => openFlow({ id: stop.customer_id, shopName: stop.shop_name })} busy={journey.busy || isVisiting} />}
+            <TodaysTimeline
+              visits={journey.todaysVisits}
+              customerNames={customerNames}
+              clockInAt={clockInTime}
+              clockInPlace={clockInLocationId ? (locationNames[clockInLocationId] ?? null) : null}
+              shiftStart={settings.workStartTime}
+              showJourney={canFootprints}
+            />
+          </>
+        ) : (
+          /* Before clock-in (or on leave): what today holds, and this week's attendance. */
+          <>
+            <TodayCard canPlan={canPlan} />
+            <WeekStrip />
+          </>
         )}
       </div>
 
       <ClockSheet open={clockSheet !== null} direction={clockSheet ?? 'in'} required={clockSheet === 'out' ? clockRules.out : clockRules.in} onClose={() => setClockSheet(null)} />
 
-      <VisitFlow open={flowOpen} onClose={() => setFlowOpen(false)} />
+      <VisitFlow open={flowOpen} onClose={() => setFlowOpen(false)} presetCustomer={preset} />
     </div>
   )
 }
@@ -396,41 +394,6 @@ function DayBar({ attendance, visits, workStart, workEnd }: { attendance: Attend
         <span key={`v${a}`} className="absolute inset-y-0 rounded-[4px] bg-[#5aa2ea]" style={{ left: pct(a), width: width(a, b) }} />
       ))}
     </div>
-  )
-}
-
-function RecentVisits({ visits, customerNames, showJourney }: { visits: VisitRow[]; customerNames: Record<string, string>; showJourney: boolean }) {
-  const { t, language } = useLanguage()
-  return (
-    <section aria-label={t('checkIn.todaysVisits', { n: visits.length })} className="rounded-2xl border border-neutral-100 bg-white px-3.5 pb-1.5 pt-1 shadow-card">
-      <div className="flex items-center justify-between pb-2 pt-2.5">
-        <p className="text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">{t('checkIn.todaysVisits', { n: visits.length })}</p>
-        {showJourney && (
-          <Link to="/footprints" className="text-[13px] font-bold text-brand-500">
-            {t('checkIn.fullJourney').replace(' ›', '')}
-          </Link>
-        )}
-      </div>
-      {visits.map((v) => {
-        const duration = formatDuration(new Date(v.checked_out_at!).getTime() - new Date(v.checked_in_at).getTime(), language)
-        const flagged = (v.flags?.length ?? 0) > 0 || v.out_of_range
-        return (
-          <div key={v.id} className="flex items-center gap-3 border-t border-neutral-100 py-2.5">
-            <span className="w-11 shrink-0 text-right text-xs font-bold tabular-nums text-neutral-500">{formatTime(v.checked_in_at)}</span>
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-brand-50 text-brand-500">
-              <Store className="h-[18px] w-[18px]" aria-hidden />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-bold text-neutral-900">
-                {v.customer_id ? (customerNames[v.customer_id] ?? t('common.loading')) : t('common.unassignedVisit')}
-              </span>
-              <span className="block text-xs text-neutral-500">{duration}</span>
-            </span>
-            {flagged && <span className="shrink-0 rounded-full bg-status-warn/10 px-2 py-0.5 text-[11px] font-bold text-status-warn">{t('checkIn.flagged')}</span>}
-          </div>
-        )
-      })}
-    </section>
   )
 }
 

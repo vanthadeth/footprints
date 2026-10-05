@@ -12,6 +12,8 @@ import { LocationError } from '@/features/location/types'
 import { formatDistance } from '@/lib/geo'
 import { formatDate, formatDuration, formatTime } from '@/lib/datetime'
 import { haptic } from '@/lib/haptic'
+import { usePlan } from '@/features/plan/usePlan'
+import { todayDateString } from '@/lib/dateRange'
 import { useVisitOptions } from './useVisitOptions'
 import type { VisitOption, VisitOptionKind } from './visitOptionsService'
 import { visitsService, type NearbyCustomer, type VisitOutcomeDetails } from './visitsService'
@@ -62,6 +64,9 @@ export function VisitFlow({
 }) {
   const journey = useJourneyContext()
   const { byKind } = useVisitOptions()
+  // Today's planned stops get a "Planned" tag in the picker.
+  const { items: planItems } = usePlan(todayDateString())
+  const plannedIds = new Set(planItems.filter((i) => i.status === 'planned').map((i) => i.customer_id))
   const settings = useAppSettings()
 
   const [step, setStep] = useState<Step>(journey.openVisit ? 'record' : presetCustomer ? 'confirm' : 'picker')
@@ -392,7 +397,10 @@ export function VisitFlow({
                             </span>
                             <span className="min-w-0 flex-1">
                               <span className="block truncate text-[15px] font-bold text-neutral-900">{c.shop_name}</span>
-                              <span className="block truncate text-xs text-neutral-500">{[c.business_type, c.street_address].filter(Boolean).join(' · ')}</span>
+                              <span className="flex min-w-0 items-center gap-1.5 text-xs text-neutral-500">
+                                {plannedIds.has(c.id) && <span className="shrink-0 rounded-full bg-brand-50 px-1.5 py-px text-[10.5px] font-bold text-brand-700">Planned</span>}
+                                <span className="truncate">{[c.business_type, c.street_address].filter(Boolean).join(' · ')}</span>
+                              </span>
                             </span>
                             <span className="shrink-0 text-right">
                               <span className={`block text-sm font-bold ${far ? 'text-status-warn' : 'text-neutral-600'}`}>{formatDistance(c.distance_m)}</span>
