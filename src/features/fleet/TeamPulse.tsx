@@ -1,4 +1,5 @@
-import { Banknote, Check, Clock, XCircle, Calendar as CalendarIcon, type LucideIcon } from 'lucide-react'
+import { useState } from 'react'
+import { Banknote, Check, ChevronDown, Clock, XCircle, Calendar as CalendarIcon, type LucideIcon } from 'lucide-react'
 import { useApprovedLeaveOnDate } from '@/features/leave/useApprovedLeaveOnDate'
 import { useVisitOptions } from '@/features/visits/useVisitOptions'
 import { useAppSettings } from '@/hooks/useAppSettings'
@@ -6,14 +7,35 @@ import { todayDateString } from '@/lib/dateRange'
 import { formatTime } from '@/lib/datetime'
 import type { FleetMemberSnapshot } from './types'
 
+const COLLAPSED_KEY = 'footprints-team-pulse-collapsed'
+
+function readCollapsed(): boolean {
+  try {
+    return localStorage.getItem(COLLAPSED_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
 /**
  * "Team today so far" (canvas Polish › Team and Team report): clocked in
  * out of who's due (on time, late, not in) beside today's visits (ordered,
- * paid, appointments set).
+ * paid, appointments set). Collapses to a one-line summary; the choice is
+ * remembered on this device.
  */
 export function TeamPulseCard({ snapshots }: { snapshots: FleetMemberSnapshot[] }) {
   const settings = useAppSettings()
   const { byKind } = useVisitOptions()
+  const [collapsed, setCollapsed] = useState(readCollapsed)
+  const toggle = () => {
+    const next = !collapsed
+    setCollapsed(next)
+    try {
+      localStorage.setItem(COLLAPSED_KEY, next ? '1' : '0')
+    } catch {
+      /* private mode: just don't remember */
+    }
+  }
   const leave = useApprovedLeaveOnDate(
     snapshots.map((s) => s.member.id),
     todayDateString()
@@ -42,29 +64,47 @@ export function TeamPulseCard({ snapshots }: { snapshots: FleetMemberSnapshot[] 
   const appts = visits.filter((v) => v.next_appointment).length
 
   return (
-    <section aria-label="Team today so far" className="rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card">
-      <Pulse
-        label="Clocked in"
-        value={worked.length}
-        of={due}
-        note={onLeave ? `${onLeave} on leave today` : 'Nobody on leave today'}
-        rows={[
-          { label: 'On time', value: worked.length - late, icon: Check, tone: 'text-status-working' },
-          { label: 'Late', value: late, icon: Clock, tone: 'text-status-warn', muteZero: true },
-          { label: 'Not clocked in', value: Math.max(0, due - worked.length), icon: XCircle, tone: 'text-status-danger', muteZero: true },
-        ]}
-      />
-      <Pulse
-        label="Visits"
-        value={visits.length}
-        note="So far today"
-        border
-        rows={[
-          { label: 'Ordered', value: ordered, icon: Check, tone: 'text-status-working' },
-          { label: 'Payment', value: paid, extra: part ? ` · ${part} part` : '', icon: Banknote, tone: 'text-status-working' },
-          { label: 'Appt.', value: appts, icon: CalendarIcon, tone: 'text-status-warn' },
-        ]}
-      />
+    <section aria-label="Team today so far" className="rounded-2xl border border-neutral-100 bg-white px-3.5 pb-3.5 pt-1 shadow-card">
+      <button type="button" onClick={toggle} aria-expanded={!collapsed} aria-controls="team-pulse-body" className="flex w-full items-center gap-2 py-2 text-left">
+        <span className="min-w-0 flex-1">
+          <span className="block text-[12px] font-extrabold uppercase tracking-wide text-neutral-500">Team today so far</span>
+          {collapsed && (
+            <span className="mt-0.5 block truncate text-[14px] font-bold text-neutral-900">
+              {worked.length}/{due} clocked in
+              {late > 0 && <span className="text-status-warn"> · {late} late</span>}
+              {due > worked.length && <span className="text-status-danger"> · {due - worked.length} not in</span>} · {visits.length} {visits.length === 1 ? 'visit' : 'visits'}
+            </span>
+          )}
+        </span>
+        <span className="text-[12.5px] font-bold text-brand-600">{collapsed ? 'Show' : 'Hide'}</span>
+        <ChevronDown className={`h-4 w-4 shrink-0 text-neutral-500 transition-transform ${collapsed ? '' : 'rotate-180'}`} aria-hidden />
+      </button>
+      {!collapsed && (
+        <div id="team-pulse-body">
+          <Pulse
+            label="Clocked in"
+            value={worked.length}
+            of={due}
+            note={onLeave ? `${onLeave} on leave today` : 'Nobody on leave today'}
+            rows={[
+              { label: 'On time', value: worked.length - late, icon: Check, tone: 'text-status-working' },
+              { label: 'Late', value: late, icon: Clock, tone: 'text-status-warn', muteZero: true },
+              { label: 'Not clocked in', value: Math.max(0, due - worked.length), icon: XCircle, tone: 'text-status-danger', muteZero: true },
+            ]}
+          />
+          <Pulse
+            label="Visits"
+            value={visits.length}
+            note="So far today"
+            border
+            rows={[
+              { label: 'Ordered', value: ordered, icon: Check, tone: 'text-status-working' },
+              { label: 'Payment', value: paid, extra: part ? ` · ${part} part` : '', icon: Banknote, tone: 'text-status-working' },
+              { label: 'Appt.', value: appts, icon: CalendarIcon, tone: 'text-status-warn' },
+            ]}
+          />
+        </div>
+      )}
     </section>
   )
 }
