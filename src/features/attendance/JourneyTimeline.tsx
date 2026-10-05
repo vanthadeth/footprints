@@ -1,38 +1,24 @@
 import { type ReactNode, Suspense, lazy, useEffect, useState } from 'react'
 import {
-  AlertTriangle,
   Ban,
-  Banknote,
-  Calendar,
   Check,
+  ChevronLeft,
   ChevronRight,
   Clock,
   Coffee,
-  Coins,
   Link2,
   Loader2,
-  LogIn,
-  LogOut,
-  MapPin,
-  MessageCircleQuestion,
   Pencil,
   Phone,
   RotateCcw,
   Save,
-  ShoppingCart,
-  Store,
-  Tag,
-  Timer,
-  User,
-  Users,
-  Wallet,
-  type LucideIcon,
 } from 'lucide-react'
 import { Circle, Marker } from 'react-leaflet'
 import { BottomSheet } from '@/components/BottomSheet'
 import { FullScreenSheet } from '@/components/FullScreenSheet'
 import { useLanguage } from '@/i18n/LanguageContext'
 import { useJourneyContext } from './JourneyContext'
+import { VisitDetails } from './VisitDetails'
 import { useLocationNames } from '@/features/locations/useLocationNames'
 import { useLocationDetails, type LocationDetail } from '@/features/locations/useLocationDetails'
 import { usePhoneNumbers } from './usePhoneNumbers'
@@ -40,7 +26,7 @@ import { MapView } from '@/features/maps/MapView'
 import { pinIcon } from '@/features/maps/markers'
 import { attendanceService } from './attendanceService'
 import { GAP_FLAG_MAX_DISTANCE_METERS, GAP_FLAG_THRESHOLD_MINUTES, MAX_ACCEPTABLE_LOCATION_ACCURACY_METERS } from '@/lib/config'
-import { formatDate, formatDuration, formatTime } from '@/lib/datetime'
+import { formatDate, formatDuration, formatLongDate, formatTime } from '@/lib/datetime'
 import { distanceInMeters, formatDistance } from '@/lib/geo'
 import { useVisitOptions } from '@/features/visits/useVisitOptions'
 import { visitsService, type VisitOutcomeDetails } from '@/features/visits/visitsService'
@@ -205,6 +191,7 @@ export function JourneyTimeline({ attendance, visits, customerNames, interactive
           key={event.visit.id}
           visit={event.visit}
           index={event.index}
+          total={sortedVisits.length}
           customerName={event.visit.customer_id ? customerNames[event.visit.customer_id] : undefined}
           optionsById={optionsById}
           byKind={byKind}
@@ -434,60 +421,6 @@ function GapEntry({ ms, distanceMeters, offClock = false }: { ms: number; distan
   )
 }
 
-/** A base icon with a diagonal "not/none" slash drawn over it -- one visual
- * language for every negative visit-record state (Nobody, Shop Closed, No
- * Order) instead of mixing an X-mark icon here and a slash there. */
-function SlashedIcon({ icon: Icon, className = 'h-4 w-4' }: { icon: LucideIcon; className?: string }) {
-  return (
-    <span className={`relative inline-block ${className}`}>
-      <Icon className="h-full w-full" />
-      <svg viewBox="0 0 24 24" className="absolute inset-0 h-full w-full">
-        <line x1="4" y1="20" x2="20" y2="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      </svg>
-    </span>
-  )
-}
-
-/** Matches by the option's own label text (admin-configurable, so this is
- * best-effort) -- an unrecognised label still gets a sensible generic tag
- * rather than nothing. */
-function visitStatusIcon(label: string): ReactNode {
-  const key = label.trim().toLowerCase()
-  if (key === 'owner') return <User className="h-4 w-4" />
-  if (key === 'staff') return <Users className="h-4 w-4" />
-  if (key === 'nobody') return <SlashedIcon icon={User} />
-  if (key.startsWith('shop clos')) return <SlashedIcon icon={Store} />
-  return <Tag className="h-4 w-4" />
-}
-
-function orderStatusIcon(label: string): ReactNode {
-  const key = label.trim().toLowerCase()
-  if (key === 'ordered') return <ShoppingCart className="h-4 w-4" />
-  if (key === 'no order') return <SlashedIcon icon={ShoppingCart} />
-  if (key === 'will order') return <MessageCircleQuestion className="h-4 w-4" />
-  return <Tag className="h-4 w-4" />
-}
-
-function paymentStatusIcon(label: string): ReactNode {
-  const key = label.trim().toLowerCase()
-  if (key.includes('full')) return <Wallet className="h-4 w-4" />
-  if (key.includes('part')) return <Coins className="h-4 w-4" />
-  if (key.includes('refuse')) return <AlertTriangle className="h-4 w-4" />
-  return <Tag className="h-4 w-4" />
-}
-
-function RecordRow({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
-  return (
-    <div className="flex items-center gap-2.5">
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-500 dark:bg-neutral-700 dark:text-neutral-300">
-        {icon}
-      </span>
-      <p className="min-w-0 flex-1 truncate text-xs text-neutral-400">{label}</p>
-      <p className="shrink-0 text-xs font-semibold text-neutral-800 dark:text-neutral-200">{value}</p>
-    </div>
-  )
-}
-
 function ChipGroup({
   label,
   options,
@@ -525,6 +458,7 @@ function ChipGroup({
 function VisitEntry({
   visit,
   index,
+  total,
   customerName,
   optionsById,
   byKind,
@@ -533,6 +467,7 @@ function VisitEntry({
 }: {
   visit: VisitRow
   index: number
+  total: number
   customerName: string | undefined
   optionsById: Record<string, VisitOption>
   byKind: Record<VisitOptionKind, VisitOption[]>
@@ -592,7 +527,6 @@ function VisitEntry({
   const visitStatus = visit.visit_status_id ? optionsById[visit.visit_status_id] : undefined
   const orderStatus = visit.order_status_id ? optionsById[visit.order_status_id] : undefined
   const paymentStatus = visit.payment_status_id ? optionsById[visit.payment_status_id] : undefined
-  const hasRecord = visitStatus || orderStatus || paymentStatus || visit.next_appointment || visit.order_amount_usd != null || visit.collected_usd != null
   const summaryLine1 = [visitStatus, orderStatus, paymentStatus]
     .filter((o): o is VisitOption => !!o)
     .map((o) => tValue(`visitOption:${o.id}`, o.label))
@@ -759,8 +693,36 @@ function VisitEntry({
         )}
       </button>
 
-      <BottomSheet open={open} onClose={() => setOpen(false)} title={label}>
-        <div className="space-y-3 p-4">
+      <FullScreenSheet open={open} onClose={() => setOpen(false)} label={label} showClose={false}>
+        <div className="flex h-full flex-col safe-top">
+          <header className="mx-auto grid w-full max-w-md shrink-0 grid-cols-[44px_minmax(0,1fr)_44px] items-center px-3 pb-1.5 pt-2.5">
+            <button
+              type="button"
+              onClick={() => (editing ? handleCancelEdit() : setOpen(false))}
+              aria-label={editing ? t('common.cancel') : t('visitDetails.back')}
+              className="flex h-10 w-10 items-center justify-center rounded-full text-neutral-900 tap-target"
+            >
+              <ChevronLeft className="h-[22px] w-[22px]" />
+            </button>
+            <div className="min-w-0 text-center">
+              <h1 className="truncate text-[17px] font-bold text-neutral-900">{t('visitDetails.title', { n: visit.visit_number ?? index + 1, total })}</h1>
+              <p className="mt-px text-xs text-neutral-500">{formatLongDate(visit.checked_in_at, undefined, language)}</p>
+            </div>
+            {canEditRecord && !showForm ? (
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                aria-label={t('visitDetails.edit')}
+                className="flex h-10 w-10 items-center justify-center rounded-full text-brand-500 tap-target"
+              >
+                <Pencil className="h-5 w-5" />
+              </button>
+            ) : (
+              <span />
+            )}
+          </header>
+        <div className="flex-1 overflow-y-auto">
+        <div className="mx-auto w-full max-w-md space-y-3.5 px-4 pb-8 pt-1 safe-bottom">
           {journey.error && <p className="rounded-lg bg-status-danger/10 px-3 py-2 text-sm text-status-danger">{journey.error}</p>}
           {actionError && <p className="rounded-lg bg-status-danger/10 px-3 py-2 text-sm text-status-danger">{actionError}</p>}
 
@@ -784,52 +746,6 @@ function VisitEntry({
               )}
             </div>
           )}
-
-          <div className="rounded-xl2 border border-neutral-200 p-3 dark:border-neutral-700">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex items-center gap-2.5">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-status-working/10 text-status-working">
-                  <LogIn className="h-4 w-4" />
-                </span>
-                <div className="min-w-0">
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-neutral-400">{t('nav.checkIn')}</p>
-                  <p className="tabular-nums text-sm font-bold text-neutral-900 dark:text-neutral-100">{formatTime(visit.checked_in_at)}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2.5">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-status-visiting/10 text-status-visiting">
-                  <LogOut className="h-4 w-4" />
-                </span>
-                <div className="min-w-0">
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-neutral-400">{t('journey.checkOutLabel')}</p>
-                  <p className="tabular-nums text-sm font-bold text-neutral-900 dark:text-neutral-100">
-                    {visit.checked_out_at ? formatTime(visit.checked_out_at) : '—'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-xl2 border border-neutral-200 p-3 dark:border-neutral-700">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
-                <Timer className="h-3.5 w-3.5 text-earth-500" /> {t('journey.visitDuration')}{' '}
-                <span className="font-semibold text-neutral-800 dark:text-neutral-200">{duration}</span>
-              </p>
-              <p className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
-                <MapPin className={`h-3.5 w-3.5 ${visit.out_of_range ? 'text-status-warn' : 'text-status-working'}`} /> {t('journey.distance')}{' '}
-                <span className={`font-semibold ${visit.out_of_range ? 'text-status-warn' : 'text-neutral-800 dark:text-neutral-200'}`}>
-                  {formatDistance(visit.distance_m)}
-                  {visit.out_of_range && (
-                    <>
-                      {' '}
-                      · {t('checkIn.flagged')}
-                    </>
-                  )}
-                </span>
-              </p>
-            </div>
-          </div>
 
           {!voided &&
             (showForm ? (
@@ -931,59 +847,13 @@ function VisitEntry({
                 )}
               </div>
             ) : (
-              <>
-                {hasRecord ? (
-                  <div className="space-y-2.5 rounded-xl2 border border-neutral-200 p-3 dark:border-neutral-700">
-                    {visitStatus && (
-                      <RecordRow
-                        icon={visitStatusIcon(visitStatus.label)}
-                        label={t('journey.visitStatusRecord')}
-                        value={tValue(`visitOption:${visitStatus.id}`, visitStatus.label)}
-                      />
-                    )}
-                    {orderStatus && (
-                      <RecordRow
-                        icon={orderStatusIcon(orderStatus.label)}
-                        label={t('journey.orderStatusRecord')}
-                        value={tValue(`visitOption:${orderStatus.id}`, orderStatus.label)}
-                      />
-                    )}
-                    {paymentStatus && (
-                      <RecordRow
-                        icon={paymentStatusIcon(paymentStatus.label)}
-                        label={t('journey.paymentStatusRecord')}
-                        value={tValue(`visitOption:${paymentStatus.id}`, paymentStatus.label)}
-                      />
-                    )}
-                    {visit.order_amount_usd != null && (
-                      <RecordRow icon={<Banknote className="h-4 w-4" />} label="Order value" value={formatUsd(visit.order_amount_usd)} />
-                    )}
-                    {visit.collected_usd != null && (
-                      <RecordRow icon={<Banknote className="h-4 w-4" />} label="Collected" value={formatUsd(visit.collected_usd)} />
-                    )}
-                    {visit.next_appointment && (
-                      <RecordRow
-                        icon={<Calendar className="h-4 w-4" />}
-                        label={t('journey.nextVisitRecord')}
-                        value={formatDate(visit.next_appointment)}
-                      />
-                    )}
-                  </div>
-                ) : (
-                  canEditRecord && <p className="text-center text-xs text-neutral-400">{t('journey.noRecordYet')}</p>
-                )}
-
-                <VisitPhotoStrip visitId={visit.id} editable={false} />
-
-                {canEditRecord && (
-                  <button
-                    onClick={() => setEditing(true)}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-neutral-200 py-3 text-sm font-semibold text-neutral-600 tap-target dark:border-neutral-700"
-                  >
-                    <Pencil className="h-4 w-4" /> {hasRecord ? t('journey.editRecord') : t('journey.addRecord')}
-                  </button>
-                )}
-              </>
+              <VisitDetails
+                visit={visit}
+                number={visit.visit_number ?? index + 1}
+                label={label}
+                optionsById={optionsById}
+                editableUntil={canEditRecord ? new Date(new Date(visit.checked_in_at).getTime() + VISIT_EDIT_WINDOW_MS) : null}
+              />
             ))}
 
           {canVoid && !showForm && (
@@ -995,7 +865,9 @@ function VisitEntry({
             </button>
           )}
         </div>
-      </BottomSheet>
+        </div>
+        </div>
+      </FullScreenSheet>
 
       <BottomSheet open={confirmCheckOutOpen} onClose={() => setConfirmCheckOutOpen(false)} title={t('journey.confirmCheckOutTitle')}>
         <div className="p-4">
