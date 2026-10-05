@@ -179,7 +179,7 @@ function SegmentRow({ label, value, options, onChange }: { label: string; value:
                 haptic('light')
                 onChange(k)
               }}
-              className={`h-[26px] whitespace-nowrap rounded-[7px] px-2 text-xs ${on ? 'bg-white font-bold text-neutral-900 shadow-sm dark:bg-neutral-700' : 'font-semibold text-neutral-500'}`}
+              className={`h-[26px] whitespace-nowrap rounded-[7px] px-2 text-xs ${on ? 'seg-on font-bold text-neutral-900 shadow-sm' : 'font-semibold text-neutral-500'}`}
             >
               {text}
             </button>

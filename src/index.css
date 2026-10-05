@@ -71,6 +71,13 @@
 }
 
 @layer utilities {
+  /* The selected option of a segmented control / tab strip. */
+  .seg-on {
+    background-color: #ffffff;
+  }
+  html.dark .seg-on {
+    background-color: #3a3a3a;
+  }
   .safe-top {
     padding-top: env(safe-area-inset-top);
   }

@@ -100,7 +100,7 @@ export function JourneyHistoryReport({ userId, interactive, subtitle }: { userId
               role="tab"
               aria-selected={tab === k}
               onClick={() => setTab(k)}
-              className={`h-9 flex-1 rounded-[9px] text-[13px] ${tab === k ? 'bg-white font-bold text-neutral-900 shadow-sm dark:bg-neutral-700' : 'font-semibold text-neutral-500'}`}
+              className={`h-9 flex-1 rounded-[9px] text-[13px] ${tab === k ? 'seg-on font-bold text-neutral-900 shadow-sm' : 'font-semibold text-neutral-500'}`}
             >
               {k === 'summary' ? t('footprints.summaryTab') : t('footprints.footprintsTab')}
             </button>

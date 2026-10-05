@@ -93,7 +93,7 @@ export function LoginPage() {
                       haptic('light')
                       setLanguage(l.code)
                     }}
-                    className={`h-7 rounded-full px-3 text-xs ${on ? 'bg-white font-bold text-neutral-900 shadow-sm dark:bg-neutral-700' : 'font-semibold text-neutral-500'}`}
+                    className={`h-7 rounded-full px-3 text-xs ${on ? 'seg-on font-bold text-neutral-900 shadow-sm' : 'font-semibold text-neutral-500'}`}
                   >
                     {l.code === 'en' ? 'EN' : l.nativeLabel}
                   </button>
