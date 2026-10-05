@@ -116,7 +116,7 @@ export function homeFor(group: RoleGroup, ctx: NavContext): string {
 export type RowKey =
   | 'trips' | 'tripset' | 'plan' | 'calendar' | 'journey' | 'report' | 'messages' | 'customers' | 'leave' | 'daysoff'
   | 'team' | 'attendance' | 'reports' | 'logs' | 'briefing' | 'flexteam' | 'approvals'
-  | 'allowances' | 'holidays' | 'users' | 'permissions' | 'org' | 'hours' | 'locations' | 'notifications' | 'translations' | 'settings' | 'sheetsync'
+  | 'allowances' | 'holidays' | 'users' | 'permissions' | 'org' | 'hours' | 'adminatt' | 'locations' | 'notifications' | 'translations' | 'settings' | 'sheetsync'
 
 export interface RowDef {
   key: RowKey
@@ -147,17 +147,18 @@ export const ROW: Record<RowKey, RowDef> = {
   briefing: { key: 'briefing', label: 'Customer briefing', sub: 'Customers by province, last visit and who', to: '/team/customers', icon: Table2, tone: 'bg-status-visiting', needs: can('customer_briefing') },
   flexteam: { key: 'flexteam', label: 'Flexible days off', sub: 'Day off balance of people who travel', to: '/leave/flexible', icon: CalendarRange, tone: 'bg-status-visiting', needs: seesOthersLeave },
   approvals: { key: 'approvals', label: 'Approvals', sub: 'Leave, days off and sales trips waiting for you', to: '/approvals', icon: CheckSquare, tone: 'bg-status-warn', needs: canApprove },
-  allowances: { key: 'allowances', label: 'Leave allowances', sub: 'Company default and each person’s allowance', to: '/leave/allowances', icon: Scale, tone: 'bg-status-visiting', needs: hrOrAdmin },
-  holidays: { key: 'holidays', label: 'Public holidays', sub: 'Holidays and company days off', to: '/settings/holidays', icon: CalendarRange, tone: 'bg-status-warn', needs: hrOrAdmin },
-  users: { key: 'users', label: 'Users', sub: 'People, roles and days-off rules', to: '/users', icon: UsersIcon, tone: 'bg-status-visiting', needs: admin },
+  allowances: { key: 'allowances', label: 'Leave allowances', sub: 'Company default and each person’s allowance', to: '/admin/attendance?tab=allow', icon: Scale, tone: 'bg-status-visiting', needs: hrOrAdmin },
+  holidays: { key: 'holidays', label: 'Public holidays', sub: 'Holidays and company days off', to: '/admin/attendance?tab=holiday', icon: CalendarRange, tone: 'bg-status-warn', needs: hrOrAdmin },
+  users: { key: 'users', label: 'Users', sub: 'Users · Departments · Roles', to: '/users', icon: UsersIcon, tone: 'bg-status-visiting', needs: admin },
   permissions: { key: 'permissions', label: 'Permissions', sub: 'Who can do what, by role or person', to: '/settings/permissions', icon: ShieldCheck, tone: 'bg-brand-700', needs: can('role_permission', 'edit') },
-  org: { key: 'org', label: 'Departments & roles', sub: 'Add or rename departments and roles', to: '/settings/org', icon: Network, tone: 'bg-earth-500', needs: admin },
-  hours: { key: 'hours', label: 'Working hours & days', sub: 'Schedules, cycle and weekend rates', to: '/settings/working-hours', icon: Clock, tone: 'bg-brand-500', needs: admin },
-  locations: { key: 'locations', label: 'Work locations', sub: 'Where clock-in is allowed', to: '/locations', icon: Building2, tone: 'bg-status-working', needs: admin },
+  org: { key: 'org', label: 'Departments & roles', sub: 'Add or rename departments and roles', to: '/users?tab=departments', icon: Network, tone: 'bg-earth-500', needs: admin },
+  hours: { key: 'hours', label: 'Working hours', sub: 'Hours & days · Rules', to: '/settings/working-hours', icon: Clock, tone: 'bg-brand-500', needs: admin },
+  adminatt: { key: 'adminatt', label: 'Attendance', sub: 'Cycle · Allowance · Flexible · Holiday', to: '/admin/attendance', icon: CalendarCheck, tone: 'bg-status-working', needs: hrOrAdmin },
+  locations: { key: 'locations', label: 'Geofence & rules', sub: 'Locations · Geofence · Thresholds', to: '/admin/geofence', icon: Building2, tone: 'bg-status-working', needs: admin },
   notifications: { key: 'notifications', label: 'Notifications', sub: 'Alerts sent to managers', to: '/notifications', icon: Bell, tone: 'bg-status-danger', needs: admin },
   translations: { key: 'translations', label: 'Translations', sub: 'English and Khmer text', to: '/translations', icon: Languages, tone: 'bg-brand-600', needs: admin },
   settings: { key: 'settings', label: 'System settings', sub: 'Company-wide options', to: '/settings', icon: Settings, tone: 'bg-neutral-600', needs: admin },
-  sheetsync: { key: 'sheetsync', label: 'Google Sheet sync', sub: 'Customers, last purchase and balance from a sheet', to: '/settings/sheet-sync', icon: FileSpreadsheet, tone: 'bg-status-working', needs: admin },
+  sheetsync: { key: 'sheetsync', label: 'Data & sync', sub: 'Google Sheet sync and recent runs', to: '/admin/sync', icon: FileSpreadsheet, tone: 'bg-status-working', needs: admin },
 }
 
 const FOR_YOU: Record<RoleGroup, RowKey[]> = {
@@ -205,7 +206,7 @@ const ROW_FN: [RowKey, FnKey, PartKey][] = [
   ['leave', 'time', 'mine'], ['daysoff', 'time', 'mine'], ['approvals', 'time', 'team'], ['flexteam', 'time', 'team'], ['allowances', 'time', 'company'], ['holidays', 'time', 'company'],
   ['team', 'team', 'team'], ['attendance', 'team', 'team'], ['reports', 'team', 'team'], ['logs', 'team', 'team'],
   ['users', 'company', 'people'], ['permissions', 'company', 'people'], ['org', 'company', 'people'],
-  ['hours', 'company', 'rules'], ['locations', 'company', 'rules'], ['tripset', 'company', 'rules'],
+  ['hours', 'company', 'rules'], ['adminatt', 'company', 'rules'], ['locations', 'company', 'rules'], ['tripset', 'company', 'rules'],
   ['notifications', 'company', 'system'], ['translations', 'company', 'system'], ['settings', 'company', 'system'], ['sheetsync', 'company', 'system'],
 ]
 
@@ -253,7 +254,7 @@ export function hubSearch(group: RoleGroup, ctx: NavContext, query: string): (Ro
 }
 
 /** Admin tab: the Administration rows the person can use. */
-export const ADMIN_ROWS: RowKey[] = ['users', 'permissions', 'org', 'hours', 'holidays', 'allowances', 'tripset', 'locations', 'notifications', 'translations', 'settings', 'sheetsync']
+export const ADMIN_ROWS: RowKey[] = ['users', 'permissions', 'hours', 'adminatt', 'locations', 'sheetsync', 'tripset', 'translations', 'settings', 'notifications']
 
 /** Hub "For you": up to four shortcuts for the group. */
 export function forYou(group: RoleGroup, ctx: NavContext): RowDef[] {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Building2, ChevronRight, Loader2, Plus, Trash2 } from 'lucide-react'
+import { CalendarClock, Clock3, Globe2, LogIn, LogOut, Loader2, Timer, Trash2 } from 'lucide-react'
 import { BottomSheet } from '@/components/BottomSheet'
 import { Stepper } from '@/components/Stepper'
 import { useProfile } from '@/features/auth/useProfile'
@@ -7,18 +7,11 @@ import { ScheduleEditor } from '@/features/schedule/ScheduleEditor'
 import { commonHours, dayHours, formatHours, fromMinutes, scheduleProblems, toMinutes, weekFrom, weekHours, workingDaysLabel, type DaySchedule } from '@/features/schedule/schedule'
 import { scheduleService, type ClockRules, type WorkSchedule } from '@/features/schedule/scheduleService'
 import { usersService } from '@/features/users/usersService'
-import { summaryService } from '@/features/attendanceSummary/summaryService'
-import { flexService } from '@/features/flex/flexService'
-import { days as fmtDays, rate } from '@/features/flex/flex'
-import { Link } from 'react-router-dom'
+import { AdminFrame, AdminGroup, AdminRow, AdminTabs } from '@/components/AdminKit'
+import { useTab } from '@/hooks/useTab'
 
-interface FlexDraft {
-  closeDay: number
-  sat: number
-  sun: number
-}
-
-const ordinal = (n: number) => `${n}${n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th'}`
+const TABS = ['hours', 'rules'] as const
+const DOW = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 
 interface Draft {
   days: DaySchedule[]
@@ -28,10 +21,12 @@ interface Draft {
 const errorText = (e: unknown) => (e && typeof e === 'object' && 'message' in e ? String((e as { message: string }).message) : 'Something went wrong.')
 
 /**
- * Working hours & days (Hub › Administration): the company schedule, the
- * clock-in rules, and team schedules that override the company one for a
- * department. Clock-in, late/absent alerts, auto clock-out, leave day counts
- * and the attendance summaries all follow these (app.work_day, 0089/0091).
+ * Working hours (Admin), laid out like the canvas (Polish › Admin › Working
+ * hours): "Hours & days" lists the company schedule and the team schedules
+ * that override it for a department; "Rules" holds the clock-in and
+ * clock-out rules. Clock-in, late/absent alerts, auto clock-out, leave day
+ * counts and the attendance summaries all follow these (app.work_day,
+ * 0089/0091). The attendance cycle and flexible days live on Attendance.
  */
 export function WorkingHoursPage() {
   const { profile } = useProfile()
@@ -42,9 +37,7 @@ export function WorkingHoursPage() {
   const [savedCompany, setSavedCompany] = useState<string>('')
   const [rules, setRules] = useState<ClockRules | null>(null)
   const [savedRules, setSavedRules] = useState<string>('')
-  const [flex, setFlex] = useState<FlexDraft | null>(null)
-  const [savedFlex, setSavedFlex] = useState<string>('')
-  const [flexPeople, setFlexPeople] = useState(0)
+  const [tab, setTab] = useTab(TABS, 'hours')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null)
@@ -52,11 +45,7 @@ export function WorkingHoursPage() {
 
   const load = useCallback(async () => {
     try {
-      const [list, r, depts, fs] = await Promise.all([scheduleService.list(), scheduleService.rules(), usersService.listDepartments(), flexService.settings()])
-      const fd = { closeDay: fs.closeDay, sat: fs.satRate, sun: fs.sunRate }
-      setFlex(fd)
-      setSavedFlex(JSON.stringify(fd))
-      setFlexPeople(fs.flexiblePeople)
+      const [list, r, depts] = await Promise.all([scheduleService.list(), scheduleService.rules(), usersService.listDepartments()])
       setSchedules(list)
       setDepartments(depts)
       const c = list.find((s) => s.departmentId === null)
@@ -78,8 +67,7 @@ export function WorkingHoursPage() {
 
   const teams = useMemo(() => schedules.filter((s) => s.departmentId !== null), [schedules])
   const deptName = (id: string | null) => departments.find((d) => d.id === id)?.name ?? 'Team'
-  const flexDirty = !!flex && JSON.stringify(flex) !== savedFlex
-  const dirty = !!company && !!rules && (JSON.stringify(company) !== savedCompany || JSON.stringify(rules) !== savedRules || flexDirty)
+  const dirty = !!company && !!rules && (JSON.stringify(company) !== savedCompany || JSON.stringify(rules) !== savedRules)
   const problems = company ? scheduleProblems(company.days) : []
 
   async function save() {
@@ -89,11 +77,6 @@ export function WorkingHoursPage() {
     try {
       if (JSON.stringify(company) !== savedCompany) await scheduleService.save(null, company.breakPaid, company.days)
       if (JSON.stringify(rules) !== savedRules) await scheduleService.saveRules(rules)
-      if (flex && flexDirty) {
-        const before = JSON.parse(savedFlex) as FlexDraft
-        if (before.closeDay !== flex.closeDay) await summaryService.setCycleCloseDay(flex.closeDay)
-        if (before.sat !== flex.sat || before.sun !== flex.sun) await flexService.setRates(flex.sat, flex.sun)
-      }
       await load()
       setMessage({ tone: 'ok', text: 'Saved. Clock-in, alerts and summaries use the new hours from now on.' })
     } catch (e) {
@@ -148,113 +131,88 @@ export function WorkingHoursPage() {
   const freeDepts = departments.filter((d) => !takenDepts.has(d.id))
 
   return (
-    <div className="mx-auto max-w-lg space-y-5 px-4 pb-28 pt-3 md:max-w-2xl md:px-8">
+    <AdminFrame
+      sub={`${teams.length + 1} ${teams.length ? 'schedules' : 'schedule'} · ${workingDaysLabel(company.days)}${hours ? ` ${hours.start}–${hours.end}` : ''}`}
+      tabs={
+        <AdminTabs
+          tabs={[
+            ['hours', 'Hours & days'],
+            ['rules', 'Rules'],
+          ]}
+          value={tab}
+          onChange={setTab}
+        />
+      }
+    >
       {!canEdit && <p className="rounded-xl bg-status-warn/10 px-3 py-2 text-sm text-status-warn">Only admins can change working hours.</p>}
 
-      <section className="rounded-2xl bg-brand-900 p-4 text-white" aria-label="Company schedule summary">
-        <p className="text-[11px] font-extrabold tracking-wider text-brand-100">COMPANY SCHEDULE</p>
-        <p className="mt-1.5 text-[22px] font-extrabold leading-tight">{workingDaysLabel(company.days)}</p>
-        <p className="mt-1 text-[15px] font-semibold text-brand-100">
-          {hours ? `${hours.start} – ${hours.end} · ${formatHours(dayHours(company.days.find((d) => d.isWorking)!, company.breakPaid))} a day` : 'Hours vary by day'}
-        </p>
-        <div className="mt-3 grid grid-cols-3 gap-2 border-t border-white/15 pt-3">
-          <SummaryStat label="Per week" value={formatHours(weekHours(company.days, company.breakPaid))} />
-          <SummaryStat label="Working days" value={`${company.days.filter((d) => d.isWorking).length} / 7`} />
-          <SummaryStat label="Clock-in opens" value={fromMinutes(toMinutes(firstStart) - rules.allowEarlyClockinMinutes)} />
-        </div>
-      </section>
+      {tab === 'hours' ? (
+        <>
+          <ScheduleCard
+            name="Company schedule"
+            who={teams.length ? 'Everyone not on a team schedule' : 'Everyone'}
+            days={company.days}
+            breakPaid={company.breakPaid}
+          />
+          <ScheduleEditor days={company.days} breakPaid={company.breakPaid} disabled={!canEdit} onChange={(days, breakPaid) => setCompany({ days, breakPaid })} />
+          {problems.length > 0 && <p className="text-sm text-status-danger">{problems.join(' ')}</p>}
 
-      <ScheduleEditor days={company.days} breakPaid={company.breakPaid} disabled={!canEdit} onChange={(days, breakPaid) => setCompany({ days, breakPaid })} />
-      {problems.length > 0 && <p className="text-sm text-status-danger">{problems.join(' ')}</p>}
-
-      <section className="space-y-2" aria-label="Clock-in rules">
-        <h2 className="px-0.5 text-[17px] font-bold text-neutral-900">Clock-in rules</h2>
-        <div className="overflow-hidden rounded-2xl bg-white shadow-card">
-          <RuleRow title="Early clock-in" sub={`Opens at ${fromMinutes(toMinutes(firstStart) - rules.allowEarlyClockinMinutes)}`}>
-            <Stepper label="Early clock-in" value={rules.allowEarlyClockinMinutes} step={15} max={180} format={(v) => `${v} min`} disabled={!canEdit} onChange={(v) => setRules({ ...rules, allowEarlyClockinMinutes: v })} />
-          </RuleRow>
-          <RuleRow title="Grace before late" sub={`Counted late from ${fromMinutes(toMinutes(firstStart) + rules.lateGraceMinutes + 1)}`}>
-            <Stepper label="Grace" value={rules.lateGraceMinutes} max={120} format={(v) => `${v} min`} disabled={!canEdit} onChange={(v) => setRules({ ...rules, lateGraceMinutes: v })} />
-          </RuleRow>
-          <RuleRow title="Manager alert if not clocked in" sub={`Alert at ${fromMinutes(toMinutes(firstStart) + rules.lateClockinThresholdMinutes)}`}>
-            <Stepper label="Alert delay" value={rules.lateClockinThresholdMinutes} step={5} max={240} format={(v) => `${v} min`} disabled={!canEdit} onChange={(v) => setRules({ ...rules, lateClockinThresholdMinutes: v })} />
-          </RuleRow>
-          <RuleRow title="Auto clock-out" sub={`Still clocked in at ${fromMinutes(toMinutes(lastEnd) + rules.autoClockoutGraceMinutes)} → clocked out, flagged`}>
-            <Stepper label="Auto clock-out delay" value={rules.autoClockoutGraceMinutes} step={15} max={480} format={(v) => `${v} min`} disabled={!canEdit} onChange={(v) => setRules({ ...rules, autoClockoutGraceMinutes: v })} />
-          </RuleRow>
-          <div className="flex items-center gap-3 border-t border-neutral-100 px-4 py-3 dark:border-neutral-800">
-            <span className="flex-1 text-[15px] font-semibold text-neutral-900">Time zone</span>
-            <span className="text-sm text-neutral-500">Phnom Penh (UTC+7)</span>
-          </div>
-        </div>
-      </section>
-
-      {flex && (
-        <section className="space-y-2" aria-label="Attendance cycle and flexible days off">
-          <div className="px-0.5">
-            <h2 className="text-[17px] font-bold text-neutral-900">Attendance cycle &amp; flexible days off</h2>
-            <p className="text-xs text-neutral-500">Attendance is counted to this day each month, not the month end.</p>
-          </div>
-          <div className="overflow-hidden rounded-2xl bg-white shadow-card">
-            <RuleRow title="Cycle closes on" sub={flex.closeDay === 0 ? 'Counts the calendar month' : `Counts the ${ordinal(flex.closeDay + 1)} to the ${ordinal(flex.closeDay)}`}>
-              <Stepper label="Cycle day" value={flex.closeDay} max={28} format={(v) => (v === 0 ? 'Month end' : ordinal(v))} disabled={!canEdit} onChange={(v) => setFlex({ ...flex, closeDay: v })} />
-            </RuleRow>
-            <RuleRow title="Saturday worked earns" sub="For people on Flexible (travel) days off">
-              <Stepper label="Saturday rate" value={flex.sat} step={0.5} max={2} format={(v) => `${rate(v)} day`} disabled={!canEdit} onChange={(v) => setFlex({ ...flex, sat: v })} />
-            </RuleRow>
-            <RuleRow title="Sunday worked earns" sub={`4 Sat + 4 Sun a cycle = ${fmtDays(4 * flex.sat + 4 * flex.sun)} days`}>
-              <Stepper label="Sunday rate" value={flex.sun} step={0.5} max={2} format={(v) => `${rate(v)} day`} disabled={!canEdit} onChange={(v) => setFlex({ ...flex, sun: v })} />
-            </RuleRow>
-            <Link to="/users" className="flex items-center gap-3 border-t border-neutral-100 px-4 py-3 dark:border-neutral-800">
-              <span className="flex-1 text-[15px] font-semibold text-neutral-900">
-                {flexPeople} {flexPeople === 1 ? 'person' : 'people'} on Flexible (travel)
-              </span>
-              <span className="text-xs text-neutral-500">Set in Users › Edit</span>
-              <ChevronRight className="h-4 w-4 text-neutral-400" aria-hidden />
-            </Link>
-          </div>
-          <p className="px-0.5 text-xs text-neutral-500">Flexible days off can be taken in advance and settle on the close day: unused days aren’t carried over, and extra days come from annual leave.</p>
-        </section>
-      )}
-
-      <section className="space-y-2" aria-label="Team schedules">
-        <div className="px-0.5">
-          <h2 className="text-[17px] font-bold text-neutral-900">Team schedules</h2>
-          <p className="text-xs text-neutral-500">Teams on different hours. Everyone else follows the company schedule.</p>
-        </div>
-        <ul className="overflow-hidden rounded-2xl bg-white shadow-card">
-          {teams.map((t, i) => (
-            <li key={t.id} className={i ? 'border-t border-neutral-100 dark:border-neutral-800' : ''}>
+          <AdminGroup
+            title={`Team schedules · ${teams.length}`}
+            note="Override the company hours"
+            add="Add a schedule"
+            addDisabled={!canEdit || freeDepts.length === 0}
+            onAdd={() => setTeam({ departmentId: freeDepts[0]?.id ?? null, draft: { days: company.days.map((d) => ({ ...d })), breakPaid: company.breakPaid }, isNew: true })}
+          >
+            {teams.length === 0 && <p className="border-t border-neutral-100 py-3 text-[13px] text-neutral-500 dark:border-neutral-800">No team schedules yet. Everyone follows the company hours.</p>}
+            {teams.map((t) => (
               <button
+                key={t.id}
                 type="button"
                 onClick={() => setTeam({ departmentId: t.departmentId, draft: { days: t.days, breakPaid: t.breakPaid }, isNew: false })}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left tap-target"
+                className="block w-full border-t border-neutral-100 py-3 text-left dark:border-neutral-800"
               >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
-                  <Building2 className="h-[18px] w-[18px]" aria-hidden />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[15px] font-bold text-neutral-900">{deptName(t.departmentId)}</span>
-                  <span className="block truncate text-xs text-neutral-500">
-                    {workingDaysLabel(t.days)} · {commonHours(t.days) ? `${commonHours(t.days)!.start} – ${commonHours(t.days)!.end}` : 'hours vary'} · {formatHours(weekHours(t.days, t.breakPaid))}/week
-                  </span>
-                </span>
-                <ChevronRight className="h-4 w-4 text-neutral-400" aria-hidden />
+                <ScheduleCard name={deptName(t.departmentId)} who={`${formatHours(weekHours(t.days, t.breakPaid))} a week`} days={t.days} breakPaid={t.breakPaid} flat />
               </button>
-            </li>
-          ))}
-          <li className={teams.length ? 'border-t border-neutral-100 dark:border-neutral-800' : ''}>
-            <button
-              type="button"
-              disabled={!canEdit || freeDepts.length === 0}
-              onClick={() => setTeam({ departmentId: freeDepts[0]?.id ?? null, draft: { days: company.days.map((d) => ({ ...d })), breakPaid: company.breakPaid }, isNew: true })}
-              className="flex h-12 w-full items-center justify-center gap-1.5 text-sm font-bold text-brand-600 tap-target disabled:opacity-40"
-            >
-              <Plus className="h-4 w-4" /> Add team schedule
-            </button>
-          </li>
-        </ul>
-      </section>
+            ))}
+          </AdminGroup>
+        </>
+      ) : (
+        <>
+          <AdminGroup title="Clock in">
+            <AdminRow
+              icon={LogIn}
+              label="Early clock-in"
+              sub={`Opens at ${fromMinutes(toMinutes(firstStart) - rules.allowEarlyClockinMinutes)}`}
+              control={<Stepper label="Early clock-in" value={rules.allowEarlyClockinMinutes} step={15} max={180} format={(v) => `${v} min`} disabled={!canEdit} onChange={(v) => setRules({ ...rules, allowEarlyClockinMinutes: v })} />}
+            />
+            <AdminRow
+              icon={Timer}
+              label="Late after"
+              sub={`Counted late from ${fromMinutes(toMinutes(firstStart) + rules.lateGraceMinutes + 1)}`}
+              control={<Stepper label="Grace" value={rules.lateGraceMinutes} max={120} format={(v) => `${v} min`} disabled={!canEdit} onChange={(v) => setRules({ ...rules, lateGraceMinutes: v })} />}
+            />
+            <AdminRow
+              icon={CalendarClock}
+              label="Alert if not clocked in"
+              sub={`Alert at ${fromMinutes(toMinutes(firstStart) + rules.lateClockinThresholdMinutes)}`}
+              control={<Stepper label="Alert delay" value={rules.lateClockinThresholdMinutes} step={5} max={240} format={(v) => `${v} min`} disabled={!canEdit} onChange={(v) => setRules({ ...rules, lateClockinThresholdMinutes: v })} />}
+            />
+          </AdminGroup>
+          <AdminGroup title="Clock out">
+            <AdminRow
+              icon={LogOut}
+              label="Forgot to clock out"
+              sub={`Clocked out automatically at ${fromMinutes(toMinutes(lastEnd) + rules.autoClockoutGraceMinutes)}, flagged`}
+              control={<Stepper label="Auto clock-out delay" value={rules.autoClockoutGraceMinutes} step={15} max={480} format={(v) => `${v} min`} disabled={!canEdit} onChange={(v) => setRules({ ...rules, autoClockoutGraceMinutes: v })} />}
+            />
+          </AdminGroup>
+          <AdminGroup title="General">
+            <AdminRow icon={Globe2} label="Time zone" value="Phnom Penh (UTC+7)" />
+            <AdminRow icon={Clock3} label="Attendance cycle & flexible days" sub="Cycle day, Saturday and Sunday rates" to="/admin/attendance?tab=cycle" />
+          </AdminGroup>
+        </>
+      )}
 
       {message && (
         <p role="status" className={`rounded-xl px-3 py-2 text-sm ${message.tone === 'ok' ? 'bg-status-working/10 text-status-working' : 'bg-status-danger/10 text-status-danger'}`}>
@@ -321,27 +279,28 @@ export function WorkingHoursPage() {
           </div>
         )}
       </BottomSheet>
-    </div>
+    </AdminFrame>
   )
 }
 
-function SummaryStat({ label, value }: { label: string; value: string }) {
+/** A schedule as on the canvas: its name, who it applies to, and the seven days with their hours. */
+function ScheduleCard({ name, who, days, breakPaid, flat = false }: { name: string; who: string; days: DaySchedule[]; breakPaid: boolean; flat?: boolean }) {
+  const hours = commonHours(days)
   return (
-    <div>
-      <p className="text-[11px] text-brand-100">{label}</p>
-      <p className="mt-0.5 text-base font-extrabold">{value}</p>
-    </div>
-  )
-}
-
-function RuleRow({ title, sub, children }: { title: string; sub: string; children: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-3 border-t border-neutral-100 px-4 py-3 first:border-t-0 dark:border-neutral-800">
-      <div className="min-w-0 flex-1">
-        <p className="text-[15px] font-semibold text-neutral-900">{title}</p>
-        <p className="text-xs text-neutral-500">{sub}</p>
+    <div className={flat ? '' : 'rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card'}>
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="text-[15px] font-bold text-neutral-900">{name}</p>
+        <p className="text-xs text-neutral-500">{hours ? `${hours.start} – ${hours.end}` : 'Hours vary'}</p>
       </div>
-      {children}
+      <p className="text-xs text-neutral-500">{who}</p>
+      <div className="mt-2.5 grid grid-cols-7 gap-1 text-center">
+        {days.map((d, i) => (
+          <span key={d.isoDow} className={`rounded-lg py-1.5 ${d.isWorking ? 'bg-brand-50' : 'bg-neutral-100'}`}>
+            <span className={`block text-[11px] font-bold ${d.isWorking ? 'text-brand-700' : 'text-neutral-500'}`}>{DOW[i]}</span>
+            <span className={`block text-[11px] font-semibold ${d.isWorking ? 'text-neutral-900' : 'text-neutral-400'}`}>{d.isWorking ? formatHours(dayHours(d, breakPaid)).replace(' ', '') : '—'}</span>
+          </span>
+        ))}
+      </div>
     </div>
   )
 }

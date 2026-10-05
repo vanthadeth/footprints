@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTab } from '@/hooks/useTab'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Construction, MapPin, Navigation, NotebookPen, Phone, Store } from 'lucide-react'
 import { customersService, type CustomerDirectoryRow } from '@/features/customers/customersService'
@@ -51,7 +52,7 @@ function CustomerDetail() {
   const [canLog, setCanLog] = useState(false)
   const [logKind, setLogKind] = useState<ConversationKind | null>(null)
   const [conversationKey, setConversationKey] = useState(0)
-  const [tab, setTab] = useState<'info' | 'cal' | 'conv'>('info')
+  const [tab, setTab] = useTab(['info', 'cal', 'conv'] as const, 'info')
   // When balances last came from the Google Sheet sync ("as of" next to the balance).
   const [balanceAsOf, setBalanceAsOf] = useState<string | null>(null)
 

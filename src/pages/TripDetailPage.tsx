@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Check } from 'lucide-react'
 import { useProfile } from '@/features/auth/useProfile'
 import { DEFAULT_RATES, costOf, planTrip, ppToday, type TripRates } from '@/features/trips/trip'
 import { tripErrorMessage, tripRates, tripService, toDays, type TripRow } from '@/features/trips/tripService'
@@ -92,6 +93,7 @@ export function TripDetailPage() {
           )}
         </div>
       )}
+      {trip.status === 'pending' && mine && <WaitingCard trip={trip} range={plan.range} />}
       {trip.status !== 'changes' && trip.decided_by && (
         <p className="px-1 text-[13px] text-neutral-600">
           {trip.status === 'approved' ? 'Approved' : trip.status === 'rejected' ? 'Rejected' : 'Decided'} by {trip.decided_by}
@@ -128,5 +130,39 @@ export function TripDetailPage() {
         All trips
       </button>
     </div>
+  )
+}
+
+/** A trip waiting for its approver: who has it, when it went, and what happens next. */
+function WaitingCard({ trip, range }: { trip: TripRow; range: string }) {
+  const sent = new Date(trip.created_at)
+  const sentText = `${sent.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} ${sent.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`
+  const steps: { label: string; sub: string; done: boolean }[] = [
+    { label: 'Sent', sub: sentText, done: true },
+    { label: 'Your manager decides', sub: 'Usually within a day · you get a notice', done: false },
+    { label: 'The trip', sub: `${range} · clock in from the route`, done: false },
+    { label: 'Back and done', sub: 'It moves to your past trips', done: false },
+  ]
+  return (
+    <section aria-label="Waiting for approval" className={`${card} p-3.5`}>
+      <p className="text-xs font-bold uppercase tracking-wide text-status-warn">Waiting for approval</p>
+      <p className="mt-0.5 text-[15px] font-extrabold text-neutral-900">Your manager is reviewing it</p>
+      <p className="text-xs text-neutral-500">Sent {sentText} · you can cancel until it starts</p>
+      <p className="mt-3 text-xs font-bold uppercase tracking-wide text-neutral-500">What happens next</p>
+      <ol className="mt-1.5">
+        {steps.map((st, i) => (
+          <li key={st.label} className="relative flex gap-3 pb-2.5 last:pb-0">
+            {i < steps.length - 1 && <span aria-hidden className="absolute left-[9px] top-5 h-[calc(100%-12px)] w-px bg-neutral-200 dark:bg-neutral-700" />}
+            <span className={`relative z-[1] mt-0.5 flex h-[19px] w-[19px] shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${st.done ? 'bg-status-working text-white' : 'border-[1.5px] border-neutral-300 bg-white text-neutral-500 dark:bg-neutral-900'}`}>
+              {st.done ? <Check className="h-3 w-3" strokeWidth={3} aria-hidden /> : i + 1}
+            </span>
+            <span className="min-w-0">
+              <span className="block text-[13.5px] font-bold text-neutral-900">{st.label}</span>
+              <span className="block text-xs text-neutral-500">{st.sub}</span>
+            </span>
+          </li>
+        ))}
+      </ol>
+    </section>
   )
 }

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { BarChart3, CalendarCheck, CalendarRange, CheckSquare, ChevronRight, MapPin, Table2, UserX, Calendar as CalendarIcon, type LucideIcon } from 'lucide-react'
+import { BarChart3, CalendarRange, CheckSquare, ChevronRight, MapPin, UserX, type LucideIcon } from 'lucide-react'
+import { TeamPulseCard } from '@/features/fleet/TeamPulse'
 import { useFleet } from '@/features/fleet/useFleet'
-import { FleetStatusBadge } from '@/features/fleet/FleetStatusBadge'
 import { flexService, type FlexTeamRow } from '@/features/flex/flexService'
 import { useRoleGroup } from '@/features/nav/useRoleGroup'
 import { usePendingApprovals } from '@/features/nav/usePendingApprovals'
@@ -10,6 +10,13 @@ import { canApprove } from '@/features/nav/navConfig'
 import { useCan } from '@/features/permissions/PermissionsContext'
 import { displayName } from '@/lib/displayName'
 import { days } from '@/features/flex/flex'
+import { useApprovedLeaveOnDate } from '@/features/leave/useApprovedLeaveOnDate'
+import { useFleetHistory } from '@/features/reports/useFleetHistory'
+import { useVisitOptions } from '@/features/visits/useVisitOptions'
+import { useAppSettings } from '@/hooks/useAppSettings'
+import { useLanguage } from '@/i18n/LanguageContext'
+import { getPresetRange, todayDateString } from '@/lib/dateRange'
+import { formatDuration, formatTime } from '@/lib/datetime'
 
 interface Need {
   key: string
@@ -29,10 +36,12 @@ interface Need {
  */
 export function TeamHomePage() {
   const { snapshots: all, loading } = useFleet()
-  const { group, ctx } = useRoleGroup()
+  const { ctx } = useRoleGroup()
   const pending = usePendingApprovals(canApprove(ctx))
   const canBriefing = useCan('customer_briefing')
   const [flex, setFlex] = useState<FlexTeamRow[]>([])
+  const settings = useAppSettings()
+  const { language } = useLanguage()
 
   useEffect(() => {
     let cancelled = false
@@ -46,11 +55,6 @@ export function TeamHomePage() {
   }, [])
 
   const field = useMemo(() => all.filter((s) => s.member.isFieldSales), [all])
-  const counts = {
-    visiting: field.filter((s) => s.status === 'VISITING').length,
-    idling: field.filter((s) => s.status === 'IDLING').length,
-    off: field.filter((s) => s.status === 'OFF').length,
-  }
   const notIn = field.filter((s) => s.status === 'OFF' && !s.attendance)
   const overFlex = flex.filter((r) => r.isFlexible && r.left < 0)
 
@@ -64,20 +68,48 @@ export function TeamHomePage() {
       : []),
   ]
 
-  const links: { label: string; to: string; icon: LucideIcon; show: boolean }[] = [
-    { label: 'Map', to: '/fleet?tab=map', icon: MapPin, show: true },
-    { label: 'Attendance', to: '/fleet?tab=attendance', icon: CalendarCheck, show: true },
-    { label: 'Reports', to: '/fleet?tab=reports', icon: BarChart3, show: true },
-    { label: 'Briefing', to: '/team/customers', icon: Table2, show: canBriefing },
-    { label: 'Days off', to: '/leave/flexible', icon: CalendarRange, show: true },
-    { label: 'Calendars', to: '/calendar', icon: CalendarIcon, show: true },
-  ]
+  const today = todayDateString()
+  const ids = useMemo(() => field.map((s) => s.member.id), [field])
+  const leave = useApprovedLeaveOnDate(ids, today)
+  const weekRange = useMemo(() => getPresetRange('this_week'), [])
+  const week = useFleetHistory(ids, weekRange)
+  const { byKind } = useVisitOptions()
+  const label = (id: string | null) => {
+    if (!id) return ''
+    for (const list of Object.values(byKind)) {
+      const o = list.find((x) => x.id === id)
+      if (o) return o.label.trim().toLowerCase()
+    }
+    return ''
+  }
+  const [filter, setFilter] = useState<Filter>('all')
+  const now = Date.now()
+
+  const statusOf = (s: (typeof field)[number]): Filter => (leave[s.member.id] && !s.attendance ? 'leave' : s.status === 'VISITING' ? 'visiting' : s.status === 'IDLING' ? 'idle' : 'notin')
+  const worked = field.filter((s) => s.attendance)
+
+  const weekVisits = week.visits.length
+  const weekOrdered = week.visits.filter((v) => label(v.order_status_id) === 'ordered').length
+  const msOf = (a: string, b: string | null) => Math.max(0, (b ? Date.parse(b) : now) - Date.parse(a))
+  const weekWork = week.attendance.reduce((n, a) => n + msOf(a.clock_in_at, a.clock_out_at), 0)
+  const weekVisitMs = week.visits.reduce((n, v) => n + msOf(v.checked_in_at, v.checked_out_at), 0)
+  const weekEff = weekWork ? Math.round((weekVisitMs / weekWork) * 100) : 0
+
+  const count = (k: Filter) => (k === 'all' ? field.length : field.filter((s) => statusOf(s) === k).length)
+  const shown = field.filter((s) => filter === 'all' || statusOf(s) === filter)
+  const [eh, em] = settings.workEndTime.split(':').map(Number)
+  const dayStart = new Date(`${today}T${settings.workStartTime.slice(0, 5)}:00+07:00`).getTime()
+  const dayEnd = Math.max(new Date(`${today}T${String(eh).padStart(2, '0')}:${String(em).padStart(2, '0')}:00+07:00`).getTime(), now)
 
   return (
     <div className="mx-auto max-w-lg space-y-3 px-4 pb-8 pt-1 md:max-w-3xl md:px-8">
-      <p className="text-[14px] text-neutral-600">{group === 'admin' ? 'Everyone' : 'Your team'} · {field.length} in the field</p>
+      <p className="text-[14px] text-neutral-600">
+        {field.length} {field.length === 1 ? 'person' : 'people'} · {worked.length} in the field{count('leave') ? ` · ${count('leave')} on leave` : ''}
+      </p>
 
-      <div className="rounded-2xl bg-white px-3.5 pb-1 pt-3 shadow-card">
+      <TeamPulseCard snapshots={field} />
+
+      <div className="rounded-2xl border border-neutral-100 bg-white px-3.5 pb-1 pt-3 shadow-card">
         <p className="mb-1 text-[12px] font-extrabold uppercase tracking-wide text-neutral-500">Needs you · {needs.length}</p>
         {needs.length === 0 && <p className="py-3 text-[13.5px] text-neutral-500">{loading ? 'Checking…' : 'All clear — nothing waiting on you.'}</p>}
         {needs.map((n, i) => (
@@ -94,64 +126,143 @@ export function TeamHomePage() {
         ))}
       </div>
 
-      <Link to="/fleet" className="grid grid-cols-3 gap-2">
-        <Tile label="Visiting" value={counts.visiting} dot="bg-status-visiting" />
-        <Tile label="Idling" value={counts.idling} dot="bg-earth-500" />
-        <Tile label="Off" value={counts.off} dot="bg-neutral-400" />
-      </Link>
-
-      <div className="rounded-2xl bg-white px-3.5 pb-1 pt-2.5 shadow-card">
-        <div className="mb-0.5 flex items-center justify-between">
+      <section aria-label="People" className="rounded-2xl border border-neutral-100 bg-white px-3.5 pb-3 pt-3 shadow-card">
+        <div className="flex items-center justify-between">
           <p className="text-[12px] font-extrabold uppercase tracking-wide text-neutral-500">People</p>
-          <Link to="/fleet" className="text-[13px] font-bold text-brand-600">
-            All {field.length} ›
+          <Link to="/fleet?tab=map" className="inline-flex items-center gap-1 text-[13px] font-bold text-brand-600">
+            <MapPin className="h-4 w-4" aria-hidden /> Team map
           </Link>
         </div>
-        {loading && field.length === 0 && <div className="my-2 h-24 animate-pulse rounded-xl bg-neutral-100" />}
-        {field.slice(0, 5).map((s, i) => (
-          <Link key={s.member.id} to="/fleet" className={`flex items-center gap-3 py-2.5 ${i ? 'border-t border-neutral-100 dark:border-neutral-800' : ''}`}>
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-[12px] font-extrabold text-brand-700 dark:bg-brand-500/20 dark:text-brand-100">
-              {displayName(s.member.fullName, s.member.nickname).slice(0, 2).toUpperCase()}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-[14px] font-bold text-neutral-900">{displayName(s.member.fullName, s.member.nickname)}</span>
-              <span className="block truncate text-[12px] text-neutral-500">
-                {s.visitsToday.length} visit{s.visitsToday.length === 1 ? '' : 's'} today{s.member.departmentName ? ` · ${s.member.departmentName}` : ''}
+        <div role="tablist" aria-label="Filter by status" className="mt-2 flex gap-0.5 rounded-xl bg-neutral-100 p-[3px]">
+          {FILTERS.map(([k, l, dot]) => {
+            const on = filter === k
+            return (
+              <button
+                key={k}
+                type="button"
+                role="tab"
+                aria-selected={on}
+                onClick={() => setFilter(k)}
+                className={`flex min-w-0 flex-1 flex-col items-center rounded-[9px] py-1 ${on ? 'seg-on shadow-sm' : ''}`}
+              >
+                <span className={`inline-flex items-center gap-1 text-[15px] ${on ? 'font-extrabold text-neutral-900' : 'font-bold text-neutral-500'}`}>
+                  {dot && <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />}
+                  {count(k)}
+                </span>
+                <span className={`text-[10.5px] ${on ? 'font-bold text-neutral-900' : 'font-semibold text-neutral-500'}`}>{l}</span>
+              </button>
+            )
+          })}
+        </div>
+        {loading && field.length === 0 && <div className="mt-2 h-24 animate-pulse rounded-xl bg-neutral-100" />}
+        {shown.map((s) => {
+          const st = statusOf(s)
+          const name = displayName(s.member.fullName, s.member.nickname)
+          const done = s.visitsToday.filter((v) => !v.cancelled_at)
+          const workMs = s.attendance ? msOf(s.attendance.clock_in_at, s.attendance.clock_out_at) : 0
+          const visitMs = done.reduce((n, v) => n + msOf(v.checked_in_at, v.checked_out_at), 0)
+          const eff = workMs ? Math.round((visitMs / workMs) * 100) : null
+          const sub =
+            st === 'visiting' && s.openVisit
+              ? `On a visit · ${formatDuration(now - Date.parse(s.openVisit.checked_in_at), language)}`
+              : st === 'idle'
+                ? `Between visits${done.length ? ` · last ${formatTime(done[done.length - 1].checked_out_at ?? done[done.length - 1].checked_in_at)}` : ''}`
+                : st === 'leave'
+                  ? 'On leave today'
+                  : s.attendance?.clock_out_at
+                    ? `Clocked out ${formatTime(s.attendance.clock_out_at)}`
+                    : 'Not clocked in'
+          const pos = (t: number) => `${Math.min(100, Math.max(0, ((t - dayStart) / (dayEnd - dayStart)) * 100)).toFixed(2)}%`
+          const width = (a: number, b: number) => `${Math.max(0.8, ((Math.min(b, dayEnd) - Math.max(a, dayStart)) / (dayEnd - dayStart)) * 100).toFixed(2)}%`
+          return (
+            <Link key={s.member.id} to={`/fleet?member=${s.member.id}`} className="flex items-start gap-3 border-t border-neutral-100 py-2.5 first-of-type:border-t-0 dark:border-neutral-800">
+              <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-[12px] font-extrabold text-brand-700 dark:bg-brand-500/20 dark:text-brand-100">
+                {name.slice(0, 2).toUpperCase()}
+                <span className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white dark:border-[#232323] ${DOT[st]}`} />
               </span>
-            </span>
-            <FleetStatusBadge status={s.status} />
-          </Link>
-        ))}
-      </div>
+              <span className="min-w-0 flex-1">
+                <span className="flex items-baseline justify-between gap-2">
+                  <span className="truncate text-[14px] font-bold text-neutral-900">{name}</span>
+                  <span className="shrink-0 text-xs font-bold text-neutral-900">{s.attendance ? `${done.length} ${done.length === 1 ? 'visit' : 'visits'}` : '—'}</span>
+                </span>
+                <span className="flex items-baseline justify-between gap-2">
+                  <span className={`truncate text-xs ${st === 'notin' ? 'font-semibold text-status-danger' : 'text-neutral-500'}`}>{sub}</span>
+                  {eff != null && <span className={`shrink-0 text-xs font-bold ${eff >= 25 ? 'text-status-working' : 'text-status-warn'}`}>{eff}% effective</span>}
+                </span>
+                {s.attendance && (
+                  <span role="img" aria-label={`Clocked in ${formatTime(s.attendance.clock_in_at)}, ${done.length} visits`} className="relative mt-1.5 block h-2 overflow-hidden rounded-full bg-neutral-100">
+                    <span className="absolute inset-y-0 bg-neutral-300 dark:bg-neutral-600" style={{ left: pos(Date.parse(s.attendance.clock_in_at)), width: width(Date.parse(s.attendance.clock_in_at), s.attendance.clock_out_at ? Date.parse(s.attendance.clock_out_at) : now) }} />
+                    {done.map((v) => (
+                      <span key={v.id} className="absolute inset-y-0 bg-brand-500" style={{ left: pos(Date.parse(v.checked_in_at)), width: width(Date.parse(v.checked_in_at), v.checked_out_at ? Date.parse(v.checked_out_at) : now) }} />
+                    ))}
+                  </span>
+                )}
+              </span>
+            </Link>
+          )
+        })}
+        {!loading && shown.length === 0 && <p className="py-3 text-[13px] text-neutral-500">Nobody here right now.</p>}
+        <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-neutral-500">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-2 w-3 rounded-sm bg-brand-500" /> Visit
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-2 w-3 rounded-sm bg-neutral-300 dark:bg-neutral-600" /> Travel / gaps
+          </span>
+          <span className="ml-auto">
+            {settings.workStartTime.slice(0, 5)} – {settings.workEndTime.slice(0, 5)}
+          </span>
+        </div>
+      </section>
 
-      <div className="grid grid-cols-3 gap-2">
-        {links
+      <Link to="/fleet" aria-label={`Open team report: this week, ${weekVisits} visits, ${weekOrdered} ordered, ${weekEff}% effective`} className="flex items-center gap-3 rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-500">
+          <BarChart3 className="h-5 w-5" aria-hidden />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[11px] font-bold uppercase tracking-wide text-neutral-500">This week</span>
+          <span className="block text-[15px] font-bold text-neutral-900">Team report</span>
+          <span className="block truncate text-xs text-neutral-500">Visits, orders, effective time and attendance, by person</span>
+          <span className="mt-1 flex gap-3 text-xs text-neutral-600">
+            <span>
+              <b className="text-neutral-900">{weekVisits}</b> visits
+            </span>
+            <span>
+              <b className="text-neutral-900">{weekOrdered}</b> ordered
+            </span>
+            <span>
+              <b className="text-neutral-900">{weekEff}%</b> eff.
+            </span>
+          </span>
+        </span>
+        <ChevronRight className="h-4 w-4 shrink-0 text-neutral-400" aria-hidden />
+      </Link>
+
+      <div className="flex flex-wrap gap-2">
+        {[
+          { label: 'Attendance', to: '/fleet?tab=attendance', show: true },
+          { label: 'Customer briefing', to: '/team/customers', show: canBriefing },
+          { label: 'Days off', to: '/leave/flexible', show: true },
+          { label: 'Calendars', to: '/calendar', show: true },
+          { label: 'More in Hub', to: '/menu', show: true },
+        ]
           .filter((l) => l.show)
           .map((l) => (
-            <Link key={l.label} to={l.to} className="flex flex-col items-center gap-1.5 rounded-2xl bg-white px-1 py-3 text-brand-600 shadow-card">
-              <l.icon className="h-5 w-5" aria-hidden />
-              <span className="text-[12px] font-bold text-neutral-600">{l.label}</span>
+            <Link key={l.label} to={l.to} className="inline-flex h-9 items-center rounded-full border border-neutral-200 bg-white px-3.5 text-[13px] font-bold text-neutral-700">
+              {l.label}
             </Link>
           ))}
       </div>
-
-      <Link to="/menu" className="flex items-center justify-between rounded-2xl bg-white p-3.5 text-[14px] font-bold text-neutral-900 shadow-card">
-        More in Hub
-        <ChevronRight className="h-4 w-4 text-neutral-400" aria-hidden />
-      </Link>
     </div>
   )
 }
 
-/** A calm status count, as on the canvas: a card with a coloured dot, not a solid colour block. */
-function Tile({ label, value, dot }: { label: string; value: number; dot: string }) {
-  return (
-    <span className="rounded-2xl border border-neutral-100 bg-white px-3 py-3 shadow-card">
-      <span className="flex items-center gap-1.5 text-[12px] font-semibold text-neutral-500">
-        <span className={`h-2 w-2 rounded-full ${dot}`} />
-        {label}
-      </span>
-      <span className="mt-1 block text-[26px] font-extrabold leading-none text-neutral-900">{value}</span>
-    </span>
-  )
-}
+type Filter = 'all' | 'visiting' | 'idle' | 'notin' | 'leave'
+const FILTERS: [Filter, string, string][] = [
+  ['all', 'All', ''],
+  ['visiting', 'Visiting', 'bg-status-visiting'],
+  ['idle', 'Idle', 'bg-earth-500'],
+  ['notin', 'Not in', 'bg-status-danger'],
+  ['leave', 'Leave', 'bg-neutral-400'],
+]
+const DOT: Record<Filter, string> = { all: '', visiting: 'bg-status-visiting', idle: 'bg-earth-500', notin: 'bg-status-danger', leave: 'bg-neutral-400' }

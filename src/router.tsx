@@ -29,13 +29,10 @@ const VisitsPage = lazy(() => import('@/pages/VisitsPage').then((m) => ({ defaul
 const ReportPage = lazy(() => import('@/pages/ReportPage').then((m) => ({ default: m.ReportPage })))
 const LeaveApprovalsPage = lazy(() => import('@/pages/LeaveApprovalsPage').then((m) => ({ default: m.LeaveApprovalsPage })))
 const WorkingHoursPage = lazy(() => import('@/pages/WorkingHoursPage').then((m) => ({ default: m.WorkingHoursPage })))
-const HolidaysPage = lazy(() => import('@/pages/HolidaysPage').then((m) => ({ default: m.HolidaysPage })))
-const LeaveAllowancesPage = lazy(() => import('@/pages/LeaveAllowancesPage').then((m) => ({ default: m.LeaveAllowancesPage })))
 const PlanPage = lazy(() => import('@/pages/PlanPage').then((m) => ({ default: m.PlanPage })))
 const MessagesPage = lazy(() => import('@/pages/MessagesPage').then((m) => ({ default: m.MessagesPage })))
 const MessageThreadPage = lazy(() => import('@/pages/MessageThreadPage').then((m) => ({ default: m.MessageThreadPage })))
 const NotificationsPage = lazy(() => import('@/pages/NotificationsPage').then((m) => ({ default: m.NotificationsPage })))
-const LocationsPage = lazy(() => import('@/pages/LocationsPage').then((m) => ({ default: m.LocationsPage })))
 const TranslationsPage = lazy(() => import('@/pages/TranslationsPage').then((m) => ({ default: m.TranslationsPage })))
 const PermissionsPage = lazy(() => import('@/pages/PermissionsPage').then((m) => ({ default: m.PermissionsPage })))
 const TodayPage = lazy(() => import('@/pages/TodayPage').then((m) => ({ default: m.TodayPage })))
@@ -44,6 +41,7 @@ const PeoplePage = lazy(() => import('@/pages/PeoplePage').then((m) => ({ defaul
 const TripsPage = lazy(() => import('@/pages/TripsPage').then((m) => ({ default: m.TripsPage })))
 const TripRequestPage = lazy(() => import('@/pages/TripRequestPage').then((m) => ({ default: m.TripRequestPage })))
 const TripDetailPage = lazy(() => import('@/pages/TripDetailPage').then((m) => ({ default: m.TripDetailPage })))
+const TripsCalendarPage = lazy(() => import('@/pages/TripsCalendarPage').then((m) => ({ default: m.TripsCalendarPage })))
 const TripSettingsPage = lazy(() => import('@/pages/TripSettingsPage').then((m) => ({ default: m.TripSettingsPage })))
 const AdminPage = lazy(() => import('@/pages/AdminPage').then((m) => ({ default: m.AdminPage })))
 const CalendarPage = lazy(() => import('@/pages/CalendarPage').then((m) => ({ default: m.CalendarPage })))
@@ -51,6 +49,9 @@ const FlexTeamPage = lazy(() => import('@/pages/FlexTeamPage').then((m) => ({ de
 const DaysOffPage = lazy(() => import('@/pages/DaysOffPage').then((m) => ({ default: m.DaysOffPage })))
 const FlexSettlementPage = lazy(() => import('@/pages/FlexSettlementPage').then((m) => ({ default: m.FlexSettlementPage })))
 const SheetSyncPage = lazy(() => import('@/pages/SheetSyncPage').then((m) => ({ default: m.SheetSyncPage })))
+const AdminAttendancePage = lazy(() => import('@/pages/AdminAttendancePage').then((m) => ({ default: m.AdminAttendancePage })))
+const GeofencePage = lazy(() => import('@/pages/GeofencePage').then((m) => ({ default: m.GeofencePage })))
+const DataSyncPage = lazy(() => import('@/pages/DataSyncPage').then((m) => ({ default: m.DataSyncPage })))
 const AccountPage = lazy(() => import('@/pages/AccountPage').then((m) => ({ default: m.AccountPage })))
 const HubFunctionPage = lazy(() => import('@/pages/HubFunctionPage').then((m) => ({ default: m.HubFunctionPage })))
 const LeavePage = lazy(() => import('@/pages/LeavePage').then((m) => ({ default: m.LeavePage })))
@@ -235,14 +236,7 @@ export const router = createBrowserRouter([
           </Suspense>
         ),
       },
-      {
-        path: '/leave/allowances',
-        element: (
-          <Suspense fallback={<PageFallback />}>
-            <LeaveAllowancesPage />
-          </Suspense>
-        ),
-      },
+      { path: '/leave/allowances', element: <Navigate to="/admin/attendance?tab=allow" replace /> },
       {
         path: '/settings/working-hours',
         element: (
@@ -251,14 +245,7 @@ export const router = createBrowserRouter([
           </Suspense>
         ),
       },
-      {
-        path: '/settings/holidays',
-        element: (
-          <Suspense fallback={<PageFallback />}>
-            <HolidaysPage />
-          </Suspense>
-        ),
-      },
+      { path: '/settings/holidays', element: <Navigate to="/admin/attendance?tab=holiday" replace /> },
       {
         path: '/approvals',
         element: (
@@ -281,6 +268,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageFallback />}>
             <TripRequestPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/trips/calendar',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <TripsCalendarPage />
           </Suspense>
         ),
       },
@@ -308,6 +303,30 @@ export const router = createBrowserRouter([
               <TripSettingsPage />
             </Suspense>
           </RequirePermission>
+        ),
+      },
+      {
+        path: '/admin/attendance',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <AdminAttendancePage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/admin/geofence',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <GeofencePage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/admin/sync',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <DataSyncPage />
+          </Suspense>
         ),
       },
       {
@@ -405,14 +424,7 @@ export const router = createBrowserRouter([
           </Suspense>
         ),
       },
-      {
-        path: '/locations',
-        element: (
-          <Suspense fallback={<PageFallback />}>
-            <LocationsPage />
-          </Suspense>
-        ),
-      },
+      { path: '/locations', element: <Navigate to="/admin/geofence" replace /> },
       {
         path: '/translations',
         element: (

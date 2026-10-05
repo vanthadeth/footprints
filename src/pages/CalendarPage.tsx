@@ -7,8 +7,12 @@ import { localDay, shortDay } from '@/features/customers/book'
 import { orgErrorText } from '@/features/org/org'
 import { useIsDesktop } from '@/hooks/useIsDesktop'
 import { calendarService, type CalendarItem, type TeamPerson } from '@/features/calendar/calendarService'
-import { FILTERS, KIND, addDays, byDay, checkable, hhmm, isAuto, itemSub, itemTitle, monthGrid, overdue, passes, type CalendarFilter } from '@/features/calendar/calendar'
+import { FILTERS, KIND, addDays, byDay, checkable, hhmm, isAuto, itemSub, itemTitle, monthGrid, passes, type CalendarFilter } from '@/features/calendar/calendar'
 import { TaskSheet } from '@/features/calendar/TaskSheet'
+import { ApptList, TaskGroups, appointments, mergeItems, openTasks } from '@/features/calendar/CalendarLists'
+import { AdminTabs } from '@/components/AdminKit'
+import { useTab } from '@/hooks/useTab'
+import { formatTime } from '@/lib/datetime'
 
 /** Items for one person and date range; keeps the last result on screen while the next loads. */
 function useItems(userId: string | null, from: string, to: string, nonce: number) {
@@ -30,7 +34,9 @@ function useItems(userId: string | null, from: string, to: string, nonce: number
  * Calendar (Hub › Calendar): everything dated for one person -- their
  * tasks, and, added automatically, visit appointments, collections, call
  * follow-ups, Today's plan stops, leave and holidays. Managers can open a
- * team member's calendar and assign them tasks.
+ * team member's calendar and assign them tasks. On a phone it has three
+ * tabs as on the canvas (Polish › Calendar): the month, Tasks (grouped
+ * Overdue / Today / This week) and Appointments coming up.
  */
 export function CalendarPage() {
   const { profile } = useProfile()
@@ -47,6 +53,7 @@ export function CalendarPage() {
   const [nonce, setNonce] = useState(0)
   const [sheet, setSheet] = useState<{ taskId: string | null; customerName?: string | null } | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [tab, setTab] = useTab(['calendar', 'tasks', 'appts'] as const, 'calendar')
 
   useEffect(() => {
     calendarService
@@ -58,12 +65,13 @@ export function CalendarPage() {
   const grid = monthGrid(ym.y, ym.m)
   const [month, setMonth] = useItems(who, grid.from, grid.to, nonce)
   const [recent, setRecent] = useItems(who, addDays(today, -30), today, nonce)
+  const [ahead, setAhead] = useItems(who, today, addDays(today, 60), nonce)
+  const listItems = useMemo(() => mergeItems(recent.items, ahead.items), [recent.items, ahead.items])
   const days = useMemo(() => byDay(month.items.filter((i) => passes(i, filter))), [month.items, filter])
   const all = useMemo(() => byDay(month.items), [month.items])
   const dayItems = days.get(selected) ?? []
-  const todayAll = byDay(recent.items).get(today) ?? []
-  const todayOpen = todayAll.filter((i) => !i.done && i.kind !== 'holiday' && i.kind !== 'leave')
-  const late = overdue(recent.items, today)
+  const nowHHMM = formatTime(new Date().toISOString())
+  const apptCount = appointments(listItems, today).filter((i) => !i.done && !(i.day === today && i.at_time && i.at_time.slice(0, 5) < nowHHMM)).length
   const viewingOther = !!who && who !== me
   const whoName = viewingOther ? displayName(team.find((p) => p.id === who)?.full_name ?? 'them', team.find((p) => p.id === who)?.nickname) : 'Me'
 
@@ -72,6 +80,7 @@ export function CalendarPage() {
     const flip = (list: CalendarItem[]) => list.map((i) => (i.ref_id === item.ref_id && i.kind === item.kind ? { ...i, done: next } : i))
     setMonth((s) => ({ ...s, items: flip(s.items) }))
     setRecent((s) => ({ ...s, items: flip(s.items) }))
+    setAhead((s) => ({ ...s, items: flip(s.items) }))
     setActionError(null)
     try {
       await calendarService.completeSource(item, next)
@@ -162,7 +171,7 @@ export function CalendarPage() {
     </div>
   )
 
-  const errors = [month.error, recent.error, actionError].filter(Boolean)
+  const errors = [month.error, recent.error, ahead.error, actionError].filter(Boolean)
   const sheetEl = me && (
     <TaskSheet
       open={!!sheet}
@@ -240,136 +249,122 @@ export function CalendarPage() {
     )
   }
 
+  const addTask = () => setSheet({ taskId: null })
   return (
     <div className="mx-auto max-w-lg px-4 pb-40 pt-3">
       <div className="flex flex-col gap-3">
+        <AdminTabs
+          tabs={[
+            ['calendar', 'Calendar'],
+            ['tasks', `Tasks · ${openTasks(listItems).length}`],
+            ['appts', `Appointments · ${apptCount}`],
+          ]}
+          value={tab}
+          onChange={setTab}
+        />
         {personPicker && <div className="flex justify-end">{personPicker}</div>}
         {viewingOther && <p className="rounded-xl bg-brand-50 px-3 py-2.5 text-[13px] text-brand-700 dark:bg-brand-500/20 dark:text-brand-300">Viewing {whoName}’s calendar. You can add or change tasks you assign; everything else is read-only.</p>}
-
-        <div className="flex flex-col gap-1.5 rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card">
-          <div className="flex items-baseline justify-between">
-            <p className="text-[15px] font-extrabold text-neutral-900">Today · {shortDay(today)}</p>
-            <span className="text-[12.5px] font-bold text-neutral-500">
-              {todayOpen.length} to do · {todayAll.filter((i) => i.done).length} done
-            </span>
-          </div>
-          {todayOpen.slice(0, 3).map((i) => (
-            <button key={`${i.kind}-${i.ref_id}`} type="button" onClick={() => open(i)} className="flex items-center gap-2.5 py-1.5 text-left">
-              <span className="w-11 shrink-0 text-[12.5px] font-extrabold tabular-nums text-neutral-600">{hhmm(i.at_time)}</span>
-              <span className={`w-1 self-stretch rounded-full ${KIND[i.kind].dot}`} />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-bold text-neutral-900">{itemTitle(i)}</span>
-                <span className="block truncate text-xs text-neutral-500">
-                  {KIND[i.kind].label} · {itemSub(i)}
-                </span>
-              </span>
-            </button>
-          ))}
-          {todayOpen.length === 0 && !recent.loading && <p className="py-1 text-[13px] text-neutral-500">Nothing left for today.</p>}
-          {late.length > 0 && (
-            <p className="mt-0.5 rounded-lg bg-status-danger/10 px-2.5 py-2 text-[12.5px] font-bold text-status-danger">
-              {late.length} overdue: {late.slice(0, 3).map((i) => `${itemTitle(i)} (${shortDay(i.day)})`).join(', ')}
-              {late.length > 3 ? '…' : ''}
-            </p>
-          )}
-        </div>
-
-        <div className="-mx-4 px-4">{filters}</div>
         {errors.map((e) => (
           <p key={e} className="rounded-lg bg-status-danger/10 px-3 py-2 text-sm text-status-danger">
             {e}
           </p>
         ))}
 
-        <div className="rounded-2xl border border-neutral-100 bg-white px-2.5 py-3 shadow-card">
-          <div className="flex items-center justify-between px-1 pb-2.5">
-            <button type="button" onClick={() => shift(-1)} aria-label="Previous month" className="flex h-9 w-9 items-center justify-center rounded-full border border-neutral-200 text-neutral-600">
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <button type="button" onClick={goToday} className="flex items-center gap-1.5 text-base font-extrabold text-neutral-900">
-              {grid.label}
-              {month.loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-neutral-400" />}
-            </button>
-            <button type="button" onClick={() => shift(1)} aria-label="Next month" className="flex h-9 w-9 items-center justify-center rounded-full border border-neutral-200 text-neutral-600">
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="mb-1 grid grid-cols-7 gap-0.5">
-            {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
-              <span key={i} className="text-center text-[11px] font-extrabold text-neutral-500">
-                {d}
-              </span>
-            ))}
-          </div>
-          <div className="grid grid-cols-7 gap-0.5">
-            {grid.days.map((d) => {
-              const items = days.get(d.date) ?? []
-              const dayAll = all.get(d.date) ?? []
-              const hol = dayAll.some((i) => i.kind === 'holiday')
-              const leave = dayAll.some((i) => i.kind === 'leave')
-              const kinds = [...new Set(items.filter((i) => i.kind !== 'holiday' && i.kind !== 'leave').map((i) => i.kind))].slice(0, 4)
-              const sel = d.date === selected
-              return (
-                <button
-                  key={d.date}
-                  type="button"
-                  onClick={() => setSelected(d.date)}
-                  aria-label={`${shortDay(d.date)}, ${items.length} items${leave ? ', leave' : ''}${hol ? ', holiday' : ''}`}
-                  aria-pressed={sel}
-                  className={`flex h-[50px] flex-col items-center justify-center gap-1 rounded-xl ${hol ? 'holiday-stripes' : leave ? 'bg-neutral-100' : ''} ${d.inMonth ? '' : 'opacity-40'}`}
-                >
-                  <span
-                    className={`flex h-7 w-7 items-center justify-center rounded-full text-[13px] ${
-                      sel
-                        ? 'bg-brand-500 font-bold text-white'
-                        : d.date === today
-                          ? 'font-bold text-brand-500 ring-2 ring-inset ring-brand-500'
-                          : d.date < today
-                            ? 'font-medium text-neutral-500'
-                            : 'font-medium text-neutral-900'
-                    }`}
-                  >
-                    {d.day}
-                  </span>
-                  <span className="flex h-1.5 gap-[3px]">
-                    {kinds.map((k) => (
-                      <span key={k} className={`h-1.5 w-1.5 rounded-full ${KIND[k].dot}`} />
-                    ))}
-                  </span>
+        {tab === 'calendar' && (
+          <>
+            <div className="rounded-2xl border border-neutral-100 bg-white px-2.5 py-3 shadow-card">
+              <div className="flex items-center justify-between px-1 pb-2.5">
+                <button type="button" onClick={() => shift(-1)} aria-label="Previous month" className="flex h-9 w-9 items-center justify-center rounded-full border border-neutral-200 text-neutral-600">
+                  <ChevronLeft className="h-4 w-4" />
                 </button>
-              )
-            })}
-          </div>
-          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5 border-t border-neutral-100 px-1 pt-2.5 text-xs text-neutral-500">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="h-3 w-3 rounded-full ring-2 ring-inset ring-brand-500" /> Today
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="h-3 w-4 rounded bg-neutral-100 ring-1 ring-inset ring-neutral-200" /> Leave
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="holiday-stripes h-3 w-4 rounded ring-1 ring-inset ring-neutral-200" /> Holiday
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-brand-500" /> Something planned
-            </span>
-          </div>
-        </div>
-
-        {dayPanel}
-        <p className="mx-1 flex gap-1.5 text-xs leading-relaxed text-neutral-500">
-          <span className="h-[18px] shrink-0 rounded-full bg-neutral-100 px-1.5 py-px text-[10.5px] font-extrabold text-neutral-500 dark:bg-neutral-800">Auto</span>
-          Added for you: a visit’s next appointment (a collection when money is still owed) and a call’s follow-up date. Collections tick themselves off when a later visit or call records the payment.
-        </p>
+                <button type="button" onClick={goToday} className="flex items-center gap-1.5 text-base font-extrabold text-neutral-900">
+                  {grid.label}
+                  {month.loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-neutral-400" />}
+                </button>
+                <button type="button" onClick={() => shift(1)} aria-label="Next month" className="flex h-9 w-9 items-center justify-center rounded-full border border-neutral-200 text-neutral-600">
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="mb-1 grid grid-cols-7 gap-0.5">
+                {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
+                  <span key={i} className="text-center text-[11px] font-extrabold text-neutral-500">
+                    {d}
+                  </span>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-0.5">
+                {grid.days.map((d) => {
+                  const items = days.get(d.date) ?? []
+                  const dayAll = all.get(d.date) ?? []
+                  const hol = dayAll.some((i) => i.kind === 'holiday')
+                  const leave = dayAll.some((i) => i.kind === 'leave')
+                  const kinds = [...new Set(items.filter((i) => i.kind !== 'holiday' && i.kind !== 'leave').map((i) => i.kind))].slice(0, 4)
+                  const sel = d.date === selected
+                  return (
+                    <button
+                      key={d.date}
+                      type="button"
+                      onClick={() => setSelected(d.date)}
+                      aria-label={`${shortDay(d.date)}, ${items.length} items${leave ? ', leave' : ''}${hol ? ', holiday' : ''}`}
+                      aria-pressed={sel}
+                      className={`flex h-[50px] flex-col items-center justify-center gap-1 rounded-xl ${hol ? 'holiday-stripes' : leave ? 'bg-neutral-100' : ''} ${d.inMonth ? '' : 'opacity-40'}`}
+                    >
+                      <span
+                        className={`flex h-7 w-7 items-center justify-center rounded-full text-[13px] ${
+                          sel
+                            ? 'bg-brand-500 font-bold text-white'
+                            : d.date === today
+                              ? 'font-bold text-brand-500 ring-2 ring-inset ring-brand-500'
+                              : d.date < today
+                                ? 'font-medium text-neutral-500'
+                                : 'font-medium text-neutral-900'
+                        }`}
+                      >
+                        {d.day}
+                      </span>
+                      <span className="flex h-1.5 gap-[3px]">
+                        {kinds.map((k) => (
+                          <span key={k} className={`h-1.5 w-1.5 rounded-full ${KIND[k].dot}`} />
+                        ))}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="mt-2 flex flex-wrap gap-x-3.5 gap-y-1.5 border-t border-neutral-100 px-1 pt-2.5 text-xs text-neutral-500 dark:border-neutral-800">
+                {(['appt', 'task', 'plan'] as const).map((k) => (
+                  <span key={k} className="inline-flex items-center gap-1.5">
+                    <span className={`h-2 w-2 rounded-full ${KIND[k].dot}`} /> {k === 'appt' ? 'Appointment' : KIND[k].label.replace(' stop', '')}
+                  </span>
+                ))}
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2.5 w-3.5 rounded-[3px] bg-neutral-100 ring-1 ring-inset ring-neutral-200 dark:ring-neutral-700" /> Leave
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="holiday-stripes h-2.5 w-3.5 rounded-[3px]" /> Holiday
+                </span>
+              </div>
+            </div>
+            {dayPanel}
+            <p className="mx-1 flex gap-1.5 text-xs leading-relaxed text-neutral-500">
+              <span className="h-[18px] shrink-0 rounded-full bg-neutral-100 px-1.5 py-px text-[10.5px] font-extrabold text-neutral-500 dark:bg-neutral-800">Auto</span>
+              Added for you: a visit’s next appointment (a collection when money is still owed) and a call’s follow-up date. Collections tick themselves off when a later visit or call records the payment.
+            </p>
+          </>
+        )}
+        {tab === 'tasks' && <TaskGroups items={listItems} today={today} readOnly={viewingOther} onToggle={toggle} onOpen={open} onAdd={addTask} addLabel={`Add ${addLabel.toLowerCase()}`} />}
+        {tab === 'appts' && <ApptList items={listItems} today={today} nowHHMM={nowHHMM} />}
       </div>
 
-      <button
-        type="button"
-        onClick={() => setSheet({ taskId: null })}
-        className="fixed bottom-24 right-4 z-20 flex h-[52px] items-center gap-2 rounded-full bg-brand-500 px-5 text-[15px] font-extrabold text-white md:bottom-8"
-      >
-        <Plus className="h-[18px] w-[18px]" strokeWidth={2.6} /> {addLabel}
-      </button>
+      {tab === 'calendar' && (
+        <button
+          type="button"
+          onClick={addTask}
+          className="fixed bottom-24 right-4 z-20 flex h-[52px] items-center gap-2 rounded-full bg-brand-500 px-5 text-[15px] font-extrabold text-white md:bottom-8"
+        >
+          <Plus className="h-[18px] w-[18px]" strokeWidth={2.6} /> {addLabel}
+        </button>
+      )}
       {sheetEl}
     </div>
   )

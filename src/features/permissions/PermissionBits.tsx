@@ -22,12 +22,12 @@ export function Chip({ active, onClick, children, muted, plain }: { active: bool
 
 export function GroupCard({ title, trailing, children }: { title: string; trailing?: ReactNode; children: ReactNode }) {
   return (
-    <section className="rounded-2xl bg-white px-4 pb-1 pt-3 shadow-card">
-      <div className="flex items-center justify-between border-b border-neutral-100 pb-2 text-[11px] font-bold uppercase tracking-wider text-neutral-500 dark:border-neutral-800">
+    <section aria-label={title}>
+      <div className="mb-0.5 flex items-baseline justify-between text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">
         <span>{title}</span>
-        {trailing && <span>{trailing}</span>}
+        {trailing && <span className="font-semibold normal-case tracking-normal">{trailing}</span>}
       </div>
-      <div className="divide-y divide-neutral-100 dark:divide-neutral-800">{children}</div>
+      <div className="divide-y divide-neutral-100 border-y border-neutral-100 dark:divide-neutral-800 dark:border-neutral-800">{children}</div>
     </section>
   )
 }

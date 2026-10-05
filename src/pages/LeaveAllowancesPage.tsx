@@ -33,7 +33,8 @@ const initials = (name: string) =>
  * is counted in working days -- weekends/days off and public holidays never
  * come out of it (0090).
  */
-export function LeaveAllowancesPage() {
+/** `embedded` drops the page frame, for the Attendance page's tab. */
+export function LeaveAllowancesPage({ embedded = false }: { embedded?: boolean } = {}) {
   const { profile } = useProfile()
   const canEdit = profile?.is_super_admin === true || profile?.role_name === 'HR'
   const [year, setYear] = useState(() => new Date().getFullYear())
@@ -131,7 +132,7 @@ export function LeaveAllowancesPage() {
 
   if (loading || !policy) {
     return (
-      <div className="mx-auto max-w-lg space-y-3 px-4 pt-4 md:max-w-2xl md:px-8">
+      <div className={embedded ? 'space-y-3' : 'mx-auto max-w-lg space-y-3 px-4 pt-4 md:max-w-2xl md:px-8'}>
         <div className="h-44 animate-pulse rounded-2xl bg-neutral-100" />
         <div className="h-64 animate-pulse rounded-2xl bg-neutral-100" />
         {error && <p className="text-sm text-status-danger">{error}</p>}
@@ -144,7 +145,7 @@ export function LeaveAllowancesPage() {
   const selCarry = sel?.annual?.carryDays ?? 0
 
   return (
-    <div className="mx-auto max-w-lg space-y-4 px-4 pb-8 pt-3 md:max-w-2xl md:px-8">
+    <div className={embedded ? 'space-y-4' : 'mx-auto max-w-lg space-y-4 px-4 pb-8 pt-3 md:max-w-2xl md:px-8'}>
       <div className="flex items-center justify-between">
         <button type="button" onClick={() => setYear(year - 1)} aria-label="Previous year" className="flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-600 tap-target">
           <ChevronLeft className="h-[18px] w-[18px]" />

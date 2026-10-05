@@ -60,7 +60,7 @@ export interface FnMeta {
   locations?: boolean
 }
 
-export const SCOPE_LABEL: Record<Scope, string> = { own: 'Self', sub: 'Team', any: 'All' }
+export const SCOPE_LABEL: Record<Scope, string> = { own: 'Own', sub: 'Team', any: 'All' }
 
 export const GROUPS: { name: string; fns: FnMeta[] }[] = [
   {
