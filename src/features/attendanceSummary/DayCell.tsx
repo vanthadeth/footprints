@@ -9,7 +9,7 @@ export function DayCell({ row, dow }: { row: AttendanceDay | undefined; dow: str
   switch (row.status) {
     case 'present':
       return (
-        <span className={`${base} bg-status-working/10 text-status-working dark:text-emerald-300`} aria-label={`${dow}: on time${row.leaveFraction ? ', half-day leave' : ''}`}>
+        <span className={`${base} bg-status-working/10 text-status-working`} aria-label={`${dow}: on time${row.leaveFraction ? ', half-day leave' : ''}`}>
           {row.leaveFraction ? '½' : '✓'}
         </span>
       )
@@ -27,7 +27,7 @@ export function DayCell({ row, dow }: { row: AttendanceDay | undefined; dow: str
       )
     case 'dayoff':
       return (
-        <span className={`${base} bg-status-visiting/10 text-status-visiting dark:text-violet-300`} aria-label={`${dow}: day off, no clock-in`}>
+        <span className={`${base} bg-status-visiting/10 text-status-visiting`} aria-label={`${dow}: day off, no clock-in`}>
           Off
         </span>
       )

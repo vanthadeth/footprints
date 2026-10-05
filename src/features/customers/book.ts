@@ -41,10 +41,10 @@ export function urgency(days: number | null): Urgency {
 }
 
 export const URGENCY: Record<Urgency, { label: string; chip: string }> = {
-  fresh: { label: 'Visited', chip: 'bg-status-working/10 text-status-working dark:bg-emerald-400/15 dark:text-emerald-300' },
+  fresh: { label: 'Visited', chip: 'bg-status-working/10 text-status-working' },
   ok: { label: 'Visited', chip: 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300' },
-  due: { label: 'Due', chip: 'bg-status-warn/10 text-status-warn dark:bg-amber-400/15 dark:text-amber-300' },
-  overdue: { label: 'Overdue', chip: 'bg-status-danger/10 text-status-danger dark:bg-red-400/15 dark:text-red-300' },
+  due: { label: 'Due', chip: 'bg-status-warn/10 text-status-warn' },
+  overdue: { label: 'Overdue', chip: 'bg-status-danger/10 text-status-danger' },
   lapsed: { label: 'Lapsed', chip: 'bg-status-danger text-white' },
   never: { label: 'Never visited', chip: 'bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400' },
 }
@@ -310,11 +310,11 @@ export function visitMetrics(rows: ActivityRow[], today: string): VisitMetrics {
 export type ChipTone = 'ok' | 'warn' | 'bad' | 'plain' | 'visit'
 
 export const CHIP_TONE: Record<ChipTone, string> = {
-  ok: 'bg-status-working/10 text-status-working dark:bg-emerald-400/15 dark:text-emerald-300',
-  warn: 'bg-status-warn/10 text-status-warn dark:bg-amber-400/15 dark:text-amber-300',
-  bad: 'bg-status-danger/10 text-status-danger dark:bg-red-400/15 dark:text-red-300',
+  ok: 'bg-status-working/10 text-status-working',
+  warn: 'bg-status-warn/10 text-status-warn',
+  bad: 'bg-status-danger/10 text-status-danger',
   plain: 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300',
-  visit: 'bg-status-visiting/10 text-status-visiting dark:bg-violet-400/15 dark:text-violet-300',
+  visit: 'bg-status-visiting/10 text-status-visiting',
 }
 
 const VISIT_TONE: Record<string, ChipTone> = { 'Met the owner': 'visit', 'Met a staff member': 'visit', 'Nobody there': 'bad', 'Shop closed': 'bad' }

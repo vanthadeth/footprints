@@ -185,7 +185,7 @@ function Kpi({ label, value, good }: { label: string; value: string; good?: bool
       <p className="text-xs font-semibold text-neutral-500">{label}</p>
       <p
         className={`mt-1 text-2xl font-extrabold tracking-tight ${
-          good === undefined ? 'text-neutral-900' : good ? 'text-status-working dark:text-emerald-300' : 'text-status-warn'
+          good === undefined ? 'text-neutral-900' : good ? 'text-status-working' : 'text-status-warn'
         }`}
       >
         {value}
@@ -208,7 +208,7 @@ function EffChip({ value }: { value: number }) {
   return (
     <span
       className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${
-        good ? 'bg-status-working/10 text-status-working dark:text-emerald-300' : 'bg-status-warn/10 text-status-warn'
+        good ? 'bg-status-working/10 text-status-working' : 'bg-status-warn/10 text-status-warn'
       }`}
     >
       {Math.round(value * 100)}% effective

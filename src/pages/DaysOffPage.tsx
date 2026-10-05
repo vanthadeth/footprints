@@ -7,7 +7,7 @@ import { flexService } from '@/features/flex/flexService'
 import { addDays, cellLabel, cellTag, cycleCells, cycleLabel, cycleStatus, dayDate, days, over, rate, usedRows, type FlexCycle, type FlexDay } from '@/features/flex/flex'
 
 const TONE = {
-  ok: 'bg-status-working/10 text-status-working dark:text-emerald-300',
+  ok: 'bg-status-working/10 text-status-working',
   warn: 'bg-status-warn/10 text-status-warn',
   danger: 'bg-status-danger/10 text-status-danger',
   muted: 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800',
@@ -24,10 +24,10 @@ const CELL: Record<FlexDay['kind'], string> = {
   upcoming: 'border border-neutral-200 dark:border-neutral-800',
 }
 const TAG: Record<FlexDay['kind'], string> = {
-  worked: 'text-status-working dark:text-emerald-300',
-  flex: 'text-status-visiting dark:text-violet-300',
-  auto: 'text-status-visiting dark:text-violet-300',
-  pend: 'text-status-visiting dark:text-violet-300',
+  worked: 'text-status-working',
+  flex: 'text-status-visiting',
+  auto: 'text-status-visiting',
+  pend: 'text-status-visiting',
   holiday: 'text-earth-500',
   leave: 'text-brand-600 dark:text-brand-300',
   upcoming: 'text-neutral-400',
@@ -152,11 +152,11 @@ export function DaysOffPage() {
               </div>
               <div aria-hidden className="mt-3 flex h-2.5 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
                 <span className="bg-status-visiting" style={{ width: pct(cycle.taken) }} />
-                <span className="bg-status-visiting/35 dark:bg-violet-300/50" style={{ width: pct(Math.max(0, Math.min(cycle.planned, cycle.allowance - cycle.taken))) }} />
+                <span className="bg-status-visiting/35" style={{ width: pct(Math.max(0, Math.min(cycle.planned, cycle.allowance - cycle.taken))) }} />
               </div>
               <div className="mt-2 flex gap-4 text-[12.5px] font-semibold text-neutral-600">
                 <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-status-visiting" />Taken {days(cycle.taken)}</span>
-                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-status-visiting/35 dark:bg-violet-300/50" />Planned {days(cycle.planned)}</span>
+                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-status-visiting/35" />Planned {days(cycle.planned)}</span>
                 <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-neutral-200 dark:bg-neutral-700" />Left {days(Math.max(0, cycle.left))}</span>
               </div>
               <p className="mt-3 border-t border-neutral-100 pt-3 text-[12.5px] leading-snug text-neutral-500 dark:border-neutral-800">
@@ -228,7 +228,7 @@ export function DaysOffPage() {
                     <span className="block text-[14px] font-semibold text-neutral-900">{r.day}</span>
                     <span className="block text-[12px] text-neutral-500">{r.note}</span>
                   </span>
-                  <span className={`text-[14px] font-extrabold tabular-nums ${r.pending ? 'text-neutral-400' : 'text-status-visiting dark:text-violet-300'}`}>{r.amount}</span>
+                  <span className={`text-[14px] font-extrabold tabular-nums ${r.pending ? 'text-neutral-400' : 'text-status-visiting'}`}>{r.amount}</span>
                 </div>
               ))}
             </div>

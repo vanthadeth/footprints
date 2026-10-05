@@ -97,7 +97,7 @@ export function UsersPage() {
     <div className="mx-auto max-w-lg pb-6 md:max-w-2xl">
       <div className="space-y-3.5 px-4 pt-4 md:px-8">
         <div className="grid grid-cols-4 gap-2">
-          <CountTile label="Active" value={counts.active} tone="text-status-working dark:text-emerald-300" />
+          <CountTile label="Active" value={counts.active} tone="text-status-working" />
           <CountTile label="Suspended" value={counts.suspended} tone="text-status-warn" />
           <CountTile label="Discharged" value={counts.discharged} tone="text-status-danger" />
           <CountTile label="Field Sales" value={counts.fieldSales} tone="text-neutral-900" />

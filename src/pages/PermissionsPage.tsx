@@ -62,7 +62,7 @@ export function PermissionsPage() {
       />
 
       {message && (
-        <p role="status" className="rounded-xl bg-status-working/10 px-3 py-2 text-sm text-status-working dark:text-emerald-300">
+        <p role="status" className="rounded-xl bg-status-working/10 px-3 py-2 text-sm text-status-working">
           {message}
         </p>
       )}

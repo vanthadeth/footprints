@@ -6,7 +6,7 @@ import { flexService, type FlexTeamRow } from '@/features/flex/flexService'
 import { addDays, cycleLabel, dayDate, days, teamStatus } from '@/features/flex/flex'
 
 const TONE = {
-  ok: 'bg-status-working/10 text-status-working dark:text-emerald-300',
+  ok: 'bg-status-working/10 text-status-working',
   warn: 'bg-status-warn/10 text-status-warn',
   danger: 'bg-status-danger/10 text-status-danger',
   muted: 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800',
@@ -136,7 +136,7 @@ export function FlexTeamPage() {
                       {r.isFlexible && (
                         <span aria-hidden className="mt-1.5 flex h-1.5 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
                           <span className={r.left < 0 ? 'bg-status-danger' : 'bg-status-visiting'} style={{ width: pct(r.taken) }} />
-                          <span className="bg-status-visiting/35 dark:bg-violet-300/50" style={{ width: pct(Math.max(0, Math.min(r.planned, r.allowance - r.taken))) }} />
+                          <span className="bg-status-visiting/35" style={{ width: pct(Math.max(0, Math.min(r.planned, r.allowance - r.taken))) }} />
                         </span>
                       )}
                     </span>

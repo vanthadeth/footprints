@@ -124,7 +124,7 @@ function CycleView({
           </button>
         </div>
         <div className="flex items-center justify-center gap-2">
-          <span className={`rounded-full px-2.5 py-1 text-[11.5px] font-extrabold ${inProgress ? 'bg-status-warn/10 text-status-warn' : 'bg-status-working/10 text-status-working dark:text-emerald-300'}`}>
+          <span className={`rounded-full px-2.5 py-1 text-[11.5px] font-extrabold ${inProgress ? 'bg-status-warn/10 text-status-warn' : 'bg-status-working/10 text-status-working'}`}>
             {inProgress ? `In progress · closes in ${daysLeft} day${daysLeft === 1 ? '' : 's'}` : offset === -1 ? 'Last closed cycle' : 'Closed'}
           </span>
           {canEditCycle && (
@@ -159,7 +159,7 @@ function CycleView({
 
       <div className="grid grid-cols-3 gap-2">
         <Tile label="Working days" value={inProgress ? `${elapsedWorking}/${workingDays}` : String(workingDays)} />
-        <Tile label="Attendance" value={formatRate(k.rate)} tone="text-status-working dark:text-emerald-300" />
+        <Tile label="Attendance" value={formatRate(k.rate)} tone="text-status-working" />
         <Tile label="Late" value={String(k.late)} tone="text-status-warn" />
         <Tile label="Absent" value={String(k.absent)} tone="text-status-danger" />
         <Tile label="Leave days" value={formatDays(k.leaveDays)} tone="text-brand-600" />

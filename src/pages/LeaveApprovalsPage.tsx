@@ -98,7 +98,7 @@ export function LeaveApprovalsPage() {
                     Sales trip · {dayLabel(t.start_date)} – {dayLabel(t.end_date)} · {t.people_count} {t.people_count === 1 ? 'person' : 'people'}
                   </span>
                 </span>
-                <span className={`rounded-full px-2 py-0.5 text-[11px] font-extrabold ${t.status === 'approved' ? 'bg-status-working/10 text-status-working dark:text-emerald-300' : t.status === 'changes' ? 'bg-status-warn/10 text-status-warn' : 'bg-status-danger/10 text-status-danger'}`}>
+                <span className={`rounded-full px-2 py-0.5 text-[11px] font-extrabold ${t.status === 'approved' ? 'bg-status-working/10 text-status-working' : t.status === 'changes' ? 'bg-status-warn/10 text-status-warn' : 'bg-status-danger/10 text-status-danger'}`}>
                   {t.status === 'approved' ? 'Approved' : t.status === 'changes' ? 'Changes asked' : 'Rejected'}
                 </span>
               </Link>
@@ -111,7 +111,7 @@ export function LeaveApprovalsPage() {
                     {leaveTitle(r.leave_type)} · {leaveDateRangeLabel(r.start_date, r.end_date, r.start_period, r.end_period)}
                   </span>
                 </span>
-                <span className={`rounded-full px-2 py-0.5 text-[11px] font-extrabold ${r.status === 'approved' ? 'bg-status-working/10 text-status-working dark:text-emerald-300' : 'bg-status-danger/10 text-status-danger'}`}>
+                <span className={`rounded-full px-2 py-0.5 text-[11px] font-extrabold ${r.status === 'approved' ? 'bg-status-working/10 text-status-working' : 'bg-status-danger/10 text-status-danger'}`}>
                   {r.status === 'approved' ? 'Approved' : 'Rejected'}
                 </span>
               </div>

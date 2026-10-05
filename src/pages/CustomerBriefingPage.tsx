@@ -203,7 +203,7 @@ export function CustomerBriefingPage() {
                     {p.en && <span className="block text-[11.5px] text-neutral-500">{p.en}</span>}
                   </span>
                   <span className="text-xs font-bold tabular-nums text-neutral-600">{p.matching.toLocaleString('en-US')}</span>
-                  <span className="min-w-[30px] rounded-full bg-status-danger/10 px-1.5 py-px text-center text-[11px] font-extrabold tabular-nums text-status-danger dark:bg-red-400/15 dark:text-red-300">{p.late}</span>
+                  <span className="min-w-[30px] rounded-full bg-status-danger/10 px-1.5 py-px text-center text-[11px] font-extrabold tabular-nums text-status-danger">{p.late}</span>
                 </button>
               )
             })}
@@ -374,7 +374,7 @@ function TableRow({ row, first }: { row: BookRow; first: boolean }) {
       <span role="cell" className="truncate text-[13px] text-neutral-600" title={freqText(row)}>
         {row.freq_days ? `~${row.freq_days} days` : row.visits_90 === 1 ? 'once' : '—'}
       </span>
-      <span role="cell" className={`truncate text-[13px] ${row.last_order_status === 'Ordered' ? 'text-status-working dark:text-emerald-300' : 'text-neutral-600'}`}>
+      <span role="cell" className={`truncate text-[13px] ${row.last_order_status === 'Ordered' ? 'text-status-working' : 'text-neutral-600'}`}>
         {outcomeText(row)}
       </span>
       <span role="cell" className="truncate text-[13px] text-neutral-600">

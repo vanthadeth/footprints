@@ -161,7 +161,7 @@ export function HolidaysPage() {
                             {h.halfDay ? 'Afternoon off' : days > 1 ? `${days} days` : 'Full day'}
                             <span
                               className={`rounded-full px-1.5 py-0.5 text-[10.5px] font-extrabold ${
-                                h.kind === 'company' ? 'bg-status-visiting/10 text-status-visiting dark:text-violet-300' : 'bg-brand-50 text-brand-700'
+                                h.kind === 'company' ? 'bg-status-visiting/10 text-status-visiting' : 'bg-brand-50 text-brand-700'
                               }`}
                             >
                               {h.kind === 'company' ? 'Company' : 'Public'}

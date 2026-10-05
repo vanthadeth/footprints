@@ -24,11 +24,11 @@ export interface PurposeMeta {
 
 export const PURPOSES: PurposeMeta[] = [
   { key: 'care', label: 'Customer care', tone: 'bg-brand-50 text-brand-600' },
-  { key: 'delivery', label: 'Delivery confirmation', tone: 'bg-status-visiting/10 text-status-visiting dark:text-violet-300' },
-  { key: 'discount', label: 'Collection discount notice', tone: 'bg-status-working/10 text-status-working dark:text-emerald-300' },
-  { key: 'collection', label: 'Collection notice', tone: 'bg-status-warn/10 text-status-warn dark:text-orange-300' },
-  { key: 'followup', label: 'Collection follow-up', tone: 'bg-status-warn/10 text-status-warn dark:text-orange-300' },
-  { key: 'conflict', label: 'Resolve conflict', tone: 'bg-status-danger/10 text-status-danger dark:text-red-300' },
+  { key: 'delivery', label: 'Delivery confirmation', tone: 'bg-status-visiting/10 text-status-visiting' },
+  { key: 'discount', label: 'Collection discount notice', tone: 'bg-status-working/10 text-status-working' },
+  { key: 'collection', label: 'Collection notice', tone: 'bg-status-warn/10 text-status-warn' },
+  { key: 'followup', label: 'Collection follow-up', tone: 'bg-status-warn/10 text-status-warn' },
+  { key: 'conflict', label: 'Resolve conflict', tone: 'bg-status-danger/10 text-status-danger' },
 ]
 
 export const PURPOSE_BY_KEY: Record<CallPurpose, PurposeMeta> = Object.fromEntries(PURPOSES.map((p) => [p.key, p])) as Record<CallPurpose, PurposeMeta>

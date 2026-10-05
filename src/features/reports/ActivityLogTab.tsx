@@ -35,7 +35,7 @@ function formatDayKey(dateKey: string): string {
 function status(entry: ActivityLogEntry): { label: string; tone: string } {
   switch (entry.kind) {
     case 'clock-in':
-      return { label: 'Clock In', tone: 'bg-status-working/10 text-status-working dark:text-emerald-300' }
+      return { label: 'Clock In', tone: 'bg-status-working/10 text-status-working' }
     case 'clock-out':
       return entry.auto ? { label: 'Auto Clock Out', tone: 'bg-status-warn/10 text-status-warn' } : { label: 'Clock Out', tone: 'bg-neutral-100 text-neutral-600' }
     case 'check-in':
@@ -43,7 +43,7 @@ function status(entry: ActivityLogEntry): { label: string; tone: string } {
     case 'check-out':
       if (entry.auto) return { label: 'Auto Check Out', tone: 'bg-status-warn/10 text-status-warn' }
       if (isAlertEntry(entry)) return { label: 'Check Out · Flagged', tone: 'bg-status-warn/10 text-status-warn' }
-      return { label: 'Check Out', tone: 'bg-status-visiting/10 text-status-visiting dark:text-violet-300' }
+      return { label: 'Check Out', tone: 'bg-status-visiting/10 text-status-visiting' }
   }
 }
 

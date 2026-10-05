@@ -214,8 +214,8 @@ function FlexBreakdown({ cycle, request }: { cycle: FlexCycle; request: number }
   const after = leftAfter(cycle, request)
   const lines: [string, string, string][] = [
     [`Allowance (${cycle.saturdays} Sat × ${rate(cycle.satRate)} + ${cycle.sundays} Sun × ${rate(cycle.sunRate)})`, fmtDays(cycle.allowance), 'text-neutral-900'],
-    ['Already taken or planned', `−${fmtDays(cycle.taken + cycle.planned)}`, 'text-status-visiting dark:text-violet-300'],
-    ['This request', `−${fmtDays(request)}`, 'text-status-visiting dark:text-violet-300'],
+    ['Already taken or planned', `−${fmtDays(cycle.taken + cycle.planned)}`, 'text-status-visiting'],
+    ['This request', `−${fmtDays(request)}`, 'text-status-visiting'],
   ]
   return (
     <div className="space-y-2">
@@ -231,7 +231,7 @@ function FlexBreakdown({ cycle, request }: { cycle: FlexCycle; request: number }
         ))}
         <p className="mt-1.5 flex justify-between gap-3 border-t border-neutral-200 pt-2 text-[14px] dark:border-neutral-700">
           <span className="font-semibold text-neutral-800">{after < 0 ? 'Over the allowance' : 'Left after this'}</span>
-          <span className={`font-extrabold tabular-nums ${after < 0 ? 'text-status-danger' : 'text-status-working dark:text-emerald-300'}`}>{after < 0 ? `+${fmtDays(-after)}` : fmtDays(after)}</span>
+          <span className={`font-extrabold tabular-nums ${after < 0 ? 'text-status-danger' : 'text-status-working'}`}>{after < 0 ? `+${fmtDays(-after)}` : fmtDays(after)}</span>
         </p>
       </div>
       {after < 0 && (

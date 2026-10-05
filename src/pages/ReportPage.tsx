@@ -115,7 +115,7 @@ export function ReportPage() {
 
       <div className={`space-y-3.5 transition-opacity ${loading ? 'opacity-60' : ''}`}>
         <section className="space-y-3 rounded-2xl bg-white p-4 shadow-card">
-          <span className="flex items-center gap-1.5 text-xs font-bold text-status-visiting dark:text-violet-300">
+          <span className="flex items-center gap-1.5 text-xs font-bold text-status-visiting">
             <Sparkles className="h-4 w-4" aria-hidden />
             Highlight
           </span>
@@ -130,7 +130,7 @@ export function ReportPage() {
           {metrics.map((m) => (
             <div key={m.label} className="space-y-1 rounded-2xl bg-white p-3.5 shadow-card">
               <p className="text-xs font-semibold text-neutral-500">{m.label}</p>
-              <p className={`text-2xl font-extrabold tracking-tight ${m.accent ? 'text-status-working dark:text-emerald-300' : 'text-neutral-900'}`}>{m.value}</p>
+              <p className={`text-2xl font-extrabold tracking-tight ${m.accent ? 'text-status-working' : 'text-neutral-900'}`}>{m.value}</p>
               <p className={`flex items-center gap-1 text-[11.5px] font-bold ${deltaTone(m.delta)}`}>
                 {m.delta > 0 ? <TrendingUp className="h-3.5 w-3.5" aria-hidden /> : m.delta < 0 ? <TrendingDown className="h-3.5 w-3.5" aria-hidden /> : <Minus className="h-3.5 w-3.5" aria-hidden />}
                 {m.deltaText}
@@ -221,7 +221,7 @@ function signedDuration(ms: number, language: 'en' | 'km'): string {
 }
 
 function deltaTone(delta: number): string {
-  if (delta > 0) return 'text-status-working dark:text-emerald-300'
+  if (delta > 0) return 'text-status-working'
   if (delta < 0) return 'text-status-warn'
   return 'text-neutral-500'
 }
