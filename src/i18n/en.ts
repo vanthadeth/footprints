@@ -17,7 +17,7 @@ export const en = {
     clockIn: 'Clock In',
     checkIn: 'Check In',
     footprints: 'Footprints',
-    fleet: 'Team',
+    fleet: 'Team report',
     profile: 'Profile',
     menu: 'Menu',
     users: 'Users',

@@ -25,7 +25,7 @@ export const km: TranslationKey = {
     clockIn: 'ចូលម៉ោង',
     checkIn: 'ចូល',
     footprints: 'ស្នាមជើង',
-    fleet: 'ក្រុម',
+    fleet: 'របាយការណ៍ក្រុម',
     profile: 'ប្រវត្តិរូប',
     menu: 'ម៉ឺនុយ',
     users: 'អ្នកប្រើប្រាស់',
