@@ -43,6 +43,7 @@ const TITLE_KEYS: Record<string, string> = {
   '/admin': 'nav.admin',
   '/trips': 'nav.trips',
   '/trips/new': 'nav.newTrip',
+  '/trips/calendar': 'nav.tripsCalendar',
   '/settings/trips': 'nav.tripSettings',
   '/settings/sheet-sync': 'nav.sheetSync',
   '/admin/attendance': 'nav.adminAttendance',
@@ -59,6 +60,7 @@ function backTarget(pathname: string, search = ''): string {
   const user = new URLSearchParams(search).get('user')
   if (pathname === '/leave/days-off') return user ? '/leave/flexible' : '/leave'
   if (pathname === '/leave/days-off/settlement') return user ? `/leave/days-off?user=${user}` : '/leave/days-off'
+  if (pathname === '/trips/calendar') return '/approvals?tab=trips'
   if (pathname.startsWith('/trips/')) return '/trips'
   if (pathname.startsWith('/admin/')) return '/admin'
   if (pathname.startsWith('/customers/')) return '/customers'

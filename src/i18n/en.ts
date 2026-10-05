@@ -56,6 +56,7 @@ export const en = {
     briefing: 'Briefing',
     trips: 'Sales trips',
     newTrip: 'New sales trip',
+    tripsCalendar: 'Trips calendar',
     trip: 'Sales trip',
     editTrip: 'Edit sales trip',
     sheetSync: 'Google Sheet sync',

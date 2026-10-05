@@ -41,6 +41,7 @@ const PeoplePage = lazy(() => import('@/pages/PeoplePage').then((m) => ({ defaul
 const TripsPage = lazy(() => import('@/pages/TripsPage').then((m) => ({ default: m.TripsPage })))
 const TripRequestPage = lazy(() => import('@/pages/TripRequestPage').then((m) => ({ default: m.TripRequestPage })))
 const TripDetailPage = lazy(() => import('@/pages/TripDetailPage').then((m) => ({ default: m.TripDetailPage })))
+const TripsCalendarPage = lazy(() => import('@/pages/TripsCalendarPage').then((m) => ({ default: m.TripsCalendarPage })))
 const TripSettingsPage = lazy(() => import('@/pages/TripSettingsPage').then((m) => ({ default: m.TripSettingsPage })))
 const AdminPage = lazy(() => import('@/pages/AdminPage').then((m) => ({ default: m.AdminPage })))
 const CalendarPage = lazy(() => import('@/pages/CalendarPage').then((m) => ({ default: m.CalendarPage })))
@@ -267,6 +268,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageFallback />}>
             <TripRequestPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/trips/calendar',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <TripsCalendarPage />
           </Suspense>
         ),
       },

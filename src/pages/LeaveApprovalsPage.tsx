@@ -91,7 +91,7 @@ export function LeaveApprovalsPage() {
       />
       <div className="flex items-center justify-between px-0.5">
         <p className="text-[13px] text-neutral-600">{lead}</p>
-        <Link to="/calendar" className="text-[13px] font-bold text-brand-500">
+        <Link to={isTrips ? '/trips/calendar' : '/calendar'} className="text-[13px] font-bold text-brand-500">
           Calendar
         </Link>
       </div>

@@ -64,6 +64,7 @@ export const km: TranslationKey = {
     briefing: 'សង្ខេប',
     trips: 'ដំណើរលក់',
     newTrip: 'ដំណើរលក់ថ្មី',
+    tripsCalendar: 'ប្រតិទិនដំណើរលក់',
     trip: 'ដំណើរលក់',
     editTrip: 'កែដំណើរលក់',
     sheetSync: 'ធ្វើសមកាលកម្មពី Google Sheet',
