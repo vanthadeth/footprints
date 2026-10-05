@@ -35,7 +35,7 @@ function formatDayKey(dateKey: string): string {
 function status(entry: ActivityLogEntry): { label: string; tone: string } {
   switch (entry.kind) {
     case 'clock-in':
-      return { label: 'Clock In', tone: 'bg-status-working/10 text-status-working dark:text-emerald-300' }
+      return { label: 'Clock In', tone: 'bg-status-working/10 text-status-working' }
     case 'clock-out':
       return entry.auto ? { label: 'Auto Clock Out', tone: 'bg-status-warn/10 text-status-warn' } : { label: 'Clock Out', tone: 'bg-neutral-100 text-neutral-600' }
     case 'check-in':
@@ -43,7 +43,7 @@ function status(entry: ActivityLogEntry): { label: string; tone: string } {
     case 'check-out':
       if (entry.auto) return { label: 'Auto Check Out', tone: 'bg-status-warn/10 text-status-warn' }
       if (isAlertEntry(entry)) return { label: 'Check Out · Flagged', tone: 'bg-status-warn/10 text-status-warn' }
-      return { label: 'Check Out', tone: 'bg-status-visiting/10 text-status-visiting dark:text-violet-300' }
+      return { label: 'Check Out', tone: 'bg-status-visiting/10 text-status-visiting' }
   }
 }
 
@@ -130,7 +130,7 @@ export function ActivityLogTab({ team }: { team: TeamMember[] }) {
                   return (
                     <div key={entry.id} className="rounded-xl bg-white px-3.5 py-3 shadow-card">
                       <div className="flex items-center gap-2.5">
-                        <span className="w-11 shrink-0 font-mono text-[13px] font-bold text-neutral-900">{formatTime(entry.time)}</span>
+                        <span className="w-11 shrink-0 tabular-nums text-[13px] font-bold text-neutral-900">{formatTime(entry.time)}</span>
                         <span className="min-w-0 flex-1 truncate text-sm font-semibold text-neutral-900">{nameById[entry.userId] ?? 'Unknown'}</span>
                         <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${st.tone}`}>{st.label}</span>
                       </div>

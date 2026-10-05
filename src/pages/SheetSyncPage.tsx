@@ -33,7 +33,7 @@ const select = 'h-10 w-full min-w-0 rounded-lg border-[1.5px] border-neutral-200
 const input = 'h-10 w-full min-w-0 rounded-lg border-[1.5px] border-neutral-200 bg-white px-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 dark:border-neutral-700'
 
 const RUN_STATUS: Record<SheetSyncRun['status'], { label: string; tone: string }> = {
-  ok: { label: 'Done', tone: 'bg-status-working/10 text-status-working dark:text-emerald-300' },
+  ok: { label: 'Done', tone: 'bg-status-working/10 text-status-working' },
   partial: { label: 'Done, with problems', tone: 'bg-status-warn/10 text-status-warn' },
   failed: { label: 'Failed', tone: 'bg-status-danger/10 text-status-danger' },
   running: { label: 'Running', tone: 'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-200' },
@@ -121,7 +121,7 @@ function TabCard({ n, tab, check, checking, onChange, onCheck, onRemove }: {
         </label>
         {check && !check.ok && <p className="rounded-lg bg-status-danger/10 px-2.5 py-1.5 text-[12.5px] text-status-danger">{check.error}</p>}
         {check?.ok && (
-          <p className="text-[12.5px] font-semibold text-status-working dark:text-emerald-300">
+          <p className="text-[12.5px] font-semibold text-status-working">
             Found {check.rows?.toLocaleString('en-US')} rows · {headers?.length} columns
           </p>
         )}
@@ -427,7 +427,7 @@ export function SheetSyncPage() {
         </div>
       </section>
 
-      {msg && <p className={`rounded-xl px-3 py-2 text-sm ${msg.ok ? 'bg-status-working/10 text-status-working dark:text-emerald-300' : 'bg-status-danger/10 text-status-danger'}`}>{msg.text}</p>}
+      {msg && <p className={`rounded-xl px-3 py-2 text-sm ${msg.ok ? 'bg-status-working/10 text-status-working' : 'bg-status-danger/10 text-status-danger'}`}>{msg.text}</p>}
       {problem && dirty && <p className="px-1 text-[13px] font-semibold text-status-danger">{problem}</p>}
       <button type="button" onClick={save} disabled={busy !== null || !dirty || !!problem} className="h-[50px] w-full rounded-2xl bg-brand-500 text-[15px] font-extrabold text-white disabled:opacity-50">
         {busy === 'save' ? 'Saving…' : dirty ? 'Save' : 'Saved'}

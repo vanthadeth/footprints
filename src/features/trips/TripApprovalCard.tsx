@@ -42,7 +42,7 @@ export function TripApprovalCard({ trip, rates, onDecided }: { trip: TripRow; ra
           <span className="block truncate text-[15px] font-extrabold text-neutral-900">{trip.requester}</span>
           <span className="block truncate text-[12.5px] text-neutral-500">{trip.requester_role ?? 'Sales'}</span>
         </span>
-        <span className="rounded-full bg-earth-50 px-2 py-0.5 text-[11px] font-extrabold text-earth-500 dark:bg-amber-900/30 dark:text-amber-200">Sales trip</span>
+        <span className="rounded-full bg-earth-50 px-2 py-0.5 text-[11px] font-extrabold text-earth-500">Sales trip</span>
       </div>
       <div>
         <p className="text-base font-extrabold text-neutral-900">{plan.range}</p>
@@ -58,12 +58,12 @@ export function TripApprovalCard({ trip, rates, onDecided }: { trip: TripRow; ra
         </span>
       </div>
       <RouteStrip plan={plan} />
-      <div className="rounded-xl bg-neutral-50 px-3 py-1 dark:bg-neutral-800">
+      <div className="rounded-xl bg-neutral-50 px-3 py-1">
         {plan.days.map((d, i) => {
           const rooms = roomsFor(d, n, rates.perRoom)
           return (
             <p key={d.n} className={`flex gap-2.5 py-2 text-[13px] text-neutral-900 ${i ? 'border-t border-neutral-200/70 dark:border-neutral-700' : ''}`}>
-              <b className="w-[68px] shrink-0 text-status-visiting dark:text-violet-300">{d.label}</b>
+              <b className="w-[68px] shrink-0 text-status-visiting">{d.label}</b>
               <span className="min-w-0 flex-1">
                 {d.provinces.map(provinceName).join(', ')}{' '}
                 <span className="text-neutral-500">{d.back ? '· back to Phnom Penh' : `· night in ${provinceName(d.night!)} · ${rooms} room${rooms === 1 ? '' : 's'}`}</span>
@@ -73,23 +73,23 @@ export function TripApprovalCard({ trip, rates, onDecided }: { trip: TripRow; ra
         })}
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <span className="rounded-xl bg-neutral-50 px-2.5 py-2 dark:bg-neutral-800">
+        <span className="rounded-xl bg-neutral-50 px-2.5 py-2">
           <span className="block text-lg font-extrabold text-neutral-900">{plan.provinces.length}</span>
           <span className="block text-[11.5px] text-neutral-500">provinces · ≈ {plan.totalKm} km</span>
         </span>
-        <span className="rounded-xl bg-neutral-50 px-2.5 py-2 dark:bg-neutral-800">
+        <span className="rounded-xl bg-neutral-50 px-2.5 py-2">
           <span className="block text-lg font-extrabold text-neutral-900">{cost.roomNights}</span>
           <span className="block text-[11.5px] text-neutral-500">room-nights · {plan.nightCount} nights</span>
         </span>
-        <span className="col-span-2 rounded-xl bg-earth-50 px-2.5 py-2 dark:bg-amber-900/30">
-          <span className="block text-lg font-extrabold text-earth-500 dark:text-amber-200">{money(trip.est_total)}</span>
+        <span className="col-span-2 rounded-xl bg-earth-50 px-2.5 py-2">
+          <span className="block text-lg font-extrabold text-earth-500">{money(trip.est_total)}</span>
           <span className="block text-[11.5px] text-neutral-500">
             estimated · {money(trip.est_total / Math.max(n, 1))} per person · {cost.lines.map((l) => `${l.label.toLowerCase()} ${money(l.value)}`).join(' · ')}
           </span>
         </span>
       </div>
       {special.length > 0 && (
-        <div className={`rounded-xl px-3 py-2.5 ${cost.over ? 'bg-status-warn/10' : 'bg-neutral-50 dark:bg-neutral-800'}`}>
+        <div className={`rounded-xl px-3 py-2.5 ${cost.over ? 'bg-status-warn/10' : 'bg-neutral-50'}`}>
           <p className="flex justify-between text-[13px] font-extrabold text-neutral-900">
             <span>Special allowance</span>
             <span>{money(trip.special_total)}</span>

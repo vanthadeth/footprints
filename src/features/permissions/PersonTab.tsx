@@ -274,9 +274,9 @@ function PersonEditor({
                   <span
                     className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${
                       override
-                        ? 'bg-status-visiting/10 text-status-visiting dark:text-violet-300'
+                        ? 'bg-status-visiting/10 text-status-visiting'
                         : grant
-                          ? 'bg-status-working/10 text-status-working dark:text-emerald-300'
+                          ? 'bg-status-working/10 text-status-working'
                           : 'bg-neutral-100 text-neutral-500'
                     }`}
                   >
@@ -312,7 +312,7 @@ function PersonEditor({
                     : `From ${roleName}: ${fn.locations && roleGrant ? clockSummary(ctx.roleClock, data.locations) : roleText}`}
                 </p>
                 {override && (
-                  <div className="mt-2 space-y-2 rounded-xl bg-status-visiting/5 p-2.5 dark:bg-violet-500/10">
+                  <div className="mt-2 space-y-2 rounded-xl bg-status-visiting/5 p-2.5">
                     <input
                       value={c.note}
                       onChange={(e) => setChoice(fn.key, { note: e.target.value })}

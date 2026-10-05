@@ -25,13 +25,13 @@
     -webkit-overflow-scrolling: touch;
   }
 
-  /* Same values as neutral-950/50 in tailwind.config.js -- spelled out as
+  /* Dark page and text tokens (neutral-950 page) -- spelled out as
      plain hex (not dark:bg-neutral-950/dark:text-neutral-50) only so this
      rule sits next to color-scheme above and doesn't fight @apply's
      handling of the base (light) neutral-50/900 classes on the same line. */
   html.dark body {
-    background-color: #0e1119;
-    color: #f6f8fb;
+    background-color: #1c1c1c;
+    color: #ececec;
   }
 
   button {
@@ -71,6 +71,13 @@
 }
 
 @layer utilities {
+  /* The selected option of a segmented control / tab strip. */
+  .seg-on {
+    background-color: #ffffff;
+  }
+  html.dark .seg-on {
+    background-color: #3a3a3a;
+  }
   .safe-top {
     padding-top: env(safe-area-inset-top);
   }
@@ -97,74 +104,126 @@
  * text-white on those) are deliberately left out -- they already look
  * right in both themes and shouldn't move.
  *
- * The hex values here are the literal neutral-50..900 colors from
- * tailwind.config.js (see the comment there) -- kept as plain hex rather
- * than referencing those classes directly because several of these pairs
+ * The hex values are the dark-theme tokens from the design canvas
+ * (page #1c1c1c, card #232323, line #2c2c2c, text #ececec) -- kept as
+ * plain hex rather than referencing classes directly because several of these pairs
  * (e.g. text-neutral-400 <-> text-neutral-500) are mutual remaps, which
  * Tailwind's @apply rejects as a circular dependency even though the
- * selectors themselves target different elements. brand (blue) and
- * status.working (green) are untouched, everywhere, in both themes.
+ * selectors themselves target different elements.
  */
 @layer utilities {
   html.dark .bg-white {
-    background-color: #171b25; /* neutral-900 -- card surface */
+    background-color: #232323; /* neutral-900 -- card surface */
   }
   html.dark .bg-white\/95 {
-    background-color: rgb(23 27 37 / 0.95); /* neutral-900 */
+    background-color: rgb(35 35 35 / 0.95); /* neutral-900 */
   }
   html.dark .bg-neutral-50 {
-    background-color: #0e1119; /* neutral-950 -- page background */
+    background-color: #1c1c1c; /* neutral-950 -- page background */
   }
   html.dark .bg-neutral-100 {
-    background-color: #262b38; /* neutral-800 */
+    background-color: #2a2a2a; /* chip / segmented control */
   }
   html.dark .text-neutral-900 {
-    color: #f6f8fb; /* neutral-50 */
+    color: #ececec;
   }
   html.dark .text-neutral-800 {
-    color: #eaeef4; /* neutral-100 */
+    color: #e2e2e2;
   }
   html.dark .text-neutral-700 {
-    color: #d7dee8; /* neutral-200 */
+    color: #d0d0d0;
   }
   html.dark .text-neutral-600 {
-    color: #b7c1d1; /* neutral-300 */
+    color: #bdbdbd;
   }
   html.dark .text-neutral-500 {
-    color: #8991a3; /* neutral-400 */
+    color: #9a9a9a;
   }
   html.dark .text-neutral-400 {
-    color: #6b7484; /* neutral-500 */
+    color: #7f7f7f;
   }
   html.dark .text-neutral-300 {
-    color: #525a6a; /* neutral-600 */
+    color: #5e5e5e;
   }
   html.dark .border-neutral-50 {
-    border-color: #262b38; /* neutral-800 */
+    border-color: #2c2c2c; /* line */
   }
   html.dark .border-neutral-100 {
-    border-color: #262b38; /* neutral-800 */
+    border-color: #2c2c2c; /* line */
   }
   html.dark .border-neutral-200 {
-    border-color: #3d4351; /* neutral-700 */
+    border-color: #333333;
   }
   html.dark .border-neutral-300 {
-    border-color: #525a6a; /* neutral-600 */
+    border-color: #3f3f3f; /* input line */
+  }
+  html.dark .divide-neutral-50 > :not([hidden]) ~ :not([hidden]),
+  html.dark .divide-neutral-100 > :not([hidden]) ~ :not([hidden]),
+  html.dark .divide-neutral-200 > :not([hidden]) ~ :not([hidden]) {
+    border-color: #2c2c2c; /* line */
   }
   html.dark .bg-brand-50 {
-    background-color: rgb(22 104 184 / 0.15); /* brand-500 tint */
+    background-color: rgb(22 143 255 / 0.16); /* dark-base blue tint */
   }
   html.dark .text-brand-700 {
-    color: #cfe4f6; /* brand-100 */
+    color: #A2D2FF; /* blue L60 */
   }
   html.dark .text-brand-600 {
-    color: #3d8bd4; /* brand-400 */
+    color: #45A5FF; /* blue L20 (dark base) */
   }
   html.dark .text-brand-500 {
-    color: #3d8bd4; /* brand-400 */
+    color: #45A5FF; /* blue L20 (dark base) */
   }
   html.dark .border-brand-200 {
-    border-color: #3d4351; /* neutral-700 */
+    border-color: #333333;
+  }
+  /* Status colours: the light theme uses the palette's D-steps (dark enough
+     for white backgrounds); on dark surfaces text and tints switch to the
+     L20 steps, and solid fills to the dark-base colours, as on the canvas. */
+  html.dark .text-status-working {
+    color: #45D56D;
+  }
+  html.dark .text-status-warn {
+    color: #FFB257;
+  }
+  html.dark .text-status-danger {
+    color: #F96767;
+  }
+  html.dark .text-status-visiting {
+    color: #b3a6f2;
+  }
+  html.dark .bg-status-working\/10,
+  html.dark .bg-status-working\/15 {
+    background-color: rgb(23 203 73 / 0.15);
+  }
+  html.dark .bg-status-warn\/10 {
+    background-color: rgb(255 159 45 / 0.15);
+  }
+  html.dark .bg-status-danger\/5,
+  html.dark .bg-status-danger\/10,
+  html.dark .bg-status-danger\/20 {
+    background-color: rgb(247 65 65 / 0.16);
+  }
+  html.dark .bg-status-visiting\/10 {
+    background-color: rgb(140 120 230 / 0.18);
+  }
+  html.dark .bg-status-danger {
+    background-color: #d83a3a;
+  }
+  html.dark .bg-status-working {
+    background-color: #12a03a;
+  }
+  html.dark .border-status-danger,
+  html.dark .border-status-danger\/30,
+  html.dark .border-status-danger\/40 {
+    border-color: rgb(247 65 65 / 0.45);
+  }
+  html.dark .border-status-warn {
+    border-color: rgb(255 159 45 / 0.5);
+  }
+  /* Blue fills under white text: the dark-base D20 step (#1272CC). */
+  html.dark .bg-brand-500 {
+    background-color: #1272CC;
   }
   html.dark .bg-earth-50 {
     background-color: rgb(150 112 63 / 0.2); /* earth-500 tint */
@@ -174,7 +233,13 @@
   }
 }
 
-/* Public-holiday cells in the attendance summaries. */
+/* Public-holiday cells in every calendar (striped; leave is a plain grey cell). */
 .holiday-stripes {
-  background: repeating-linear-gradient(135deg, rgba(150, 112, 63, 0.18) 0 4px, transparent 4px 8px);
+  background: repeating-linear-gradient(135deg, rgba(120, 120, 120, 0.22) 0 4px, transparent 4px 8px);
+}
+
+/* Leaflet sets its own Helvetica stack on maps, popups and tooltips; keep
+   them on the app's one typeface. */
+.leaflet-container {
+  font-family: inherit;
 }

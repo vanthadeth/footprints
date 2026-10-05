@@ -105,7 +105,7 @@ function FlexBalance({ userId, date }: { userId: string; date: string }) {
   if (!cycle) return null
   const over = cycle.left < 0
   return (
-    <p className={`mt-2 rounded-lg px-2.5 py-2 text-xs leading-snug ${over ? 'bg-status-warn/10 text-status-warn' : 'bg-status-visiting/10 text-status-visiting dark:text-violet-300'}`}>
+    <p className={`mt-2 rounded-lg px-2.5 py-2 text-xs leading-snug ${over ? 'bg-status-warn/10 text-status-warn' : 'bg-status-visiting/10 text-status-visiting'}`}>
       <span className="font-bold">Cycle {cycleLabel(cycle)}:</span> {fmtDays(cycle.allowance)} days · taken {fmtDays(cycle.taken)} · planned {fmtDays(cycle.planned)} incl. this ·{' '}
       {over ? `goes ${fmtDays(-cycle.left)} over — the extra comes from annual leave when the cycle settles` : `${fmtDays(cycle.left)} left after this`}
     </p>

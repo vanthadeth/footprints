@@ -123,7 +123,7 @@ export function CalendarPage() {
           aria-checked={filter === f.key}
           onClick={() => setFilter(f.key)}
           className={`flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border-[1.5px] px-3 text-[12.5px] font-bold ${
-            filter === f.key ? 'border-brand-500 bg-brand-50 text-brand-600 dark:bg-brand-500/20 dark:text-brand-300' : 'border-neutral-200 bg-white text-neutral-600'
+            filter === f.key ? 'border-brand-500 bg-brand-50 text-brand-500' : 'border-neutral-200 bg-white text-neutral-600'
           }`}
         >
           {f.dot && <span className={`h-2 w-2 rounded-full ${f.dot}`} />}
@@ -150,7 +150,7 @@ export function CalendarPage() {
   )
 
   const dayPanel = (
-    <div className="rounded-2xl bg-white px-3.5 py-1 shadow-card">
+    <div className="rounded-2xl border border-neutral-100 bg-white px-3.5 py-1 shadow-card">
       <p className="mb-1 mt-3 text-[13px] font-extrabold text-neutral-900">
         {shortDay(selected)}
         {selected === today ? ' · Today' : ''} <span className="font-semibold text-neutral-500">· {dayItems.length} {dayItems.length === 1 ? 'item' : 'items'}</span>
@@ -215,9 +215,9 @@ export function CalendarPage() {
                     type="button"
                     onClick={() => setSelected(d.date)}
                     aria-label={`${shortDay(d.date)}, ${items.length} items`}
-                    className={`flex h-[118px] flex-col gap-0.5 overflow-hidden border-b border-r border-neutral-100 p-1.5 text-left dark:border-neutral-800 ${sel ? 'bg-brand-50 dark:bg-brand-500/15' : off ? 'bg-earth-50/60 dark:bg-amber-900/10' : ''} ${d.inMonth ? '' : 'opacity-45'}`}
+                    className={`flex h-[118px] flex-col gap-0.5 overflow-hidden border-b border-r border-neutral-100 p-1.5 text-left dark:border-neutral-800 ${sel ? 'bg-brand-50' : off ? (off.kind === 'holiday' ? 'holiday-stripes' : 'bg-neutral-100') : ''} ${d.inMonth ? '' : 'opacity-45'}`}
                   >
-                    <span className={`flex h-6 min-w-[24px] items-center justify-center self-start rounded-full px-1.5 text-[12.5px] ${d.date === today ? 'bg-brand-500 font-extrabold text-white' : 'font-semibold text-neutral-700'}`}>{d.day}</span>
+                    <span className={`flex h-6 min-w-[24px] items-center justify-center self-start rounded-full px-1.5 text-[12.5px] ${d.date === today ? 'font-extrabold text-brand-500 ring-2 ring-inset ring-brand-500' : 'font-semibold text-neutral-700'}`}>{d.day}</span>
                     {items.slice(0, 3).map((i) => (
                       <span key={`${i.kind}-${i.ref_id}`} className={`truncate rounded-md px-1.5 py-0.5 text-[11.5px] font-bold ${KIND[i.kind].chip} ${i.done ? 'line-through opacity-70' : ''}`}>
                         {i.at_time ? `${hhmm(i.at_time)} ` : ''}
@@ -246,7 +246,7 @@ export function CalendarPage() {
         {personPicker && <div className="flex justify-end">{personPicker}</div>}
         {viewingOther && <p className="rounded-xl bg-brand-50 px-3 py-2.5 text-[13px] text-brand-700 dark:bg-brand-500/20 dark:text-brand-300">Viewing {whoName}’s calendar. You can add or change tasks you assign; everything else is read-only.</p>}
 
-        <div className="flex flex-col gap-1.5 rounded-[18px] bg-white p-3.5 shadow-card">
+        <div className="flex flex-col gap-1.5 rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card">
           <div className="flex items-baseline justify-between">
             <p className="text-[15px] font-extrabold text-neutral-900">Today · {shortDay(today)}</p>
             <span className="text-[12.5px] font-bold text-neutral-500">
@@ -281,7 +281,7 @@ export function CalendarPage() {
           </p>
         ))}
 
-        <div className="rounded-[18px] bg-white px-2.5 py-3 shadow-card">
+        <div className="rounded-2xl border border-neutral-100 bg-white px-2.5 py-3 shadow-card">
           <div className="flex items-center justify-between px-1 pb-2.5">
             <button type="button" onClick={() => shift(-1)} aria-label="Previous month" className="flex h-9 w-9 items-center justify-center rounded-full border border-neutral-200 text-neutral-600">
               <ChevronLeft className="h-4 w-4" />
@@ -314,21 +314,45 @@ export function CalendarPage() {
                   key={d.date}
                   type="button"
                   onClick={() => setSelected(d.date)}
-                  aria-label={`${shortDay(d.date)}, ${items.length} items`}
+                  aria-label={`${shortDay(d.date)}, ${items.length} items${leave ? ', leave' : ''}${hol ? ', holiday' : ''}`}
                   aria-pressed={sel}
-                  className={`flex h-12 flex-col items-center justify-center gap-1 rounded-xl ${sel ? 'bg-brand-500' : hol ? 'bg-[repeating-linear-gradient(135deg,rgba(150,112,63,.18)_0_4px,transparent_4px_8px)]' : leave ? 'bg-earth-50 dark:bg-amber-900/20' : ''} ${
-                    d.date === today && !sel ? 'ring-2 ring-inset ring-neutral-900 dark:ring-neutral-100' : ''
-                  } ${d.inMonth ? '' : 'opacity-40'}`}
+                  className={`flex h-[50px] flex-col items-center justify-center gap-1 rounded-xl ${hol ? 'holiday-stripes' : leave ? 'bg-neutral-100' : ''} ${d.inMonth ? '' : 'opacity-40'}`}
                 >
-                  <span className={`text-sm ${sel ? 'font-extrabold text-white' : d.date === today ? 'font-extrabold text-neutral-900' : d.date < today ? 'font-semibold text-neutral-500' : 'font-semibold text-neutral-900'}`}>{d.day}</span>
-                  <span className="flex h-[5px] gap-[3px]">
+                  <span
+                    className={`flex h-7 w-7 items-center justify-center rounded-full text-[13px] ${
+                      sel
+                        ? 'bg-brand-500 font-bold text-white'
+                        : d.date === today
+                          ? 'font-bold text-brand-500 ring-2 ring-inset ring-brand-500'
+                          : d.date < today
+                            ? 'font-medium text-neutral-500'
+                            : 'font-medium text-neutral-900'
+                    }`}
+                  >
+                    {d.day}
+                  </span>
+                  <span className="flex h-1.5 gap-[3px]">
                     {kinds.map((k) => (
-                      <span key={k} className={`h-[5px] w-[5px] rounded-full ${KIND[k].dot} ${sel ? 'ring-1 ring-white' : ''}`} />
+                      <span key={k} className={`h-1.5 w-1.5 rounded-full ${KIND[k].dot}`} />
                     ))}
                   </span>
                 </button>
               )
             })}
+          </div>
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5 border-t border-neutral-100 px-1 pt-2.5 text-xs text-neutral-500">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-3 w-3 rounded-full ring-2 ring-inset ring-brand-500" /> Today
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-3 w-4 rounded bg-neutral-100 ring-1 ring-inset ring-neutral-200" /> Leave
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="holiday-stripes h-3 w-4 rounded ring-1 ring-inset ring-neutral-200" /> Holiday
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-brand-500" /> Something planned
+            </span>
           </div>
         </div>
 
@@ -342,7 +366,7 @@ export function CalendarPage() {
       <button
         type="button"
         onClick={() => setSheet({ taskId: null })}
-        className="fixed bottom-24 right-4 z-20 flex h-[52px] items-center gap-2 rounded-full bg-brand-500 px-5 text-[15px] font-extrabold text-white shadow-[0_8px_20px_rgba(22,104,184,.35)] md:bottom-8"
+        className="fixed bottom-24 right-4 z-20 flex h-[52px] items-center gap-2 rounded-full bg-brand-500 px-5 text-[15px] font-extrabold text-white md:bottom-8"
       >
         <Plus className="h-[18px] w-[18px]" strokeWidth={2.6} /> {addLabel}
       </button>

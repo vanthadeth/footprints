@@ -107,8 +107,8 @@ export function TripSettingsPage() {
         </Row>
       </div>
 
-      <div className="rounded-2xl bg-earth-50 p-3.5 dark:bg-amber-900/25">
-        <p className="text-[12px] font-extrabold uppercase tracking-wide text-earth-500 dark:text-amber-200">Example · 3 people, 4 days, 3 nights</p>
+      <div className="rounded-2xl bg-earth-50 p-3.5">
+        <p className="text-[12px] font-extrabold uppercase tracking-wide text-earth-500">Example · 3 people, 4 days, 3 nights</p>
         <p className="mt-1.5 text-[24px] font-extrabold tabular-nums text-neutral-900">
           {money(example.total)} <span className="text-[14px] font-bold text-neutral-600">· {money(example.perPerson)} per person</span>
         </p>
@@ -149,7 +149,7 @@ export function TripSettingsPage() {
       </div>
 
       {invalid.size > 0 && <p className="px-1 text-[13px] font-semibold text-status-danger">Fix the highlighted amounts to save.</p>}
-      {msg && <p className={`rounded-xl px-3 py-2 text-sm ${msg.ok ? 'bg-status-working/10 text-status-working dark:text-emerald-300' : 'bg-status-danger/10 text-status-danger'}`}>{msg.text}</p>}
+      {msg && <p className={`rounded-xl px-3 py-2 text-sm ${msg.ok ? 'bg-status-working/10 text-status-working' : 'bg-status-danger/10 text-status-danger'}`}>{msg.text}</p>}
       <button type="button" disabled={saving || invalid.size > 0} onClick={save} className="h-[50px] w-full rounded-2xl bg-brand-500 text-[15px] font-extrabold text-white disabled:opacity-60">
         {saving ? 'Saving…' : 'Save'}
       </button>

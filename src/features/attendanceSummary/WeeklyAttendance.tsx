@@ -190,10 +190,10 @@ function dayDetail(r: AttendanceDay | undefined): string {
 function StatusTag({ row }: { row: AttendanceDay | undefined }) {
   if (!row) return null
   const map: Record<string, [string, string]> = {
-    present: ['On time', 'bg-status-working/10 text-status-working dark:text-emerald-300'],
+    present: ['On time', 'bg-status-working/10 text-status-working'],
     late: [`${row.lateMinutes} min late`, 'bg-status-warn/10 text-status-warn'],
     absent: ['Absent', 'bg-status-danger/10 text-status-danger'],
-    dayoff: ['Day off (auto)', 'bg-status-visiting/10 text-status-visiting dark:text-violet-300'],
+    dayoff: ['Day off (auto)', 'bg-status-visiting/10 text-status-visiting'],
     leave: [row.leaveType === 'flex' ? 'Day off' : `${row.leaveType ? row.leaveType[0].toUpperCase() + row.leaveType.slice(1) : ''} leave`, 'bg-brand-50 text-brand-700'],
     holiday: ['Holiday', 'bg-earth-50 text-earth-500'],
     off: ['Off', 'bg-neutral-100 text-neutral-500'],

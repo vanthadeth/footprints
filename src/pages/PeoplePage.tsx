@@ -11,11 +11,11 @@ import { displayName } from '@/lib/displayName'
 import { days as flexDays, shortDate } from '@/features/flex/flex'
 
 const TODAY_TILES: { key: AttendanceDay['status'] | 'lateAll'; label: string; tone: string }[] = [
-  { key: 'present', label: 'Present', tone: 'bg-status-working/10 text-status-working dark:text-emerald-300' },
+  { key: 'present', label: 'Present', tone: 'bg-status-working/10 text-status-working' },
   { key: 'late', label: 'Late', tone: 'bg-status-warn/10 text-status-warn' },
   { key: 'absent', label: 'Absent', tone: 'bg-status-danger/10 text-status-danger' },
   { key: 'leave', label: 'Leave', tone: 'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-100' },
-  { key: 'dayoff', label: 'Day off', tone: 'bg-status-visiting/10 text-status-visiting dark:text-violet-300' },
+  { key: 'dayoff', label: 'Day off', tone: 'bg-status-visiting/10 text-status-visiting' },
 ]
 
 /**
@@ -72,7 +72,7 @@ export function PeoplePage() {
   const out = (todayRows ?? []).filter((r) => r.status === 'leave' || r.status === 'dayoff' || (r.leaveFraction > 0 && r.status !== 'holiday'))
   const lookRows = [
     ...absent.map((r) => ({ id: `a-${r.userId}`, name: nameOf(r.userId), sub: 'No clock-in, no leave today', tag: 'Absent', tone: 'bg-status-danger/10 text-status-danger', to: '/fleet?tab=attendance' })),
-    ...flex.filter((f) => f.isFlexible && f.left < 0).map((f) => ({ id: `f-${f.userId}`, name: f.name, sub: `Flexible days off: ${flexDays(f.taken + f.planned)} of ${flexDays(f.allowance)} taken or planned`, tag: `Over by ${flexDays(-f.left)}`, tone: 'bg-status-visiting/10 text-status-visiting dark:text-violet-300', to: `/leave/days-off?user=${f.userId}` })),
+    ...flex.filter((f) => f.isFlexible && f.left < 0).map((f) => ({ id: `f-${f.userId}`, name: f.name, sub: `Flexible days off: ${flexDays(f.taken + f.planned)} of ${flexDays(f.allowance)} taken or planned`, tag: `Over by ${flexDays(-f.left)}`, tone: 'bg-status-visiting/10 text-status-visiting', to: `/leave/days-off?user=${f.userId}` })),
     ...flex.filter((f) => !f.isFlexible && f.nextFrom).map((f) => ({ id: `n-${f.userId}`, name: f.name, sub: 'Starts flexible (travel) days off', tag: `Starts ${shortDate(f.nextFrom!)}`, tone: 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800', to: '/leave/flexible' })),
   ]
 
@@ -129,10 +129,10 @@ export function PeoplePage() {
           <span className="text-[13px] font-bold text-brand-600">By person ›</span>
         </div>
         <div className="mt-2.5 grid grid-cols-2 gap-3">
-          <Stat label="Attendance rate" value={formatRate(kpis.rate)} tone="text-status-working dark:text-emerald-300" />
+          <Stat label="Attendance rate" value={formatRate(kpis.rate)} tone="text-status-working" />
           <Stat label="Late arrivals" value={String(kpis.late)} tone="text-status-warn" />
           <Stat label="Absent days" value={String(kpis.absent)} tone="text-status-danger" />
-          <Stat label="Leave & days off" value={formatDays(kpis.leaveDays)} tone="text-status-visiting dark:text-violet-300" />
+          <Stat label="Leave & days off" value={formatDays(kpis.leaveDays)} tone="text-status-visiting" />
         </div>
       </Link>
 
@@ -147,7 +147,7 @@ export function PeoplePage() {
         {out.map((r, i) => (
           <div key={r.userId} className={`flex items-center justify-between gap-3 py-2.5 text-[14px] ${i ? 'border-t border-neutral-100 dark:border-neutral-800' : ''}`}>
             <span className="truncate font-semibold text-neutral-900">{nameOf(r.userId)}</span>
-            <span className="shrink-0 text-[12.5px] font-bold text-status-visiting dark:text-violet-300">
+            <span className="shrink-0 text-[12.5px] font-bold text-status-visiting">
               {r.status === 'dayoff' ? 'Day off (no clock-in)' : r.leaveType === 'flex' ? 'Flexible day off' : `${r.leaveType ? r.leaveType[0].toUpperCase() + r.leaveType.slice(1) : ''} leave${r.leaveFraction < 1 ? ' · half day' : ''}`}
             </span>
           </div>
@@ -156,7 +156,7 @@ export function PeoplePage() {
 
       <div className="grid grid-cols-3 gap-2">
         {links.map((l) => (
-          <Link key={l.label} to={l.to} className="flex flex-col items-center gap-1.5 rounded-2xl bg-white px-1 py-3 text-status-visiting shadow-card dark:text-violet-300">
+          <Link key={l.label} to={l.to} className="flex flex-col items-center gap-1.5 rounded-2xl bg-white px-1 py-3 text-status-visiting shadow-card">
             <l.icon className="h-5 w-5" aria-hidden />
             <span className="text-[12px] font-bold text-neutral-600">{l.label}</span>
           </Link>

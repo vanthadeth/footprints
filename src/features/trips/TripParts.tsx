@@ -36,13 +36,13 @@ export function RouteStrip({ plan, dark = false }: { plan: TripPlan; dark?: bool
       ? k === 'home'
         ? 'bg-white/15 text-white'
         : k === 'night'
-          ? 'bg-amber-300/20 text-amber-200'
+          ? 'bg-[#FF9F2D]/20 text-[#FFB257]'
           : 'bg-violet-300/25 text-white'
       : k === 'home'
         ? 'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-100'
         : k === 'night'
-          ? 'bg-earth-50 text-earth-500 dark:bg-amber-900/30 dark:text-amber-200'
-          : 'bg-status-visiting/10 text-status-visiting dark:text-violet-300'
+          ? 'bg-earth-50 text-earth-500'
+          : 'bg-status-visiting/10 text-status-visiting'
   return (
     <div className="flex flex-wrap items-center gap-y-2">
       {stops.map((s, i) => (
@@ -68,7 +68,7 @@ export function DayList({ plan, people, perRoom }: { plan: TripPlan; people: num
         return (
           <div key={d.n} className={`flex gap-3 py-2.5 ${i ? 'border-t border-neutral-100 dark:border-neutral-800' : ''}`}>
             <span className="w-14 shrink-0">
-              <span className="block text-[12px] font-extrabold text-status-visiting dark:text-violet-300">Day {d.n}</span>
+              <span className="block text-[12px] font-extrabold text-status-visiting">Day {d.n}</span>
               <span className="block text-[12px] text-neutral-500">{d.label.slice(4)}</span>
             </span>
             <span className="min-w-0 flex-1">
@@ -107,7 +107,7 @@ export function RoomsCard({ plan, people, perRoom, roomNights }: { plan: TripPla
                 {people === 1 ? 'Just you' : rooms === 1 ? `All ${people} share` : split.map((x) => (x === 1 ? '1 single' : `${x} sharing`)).join(' · ')}
               </span>
             </span>
-            <span className="rounded-full bg-earth-50 px-2.5 py-0.5 text-[12px] font-extrabold text-earth-500 dark:bg-amber-900/30 dark:text-amber-200">
+            <span className="rounded-full bg-earth-50 px-2.5 py-0.5 text-[12px] font-extrabold text-earth-500">
               {rooms} room{rooms === 1 ? '' : 's'}
             </span>
           </div>
@@ -169,7 +169,7 @@ export function Checks({ items }: { items: { ok: boolean; text: string }[] }) {
         <p key={i} className="flex items-start gap-2 text-[13.5px] leading-snug text-neutral-900">
           <span
             className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[12px] font-black ${
-              c.ok ? 'bg-status-working/10 text-status-working dark:text-emerald-300' : 'bg-status-warn/10 text-status-warn'
+              c.ok ? 'bg-status-working/10 text-status-working' : 'bg-status-warn/10 text-status-warn'
             }`}
           >
             {c.ok ? '✓' : '!'}

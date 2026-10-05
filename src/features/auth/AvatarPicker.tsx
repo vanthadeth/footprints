@@ -14,10 +14,13 @@ export function AvatarPicker({
   userId,
   photoPath,
   onUploaded,
+  initials,
 }: {
   userId: string
   photoPath: string | null
   onUploaded: () => void
+  /** Shown on a brand-blue circle when there's no photo yet. */
+  initials?: string
 }) {
   const url = useAvatarUrl(photoPath)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -44,8 +47,8 @@ export function AvatarPicker({
 
   return (
     <div className="relative inline-block">
-      <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-brand-50 text-brand-500">
-        {url ? <img src={url} alt="" className="h-full w-full object-cover" /> : <User className="h-10 w-10" aria-hidden />}
+      <div className={`flex h-20 w-20 items-center justify-center overflow-hidden rounded-full ${initials ? 'bg-brand-500 text-2xl font-extrabold text-white' : 'bg-brand-50 text-brand-500'}`}>
+        {url ? <img src={url} alt="" className="h-full w-full object-cover" /> : initials || <User className="h-10 w-10" aria-hidden />}
       </div>
       <button
         type="button"

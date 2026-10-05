@@ -40,7 +40,7 @@ export function WhoTab({ data }: { data: PermissionsData }) {
         {who.roles.map(({ role, grant, people: n }) => (
           <div key={role.id} className="flex items-center gap-3 py-2.5">
             <span
-              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${grant ? 'bg-status-working/10 text-status-working dark:text-emerald-300' : 'bg-neutral-100 text-neutral-400'}`}
+              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${grant ? 'bg-status-working/10 text-status-working' : 'bg-neutral-100 text-neutral-400'}`}
             >
               {grant ? <Check className="h-3.5 w-3.5" aria-hidden /> : <Minus className="h-3.5 w-3.5" aria-hidden />}
             </span>
@@ -65,10 +65,10 @@ export function WhoTab({ data }: { data: PermissionsData }) {
                 {e.grant ? describeGrant(fn, e.grant) : 'Denied'} · role: {describeGrant(fn, e.roleGrant).toLowerCase()}
               </p>
               {(e.note || e.expires_at) && (
-                <p className="mt-1 rounded-lg bg-status-visiting/5 px-2.5 py-1.5 text-xs text-neutral-600 dark:bg-violet-500/10">
+                <p className="mt-1 rounded-lg bg-status-visiting/5 px-2.5 py-1.5 text-xs text-neutral-600">
                   {e.note && `“${e.note}”`}
                   {e.note && e.expires_at && ' · '}
-                  {e.expires_at && <span className="font-semibold text-status-visiting dark:text-violet-300">Until {formatDate(`${expiryToUntil(e.expires_at)}T12:00:00+07:00`)}</span>}
+                  {e.expires_at && <span className="font-semibold text-status-visiting">Until {formatDate(`${expiryToUntil(e.expires_at)}T12:00:00+07:00`)}</span>}
                 </p>
               )}
             </div>

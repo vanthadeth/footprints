@@ -5,10 +5,10 @@ import { fromVisit, type CalendarItem, type CalendarKind } from './calendarServi
 /** Colour and label per kind -- the same scheme as the canvas design. */
 export const KIND: Record<CalendarKind, { label: string; dot: string; chip: string; text: string }> = {
   task: { label: 'Task', dot: 'bg-brand-500', chip: 'bg-brand-50 text-brand-600 dark:bg-brand-500/20 dark:text-brand-300', text: 'text-brand-600 dark:text-brand-300' },
-  appt: { label: 'Appointment', dot: 'bg-status-visiting', chip: 'bg-status-visiting/10 text-status-visiting dark:bg-violet-400/15 dark:text-violet-300', text: 'text-status-visiting dark:text-violet-300' },
-  collect: { label: 'Collection', dot: 'bg-status-danger', chip: 'bg-status-danger/10 text-status-danger dark:bg-red-400/15 dark:text-red-300', text: 'text-status-danger dark:text-red-300' },
-  follow: { label: 'Call follow-up', dot: 'bg-status-warn', chip: 'bg-status-warn/10 text-status-warn dark:bg-amber-400/15 dark:text-amber-300', text: 'text-status-warn dark:text-amber-300' },
-  plan: { label: 'Plan stop', dot: 'bg-status-working', chip: 'bg-status-working/10 text-status-working dark:bg-emerald-400/15 dark:text-emerald-300', text: 'text-status-working dark:text-emerald-300' },
+  appt: { label: 'Appointment', dot: 'bg-status-visiting', chip: 'bg-status-visiting/10 text-status-visiting', text: 'text-status-visiting' },
+  collect: { label: 'Collection', dot: 'bg-status-danger', chip: 'bg-status-danger/10 text-status-danger', text: 'text-status-danger' },
+  follow: { label: 'Call follow-up', dot: 'bg-status-warn', chip: 'bg-status-warn/10 text-status-warn', text: 'text-status-warn' },
+  plan: { label: 'Plan stop', dot: 'bg-status-working', chip: 'bg-status-working/10 text-status-working', text: 'text-status-working' },
   leave: { label: 'Leave', dot: 'bg-earth-500', chip: 'bg-earth-50 text-earth-500 dark:bg-amber-900/30 dark:text-amber-200', text: 'text-earth-500 dark:text-amber-200' },
   trip: { label: 'Sales trip', dot: 'bg-brand-700', chip: 'bg-brand-50 text-brand-700 dark:bg-brand-500/20 dark:text-brand-100', text: 'text-brand-700 dark:text-brand-100' },
   holiday: { label: 'Holiday', dot: 'bg-earth-400', chip: 'bg-earth-50 text-earth-500 dark:bg-amber-900/30 dark:text-amber-200', text: 'text-earth-500 dark:text-amber-200' },

@@ -78,7 +78,7 @@ export function SlideToConfirm({ label, onConfirm, variant = 'primary', disabled
     >
       <span
         className={`pointer-events-none absolute inset-0 flex items-center justify-center pl-12 text-[15px] font-bold ${
-          danger ? 'text-status-danger dark:text-red-300' : 'text-white'
+          danger ? 'text-status-danger' : 'text-white'
         }`}
         style={{ opacity: 1 - progress * 1.4 }}
       >

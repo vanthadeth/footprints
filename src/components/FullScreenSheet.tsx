@@ -10,7 +10,20 @@ import { X } from 'lucide-react'
  * AppLayout's own animated wrapper) and the same mount/unmount timing so
  * the fade has time to play before it leaves the DOM.
  */
-export function FullScreenSheet({ open, onClose, label, children }: { open: boolean; onClose: () => void; label: string; children: ReactNode }) {
+export function FullScreenSheet({
+  open,
+  onClose,
+  label,
+  children,
+  showClose = true,
+}: {
+  open: boolean
+  onClose: () => void
+  label: string
+  children: ReactNode
+  /** Off when the content draws its own close button (e.g. ClockSheet's header). */
+  showClose?: boolean
+}) {
   const [mounted, setMounted] = useState(open)
   const [visible, setVisible] = useState(false)
 
@@ -46,6 +59,7 @@ export function FullScreenSheet({ open, onClose, label, children }: { open: bool
       aria-label={label}
     >
       <div className="absolute inset-0">{children}</div>
+      {showClose && (
       <button
         onClick={onClose}
         aria-label="Close"
@@ -54,6 +68,7 @@ export function FullScreenSheet({ open, onClose, label, children }: { open: bool
       >
         <X className="h-5 w-5" />
       </button>
+      )}
     </div>,
     document.body
   )

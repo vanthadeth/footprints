@@ -15,10 +15,10 @@ const REASON_STYLE: Record<ThreadReason, { icon: typeof AtSign; tone: string }> 
 }
 
 const REASON_TEXT: Record<ThreadReason, string> = {
-  mention: 'text-status-visiting dark:text-violet-300',
-  reply: 'text-brand-600',
-  mine: 'text-status-working dark:text-emerald-300',
-  due: 'text-status-warn dark:text-orange-300',
+  mention: 'text-status-visiting',
+  reply: 'text-brand-500',
+  mine: 'text-status-working',
+  due: 'text-status-warn',
 }
 
 /**
@@ -58,11 +58,11 @@ export function MessagesPage() {
               aria-checked={on}
               onClick={() => setFilter(f.key)}
               className={`flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-[13px] font-bold tap-target ${
-                on ? 'border-neutral-900 bg-white text-neutral-900 dark:border-neutral-100' : 'border-neutral-200 bg-white text-neutral-500'
+                on ? 'border-brand-500 bg-brand-50 text-brand-500' : 'border-neutral-200 bg-white text-neutral-500'
               }`}
             >
               {f.label}
-              <span className={`rounded-full px-1.5 text-[11px] font-extrabold ${on ? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900' : 'bg-neutral-100 text-neutral-500'}`}>
+              <span className={`rounded-full px-1.5 text-[11px] font-extrabold ${on ? 'bg-brand-500 text-white' : 'bg-neutral-100 text-neutral-500'}`}>
                 {counts[f.key]}
               </span>
             </button>
@@ -84,7 +84,7 @@ export function MessagesPage() {
           <p className="text-sm text-neutral-500">{filter === 'all' ? 'Nothing here yet — you’re all caught up.' : 'Nothing in this filter.'}</p>
         </div>
       ) : (
-        <ul className="overflow-hidden rounded-2xl bg-white shadow-card">
+        <ul className="overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-card">
           {shown.map((t, i) => {
             const R = REASON_STYLE[t.reason]
             const unread = t.unread_count > 0
@@ -98,14 +98,14 @@ export function MessagesPage() {
                 >
                   <span className="relative">
                     <Initials name={t.customer_name} />
-                    <span className={`absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white ${R.tone}`}>
+                    <span className={`absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white dark:border-neutral-900 ${R.tone}`}>
                       <R.icon className="h-2.5 w-2.5" aria-hidden />
                     </span>
                   </span>
                   <span className="min-w-0 flex-1 space-y-0.5">
                     <span className="flex items-baseline gap-2">
                       <span className={`min-w-0 flex-1 truncate text-[14.5px] text-neutral-900 ${unread ? 'font-extrabold' : 'font-semibold'}`}>{t.customer_name ?? 'Customer'}</span>
-                      <span className={`shrink-0 text-xs ${unread ? 'font-bold text-brand-600' : 'text-neutral-400'}`}>{timeAgo(t.last_at)}</span>
+                      <span className={`shrink-0 text-xs ${unread ? 'font-bold text-brand-500' : 'text-neutral-500'}`}>{timeAgo(t.last_at)}</span>
                     </span>
                     <span className={`block text-xs font-bold ${REASON_TEXT[t.reason]}`}>{reasonText}</span>
                     <span className="flex items-center gap-2">

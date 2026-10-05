@@ -50,12 +50,17 @@ export function MyLeaveTab({
 
   return (
     <div className="space-y-4">
+      <BalanceCards
+        balances={balances}
+        requests={requests}
+        linkTo="/leave?tab=balance"
+        flex={flex.cycle?.isFlexible ? { left: flex.cycle.left, allowance: flex.cycle.allowance } : null}
+      />
       {flex.cycle?.isFlexible && <FlexCard cycle={flex.cycle} />}
-      <BalanceCards balances={balances} requests={requests} linkTo="/leave?tab=balance" />
 
       <button
         onClick={() => setRequestOpen(true)}
-        className="flex h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-brand-500 text-[15px] font-bold text-white shadow-[0_4px_14px_rgba(22,104,184,0.28)] tap-target"
+        className="flex h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-brand-500 text-[15px] font-bold text-white tap-target"
       >
         <Plus className="h-[18px] w-[18px]" strokeWidth={2.4} /> Request leave
       </button>
@@ -66,7 +71,7 @@ export function MyLeaveTab({
         <section className="space-y-2">
           <h2 className="px-0.5 text-[17px] font-bold text-neutral-900">Upcoming</h2>
           {upcoming.map((r) => (
-            <div key={r.id} className="space-y-3 rounded-2xl bg-white p-3.5 shadow-card">
+            <div key={r.id} className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card">
               <div className="flex items-center gap-3">
                 <DateTile date={r.start_date} accent />
                 <div className="min-w-0 flex-1">

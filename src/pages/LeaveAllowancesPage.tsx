@@ -158,7 +158,7 @@ export function LeaveAllowancesPage() {
       {error && <p className="rounded-xl bg-status-danger/10 px-3 py-2 text-sm text-status-danger">{error}</p>}
 
       <Link to="/leave/flexible" className="flex items-center gap-3 rounded-2xl bg-white p-4 shadow-card">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-status-visiting/10 text-status-visiting dark:text-violet-300">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-status-visiting/10 text-status-visiting">
           <CalendarRange className="h-5 w-5" aria-hidden />
         </span>
         <span className="min-w-0 flex-1">

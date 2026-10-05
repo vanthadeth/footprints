@@ -29,11 +29,11 @@ export function TripTodayCard() {
   const others = trip.people.slice(1).map((p) => p.name)
   return (
     <Link to={`/trips/${trip.id}`} className="flex items-center gap-3 rounded-2xl bg-white p-3.5 shadow-card">
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-earth-50 text-earth-500 dark:bg-amber-900/30 dark:text-amber-200">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-earth-50 text-earth-500">
         <MapIcon className="h-5 w-5" aria-hidden />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[12px] font-extrabold uppercase tracking-wide text-earth-500 dark:text-amber-200">
+        <span className="block text-[12px] font-extrabold uppercase tracking-wide text-earth-500">
           Sales trip · Day {d.n} of {plan.days.length}
         </span>
         <span className="block truncate text-[15px] font-extrabold text-neutral-900">{d.provinces.map(provinceName).join(' → ')}</span>

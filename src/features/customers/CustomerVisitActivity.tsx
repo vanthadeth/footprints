@@ -62,7 +62,7 @@ export function CustomerVisitActivity({ rows, loading }: { rows: ActivityRow[]; 
       label: 'Visit frequency',
       value: m.freqDays ? `~${m.freqDays} days` : '—',
       sub: m.freqDays ? 'average gap, last 90 days' : 'needs 2 visits in 90 days',
-      tone: m.freqDays == null ? 'text-neutral-900' : m.freqDays <= 14 ? 'text-status-working dark:text-emerald-300' : 'text-status-warn dark:text-amber-300',
+      tone: m.freqDays == null ? 'text-neutral-900' : m.freqDays <= 14 ? 'text-status-working' : 'text-status-warn',
     },
     {
       label: 'Last outcome',

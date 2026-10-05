@@ -66,8 +66,8 @@ export function FlexSettlementPage() {
   const name = userId ? (personName ?? '') : profile ? displayName(profile.full_name, profile.nickname) : ''
   const lines: { label: string; sub?: string; value: string; tone: string; strong?: boolean }[] = [
     { label: 'Allowance earned', sub: `${cycle.saturdays} Saturdays × ${rate(cycle.satRate)} + ${cycle.sundays} Sundays × ${rate(cycle.sunRate)}`, value: days(cycle.allowance), tone: 'text-neutral-900', strong: true },
-    { label: 'Requested days off', value: `−${days(requested)}`, tone: 'text-status-visiting dark:text-violet-300' },
-    { label: 'Days with no clock-in', sub: 'used automatically', value: `−${days(cycle.autoDays)}`, tone: 'text-status-visiting dark:text-violet-300' },
+    { label: 'Requested days off', value: `−${days(requested)}`, tone: 'text-status-visiting' },
+    { label: 'Days with no clock-in', sub: 'used automatically', value: `−${days(cycle.autoDays)}`, tone: 'text-status-visiting' },
   ]
 
   return (
@@ -94,7 +94,7 @@ export function FlexSettlementPage() {
         ))}
         <div className="mt-1 flex items-center justify-between gap-3 border-t border-neutral-100 pt-2.5 dark:border-neutral-800">
           <span className="text-[14px] font-semibold text-neutral-900">{overdrawn ? 'Taken beyond the allowance' : 'Left at the close'}</span>
-          <span className={`text-[16px] font-extrabold tabular-nums ${overdrawn ? 'text-status-danger' : 'text-status-working dark:text-emerald-300'}`}>{overdrawn ? days(cycle.overDays) : days(cycle.unusedDays)}</span>
+          <span className={`text-[16px] font-extrabold tabular-nums ${overdrawn ? 'text-status-danger' : 'text-status-working'}`}>{overdrawn ? days(cycle.overDays) : days(cycle.unusedDays)}</span>
         </div>
       </div>
 
@@ -120,7 +120,7 @@ export function FlexSettlementPage() {
               <span className="block text-[14px] font-semibold text-neutral-900">{r.day}</span>
               <span className="block text-[12px] text-neutral-500">{r.note}</span>
             </span>
-            <span className="text-[14px] font-extrabold tabular-nums text-status-visiting dark:text-violet-300">{r.amount}</span>
+            <span className="text-[14px] font-extrabold tabular-nums text-status-visiting">{r.amount}</span>
           </div>
         ))}
       </div>

@@ -80,7 +80,7 @@ export function CheckInOutTab({ snapshots }: { snapshots: FleetMemberSnapshot[] 
       </div>
 
       <div className="mb-4 grid grid-cols-4 gap-2">
-        <SummaryTile label="Clocked in" value={summary.clockedIn} tone="text-status-working dark:text-emerald-300" />
+        <SummaryTile label="Clocked in" value={summary.clockedIn} tone="text-status-working" />
         <SummaryTile label="Late" value={summary.late} tone="text-status-danger" />
         <SummaryTile label="On leave" value={summary.onLeave} tone="text-brand-600" />
         <SummaryTile label="Still working" value={summary.stillWorking} tone="text-neutral-900" />
@@ -297,7 +297,7 @@ function ClockPhotoColumn({
         <div className="min-w-0 pt-0.5">
           {time ? (
             <>
-              <p className="font-mono text-base font-extrabold text-neutral-900">{formatTime(time)}</p>
+              <p className="tabular-nums text-base font-extrabold text-neutral-900">{formatTime(time)}</p>
               <p className="text-[11.5px] leading-snug text-neutral-600">{locationLabel}</p>
             </>
           ) : (

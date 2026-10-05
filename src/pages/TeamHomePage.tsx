@@ -60,7 +60,7 @@ export function TeamHomePage() {
       ? [{ key: 'notin', icon: UserX, tone: 'bg-status-danger/10 text-status-danger', title: notIn.length === 1 ? `${displayName(notIn[0].member.fullName, notIn[0].member.nickname)} hasn’t clocked in` : `${notIn.length} people haven’t clocked in`, sub: notIn.slice(0, 3).map((s) => displayName(s.member.fullName, s.member.nickname)).join(', '), to: '/fleet', action: 'See' }]
       : []),
     ...(overFlex.length
-      ? [{ key: 'flex', icon: CalendarRange, tone: 'bg-status-visiting/10 text-status-visiting dark:text-violet-300', title: overFlex.length === 1 ? `${overFlex[0].name} is over the flexible allowance` : `${overFlex.length} people over the flexible allowance`, sub: overFlex.map((r) => `${r.name} +${days(-r.left)}`).join(', '), to: '/leave/flexible', action: 'See' }]
+      ? [{ key: 'flex', icon: CalendarRange, tone: 'bg-status-visiting/10 text-status-visiting', title: overFlex.length === 1 ? `${overFlex[0].name} is over the flexible allowance` : `${overFlex.length} people over the flexible allowance`, sub: overFlex.map((r) => `${r.name} +${days(-r.left)}`).join(', '), to: '/leave/flexible', action: 'See' }]
       : []),
   ]
 
@@ -95,9 +95,9 @@ export function TeamHomePage() {
       </div>
 
       <Link to="/fleet" className="grid grid-cols-3 gap-2">
-        <Tile label="Visiting" value={counts.visiting} className="bg-status-visiting" />
-        <Tile label="Idling" value={counts.idling} className="bg-earth-500" />
-        <Tile label="Off" value={counts.off} className="bg-neutral-500" />
+        <Tile label="Visiting" value={counts.visiting} dot="bg-status-visiting" />
+        <Tile label="Idling" value={counts.idling} dot="bg-earth-500" />
+        <Tile label="Off" value={counts.off} dot="bg-neutral-400" />
       </Link>
 
       <div className="rounded-2xl bg-white px-3.5 pb-1 pt-2.5 shadow-card">
@@ -143,11 +143,15 @@ export function TeamHomePage() {
   )
 }
 
-function Tile({ label, value, className }: { label: string; value: number; className: string }) {
+/** A calm status count, as on the canvas: a card with a coloured dot, not a solid colour block. */
+function Tile({ label, value, dot }: { label: string; value: number; dot: string }) {
   return (
-    <span className={`rounded-2xl px-3 py-3 text-white ${className}`}>
-      <span className="block text-[12px] font-semibold text-white/85">{label}</span>
-      <span className="mt-1 block text-[26px] font-extrabold leading-none">{value}</span>
+    <span className="rounded-2xl border border-neutral-100 bg-white px-3 py-3 shadow-card">
+      <span className="flex items-center gap-1.5 text-[12px] font-semibold text-neutral-500">
+        <span className={`h-2 w-2 rounded-full ${dot}`} />
+        {label}
+      </span>
+      <span className="mt-1 block text-[26px] font-extrabold leading-none text-neutral-900">{value}</span>
     </span>
   )
 }

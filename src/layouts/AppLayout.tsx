@@ -167,7 +167,7 @@ function MobileTabBar() {
             <NavLink key={tab.key} to="/check-in" onClick={() => haptic('light')} className="relative -mt-8 flex flex-1 flex-col items-center gap-1">
               {({ isActive }) => (
                 <>
-                  <span className="flex h-[58px] w-[58px] items-center justify-center rounded-full bg-brand-500 text-white shadow-[0_6px_16px_rgba(22,104,184,0.35)] ring-4 ring-neutral-50 dark:ring-neutral-950">
+                  <span className="flex h-[58px] w-[58px] items-center justify-center rounded-full bg-brand-500 text-white ring-4 ring-neutral-50 dark:ring-neutral-950">
                     <CheckInIcon className="h-6 w-6" aria-hidden />
                   </span>
                   <span className={`pb-2 text-[11px] font-bold ${isActive ? 'text-brand-700' : 'text-neutral-500'}`}>{checkInLabel}</span>

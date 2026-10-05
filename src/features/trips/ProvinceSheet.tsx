@@ -75,7 +75,7 @@ export function ProvinceSheet({
           Starting from {fromName}
           {from === HOME ? '' : ', where you slept last night'}. Tap in the order you’ll visit.
         </p>
-        <label className="flex h-11 items-center gap-2 rounded-xl bg-neutral-100 px-3 text-neutral-500 dark:bg-neutral-800">
+        <label className="flex h-11 items-center gap-2 rounded-xl bg-neutral-100 px-3 text-neutral-500">
           <Search className="h-4 w-4" aria-hidden />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search provinces" className="min-w-0 flex-1 bg-transparent text-[15px] text-neutral-900 outline-none" />
         </label>
@@ -152,7 +152,7 @@ export function ProvinceSheet({
                 ))}
               </div>
               {night && (
-                <div className="flex items-center gap-2 rounded-xl bg-neutral-100 px-3 py-2 dark:bg-neutral-800">
+                <div className="flex items-center gap-2 rounded-xl bg-neutral-100 px-3 py-2">
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-extrabold text-neutral-900">Hotel rooms tonight</span>
                     <span className="block text-[12px] text-neutral-500">

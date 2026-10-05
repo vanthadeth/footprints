@@ -44,7 +44,7 @@ export function MessageThreadPage() {
 
   return (
     <div className="mx-auto max-w-lg space-y-3 px-4 pb-6 pt-1 md:max-w-2xl md:px-8 md:pt-4">
-      <Link to={`/customers/${post.customer_id}`} className="flex items-center gap-3 rounded-2xl bg-white p-3.5 shadow-card">
+      <Link to={`/customers/${post.customer_id}`} className="flex items-center gap-3 rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
           <Store className="h-5 w-5" aria-hidden />
         </span>

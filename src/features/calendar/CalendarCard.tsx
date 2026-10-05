@@ -33,7 +33,7 @@ export function CalendarCard() {
 
   return (
     <Link to="/calendar" className="flex items-center gap-3.5 rounded-2xl bg-white p-4 shadow-card">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-status-visiting/10 text-status-visiting dark:text-violet-300">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-status-visiting/10 text-status-visiting">
         <Calendar className="h-5 w-5" aria-hidden />
       </span>
       <span className="min-w-0 flex-1">

@@ -54,10 +54,10 @@ export default defineConfig({
         description: 'Journal your sales journey.',
         // Fixed brand-blue status bar/OS chrome, independent of the app's
         // own light/dark theme (see src/lib/theme.ts and index.html).
-        theme_color: '#1668b8',
+        theme_color: '#006ACC',
         // Splash screen while the app loads -- matches the light-mode page
         // background so it blends into first paint either way.
-        background_color: '#fafafa',
+        background_color: '#f4f4f4',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',

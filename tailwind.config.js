@@ -23,30 +23,38 @@ export default {
         // block, which hardcodes these same 800/900/950/50-600 values for
         // the classes that have no explicit dark: variant of their own.
         // brand (blue) and status.working (green) are untouched on purpose.
+        // Polish palette (design canvas › Foundations). Neutrals are pure
+        // greys, not tinted: light page #f4f4f4 with white cards and #1c1c1c
+        // text; the dark end (800-950) is the dark theme's card (#232323)
+        // and page (#1c1c1c) so dark: classes and the retrofit block in
+        // index.css land on the same surfaces as the canvas.
         neutral: {
-          50: '#f6f8fb',
-          100: '#eaeef4',
-          200: '#d7dee8',
-          300: '#b7c1d1',
-          400: '#8991a3',
-          500: '#6b7484',
-          600: '#525a6a',
-          700: '#3d4351',
-          800: '#262b38',
-          900: '#171b25',
-          950: '#0e1119',
+          50: '#f4f4f4',
+          100: '#ececec',
+          200: '#e3e3e3',
+          300: '#d0d0d0',
+          400: '#8a8a8a',
+          500: '#666666',
+          600: '#4d4d4d',
+          700: '#3a3a3a',
+          800: '#2e2e2e',
+          900: '#232323',
+          950: '#1c1c1c',
         },
+        // Blue from the app palette (base #0085FF). Text and fills use the
+        // darker D20/D40 steps because the base blue is under 4.5:1 on
+        // white; 400 is the L20 step for links on dark surfaces.
         brand: {
-          50: '#eaf3fb',
-          100: '#cfe4f6',
-          400: '#3d8bd4',
-          500: '#1668b8',
-          600: '#0f5090',
-          700: '#0b3c68',
-          // Hero-card background (dashboard, journey header) -- dark enough
-          // for white text at AA contrast, still readably "our blue" rather
-          // than a neutral black.
-          900: '#041c30',
+          50: '#E6F3FF',
+          100: '#CCE7FF',
+          200: '#B3DAFF',
+          400: '#339DFF',
+          500: '#006ACC',
+          600: '#005099',
+          700: '#003566',
+          // Hero-card background (check-in, journey header): the canvas uses
+          // a near-black neutral, the same in light and dark.
+          900: '#2b2b2b',
         },
         earth: {
           50: '#faf1e4',
@@ -54,26 +62,23 @@ export default {
           500: '#96703f',
         },
         status: {
-          // Kept as universal success/state colors, independent of brand --
-          // "verified"/"working" should read as green regardless of what
-          // the primary brand color is. Only `visiting` moves (it used to
-          // be blue, which is now the brand color and would be ambiguous
-          // next to primary buttons/links).
-          working: '#0f6e4f',
+          // Green, orange and red from the app palette, at the D-steps that
+          // pass 4.5:1 as text on white. `visiting` stays violet so it never
+          // reads as a primary (blue) button.
+          working: '#00701F',
           idling: '#b48a5a',
           visiting: '#6552c9',
           off: '#8a8f98',
-          warn: '#b8590f',
-          danger: '#c23b3b',
+          warn: '#955000',
+          danger: '#BA2323',
         },
       },
       fontFamily: {
-        // "Noto Sans Khmer" only covers the Khmer script -- browsers fall
-        // through to it per-character, so English text still renders on
-        // the system font above and only Khmer glyphs (thin/inconsistent
-        // in the system UI fonts across platforms) pick it up. Loaded via
-        // the Google Fonts <link> in index.html.
-        sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', '"Noto Sans Khmer"', 'sans-serif'],
+        // One typeface everywhere: Google Sans (loaded in index.html). `mono`
+        // points at it too so a stray font-mono can't bring in a second font;
+        // times line up with tabular-nums instead.
+        sans: ['"Google Sans"', 'sans-serif'],
+        mono: ['"Google Sans"', 'sans-serif'],
       },
       spacing: {
         'safe-top': 'env(safe-area-inset-top)',
@@ -82,18 +87,19 @@ export default {
         'safe-right': 'env(safe-area-inset-right)',
       },
       boxShadow: {
-        card: '0 1px 2px 0 rgb(0 0 0 / 0.05), 0 1px 3px 0 rgb(0 0 0 / 0.06)',
+        card: '0 1px 2px rgb(0 0 0 / 0.04), 0 2px 8px rgb(0 0 0 / 0.05)',
       },
       borderRadius: {
         // Overriding the core scale (not just extending xl2) so every
-        // rounded-lg/xl/2xl button, input, and sheet across the app gets
-        // less round from one place, not just the custom card radius.
+        // rounded-lg/xl/2xl button, input, and sheet across the app picks
+        // up the canvas radii from one place, not just the custom card radius.
         // rounded-full (avatars, pills, switches, badges) is untouched --
         // those are meant to be fully round, not "corner rounding".
-        lg: '0.375rem',
-        xl: '0.5rem',
-        '2xl': '0.75rem',
-        xl2: '0.75rem',
+        // Canvas radii: 10px chips, 14px buttons and inputs, 18px cards.
+        lg: '0.625rem',
+        xl: '0.875rem',
+        '2xl': '1.125rem',
+        xl2: '1.125rem',
       },
       keyframes: {
         'fade-in': { from: { opacity: '0' }, to: { opacity: '1' } },

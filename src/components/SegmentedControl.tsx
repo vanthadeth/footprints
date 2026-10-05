@@ -41,7 +41,7 @@ export function SegmentedControl<T extends string>({ options, value, onChange, a
               onChange(opt.value)
             }}
             className={`flex min-h-[36px] flex-1 items-center justify-center gap-1.5 px-3 text-sm font-semibold ${inner} ${
-              active ? 'bg-white text-neutral-900 shadow-sm dark:bg-neutral-700' : 'text-neutral-500'
+              active ? 'seg-on text-neutral-900 shadow-sm' : 'text-neutral-500'
             }`}
           >
             {opt.label}

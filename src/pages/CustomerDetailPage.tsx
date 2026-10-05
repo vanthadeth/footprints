@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Banknote, Camera, Construction, MapPin, Navigation, NotebookPen, Phone, ShoppingCart, UserRound, type LucideIcon } from 'lucide-react'
+import { ArrowLeft, Construction, MapPin, Navigation, NotebookPen, Phone, Store } from 'lucide-react'
 import { customersService, type CustomerDirectoryRow } from '@/features/customers/customersService'
 import { VisitFlow, type PresetCustomer } from '@/features/visits/VisitFlow'
 import { TierCard } from '@/features/customers/TierCard'
 import { CustomerVisitActivity } from '@/features/customers/CustomerVisitActivity'
+import { CustomerCalendar } from '@/features/customers/CustomerCalendar'
 import { useCustomerActivity } from '@/features/customers/useCustomerBook'
 import { CUSTOMER_MANAGEMENT_ENABLED } from '@/lib/featureFlags'
 import { useProfile } from '@/features/auth/useProfile'
@@ -50,6 +51,7 @@ function CustomerDetail() {
   const [canLog, setCanLog] = useState(false)
   const [logKind, setLogKind] = useState<ConversationKind | null>(null)
   const [conversationKey, setConversationKey] = useState(0)
+  const [tab, setTab] = useState<'info' | 'cal' | 'conv'>('info')
   // When balances last came from the Google Sheet sync ("as of" next to the balance).
   const [balanceAsOf, setBalanceAsOf] = useState<string | null>(null)
 
@@ -111,52 +113,24 @@ function CustomerDetail() {
       ? `${customer.latitude},${customer.longitude}`
       : (customer.street_address ?? customer.shop_name ?? '')
 
+  const sub = [customer.business_type, customer.district_name, customer.province_name].filter(Boolean).join(' · ')
+  const owes = customer.balance_usd ?? 0
+
   return (
     <div className="mx-auto max-w-lg pb-6 md:max-w-2xl">
-      <div className="px-4 pt-4 md:px-8">
-        <BackLink onClick={() => navigate('/customers')} />
-
-        <div className="mt-3 rounded-xl2 bg-white p-4 shadow-card">
-          <div className="flex items-start justify-between gap-3">
-            <p className="text-lg font-semibold uppercase tracking-wide text-neutral-900">{customer.shop_name}</p>
-            {customer.status && (
-              <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${STATUS_STYLES[customer.status] ?? ''}`}>
-                {customer.status}
-              </span>
-            )}
+      <div className="flex flex-col gap-3.5 px-4 pt-1.5 md:px-8">
+        <section aria-label={customer.shop_name ?? 'Customer'} className="rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card">
+          <div className="flex items-start gap-3">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-brand-500 text-white">
+              <Store className="h-6 w-6" aria-hidden />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-lg font-bold leading-6 text-neutral-900">{customer.shop_name}</span>
+              {sub && <span className="block truncate text-[13px] text-neutral-500">{sub}</span>}
+            </span>
+            {customer.status && <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold capitalize ${STATUS_STYLES[customer.status] ?? ''}`}>{customer.status}</span>}
           </div>
-          {customer.province_name && (
-            <p className="mt-1.5 flex items-center gap-1.5 text-sm text-neutral-500">
-              <MapPin className="h-3.5 w-3.5 shrink-0" /> {[customer.street_address, customer.province_name].filter(Boolean).join(', ')}
-            </p>
-          )}
-          {customer.primary_contact_phone && (
-            <p className="mt-1 flex items-center gap-1.5 text-sm text-neutral-500">
-              <Phone className="h-3.5 w-3.5 shrink-0" /> {customer.primary_contact_phone}
-            </p>
-          )}
-          {customer.owner_name && (
-            <p className="mt-1 flex items-center gap-1.5 text-sm text-neutral-500">
-              <UserRound className="h-3.5 w-3.5 shrink-0" /> Salesperson: {customer.owner_name}
-            </p>
-          )}
-          {(customer.balance_usd != null || customer.last_purchase_date) && (
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <div className="rounded-xl bg-neutral-50 px-3 py-2 dark:bg-neutral-800">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-neutral-500">Balance</p>
-                <p className={`text-[17px] font-extrabold tabular-nums ${customer.balance_usd != null && customer.balance_usd > 0 ? 'text-status-danger' : 'text-neutral-900'}`}>
-                  {customer.balance_usd != null ? usd(customer.balance_usd) : '—'}
-                </p>
-                {customer.balance_usd != null && balanceAsOf && <p className="text-[11px] text-neutral-500">as of {shortDate(balanceAsOf)}</p>}
-              </div>
-              <div className="rounded-xl bg-neutral-50 px-3 py-2 dark:bg-neutral-800">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-neutral-500">Last purchase</p>
-                <p className="text-[17px] font-extrabold text-neutral-900">{customer.last_purchase_date ? shortDate(customer.last_purchase_date) : '—'}</p>
-              </div>
-            </div>
-          )}
-
-          <div className="mt-4 grid grid-cols-3 gap-2">
+          <div className="mt-3.5 grid grid-cols-3 gap-2">
             <a
               href={customer.primary_contact_phone ? `tel:${customer.primary_contact_phone}` : undefined}
               aria-disabled={!customer.primary_contact_phone}
@@ -164,50 +138,78 @@ function CustomerDetail() {
                 // Ask them to log it once they come back from the dialler.
                 if (canLog) setTimeout(() => setLogKind('call'), 600)
               }}
-              className={`flex flex-col items-center gap-1 rounded-xl border border-neutral-200 py-2.5 text-xs font-semibold text-neutral-700 tap-target ${
-                !customer.primary_contact_phone ? 'pointer-events-none opacity-40' : ''
-              }`}
+              className={`flex h-11 items-center justify-center gap-1.5 rounded-xl border border-neutral-200 text-sm font-bold text-neutral-900 tap-target ${!customer.primary_contact_phone ? 'pointer-events-none opacity-40' : ''}`}
             >
-              <Phone className="h-4 w-4" /> CALL
+              <Phone className="h-4 w-4" aria-hidden /> Call
             </a>
             <a
               href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`}
               target="_blank"
               rel="noopener"
-              className="flex flex-col items-center gap-1 rounded-xl border border-neutral-200 py-2.5 text-xs font-semibold text-neutral-700 tap-target"
+              className="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-neutral-200 text-sm font-bold text-neutral-900 tap-target"
             >
-              <Navigation className="h-4 w-4" /> NAVIGATE
+              <Navigation className="h-4 w-4" aria-hidden /> Navigate
             </a>
-            <button
-              onClick={() => setVisitOpen(true)}
-              className="flex flex-col items-center gap-1 rounded-xl bg-brand-500 py-2.5 text-xs font-semibold text-white tap-target"
-            >
-              <MapPin className="h-4 w-4" /> VISIT
+            <button onClick={() => setVisitOpen(true)} className="flex h-11 items-center justify-center gap-1.5 rounded-xl bg-brand-500 text-sm font-bold text-white tap-target">
+              <MapPin className="h-4 w-4" aria-hidden /> Visit
             </button>
           </div>
+        </section>
+
+        <div role="tablist" aria-label="Customer" className="flex gap-0.5 rounded-xl bg-neutral-100 p-[3px]">
+          {(
+            [
+              ['info', 'Information'],
+              ['cal', 'Calendar'],
+              ['conv', 'Conversation'],
+            ] as const
+          ).map(([k, label]) => (
+            <button
+              key={k}
+              type="button"
+              role="tab"
+              aria-selected={tab === k}
+              onClick={() => setTab(k)}
+              className={`h-9 flex-1 rounded-[9px] text-[13px] ${tab === k ? 'seg-on font-bold text-neutral-900 shadow-sm' : 'font-semibold text-neutral-500'}`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
 
-        {activity.error && <p className="mt-3 rounded-lg bg-status-danger/10 px-3 py-2 text-sm text-status-danger">{activity.error}</p>}
-        <CustomerVisitActivity rows={activity.data} loading={activity.loading} />
+        {tab === 'info' && (
+          <>
+            <div className="overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-card">
+              <InfoRow label="Owes" value={customer.balance_usd != null ? usd(customer.balance_usd) : '—'} note={customer.balance_usd != null && balanceAsOf ? `as of ${shortDate(balanceAsOf)}` : undefined} tone={owes > 0 ? 'text-status-danger' : undefined} />
+              {customer.credit_limit_usd != null && <InfoRow label="Credit limit" value={usd(customer.credit_limit_usd)} />}
+              <InfoRow label="Last purchase" value={customer.last_purchase_date ? shortDate(customer.last_purchase_date) : '—'} />
+              <InfoRow label="Last visit" value={customer.last_visit_date ? shortDate(customer.last_visit_date) : '—'} />
+              <InfoRow label="Contact" value={[customer.primary_contact_name, customer.primary_contact_phone].filter(Boolean).join(' · ') || '—'} />
+              <InfoRow label="Address" value={[customer.street_address, customer.commune_name, customer.district_name, customer.province_name].filter(Boolean).join(', ') || '—'} />
+              {customer.owner_name && <InfoRow label="Salesperson" value={customer.owner_name} />}
+            </div>
+            <TierCard customerId={customer.id!} />
+            {activity.error && <p className="rounded-xl bg-status-danger/10 px-3 py-2 text-sm text-status-danger">{activity.error}</p>}
+            <CustomerVisitActivity rows={activity.data} loading={activity.loading} />
+          </>
+        )}
 
-        <TierCard customerId={customer.id!} />
+        {tab === 'cal' && <CustomerCalendar rows={activity.data} />}
 
-        <div className="mt-4">
-          <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-neutral-400">Quick Actions</p>
-          <div className="grid grid-cols-2 gap-2">
-            <QuickTile icon={ShoppingCart} label="New Order" comingSoon />
-            <QuickTile icon={Banknote} label="Collection" comingSoon />
-            <QuickTile icon={Camera} label="Photo" comingSoon />
-            <QuickTile icon={NotebookPen} label="Note" comingSoon={!canLog} onClick={() => setLogKind('note')} />
-          </div>
-        </div>
-
-        <ConversationSection
-          customerId={customer.id!}
-          meId={profile?.id ?? null}
-          refreshKey={conversationKey}
-          onLogCall={canLog ? () => setLogKind('call') : undefined}
-        />
+        {tab === 'conv' && (
+          <>
+            {canLog && (
+              <button
+                type="button"
+                onClick={() => setLogKind('note')}
+                className="flex h-11 items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white text-sm font-bold text-neutral-900"
+              >
+                <NotebookPen className="h-4 w-4" aria-hidden /> Add a note
+              </button>
+            )}
+            <ConversationSection customerId={customer.id!} meId={profile?.id ?? null} refreshKey={conversationKey} onLogCall={canLog ? () => setLogKind('call') : undefined} />
+          </>
+        )}
       </div>
 
       <VisitFlow
@@ -240,18 +242,14 @@ function BackLink({ onClick }: { onClick: () => void }) {
   )
 }
 
-function QuickTile({ icon: Icon, label, comingSoon, onClick }: { icon: LucideIcon; label: string; comingSoon?: boolean; onClick?: () => void }) {
+function InfoRow({ label, value, note, tone = 'text-neutral-900' }: { label: string; value: string; note?: string; tone?: string }) {
   return (
-    <button
-      disabled={comingSoon}
-      onClick={onClick}
-      className="flex flex-col items-center gap-2 rounded-xl2 border border-neutral-200 bg-white p-4 text-center tap-target disabled:opacity-40 dark:border-neutral-700"
-    >
-      <span className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-50 text-brand-600 dark:bg-neutral-800 dark:text-brand-300">
-        <Icon className="h-5 w-5" aria-hidden />
+    <div className="flex items-start justify-between gap-4 border-t border-neutral-100 px-3.5 py-3 first:border-t-0">
+      <span className="shrink-0 text-sm text-neutral-500">{label}</span>
+      <span className="min-w-0 text-right">
+        <span className={`block text-[15px] font-semibold ${tone}`}>{value}</span>
+        {note && <span className="block text-xs text-neutral-500">{note}</span>}
       </span>
-      <span className="text-sm font-medium text-neutral-800">{label}</span>
-      {comingSoon && <span className="text-[10px] font-medium uppercase tracking-wide text-neutral-400">Coming soon</span>}
-    </button>
+    </div>
   )
 }
