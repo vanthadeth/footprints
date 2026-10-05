@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { daySegments } from './dayBar'
+import { dayBreakdown, daySegments } from './dayBar'
 
 const t = (h: number, m = 0) => (h * 60 + m) * 60_000
 const base = { shiftStart: t(8), shiftEnd: t(17), flagAfterMin: 45 }
@@ -41,5 +41,28 @@ describe('daySegments', () => {
       now: t(12),
     })
     expect(kinds(s)).toEqual(['visit 480-500', 'gap 500-545', 'flag 545-600'])
+  })
+
+  it('remembers which visit each visit stretch is', () => {
+    const s = daySegments({ ...base, clockIn: t(8), clockOut: t(12), visits: [[t(10), t(11)], [t(8, 30), t(9)]], now: t(12) })
+    expect(s.filter((g) => g.kind === 'visit').map((g) => g.visit)).toEqual([1, 0])
+  })
+})
+
+describe('dayBreakdown', () => {
+  it('gives minutes per kind and shares that add up to 100', () => {
+    const rows = dayBreakdown([
+      { kind: 'out', from: t(7, 50), to: t(8) },
+      { kind: 'gap', from: t(8), to: t(8, 37) },
+      { kind: 'visit', from: t(8, 37), to: t(9, 12) },
+      { kind: 'flag', from: t(9, 12), to: t(9, 53) },
+      { kind: 'todo', from: t(9, 53), to: t(17) },
+    ])
+    expect(rows.map((r) => [r.kind, r.minutes])).toEqual([['out', 10], ['gap', 37], ['flag', 41], ['visit', 35]])
+    expect(rows.reduce((n, r) => n + r.pct, 0)).toBe(100)
+  })
+
+  it('is all zero before any time on the clock', () => {
+    expect(dayBreakdown([{ kind: 'todo', from: t(8), to: t(17) }]).every((r) => r.minutes === 0 && r.pct === 0)).toBe(true)
   })
 })

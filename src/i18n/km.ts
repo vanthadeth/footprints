@@ -496,7 +496,7 @@ export const km: TranslationKey = {
     routeLine: 'ផ្លូវ · {{km}} · ចុះជួប {{n}}',
     prevDay: 'ថ្ងៃមុន',
     nextDay: 'ថ្ងៃបន្ទាប់',
-    dayBarLegend: 'ការចុះជួបពណ៌ខៀវ ពេលចូលម៉ោងពណ៌ប្រផេះ',
+    dayBarLegend: 'ចុចលើផ្នែកណាមួយ ដើម្បីមើលព័ត៌មានលម្អិត',
   },
   visits: {
     tabUpcoming: 'នឹងមកដល់',

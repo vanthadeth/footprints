@@ -488,7 +488,7 @@ export const en = {
     routeLine: 'Route · {{km}} · {{n}} visits',
     prevDay: 'Previous day',
     nextDay: 'Next day',
-    dayBarLegend: 'Visits in blue, clocked-in time in grey',
+    dayBarLegend: 'Tap a stretch for details',
   },
   visits: {
     tabUpcoming: 'Upcoming',

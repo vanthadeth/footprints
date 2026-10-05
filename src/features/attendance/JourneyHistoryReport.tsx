@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight, Footprints as FootprintsIcon, Map as MapIcon } from 'lucide-react'
+import { Banknote, Calendar as CalendarIcon, Check, ChevronLeft, ChevronRight, Footprints as FootprintsIcon, Map as MapIcon } from 'lucide-react'
 import { FullScreenSheet } from '@/components/FullScreenSheet'
 import { EmptyState } from '@/components/EmptyState'
 import { FlagBadge } from '@/components/FlagBadge'
@@ -9,6 +9,9 @@ import { JourneyTimeline } from '@/features/attendance/JourneyTimeline'
 import { JourneyMap } from '@/features/attendance/JourneyMap'
 import { DatePickerButton } from '@/features/attendance/DatePickerButton'
 import { useCustomerNames } from '@/features/customers/useCustomerNames'
+import { DayBar, DayBarSwatch } from '@/features/fleet/DayBar'
+import { SEG_LABEL, atLocal, dayBreakdown, minutesText, segText, segmentsFor, type Seg } from '@/features/fleet/dayBar'
+import { useAppSettings } from '@/hooks/useAppSettings'
 import { useApprovedLeaveOnDate } from '@/features/leave/useApprovedLeaveOnDate'
 import { useLanguage } from '@/i18n/LanguageContext'
 import { formatDuration, formatLongDate, formatTime } from '@/lib/datetime'
@@ -152,7 +155,7 @@ export function JourneyHistoryReport({ userId, interactive, subtitle }: { userId
                 <p className="text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">{t('footprints.yourDay')}</p>
                 <span className="text-[11px] text-neutral-500">{t('footprints.dayBarLegend')}</span>
               </div>
-              <DayStrip day={day} />
+              <DayStrip day={day} date={selectedDate} isToday={selectedDate === today} customerNames={customerNames} />
               {flags.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {flags.map((f) => (
@@ -204,41 +207,83 @@ function Line({ label, value, tone = 'text-neutral-900' }: { label: string; valu
   )
 }
 
-/** First clock-in to last clock-out (or now) with hour ticks: clocked-in time grey, visits blue. */
-function DayStrip({ day }: { day: DayJourney }) {
-  const now = Date.now()
-  const ins = day.attendance.map((a) => new Date(a.clock_in_at).getTime())
-  const outs = day.attendance.map((a) => (a.clock_out_at ? new Date(a.clock_out_at).getTime() : now))
-  const start = Math.min(...ins)
-  const end = Math.max(...outs, start + 60 * 60_000)
-  const span = end - start
-  const pct = (ms: number) => `${(((ms - start) / span) * 100).toFixed(2)}%`
-  const w = (a: number, b: number) => `max(2px, ${(((b - a) / span) * 100).toFixed(2)}%)`
-  const hours: number[] = []
-  for (let h = Math.ceil(start / 3_600_000) * 3_600_000; h < end; h += 3_600_000) hours.push(h)
-  const step = Math.ceil(hours.length / 6)
+/**
+ * "Your day" (canvas Polish › Journey): the day as separated stretches from
+ * half an hour before the shift to an hour after it, In / Now marks above,
+ * each visit's outcomes (ordered, paid, appointment) under it, then the
+ * minutes and share of each kind of time. Tap or hover a stretch to see it.
+ */
+function DayStrip({ day, date, isToday, customerNames }: { day: DayJourney; date: string; isToday: boolean; customerNames: Record<string, string> }) {
+  const settings = useAppSettings()
+  const now = isToday ? Date.now() : atLocal(date, '23:59')
+  const shiftStart = atLocal(date, settings.workStartTime)
+  const shiftEnd = atLocal(date, settings.workEndTime)
+  const { segs, live, clockIn, clockOut } = segmentsFor({ attendance: day.attendance, visits: day.visits, shiftStart, shiftEnd, now, flagAfterMin: settings.idleAlertThresholdMinutes })
+  if (clockIn == null) return null
+  const last = clockOut ?? now
+  const from = Math.min(shiftStart - 30 * 60_000, clockIn)
+  const to = Math.max(shiftEnd + 60 * 60_000, last)
+  const at = (ms: number) => formatTime(new Date(ms).toISOString())
+  const name = (g: Seg) => (g.visit != null ? (customerNames[live[g.visit]?.customer_id ?? ''] ?? null) : null)
+  const icon = 'h-2.5 w-2.5'
+  const pins = segs
+    .filter((g) => g.kind === 'visit' && g.visit != null)
+    .map((g) => {
+      const v = live[g.visit!]
+      const dots = [
+        ...((v.order_amount_usd ?? 0) > 0 ? [{ key: 'ordered', label: 'Ordered', icon: <Check className={icon} strokeWidth={3} />, tone: 'bg-status-working/15 text-status-working' }] : []),
+        ...((v.collected_usd ?? 0) > 0 ? [{ key: 'paid', label: 'Payment collected', icon: <Banknote className={icon} strokeWidth={2.5} />, tone: 'bg-status-working/15 text-status-working' }] : []),
+        ...(v.next_appointment ? [{ key: 'appt', label: 'Appointment set', icon: <CalendarIcon className={icon} strokeWidth={2.5} />, tone: 'bg-status-warn/15 text-status-warn' }] : []),
+      ]
+      return { at: (g.from + g.to) / 2, dots }
+    })
+    .filter((p) => p.dots.length > 0)
+  const rows = dayBreakdown(segs)
+  const todo = segs.filter((g) => g.kind === 'todo').reduce((n, g) => n + g.to - g.from, 0)
   return (
     <div className="mt-3">
-      <div className="relative h-4">
-        {hours
-          .filter((_, i) => i % step === 0)
-          .map((h) => (
-            <span key={h} className="absolute -translate-x-1/2 text-[10px] font-semibold text-neutral-500" style={{ left: pct(h) }}>
-              {formatTime(new Date(h).toISOString())}
+      <DayBar
+        segs={segs}
+        from={from}
+        to={to}
+        size="lg"
+        label={`Your day from ${at(clockIn)}${clockOut ? ` to ${at(clockOut)}` : ' until now'}: ${rows.map((r) => `${SEG_LABEL[r.kind]} ${r.minutes} minutes`).join(', ')}`}
+        describe={(g) => segText(g, name(g))}
+        marks={[
+          { at: clockIn, label: `In ${at(clockIn)}` },
+          { at: last, label: `${clockOut ? 'Out' : 'Now'} ${at(last)}`, accent: !clockOut },
+        ]}
+        pins={pins}
+      />
+      <div role="table" aria-label="Time breakdown" className="mt-1 border-t border-neutral-100 pt-1 dark:border-neutral-800">
+        <div role="row" className="grid grid-cols-[minmax(0,1fr)_64px_44px] py-1.5 text-xs text-neutral-500">
+          <span role="columnheader">Activity</span>
+          <span role="columnheader" className="text-right">
+            Minutes
+          </span>
+          <span role="columnheader" className="text-right">
+            %
+          </span>
+        </div>
+        {rows.map((r) => (
+          <div key={r.kind} role="row" className="grid min-h-[34px] grid-cols-[minmax(0,1fr)_64px_44px] items-center border-t border-neutral-100 text-sm dark:border-neutral-800">
+            <span role="cell" className="flex min-w-0 items-center gap-2.5">
+              <DayBarSwatch kind={r.kind} big />
+              <span className="truncate text-neutral-900">{r.kind === 'out' ? 'Early in / late out' : r.kind === 'visit' ? 'Visits' : SEG_LABEL[r.kind]}</span>
             </span>
-          ))}
-      </div>
-      <div role="img" aria-label={`${day.visits.length} visits`} className="relative mt-1 h-6 overflow-hidden rounded-md bg-neutral-100">
-        {day.attendance.map((a, i) => (
-          <span key={a.id} className="absolute inset-y-0 bg-neutral-300 dark:bg-neutral-600" style={{ left: pct(ins[i]), width: w(ins[i], outs[i]) }} />
+            <span role="cell" className="text-right font-semibold text-neutral-900">
+              {r.minutes}
+            </span>
+            <span role="cell" className="text-right text-neutral-600">
+              {r.pct}%
+            </span>
+          </div>
         ))}
-        {day.visits
-          .filter((v) => !v.cancelled_at)
-          .map((v) => {
-            const a = new Date(v.checked_in_at).getTime()
-            const b = v.checked_out_at ? new Date(v.checked_out_at).getTime() : now
-            return <span key={v.id} className="absolute inset-y-0 rounded-[3px] bg-brand-500" style={{ left: pct(a), width: w(a, b) }} title={formatTime(v.checked_in_at)} />
-          })}
+        {todo > 0 && (
+          <p className="mt-1.5 flex items-center gap-2.5 text-xs text-neutral-500">
+            <DayBarSwatch kind="todo" big /> Still to go · {minutesText(todo)} until {settings.workEndTime.slice(0, 5)}
+          </p>
+        )}
       </div>
     </div>
   )
