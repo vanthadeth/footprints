@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useJourneyHistory } from '@/features/attendance/useJourneyHistory'
 import { getCustomRange, todayDateString } from '@/lib/dateRange'
 import { buildAttendanceMonth, type AttendanceCell } from './attendanceMonth'
-import { LEAVE_TYPE_COLOR, type LeaveRequest } from './types'
+import type { LeaveRequest } from './types'
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 const LEAVE_CODE = { annual: 'AL', sick: 'SL', unpaid: 'UL', flex: 'FD' } as const
@@ -94,54 +94,49 @@ export function AttendanceCalendar({ userId, requests }: { userId: string; reque
       </div>
 
       <div className="flex flex-wrap gap-x-4 gap-y-1.5 px-1 text-xs text-neutral-500">
-        <Legend color="#0f6e4f" code="P" label="Present" />
-        <Legend color={LEAVE_TYPE_COLOR.annual} code="AL" label="Annual" />
-        <Legend color={LEAVE_TYPE_COLOR.sick} code="SL" label="Sick" />
-        <Legend color={LEAVE_TYPE_COLOR.unpaid} code="UL" label="Unpaid" />
+        <Legend swatch="today" label="Today" />
+        <Legend swatch="dot" label="Present" />
+        <Legend swatch="leave" label="Leave · AL annual, SL sick, UL unpaid" />
         <span>½ = half day</span>
       </div>
     </div>
   )
 }
 
+/** The app's one calendar cell: a 28px day circle (today ringed, picked filled), leave as a grey cell with its code, presence as a green dot. */
 function DayCell({ cell, selected, onPick }: { cell: AttendanceCell; selected: boolean; onPick: () => void }) {
-  let bg = ''
-  let fg = 'text-neutral-900'
-  let code = ''
-  if (cell.kind === 'present') {
-    bg = 'bg-status-working/15'
-    fg = 'text-status-working dark:text-emerald-300'
-    code = 'P'
-  } else if (cell.kind === 'leave' && cell.leaveType) {
-    code = LEAVE_CODE[cell.leaveType] + (cell.half ? '½' : '')
-    fg = 'text-white'
-  } else if (cell.kind === 'weekend' || cell.kind === 'future') {
-    fg = 'text-neutral-400'
-  }
-  const style = cell.kind === 'leave' && cell.leaveType ? { backgroundColor: LEAVE_TYPE_COLOR[cell.leaveType] } : undefined
+  const leave = cell.kind === 'leave' && cell.leaveType
+  const muted = cell.kind === 'weekend' || cell.kind === 'future'
   return (
     <button
       type="button"
       onClick={onPick}
-      style={style}
       aria-label={describe(cell)}
       aria-pressed={selected}
-      className={`flex h-11 flex-col items-center justify-center rounded-lg ${bg} ${fg} ${cell.isToday ? 'ring-2 ring-brand-500' : ''} ${
-        selected ? 'outline outline-2 outline-offset-1 outline-neutral-400' : ''
-      }`}
+      className={`flex h-[50px] flex-col items-center justify-center gap-0.5 rounded-xl ${leave ? 'bg-neutral-100' : ''}`}
     >
-      <span className="text-[13px] font-bold leading-none">{cell.day}</span>
-      {code && <span className="mt-0.5 text-[9px] font-extrabold leading-none">{code}</span>}
+      <span
+        className={`flex h-7 w-7 items-center justify-center rounded-full text-[13px] ${
+          selected ? 'bg-brand-500 font-bold text-white' : cell.isToday ? 'font-bold text-brand-500 ring-2 ring-inset ring-brand-500' : muted ? 'font-medium text-neutral-500' : 'font-medium text-neutral-900'
+        }`}
+      >
+        {cell.day}
+      </span>
+      {leave ? (
+        <span className="text-[9px] font-extrabold leading-none text-neutral-600">{LEAVE_CODE[cell.leaveType!] + (cell.half ? '½' : '')}</span>
+      ) : (
+        <span className={`h-1.5 w-1.5 rounded-full ${cell.kind === 'present' ? 'bg-status-working' : 'bg-transparent'}`} />
+      )}
     </button>
   )
 }
 
-function Legend({ color, code, label }: { color: string; code: string; label: string }) {
+function Legend({ swatch, label }: { swatch: 'dot' | 'leave' | 'today'; label: string }) {
   return (
     <span className="flex items-center gap-1.5">
-      <span className="flex h-4 min-w-4 items-center justify-center rounded px-0.5 text-[8px] font-extrabold text-white" style={{ backgroundColor: color }}>
-        {code}
-      </span>
+      {swatch === 'dot' && <span className="h-1.5 w-1.5 rounded-full bg-status-working" />}
+      {swatch === 'leave' && <span className="h-3 w-4 rounded bg-neutral-100 ring-1 ring-inset ring-neutral-200" />}
+      {swatch === 'today' && <span className="h-3 w-3 rounded-full ring-2 ring-inset ring-brand-500" />}
       {label}
     </span>
   )

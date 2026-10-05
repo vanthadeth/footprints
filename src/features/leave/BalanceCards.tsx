@@ -9,6 +9,8 @@ interface Props {
   /** Horizontal swipe row (Leave tab) vs a stacked list (Balance tab). */
   layout?: 'row' | 'stack'
   linkTo?: string
+  /** Flexible days off left this cycle, for people who earn them (shown between Annual and Sick). */
+  flex?: { left: number; allowance: number } | null
 }
 
 /** Working days the request uses, as stored when it was made; older rows fall back to a calendar-day count. */
@@ -18,7 +20,7 @@ function daysOf(r: LeaveRequest) {
 }
 
 /** Gusto-style balance cards: big "days left", a used/pending bar, and the quota underneath. */
-export function BalanceCards({ balances, requests, layout = 'row', linkTo }: Props) {
+export function BalanceCards({ balances, requests, layout = 'row', linkTo, flex }: Props) {
   const year = String(new Date().getFullYear())
   const pendingDays = (type: 'annual' | 'sick') =>
     requests.filter((r) => r.status === 'pending' && r.leave_type === type && r.start_date.startsWith(year)).reduce((a, r) => a + daysOf(r), 0)
@@ -45,6 +47,18 @@ export function BalanceCards({ balances, requests, layout = 'row', linkTo }: Pro
       color: LEAVE_TYPE_COLOR[type],
     }
   })
+  if (flex) {
+    cards.splice(1, 0, {
+      key: 'flex',
+      name: 'Flexible',
+      big: String(flex.left),
+      unit: flex.left === 1 ? 'day left' : 'days left',
+      usedPct: flex.allowance ? Math.min(100, ((flex.allowance - flex.left) / flex.allowance) * 100) : 0,
+      pendingPct: 0,
+      caption: `of ${flex.allowance} this cycle`,
+      color: LEAVE_TYPE_COLOR.flex,
+    })
+  }
   cards.push({
     key: 'unpaid',
     name: 'Unpaid',
@@ -56,12 +70,14 @@ export function BalanceCards({ balances, requests, layout = 'row', linkTo }: Pro
     color: LEAVE_TYPE_COLOR.unpaid,
   })
 
-  const wrap = layout === 'row' ? '-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1 md:mx-0 md:grid md:grid-cols-3 md:px-0' : 'space-y-2.5'
-  const item = layout === 'row' ? 'w-[148px] shrink-0 md:w-auto' : ''
+  // Row layout (Leave tab, as on the canvas): Annual on its own full row, then the rest side by side.
+  const wrap = layout === 'row' ? `grid gap-2.5 ${cards.length > 3 ? 'grid-cols-3' : 'grid-cols-2'}` : 'space-y-2.5'
+  const item = (key: string) => (layout === 'row' && key === 'annual' ? 'col-span-full' : '')
 
   return (
     <div className={wrap}>
       {cards.map((c) => {
+        const wide = layout === 'stack' || c.key === 'annual'
         const body = (
           <>
             <span className="flex items-center gap-1.5 text-[12.5px] font-bold text-neutral-600">
@@ -69,17 +85,17 @@ export function BalanceCards({ balances, requests, layout = 'row', linkTo }: Pro
               {c.name}
             </span>
             <span className="flex items-baseline gap-1">
-              <span className="text-[28px] font-extrabold tracking-tight text-neutral-900">{c.big}</span>
-              <span className="text-xs font-semibold text-neutral-500">{c.unit}</span>
+              <span className={`${wide ? 'text-[32px]' : 'text-[22px]'} font-extrabold tracking-tight text-neutral-900`}>{c.big}</span>
+              <span className={`text-xs font-semibold text-neutral-500 ${wide ? '' : 'hidden'}`}>{c.unit}</span>
             </span>
             <span className="flex h-1.5 overflow-hidden rounded-full bg-neutral-100">
               <span style={{ width: `${c.usedPct}%`, backgroundColor: c.color }} />
               <span style={{ width: `${c.pendingPct}%`, backgroundColor: c.color, opacity: 0.4 }} />
             </span>
-            <span className="text-[11.5px] text-neutral-500">{c.caption}</span>
+            <span className={`text-[11.5px] text-neutral-500 ${wide ? '' : 'truncate'}`}>{wide ? c.caption : c.unit}</span>
           </>
         )
-        const cls = `${item} flex flex-col gap-2 rounded-2xl bg-white p-3.5 shadow-card`
+        const cls = `${item(c.key)} flex min-w-0 flex-col gap-2 rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card`
         return linkTo ? (
           <Link key={c.key} to={linkTo} className={cls}>
             {body}
