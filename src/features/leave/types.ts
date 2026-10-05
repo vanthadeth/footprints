@@ -20,4 +20,4 @@ export function leaveTitle(type: LeaveType): string {
 }
 
 /** Hex per leave type -- balance bars, calendar cells and chips all key off the same colour. */
-export const LEAVE_TYPE_COLOR: Record<LeaveType, string> = { annual: '#1668b8', sick: '#0f6e4f', unpaid: '#96703f', flex: '#6552c9' }
+export const LEAVE_TYPE_COLOR: Record<LeaveType, string> = { annual: '#006ACC', sick: '#00952A', unpaid: '#96703f', flex: '#6552c9' }

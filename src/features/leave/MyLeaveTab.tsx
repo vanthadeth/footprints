@@ -55,7 +55,7 @@ export function MyLeaveTab({
 
       <button
         onClick={() => setRequestOpen(true)}
-        className="flex h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-brand-500 text-[15px] font-bold text-white shadow-[0_4px_14px_rgba(22,104,184,0.28)] tap-target"
+        className="flex h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-brand-500 text-[15px] font-bold text-white tap-target"
       >
         <Plus className="h-[18px] w-[18px]" strokeWidth={2.4} /> Request leave
       </button>

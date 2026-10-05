@@ -326,7 +326,7 @@ function ClockEntry({
           {latitude != null && longitude != null && (
             <MapView points={[[latitude, longitude]]} height={160}>
               <Marker position={[latitude, longitude]} icon={pinIcon(toneClass.includes('working') ? '#0f6e4f' : '#b8590f')} />
-              {location && <Circle center={[location.latitude, location.longitude]} radius={location.radiusM} pathOptions={{ color: '#1668b8' }} />}
+              {location && <Circle center={[location.latitude, location.longitude]} radius={location.radiusM} pathOptions={{ color: '#006ACC' }} />}
             </MapView>
           )}
           {latitude != null && longitude != null && (

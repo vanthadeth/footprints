@@ -286,7 +286,7 @@ export function CheckInPage() {
             label={`${t('nav.visits')} ${stats.totalVisits}${visitTarget ? `/${visitTarget}` : ''}, ${t('checkIn.statActive')} ${formatDuration(stats.totalVisitingMs, language)}, ${t('home.effectiveness')} ${effectivenessRatio}%`}
             rings={[
               { progress: visitTarget ? stats.totalVisits / visitTarget : stats.totalVisits > 0 ? 1 : 0, color: '#6552c9' },
-              { progress: stats.totalVisitingMs / (ACTIVE_TIME_GOAL_MINUTES * 60_000), color: '#1668b8' },
+              { progress: stats.totalVisitingMs / (ACTIVE_TIME_GOAL_MINUTES * 60_000), color: '#006ACC' },
               { progress: effectivenessRatio / 100 / EFFECTIVENESS_GOAL, color: '#1a9f6e' },
             ]}
           />

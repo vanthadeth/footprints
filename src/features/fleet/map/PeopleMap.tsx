@@ -51,7 +51,7 @@ export function PeopleMap({ snapshots, onShowRoute }: { snapshots: FleetMemberSn
   }
 
   const filters: { key: Filter; label: string; dot: string }[] = [
-    { key: 'all', label: 'All', dot: '#1668b8' },
+    { key: 'all', label: 'All', dot: '#006ACC' },
     { key: 'VISITING', label: 'Visiting', dot: COLOR.VISITING },
     { key: 'IDLING', label: 'Idling', dot: COLOR.IDLING },
     { key: 'OFF', label: 'Off', dot: COLOR.OFF },

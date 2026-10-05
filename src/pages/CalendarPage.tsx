@@ -342,7 +342,7 @@ export function CalendarPage() {
       <button
         type="button"
         onClick={() => setSheet({ taskId: null })}
-        className="fixed bottom-24 right-4 z-20 flex h-[52px] items-center gap-2 rounded-full bg-brand-500 px-5 text-[15px] font-extrabold text-white shadow-[0_8px_20px_rgba(22,104,184,.35)] md:bottom-8"
+        className="fixed bottom-24 right-4 z-20 flex h-[52px] items-center gap-2 rounded-full bg-brand-500 px-5 text-[15px] font-extrabold text-white md:bottom-8"
       >
         <Plus className="h-[18px] w-[18px]" strokeWidth={2.6} /> {addLabel}
       </button>

@@ -105,7 +105,7 @@ export function RoutesMap({ snapshots, userId, onUserChange }: { snapshots: Flee
       {route.path.length > 0 ? (
         <MapView points={route.path} height={340}>
           <Polyline positions={route.path} pathOptions={{ color: '#ffffff', weight: 8, opacity: 0.9 }} />
-          <Polyline positions={route.path} pathOptions={{ color: '#1668b8', weight: 4 }} />
+          <Polyline positions={route.path} pathOptions={{ color: '#006ACC', weight: 4 }} />
           {route.events.map((e, i) =>
             e.kind === 'idle' ? (
               <Circle key={i} center={[e.lat, e.lng]} radius={120} pathOptions={{ color: '#b8590f', weight: 2, dashArray: '4 4', fillOpacity: 0.15 }} eventHandlers={{ click: () => setSelected(i) }} />
@@ -158,7 +158,7 @@ export function RoutesMap({ snapshots, userId, onUserChange }: { snapshots: Flee
                 style={{
                   left: `${Math.min(100, Math.max(0, ((minuteOfDay(e.start) - DAY_START) / (DAY_END - DAY_START)) * 100))}%`,
                   backgroundColor: e.kind === 'visit' && e.flagged ? '#b8590f' : KIND[e.kind].color,
-                  boxShadow: i === current ? '0 0 0 3px #1668b8' : '0 1px 3px rgba(0,0,0,.25)',
+                  boxShadow: i === current ? '0 0 0 3px #006ACC' : '0 1px 3px rgba(0,0,0,.25)',
                 }}
               />
             ))}

@@ -43,7 +43,7 @@ type Day = 'today' | 'tomorrow'
 const COLOR_DONE = '#0f6e4f'
 const COLOR_SKIPPED = '#8a8f98'
 const COLOR_PLANNED = '#1d6fb8'
-const COLOR_NEXT = '#1668b8'
+const COLOR_NEXT = '#006ACC'
 
 function addDays(date: string, n: number): string {
   const [y, m, d] = date.split('-').map(Number)
@@ -226,7 +226,7 @@ export function PlanPage() {
                   />
                 )
               })}
-              {here && <Marker position={[here.lat, here.lng]} icon={pinIcon('#171b25', { size: 22 })} />}
+              {here && <Marker position={[here.lat, here.lng]} icon={pinIcon('#232323', { size: 22 })} />}
             </MapView>
           )}
 

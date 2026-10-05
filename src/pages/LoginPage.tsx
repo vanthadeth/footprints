@@ -138,7 +138,7 @@ export function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="!mt-5 flex h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-brand-500 text-base font-bold text-white shadow-[0_4px_14px_rgba(22,104,184,0.3)] transition-colors active:bg-brand-600 disabled:opacity-60"
+              className="!mt-5 flex h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-brand-500 text-base font-bold text-white transition-colors active:bg-brand-600 disabled:opacity-60"
             >
               {loading ? t('login.signingIn') : t('login.logIn')}
               {!loading && <ArrowRight className="h-[18px] w-[18px]" aria-hidden />}
