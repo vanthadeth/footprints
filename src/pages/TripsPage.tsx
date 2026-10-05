@@ -65,6 +65,8 @@ export function TripsPage() {
         </div>
       )}
 
+      {trips && trips.length > 0 && <YearSoFar trips={trips} today={today} />}
+
       {upcoming.length > 0 && <p className="px-0.5 pt-1 text-[17px] font-extrabold text-neutral-900">Upcoming</p>}
       {upcoming.map((t) => (
         <TripCard key={t.id} trip={t} />
@@ -75,6 +77,7 @@ export function TripsPage() {
         <div className={`${card} px-3.5 py-0.5`}>
           {past.map((t, i) => (
             <Link key={t.id} to={`/trips/${t.id}`} className={`flex items-center gap-2.5 py-2.5 ${i ? 'border-t border-neutral-100 dark:border-neutral-800' : ''}`}>
+              <DateTile day={t.start_date} />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-bold text-neutral-900">{title(t)}</span>
                 <span className="block truncate text-[12px] text-neutral-500">
@@ -95,12 +98,17 @@ function TripCard({ trip }: { trip: TripRow }) {
   const others = trip.people.slice(1).map((p) => p.name)
   return (
     <Link to={`/trips/${trip.id}`} className={`${card} block space-y-1.5 p-3.5`}>
-      <span className="flex items-center gap-2">
-        <span className="min-w-0 flex-1 truncate text-[15px] font-extrabold text-neutral-900">{title(trip)}</span>
-        <StatusPill status={trip.status} />
-      </span>
-      <span className="block text-[13px] text-neutral-600">
-        {dayLabel(trip.start_date)} – {dayLabel(trip.end_date)} · {lengthLabel(trip.days.length, nights)}
+      <span className="flex items-center gap-3">
+        <DateTile day={trip.start_date} />
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-2">
+            <span className="min-w-0 flex-1 truncate text-[15px] font-extrabold text-neutral-900">{title(trip)}</span>
+            <StatusPill status={trip.status} />
+          </span>
+          <span className="block text-[13px] text-neutral-600">
+            {dayLabel(trip.start_date)} – {dayLabel(trip.end_date)} · {lengthLabel(trip.days.length, nights)}
+          </span>
+        </span>
       </span>
       <span className="flex items-center gap-2 text-[12.5px] text-neutral-500">
         <AvatarStack names={trip.people.map((p) => p.full_name)} />
@@ -151,5 +159,45 @@ function OnTrip({ trip, today }: { trip: TripRow; today: string }) {
         Trip details ›
       </Link>
     </div>
+  )
+}
+
+/** "MON / 21" date tile, as on the canvas's trip list. */
+function DateTile({ day }: { day: string }) {
+  const d = new Date(`${day}T00:00:00Z`)
+  return (
+    <span className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-xl bg-brand-50 text-brand-700 dark:bg-brand-500/20 dark:text-brand-100">
+      <span className="text-[10px] font-extrabold uppercase leading-none">{d.toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' }).slice(0, 3)}</span>
+      <span className="text-[17px] font-extrabold leading-5">{d.getUTCDate()}</span>
+    </span>
+  )
+}
+
+/** "2026 so far": trips taken this year, days away and the estimated total. */
+function YearSoFar({ trips, today }: { trips: TripRow[]; today: string }) {
+  const year = today.slice(0, 4)
+  const taken = trips.filter((t) => t.status === 'approved' && t.start_date.startsWith(year) && t.start_date <= today)
+  const days = taken.reduce((n, t) => n + t.days.length, 0)
+  const total = taken.reduce((n, t) => n + (t.est_total ?? 0), 0)
+  const month = new Date(`${today}T00:00:00Z`).toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' })
+  return (
+    <section aria-label={`${year} so far`} className={`${card} p-3.5`}>
+      <div className="flex items-baseline justify-between">
+        <p className="text-[15px] font-extrabold text-neutral-900">{year} so far</p>
+        <p className="text-xs text-neutral-500">Jan – {month}</p>
+      </div>
+      <div className="mt-2.5 grid grid-cols-3">
+        {[
+          [String(taken.length), taken.length === 1 ? 'trip' : 'trips'],
+          [String(days), days === 1 ? 'day away' : 'days away'],
+          [money(total), 'estimated'],
+        ].map(([v, l], i) => (
+          <div key={l} className={`min-w-0 px-2 ${i ? 'border-l border-neutral-100 dark:border-neutral-800' : 'pl-0'}`}>
+            <p className="truncate text-lg font-extrabold text-neutral-900">{v}</p>
+            <p className="text-[11px] text-neutral-500">{l}</p>
+          </div>
+        ))}
+      </div>
+    </section>
   )
 }
