@@ -10,6 +10,9 @@ import { clockBlock, type ClockBlock } from '@/features/permissions/clockRules'
 import type { RequiredLocation } from '@/features/permissions/permissionsService'
 import { locationService } from '@/features/location/locationService'
 import { useAppSettings } from '@/hooks/useAppSettings'
+import { DayBar } from '@/features/fleet/DayBar'
+import { atLocal, segmentsFor } from '@/features/fleet/dayBar'
+import { todayDateString } from '@/lib/dateRange'
 import { useLocations } from '@/features/locations/useLocations'
 import { useLanguage } from '@/i18n/LanguageContext'
 import { distanceInMeters } from '@/lib/geo'
@@ -148,13 +151,7 @@ export function ClockSheet({ open, direction, required, onClose }: { open: boole
                 <DayStat label={t('nav.visits')} value={String(stats.totalVisits)} border />
                 <DayStat label={t('checkIn.statActive')} value={formatDuration(stats.totalVisitingMs, language)} border />
               </div>
-              {journey.openAttendance && (
-                <div className="mt-3 flex items-center justify-between rounded-xl bg-neutral-50 px-3 py-2 text-[13px] font-bold text-neutral-700">
-                  <span>{t('checkInFlow.inAt', { time: formatTime(journey.openAttendance.clock_in_at) })}</span>
-                  <span className="text-neutral-400">→</span>
-                  <span>{t('checkInFlow.outAt', { time: formatTime(now.toISOString()) })}</span>
-                </div>
-              )}
+              {journey.openAttendance && <ClockOutDayBar attendance={journey.todaysAttendance} visits={journey.todaysVisits} now={now.getTime()} />}
             </section>
           )}
 
@@ -259,6 +256,33 @@ function DayStat({ label, value, border }: { label: string; value: string; borde
     <div className={border ? 'border-l border-neutral-100 pl-3' : ''}>
       <p className="text-[11px] text-neutral-500">{label}</p>
       <p className="mt-0.5 text-[17px] font-extrabold text-neutral-900">{value}</p>
+    </div>
+  )
+}
+
+/** The day being closed, clock-in to now, as the canvas's bar (Polish › Clock out), with In / Out under it. */
+function ClockOutDayBar({ attendance, visits, now }: { attendance: DayJourney['attendance']; visits: DayJourney['visits']; now: number }) {
+  const settings = useAppSettings()
+  const { t } = useLanguage()
+  const day = todayDateString()
+  const { segs, live, clockIn } = segmentsFor({
+    attendance,
+    visits,
+    shiftStart: atLocal(day, settings.workStartTime),
+    shiftEnd: atLocal(day, settings.workEndTime),
+    now,
+    flagAfterMin: settings.idleAlertThresholdMinutes,
+  })
+  if (clockIn == null) return null
+  // Clocking out now: nothing is still to come.
+  const done = segs.filter((g) => g.kind !== 'todo')
+  return (
+    <div className="mt-3.5">
+      <DayBar segs={done} from={clockIn} to={now} size="md" label={`${live.length} ${live.length === 1 ? 'visit' : 'visits'} since ${formatTime(new Date(clockIn).toISOString())}`} />
+      <div className="mt-1 flex justify-between text-[10px] font-semibold text-neutral-500">
+        <span>{t('checkInFlow.inAt', { time: formatTime(new Date(clockIn).toISOString()) })}</span>
+        <span>{t('checkInFlow.outAt', { time: formatTime(new Date(now).toISOString()) })}</span>
+      </div>
     </div>
   )
 }

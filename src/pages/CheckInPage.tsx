@@ -10,6 +10,8 @@ import { VisitFlow, type PresetCustomer } from '@/features/visits/VisitFlow'
 import { HeroLocationCard, PlanSection, TodayCard, TodaysTimeline, WeekStrip } from '@/features/checkin/CheckInSections'
 import { TripTodayCard } from '@/features/trips/TripTodayCard'
 import { useCustomerNames } from '@/features/customers/useCustomerNames'
+import { DayBar } from '@/features/fleet/DayBar'
+import { atLocal, segText, segmentsFor, type Seg } from '@/features/fleet/dayBar'
 import { useLocationNames } from '@/features/locations/useLocationNames'
 import { useApprovedLeaveOnDate } from '@/features/leave/useApprovedLeaveOnDate'
 import { LEAVE_TYPE_LABEL, type LeaveType } from '@/features/leave/types'
@@ -157,7 +159,7 @@ export function CheckInPage() {
                 {t('checkIn.clockOutTitle')}
               </button>
             </div>
-            <DayBar attendance={journey.todaysAttendance} visits={journey.todaysVisits} workStart={settings.workStartTime} workEnd={settings.workEndTime} />
+            <HeroDayBar attendance={journey.todaysAttendance} visits={journey.todaysVisits} workStart={settings.workStartTime} workEnd={settings.workEndTime} flagAfterMin={settings.idleAlertThresholdMinutes} customerNames={customerNames} />
             <p className="mt-2 text-[13px] text-white/60">{visitsLine}</p>
 
             {isVisiting && journey.openVisit ? (
@@ -369,31 +371,47 @@ function HeroFact({ label, value }: { label: string; value: string }) {
 }
 
 /**
- * The day so far, clock-in to the end of the shift: early/late time outside
- * working hours in green, visits in blue, travel and gaps dimmed, and what's
- * still to come faint. Same colours as the canvas's "Your day" bar.
+ * The day so far as the canvas's "Your day" bar (Polish › Check in): from
+ * clock-in to the end of the shift, edge to edge -- early time in green,
+ * travel and gaps dimmed, the part of a gap past the idle limit amber,
+ * visits blue, and what's still to come faint. Tap or hover a stretch to see
+ * what it was.
  */
-function DayBar({ attendance, visits, workStart, workEnd }: { attendance: AttendanceRow[]; visits: VisitRow[]; workStart: string; workEnd: string }) {
+function HeroDayBar({
+  attendance,
+  visits,
+  workStart,
+  workEnd,
+  flagAfterMin,
+  customerNames,
+}: {
+  attendance: AttendanceRow[]
+  visits: VisitRow[]
+  workStart: string
+  workEnd: string
+  flagAfterMin: number
+  customerNames: Record<string, string>
+}) {
   if (attendance.length === 0) return null
   const now = Date.now()
-  const start = Math.min(...attendance.map((a) => new Date(a.clock_in_at).getTime()))
-  const [sh, sm] = workStart.split(':').map(Number)
-  const [eh, em] = workEnd.split(':').map(Number)
-  const shiftMs = Math.max(60, eh * 60 + em - (sh * 60 + sm)) * 60_000
-  const end = Math.max(now, start + shiftMs)
-  const pct = (ms: number) => `${(((ms - start) / (end - start)) * 100).toFixed(2)}%`
-  const width = (a: number, b: number) => `max(2px, ${(((b - a) / (end - start)) * 100).toFixed(2)}%)`
-  const worked = attendance.map((a) => [new Date(a.clock_in_at).getTime(), a.clock_out_at ? new Date(a.clock_out_at).getTime() : now] as const)
-  const done = visits.filter((v) => !v.cancelled_at).map((v) => [new Date(v.checked_in_at).getTime(), v.checked_out_at ? new Date(v.checked_out_at).getTime() : now] as const)
+  const day = todayDateString()
+  const shiftStart = atLocal(day, workStart)
+  const shiftEnd = atLocal(day, workEnd)
+  const { segs, live, clockIn, clockOut } = segmentsFor({ attendance, visits, shiftStart, shiftEnd, now, flagAfterMin })
+  const from = clockIn!
+  const to = Math.max(shiftEnd, clockOut ?? now)
+  const name = (g: Seg) => (g.visit != null ? (customerNames[live[g.visit]?.customer_id ?? ''] ?? null) : null)
   return (
-    <div role="img" aria-label={`${done.length} visits since ${formatTime(new Date(start).toISOString())}`} className="relative mt-3 h-5 overflow-hidden rounded-[4px] bg-white/[.08]">
-      {worked.map(([a, b]) => (
-        <span key={`w${a}`} className="absolute inset-y-0 rounded-[4px] bg-white/30" style={{ left: pct(a), width: width(a, b) }} />
-      ))}
-      {done.map(([a, b]) => (
-        <span key={`v${a}`} className="absolute inset-y-0 rounded-[4px] bg-[#5aa2ea]" style={{ left: pct(a), width: width(a, b) }} />
-      ))}
-    </div>
+    <DayBar
+      segs={segs}
+      from={from}
+      to={to}
+      size="lg"
+      tone="hero"
+      className="mt-3"
+      label={`${live.length} ${live.length === 1 ? 'visit' : 'visits'} since ${formatTime(new Date(from).toISOString())}`}
+      describe={(g) => segText(g, name(g))}
+    />
   )
 }
 

@@ -6,6 +6,10 @@ import { useLanguage } from '@/i18n/LanguageContext'
 import { displayName } from '@/lib/displayName'
 import { formatDuration, formatTime } from '@/lib/datetime'
 import { FleetMemberDetail } from './FleetMemberDetail'
+import { DayBar } from './DayBar'
+import { atLocal, segText, segmentsFor } from './dayBar'
+import { useAppSettings } from '@/hooks/useAppSettings'
+import { todayDateString } from '@/lib/dateRange'
 import type { FleetMemberSnapshot } from './types'
 
 const DOT: Record<FleetMemberSnapshot['status'], string> = { VISITING: 'bg-status-visiting', IDLING: 'bg-earth-500', OFF: 'bg-neutral-400' }
@@ -22,6 +26,10 @@ export function TeamTodayList({ snapshots }: { snapshots: FleetMemberSnapshot[] 
   const customerNames = useCustomerNames(snapshots.flatMap((s) => s.visitsToday.map((v) => v.customer_id)))
   const { byKind } = useVisitOptions()
   const { t, tValue, language } = useLanguage()
+  const settings = useAppSettings()
+  const day = todayDateString()
+  const shiftStart = atLocal(day, settings.workStartTime)
+  const shiftEnd = atLocal(day, settings.workEndTime)
   const optionLabel = (id: string | null) => {
     if (!id) return null
     for (const list of Object.values(byKind)) {
@@ -101,6 +109,21 @@ export function TeamTodayList({ snapshots }: { snapshots: FleetMemberSnapshot[] 
                     ))}
                   </div>
                 )}
+                {s.attendance &&
+                  (() => {
+                    const { segs, live, clockIn, clockOut } = segmentsFor({ attendance: [s.attendance], visits: s.visitsToday, shiftStart, shiftEnd, now, flagAfterMin: settings.idleAlertThresholdMinutes })
+                    if (clockIn == null) return null
+                    const name = (g: (typeof segs)[number]) => (g.visit != null ? (live[g.visit]?.customer_id ? (customerNames[live[g.visit].customer_id!] ?? null) : null) : null)
+                    return (
+                      <div className="mt-3">
+                        <DayBar segs={segs} from={clockIn} to={Math.max(shiftEnd, clockOut ?? now)} size="md" label={`Clocked in ${formatTime(s.attendance.clock_in_at)}, ${live.length} ${live.length === 1 ? 'visit' : 'visits'}`} describe={(g) => segText(g, name(g))} />
+                        <div className="mt-1 flex justify-between text-[10px] font-semibold text-neutral-500">
+                          <span>In {formatTime(s.attendance.clock_in_at)}</span>
+                          <span>{s.attendance.clock_out_at ? `Out ${formatTime(s.attendance.clock_out_at)}` : settings.workEndTime.slice(0, 5)}</span>
+                        </div>
+                      </div>
+                    )
+                  })()}
                 {done.length > 0 && (
                   <div className="mt-2.5">
                     <p className="text-[11px] font-bold uppercase tracking-wide text-neutral-500">Visits today</p>
