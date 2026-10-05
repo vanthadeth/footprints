@@ -24,6 +24,8 @@ export interface AppSettings {
   autoClockoutGraceMinutes: number
   /** Minutes after the shift start before a clock-in counts as late. */
   lateGraceMinutes: number
+  /** A gap between visits at least this long counts as idle (flagged). */
+  idleAlertThresholdMinutes: number
   /** Today is a working day for the signed-in person (their team schedule, minus public holidays). */
   isWorkingDay: boolean
   /** Today's public holiday, if any. */
@@ -40,6 +42,7 @@ const FALLBACK: AppSettings = {
   allowEarlyClockinMinutes: DEFAULT_ALLOW_EARLY_CLOCKIN_MINUTES,
   autoClockoutGraceMinutes: DEFAULT_AUTO_CLOCKOUT_GRACE_MINUTES,
   lateGraceMinutes: 0,
+  idleAlertThresholdMinutes: 45,
   isWorkingDay: true,
   holidayName: null,
 }
@@ -58,7 +61,7 @@ export function useAppSettings(): AppSettings {
     supabase
       .from('app_settings')
       .select(
-        'checkin_radius_m, location_ping_interval_minutes, max_location_accuracy_m, auto_checkout_enabled, work_start_time, work_end_time, allow_early_clockin_minutes, auto_clockout_grace_minutes, late_grace_minutes'
+        'checkin_radius_m, location_ping_interval_minutes, max_location_accuracy_m, auto_checkout_enabled, work_start_time, work_end_time, allow_early_clockin_minutes, auto_clockout_grace_minutes, late_grace_minutes, idle_alert_threshold_minutes'
       )
       .maybeSingle()
       .then(({ data }) => {
@@ -74,6 +77,7 @@ export function useAppSettings(): AppSettings {
           allowEarlyClockinMinutes: data.allow_early_clockin_minutes,
           autoClockoutGraceMinutes: data.auto_clockout_grace_minutes,
           lateGraceMinutes: data.late_grace_minutes ?? 0,
+          idleAlertThresholdMinutes: data.idle_alert_threshold_minutes ?? 45,
           ...(personal ?? {}),
         }))
       })
