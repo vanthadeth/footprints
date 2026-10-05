@@ -17,11 +17,12 @@ import { CheckInOutTab } from '@/features/fleet/CheckInOutTab'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { WeeklyAttendance } from '@/features/attendanceSummary/WeeklyAttendance'
 import { MonthlyAttendance } from '@/features/attendanceSummary/MonthlyAttendance'
+import { DailyAttendance } from '@/features/attendanceSummary/DailyAttendance'
 import { useProfile } from '@/features/auth/useProfile'
 
 type Tab = 'dashboard' | 'map' | 'attendance' | 'kpis' | 'reports' | 'logs'
-type AttendanceView = 'daily' | 'weekly' | 'monthly'
-const ATTENDANCE_VIEWS: AttendanceView[] = ['daily', 'weekly', 'monthly']
+type AttendanceView = 'daily' | 'weekly' | 'monthly' | 'photos'
+const ATTENDANCE_VIEWS: AttendanceView[] = ['daily', 'weekly', 'monthly', 'photos']
 
 const TABS: Tab[] = ['dashboard', 'map', 'attendance', 'kpis', 'reports', 'logs']
 /** The three tabs on the canvas; the rest open from links under the dashboard. */
@@ -127,15 +128,16 @@ export function FleetPage() {
               <div className="space-y-3.5">
                 <SegmentedControl<AttendanceView>
                   ariaLabel="Attendance period"
-                  value={view}
+                  value={view === 'photos' ? 'daily' : view}
                   onChange={(v) => setParams(v === 'daily' ? { tab: 'attendance' } : { tab: 'attendance', view: v }, { replace: true })}
                   options={[
-                    { value: 'daily', label: 'Daily' },
-                    { value: 'weekly', label: 'Weekly' },
-                    { value: 'monthly', label: 'Monthly' },
+                    { value: 'daily', label: 'Day' },
+                    { value: 'weekly', label: 'Week' },
+                    { value: 'monthly', label: 'Month' },
                   ]}
                 />
-                {view === 'daily' && <CheckInOutTab snapshots={snapshots} />}
+                {view === 'daily' && <DailyAttendance team={snapshots.map((s) => s.member)} onShowPhotos={() => setParams({ tab: 'attendance', view: 'photos' }, { replace: true })} />}
+                {view === 'photos' && <CheckInOutTab snapshots={snapshots} />}
                 {view === 'weekly' && <WeeklyAttendance team={snapshots.map((s) => s.member)} />}
                 {view === 'monthly' && <MonthlyAttendance team={snapshots.map((s) => s.member)} canEditCycle={profile?.is_super_admin === true} />}
               </div>
