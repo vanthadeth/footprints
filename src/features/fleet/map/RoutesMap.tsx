@@ -183,7 +183,7 @@ export function RoutesMap({ snapshots, userId, onUserChange }: { snapshots: Flee
             <span className="min-w-0 flex-1">
               <span className="flex items-baseline gap-2">
                 <span className="min-w-0 flex-1 truncate text-sm font-bold text-neutral-900">{title(e)}</span>
-                <span className="shrink-0 font-mono text-[11.5px] font-semibold text-neutral-500">{time(e)}</span>
+                <span className="shrink-0 tabular-nums text-[11.5px] font-semibold text-neutral-500">{time(e)}</span>
               </span>
               <span className="block text-xs text-neutral-600">{detail(e)}</span>
             </span>

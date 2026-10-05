@@ -42,7 +42,7 @@ export function PasswordBox({ value, onChange }: { value: string; onChange: (v: 
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Password"
-        className="w-full flex-1 rounded-xl border border-neutral-200 bg-white px-3.5 py-2.5 font-mono text-sm text-neutral-900"
+        className="w-full flex-1 rounded-xl border border-neutral-200 bg-white px-3.5 py-2.5 tabular-nums text-sm text-neutral-900"
       />
       <button
         type="button"

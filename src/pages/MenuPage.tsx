@@ -1,8 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronRight, Search, Settings, User, X } from 'lucide-react'
-import { useProfile } from '@/features/auth/useProfile'
-import { useAvatarUrl } from '@/features/auth/useAvatarUrl'
+import { ChevronDown, ChevronRight, Search, Settings, X } from 'lucide-react'
 import { useRoleGroup } from '@/features/nav/useRoleGroup'
 import { usePendingApprovals } from '@/features/nav/usePendingApprovals'
 import { canApprove, forYou, hubFunctions, hubSearch } from '@/features/nav/navConfig'
@@ -10,18 +8,16 @@ import { useFlexCycle } from '@/features/flex/useFlexCycle'
 import { useNotificationsContext } from '@/features/notifications/NotificationsContext'
 import { useMessages } from '@/features/conversations/MessagesContext'
 import { useLanguage } from '@/i18n/LanguageContext'
-import { displayName } from '@/lib/displayName'
 
 /**
- * Hub (bottom-bar tab, /menu), grouped by function: the profile, a search
- * that finds any screen by name, the role's "For you" shortcuts, then one
- * card per function (Customers & sales, My day, Leave & days off, Team,
- * Company setup) -- each opens /menu/:fn -- and Account & settings.
+ * Hub (bottom-bar tab, /menu), grouped by function as on the design canvas
+ * (Polish › Hub): a search that finds any screen by name, the role's "For
+ * you" shortcuts, then one accordion of functions (Customers & sales, My
+ * day, Leave & days off, Team, Company setup, Account & settings) that
+ * opens in place, one at a time. The profile lives behind the title-bar badge.
  * Only screens the person can use; nothing that's already a tab.
  */
 export function MenuPage() {
-  const { profile } = useProfile()
-  const avatarUrl = useAvatarUrl(profile?.photo_path)
   const { t } = useLanguage()
   const [query, setQuery] = useState('')
   const flex = useFlexCycle()
@@ -35,60 +31,63 @@ export function MenuPage() {
   const results = hubSearch(group, ctx, query)
   const total = functions.reduce((a, f) => a + f.rows.length, 0)
 
-  const name = profile ? displayName(profile.full_name, profile.nickname) : ''
-  const roleLine = [profile?.position, profile?.role_name].filter(Boolean).join(' · ')
+  const [openKey, setOpenKey] = useState<string | null | undefined>(undefined)
+  // One function open at a time; the one with something waiting starts open.
+  const defaultOpen = pendingApprovals > 0 ? (functions.find((f) => f.rows.some((r) => r.key === 'approvals'))?.key ?? null) : null
+  const current = openKey === undefined ? defaultOpen : openKey
+  const groups = [
+    ...functions.map((f) => ({ key: f.key, title: t(f.titleKey), icon: f.icon, rows: f.rows.map((r) => ({ key: r.key, label: r.label, to: r.to })) })),
+    {
+      key: 'account',
+      title: t('nav.account'),
+      icon: Settings,
+      rows: [
+        { key: 'profile', label: t('nav.profile'), to: '/profile' },
+        { key: 'account', label: t('nav.account'), to: '/menu/account' },
+      ],
+    },
+  ]
 
   return (
     <div className="mx-auto max-w-lg md:max-w-2xl">
-      <div className="space-y-4 px-4 pb-6 pt-1 md:px-8 md:pt-4">
-        <Link to="/profile" className="flex items-center gap-3.5 rounded-2xl bg-white p-3.5 shadow-card">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-500 text-[20px] font-bold text-white">
-            {avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : name[0]?.toUpperCase() || <User className="h-6 w-6" aria-hidden />}
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-[17px] font-bold text-neutral-900">{name || '…'}</span>
-            {roleLine && <span className="block truncate text-[13px] text-neutral-500">{roleLine}</span>}
-          </span>
-          <span className="text-xs font-bold text-brand-500">Profile</span>
-          <ChevronRight className="h-4 w-4 text-neutral-400" aria-hidden />
-        </Link>
-
-        <label className={`flex h-11 items-center gap-2.5 rounded-xl border-[1.5px] bg-white px-3.5 ${query ? 'border-brand-500' : 'border-neutral-200 dark:border-neutral-700'}`}>
-          <Search className="h-[18px] w-[18px] shrink-0 text-neutral-400" aria-hidden />
+      <div className="space-y-3.5 px-4 pb-6 pt-1.5 md:px-8 md:pt-4">
+        <label className={`flex h-11 items-center gap-2 rounded-xl border bg-white px-3 dark:bg-neutral-950 ${query ? 'border-brand-500' : 'border-neutral-300'}`}>
+          <Search className="h-[18px] w-[18px] shrink-0 text-neutral-500" aria-hidden />
           <input
+            type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search the Hub — leave, users, trips…"
             aria-label="Search the Hub"
-            className="min-w-0 flex-1 bg-transparent text-[15px] text-neutral-900 outline-none placeholder:text-neutral-400"
+            className="min-w-0 flex-1 bg-transparent text-[15px] text-neutral-900 outline-none placeholder:text-neutral-500"
           />
           {query && (
-            <button type="button" aria-label="Clear search" onClick={() => setQuery('')} className="flex h-7 w-7 items-center justify-center rounded-full text-neutral-400">
+            <button type="button" aria-label="Clear search" onClick={() => setQuery('')} className="flex h-7 w-7 items-center justify-center rounded-full text-neutral-500">
               <X className="h-4 w-4" />
             </button>
           )}
         </label>
 
         {query ? (
-          <section className="space-y-1.5">
-            <h2 className="px-0.5 text-[11px] font-bold uppercase tracking-wider text-neutral-500">
+          <section className="space-y-2">
+            <h2 className="text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">
               {results.length} result{results.length === 1 ? '' : 's'} for “{query.trim()}”
             </h2>
             {results.length === 0 ? (
-              <p className="rounded-2xl bg-white p-4 text-center text-[13.5px] text-neutral-500 shadow-card">Nothing matches. Try another word, or browse the functions.</p>
+              <p className="rounded-2xl border border-neutral-100 bg-white p-4 text-center text-sm text-neutral-500 shadow-card">Nothing matches. Try another word, or browse the functions.</p>
             ) : (
-              <div className="overflow-hidden rounded-2xl bg-white shadow-card">
+              <div className="overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-card">
                 {results.map((r, i) => (
-                  <Link key={r.key} to={r.to} className={`flex items-center gap-3 px-3.5 py-2.5 ${i ? 'border-t border-neutral-100 dark:border-neutral-800' : ''}`}>
-                    <span className={`flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-lg text-white ${r.tone}`}>
-                      <r.icon className="h-4 w-4" aria-hidden />
+                  <Link key={r.key} to={r.to} className={`flex min-h-[52px] items-center gap-3 px-3.5 py-2 ${i ? 'border-t border-neutral-100' : ''}`}>
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-brand-50 text-brand-500">
+                      <r.icon className="h-[18px] w-[18px]" aria-hidden />
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[15px] font-semibold text-neutral-900">{r.label}</span>
-                      <span className="block truncate text-[12px] text-neutral-500">{t(r.fn.titleKey)}</span>
+                      <span className="block truncate text-xs text-neutral-500">{t(r.fn.titleKey)}</span>
                     </span>
-                    {badge(r.key) > 0 && <span className="flex h-[22px] min-w-[22px] items-center justify-center rounded-full bg-status-danger px-1.5 text-[12px] font-bold text-white">{badge(r.key)}</span>}
-                    <ChevronRight className="h-4 w-4 text-neutral-400" aria-hidden />
+                    {badge(r.key) > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-status-danger px-1.5 text-[11px] font-extrabold text-white">{badge(r.key)}</span>}
+                    <ChevronRight className="h-4 w-4 text-neutral-500" aria-hidden />
                   </Link>
                 ))}
               </div>
@@ -97,54 +96,61 @@ export function MenuPage() {
         ) : (
           <>
             {shortcuts.length > 0 && (
-              <section className="space-y-2">
-                <h2 className="px-0.5 text-[11px] font-bold uppercase tracking-wider text-neutral-500">For you</h2>
-                <div className="grid grid-cols-4 gap-2">
+              <section aria-label="For you">
+                <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">For you</h2>
+                <div className="grid grid-cols-3 gap-2">
                   {shortcuts.map((q) => (
-                    <Link key={q.key} to={q.to} className="flex flex-col items-center gap-1.5">
-                      <span className={`flex h-[54px] w-[54px] items-center justify-center rounded-2xl text-white ${q.tone}`}>
-                        <q.icon className="h-[22px] w-[22px]" aria-hidden />
+                    <Link key={q.key} to={q.to} className="flex flex-col items-center gap-2 rounded-2xl border border-neutral-100 bg-white px-1.5 pb-3 pt-3.5 shadow-card">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-500">
+                        <q.icon className="h-5 w-5" aria-hidden />
                       </span>
-                      <span className="text-center text-xs font-semibold leading-tight text-neutral-600">{q.label}</span>
+                      <span className="text-center text-[13px] font-semibold leading-4 text-neutral-900">{q.label}</span>
                     </Link>
                   ))}
                 </div>
               </section>
             )}
 
-            <section className="space-y-2">
-              <h2 className="px-0.5 text-[11px] font-bold uppercase tracking-wider text-neutral-500">Everything, by function</h2>
-              {functions.map((f) => {
-                const waiting = f.rows.some((r) => r.key === 'approvals') ? pendingApprovals : 0
-                return (
-                  <Link key={f.key} to={`/menu/${f.key}`} className="flex items-center gap-3 rounded-2xl bg-white px-3.5 py-3 shadow-card">
-                    <span className={`flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-xl text-white ${f.tone}`}>
-                      <f.icon className="h-[21px] w-[21px]" aria-hidden />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="flex items-baseline gap-1.5">
-                        <span className="text-base font-extrabold text-neutral-900">{t(f.titleKey)}</span>
-                        <span className="text-[12px] font-bold text-neutral-500">{f.rows.length}</span>
-                      </span>
-                      <span className="mt-0.5 block truncate text-[12.5px] text-neutral-500">{f.rows.map((r) => r.label).join(' · ')}</span>
-                    </span>
-                    {waiting > 0 && <span className="shrink-0 rounded-full bg-status-danger px-2 py-0.5 text-[11.5px] font-extrabold text-white">{waiting} waiting</span>}
-                    <ChevronRight className="h-4 w-4 shrink-0 text-neutral-400" aria-hidden />
-                  </Link>
-                )
-              })}
+            <section aria-label="Everything, by function">
+              <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">Everything, by function</h2>
+              <div className="overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-card">
+                {groups.map((g, i) => {
+                  const open = current === g.key
+                  const waiting = g.rows.some((r) => r.key === 'approvals') ? pendingApprovals : 0
+                  return (
+                    <div key={g.key} className={i ? 'border-t border-neutral-100' : ''}>
+                      <button
+                        type="button"
+                        onClick={() => setOpenKey(open ? null : g.key)}
+                        aria-expanded={open}
+                        className={`flex w-full items-center gap-3 px-3.5 py-3 text-left ${open ? 'bg-neutral-50' : ''}`}
+                      >
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-brand-50 text-brand-500">
+                          <g.icon className="h-[18px] w-[18px]" aria-hidden />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[15px] font-bold text-neutral-900">{g.title}</span>
+                          <span className="block truncate text-[13px] text-neutral-500">{g.rows.map((r) => r.label).join(' · ')}</span>
+                        </span>
+                        {waiting > 0 && <span className="inline-flex h-[22px] shrink-0 items-center rounded-full bg-status-warn/10 px-2 text-xs font-bold text-status-warn">{waiting} waiting</span>}
+                        <ChevronDown className={`h-4 w-4 shrink-0 text-neutral-500 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />
+                      </button>
+                      {open && (
+                        <div className="bg-neutral-50 pb-2 pl-[62px] pr-3.5">
+                          {g.rows.map((r) => (
+                            <Link key={r.key} to={r.to} className="flex min-h-11 items-center gap-2.5 border-t border-neutral-100">
+                              <span className="min-w-0 flex-1 text-[15px] font-semibold text-neutral-900">{r.label}</span>
+                              {badge(r.key) > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-status-danger px-1.5 text-[11px] font-extrabold text-white">{badge(r.key)}</span>}
+                              <ChevronRight className="h-4 w-4 text-neutral-500" aria-hidden />
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
             </section>
-
-            <Link to="/menu/account" className="flex items-center gap-3 rounded-2xl bg-white px-3.5 py-3 shadow-card">
-              <span className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-neutral-600 dark:bg-neutral-800">
-                <Settings className="h-[21px] w-[21px]" aria-hidden />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-base font-extrabold text-neutral-900">{t('nav.account')}</span>
-                <span className="mt-0.5 block truncate text-[12.5px] text-neutral-500">Language, appearance, help, privacy, log out</span>
-              </span>
-              <ChevronRight className="h-4 w-4 shrink-0 text-neutral-400" aria-hidden />
-            </Link>
 
             <p className="px-1 text-center text-xs text-neutral-500">
               {total} screens in {functions.length} functions · Footprints v{__APP_VERSION__}

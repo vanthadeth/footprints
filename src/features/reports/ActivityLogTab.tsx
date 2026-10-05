@@ -130,7 +130,7 @@ export function ActivityLogTab({ team }: { team: TeamMember[] }) {
                   return (
                     <div key={entry.id} className="rounded-xl bg-white px-3.5 py-3 shadow-card">
                       <div className="flex items-center gap-2.5">
-                        <span className="w-11 shrink-0 font-mono text-[13px] font-bold text-neutral-900">{formatTime(entry.time)}</span>
+                        <span className="w-11 shrink-0 tabular-nums text-[13px] font-bold text-neutral-900">{formatTime(entry.time)}</span>
                         <span className="min-w-0 flex-1 truncate text-sm font-semibold text-neutral-900">{nameById[entry.userId] ?? 'Unknown'}</span>
                         <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${st.tone}`}>{st.label}</span>
                       </div>

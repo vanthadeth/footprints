@@ -74,13 +74,11 @@ export default {
         },
       },
       fontFamily: {
-        // Google Sans first (loaded in index.html), as on the canvas.
-        // "Noto Sans Khmer" only covers the Khmer script -- browsers fall
-        // through to it per-character, so English text still renders on
-        // the system font above and only Khmer glyphs (thin/inconsistent
-        // in the system UI fonts across platforms) pick it up. Loaded via
-        // the Google Fonts <link> in index.html.
-        sans: ['"Google Sans"', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', '"Noto Sans Khmer"', 'sans-serif'],
+        // One typeface everywhere: Google Sans (loaded in index.html). `mono`
+        // points at it too so a stray font-mono can't bring in a second font;
+        // times line up with tabular-nums instead.
+        sans: ['"Google Sans"', 'sans-serif'],
+        mono: ['"Google Sans"', 'sans-serif'],
       },
       spacing: {
         'safe-top': 'env(safe-area-inset-top)',

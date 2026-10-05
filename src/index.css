@@ -177,3 +177,9 @@
 .holiday-stripes {
   background: repeating-linear-gradient(135deg, rgba(150, 112, 63, 0.18) 0 4px, transparent 4px 8px);
 }
+
+/* Leaflet sets its own Helvetica stack on maps, popups and tooltips; keep
+   them on the app's one typeface. */
+.leaflet-container {
+  font-family: inherit;
+}

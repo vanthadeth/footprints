@@ -297,7 +297,7 @@ function ClockPhotoColumn({
         <div className="min-w-0 pt-0.5">
           {time ? (
             <>
-              <p className="font-mono text-base font-extrabold text-neutral-900">{formatTime(time)}</p>
+              <p className="tabular-nums text-base font-extrabold text-neutral-900">{formatTime(time)}</p>
               <p className="text-[11.5px] leading-snug text-neutral-600">{locationLabel}</p>
             </>
           ) : (

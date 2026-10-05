@@ -736,7 +736,7 @@ function VisitEntry({
                 <span className="rounded-full bg-status-warn/10 px-1.5 py-0.5 text-[10px] font-medium text-status-warn">{t('journey.auto')}</span>
               )}
             </p>
-            <p className="mt-1 font-mono text-xs text-neutral-400">{timeRange}</p>
+            <p className="mt-1 tabular-nums text-xs text-neutral-400">{timeRange}</p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <div className="text-right">
@@ -793,7 +793,7 @@ function VisitEntry({
                 </span>
                 <div className="min-w-0">
                   <p className="text-[10px] font-medium uppercase tracking-wide text-neutral-400">{t('nav.checkIn')}</p>
-                  <p className="font-mono text-sm font-bold text-neutral-900 dark:text-neutral-100">{formatTime(visit.checked_in_at)}</p>
+                  <p className="tabular-nums text-sm font-bold text-neutral-900 dark:text-neutral-100">{formatTime(visit.checked_in_at)}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2.5">
@@ -802,7 +802,7 @@ function VisitEntry({
                 </span>
                 <div className="min-w-0">
                   <p className="text-[10px] font-medium uppercase tracking-wide text-neutral-400">{t('journey.checkOutLabel')}</p>
-                  <p className="font-mono text-sm font-bold text-neutral-900 dark:text-neutral-100">
+                  <p className="tabular-nums text-sm font-bold text-neutral-900 dark:text-neutral-100">
                     {visit.checked_out_at ? formatTime(visit.checked_out_at) : '—'}
                   </p>
                 </div>
