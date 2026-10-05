@@ -21,7 +21,8 @@ const errorText = (e: unknown) => (e && typeof e === 'object' && 'message' in e 
  * absent or late, and leave spanning one doesn't use allowance for that day
  * (app.work_day, 0089). HR and admins can edit.
  */
-export function HolidaysPage() {
+/** `embedded` drops the page frame, for the Attendance page's tab. */
+export function HolidaysPage({ embedded = false }: { embedded?: boolean } = {}) {
   const { profile } = useProfile()
   const canEdit = profile?.is_super_admin === true || profile?.role_name === 'HR'
   const today = todayDateString()
@@ -78,7 +79,7 @@ export function HolidaysPage() {
   const newDraft = (): Draft => ({ name: '', startDate: `${year}-01-01` > today ? `${year}-01-01` : today, endDate: `${year}-01-01` > today ? `${year}-01-01` : today, kind: 'public', halfDay: false, departmentIds: null })
 
   return (
-    <div className="mx-auto max-w-lg space-y-4 px-4 pb-8 pt-3 md:max-w-2xl md:px-8">
+    <div className={embedded ? 'space-y-4' : 'mx-auto max-w-lg space-y-4 px-4 pb-8 pt-3 md:max-w-2xl md:px-8'}>
       <div className="flex items-center justify-between">
         <button type="button" onClick={() => setYear(year - 1)} aria-label="Previous year" className="flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-600 tap-target">
           <ChevronLeft className="h-[18px] w-[18px]" />

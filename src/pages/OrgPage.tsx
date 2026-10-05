@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { ChevronRight, Plus, ShieldCheck } from 'lucide-react'
+import { Link, Navigate } from 'react-router-dom'
+import { Building2, CalendarDays, ChevronRight, Clock, Moon, Shield, ShieldCheck } from 'lucide-react'
 import { BottomSheet } from '@/components/BottomSheet'
-import { SegmentedControl } from '@/components/SegmentedControl'
 import { Switch } from '@/components/Switch'
+import { AdminGroup, AdminRow } from '@/components/AdminKit'
 import { useProfile } from '@/features/auth/useProfile'
 import { orgService, type OrgItem } from '@/features/org/orgService'
 import { deactivateNote, nameProblem, orgErrorText, peopleText, sortItems, type OrgKind } from '@/features/org/org'
@@ -18,15 +18,19 @@ interface Draft {
   people: number
 }
 
+/** The old Departments & roles screen now lives as tabs on Users. */
+export function OrgPage() {
+  return <Navigate to="/users?tab=departments" replace />
+}
+
 /**
- * Departments & roles (Hub › Administration, Super Admin only): add,
+ * Users › Departments / Roles (Super Admin only), as on the canvas: add,
  * rename and switch off departments and roles. Nothing is deleted --
  * switching one off hides it from pickers and leaves everyone in it as
  * they are. A new role can start with another role's permissions.
  */
-export function OrgPage() {
+export function OrgContent({ kind: tab }: { kind: OrgKind }) {
   const { profile, loading: profileLoading } = useProfile()
-  const [tab, setTab] = useState<OrgKind>('department')
   const [items, setItems] = useState<OrgItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -95,54 +99,48 @@ export function OrgPage() {
   const original = draft?.id ? items.find((i) => i.id === draft.id) : null
   const switchingOff = !!draft && !!original?.active && !draft.active
 
+  const activeCount = list.filter((i) => i.active).length
   return (
-    <div className="mx-auto max-w-lg px-4 pb-6 pt-3 md:max-w-2xl md:px-8">
-      <SegmentedControl
-        ariaLabel="Departments or roles"
-        value={tab}
-        onChange={(v) => {
-          setTab(v)
-          setSavedRole(null)
-        }}
-        options={[
-          { value: 'department', label: 'Departments', count: sortItems(items, 'department').filter((i) => i.active).length },
-          { value: 'role', label: 'Roles', count: roles.length },
-        ]}
-      />
-
+    <div className="flex flex-col gap-[18px]">
       {tab === 'role' && savedRole && (
-        <Link to="/settings/permissions" className="mt-3 flex items-center gap-2 rounded-xl bg-brand-50 px-3.5 py-2.5 text-sm font-semibold text-brand-600 dark:bg-brand-500/20 dark:text-brand-300">
+        <Link to="/settings/permissions" className="flex items-center gap-2 rounded-xl bg-brand-50 px-3.5 py-2.5 text-sm font-semibold text-brand-600 dark:bg-brand-500/20 dark:text-brand-300">
           Saved “{savedRole}”. Set its permissions
           <ChevronRight className="ml-auto h-4 w-4" />
         </Link>
       )}
+      {error && <p className="rounded-lg bg-status-danger/10 px-3 py-2 text-sm text-status-danger">{error}</p>}
 
-      <div className="mt-3 flex items-center justify-between">
-        <p className="px-1 text-xs text-neutral-500">{tab === 'role' ? 'What people can do is set per role on the Permissions page.' : 'Used for working hours, holidays and reports.'}</p>
-        <button type="button" onClick={() => open(tab)} className="flex h-9 shrink-0 items-center gap-1 rounded-full bg-brand-500 px-3.5 text-sm font-semibold text-white tap-target">
-          <Plus className="h-4 w-4" /> Add {noun}
-        </button>
-      </div>
-
-      {error && <p className="mt-3 rounded-lg bg-status-danger/10 px-3 py-2 text-sm text-status-danger">{error}</p>}
-
-      <div className="mt-3 divide-y divide-neutral-100 overflow-hidden rounded-xl2 bg-white shadow-card dark:divide-neutral-800">
-        {loading && <div className="m-3.5 h-24 animate-pulse rounded-xl bg-neutral-100" />}
+      <AdminGroup title={`${tab === 'role' ? 'Roles' : 'Departments'} · ${activeCount}`} add={`Add a ${noun}`} onAdd={() => open(tab)}>
+        {loading && <div className="my-3 h-24 animate-pulse rounded-xl bg-neutral-100" />}
         {list.map((i) => (
-          <button key={i.id} type="button" onClick={() => open(tab, i)} className="flex w-full items-center gap-3 px-3.5 py-3 text-left tap-target">
-            <span className="flex min-w-0 flex-1 flex-col">
-              <span className="flex items-center gap-2">
-                <span className={`truncate text-[15px] font-medium ${i.active ? 'text-neutral-900' : 'text-neutral-500'}`}>{i.name}</span>
-                {!i.active && <span className="shrink-0 rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] font-bold text-neutral-500 dark:bg-neutral-800">Inactive</span>}
-              </span>
-              {i.description && <span className="truncate text-xs text-neutral-500">{i.description}</span>}
-            </span>
-            <span className="shrink-0 text-xs text-neutral-500">{peopleText(i.people)}</span>
-            <ChevronRight className="h-4 w-4 shrink-0 text-neutral-300" />
-          </button>
+          <AdminRow
+            key={i.id}
+            icon={tab === 'role' ? Shield : Building2}
+            label={i.name}
+            sub={i.description || undefined}
+            value={peopleText(i.people)}
+            pill={i.active ? undefined : { text: 'Inactive', tone: 'plain' }}
+            onClick={() => open(tab, i)}
+          />
         ))}
-        {!loading && list.length === 0 && <p className="px-3.5 py-6 text-center text-sm text-neutral-500">No {noun}s yet.</p>}
-      </div>
+        {!loading && list.length === 0 && <p className="border-t border-neutral-100 py-3 text-[13px] text-neutral-500 dark:border-neutral-800">No {noun}s yet.</p>}
+      </AdminGroup>
+
+      {tab === 'department' ? (
+        <AdminGroup title="Rules a department sets">
+          <AdminRow icon={Clock} label="Working schedule" sub="Which hours and days apply" to="/settings/working-hours" />
+          <AdminRow icon={CalendarDays} label="Leave allowance" sub="Company default unless set per person" to="/admin/attendance?tab=allow" />
+          <AdminRow icon={Moon} label="Flexible days off" sub="Who earns days for weekend work" to="/admin/attendance?tab=flex" />
+        </AdminGroup>
+      ) : (
+        <p className="-mt-2 text-xs text-neutral-500">
+          What each role can do is set on{' '}
+          <Link to="/settings/permissions" className="font-bold text-brand-500">
+            Permissions
+          </Link>
+          .
+        </p>
+      )}
 
       <BottomSheet
         open={!!draft}

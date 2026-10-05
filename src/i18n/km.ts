@@ -19,6 +19,9 @@ export const km: TranslationKey = {
     yesterday: 'ម្សិលមិញ',
   },
   nav: {
+    adminAttendance: 'វត្តមាន',
+    geofence: 'តំបន់ភូមិសាស្ត្រ និងច្បាប់',
+    dataSync: 'ទិន្នន័យ និងការធ្វើសមកាលកម្ម',
     clockIn: 'ចូលម៉ោង',
     checkIn: 'ចូល',
     footprints: 'ស្នាមជើង',

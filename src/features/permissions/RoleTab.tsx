@@ -1,7 +1,5 @@
 import { useMemo, useState } from 'react'
 import { ShieldCheck } from 'lucide-react'
-import { SegmentedControl } from '@/components/SegmentedControl'
-import { Switch } from '@/components/Switch'
 import {
   FN_BY_KEY,
   GROUPS,
@@ -36,7 +34,7 @@ function draftChanges(saved: RoleDraft, draft: RoleDraft): number {
   return changedFns(saved.state, draft.state).length + (['in', 'out'] as const).filter((d) => !sameIds(saved.clock[d], draft.clock[d])).length
 }
 
-/** By role: one switch per design function, with Self / Team / All where it applies, and clock-in/out places. */
+/** By role, as on the canvas (Polish › Admin › Permissions): one Off / Own / Team / All control per function (Off / On where there's no scope), and clock-in/out places. */
 export function RoleTab({
   data,
   roleId,
@@ -104,16 +102,23 @@ export function RoleTab({
         ))}
       </div>
 
-      <div className="flex items-center gap-3 rounded-2xl bg-brand-50 p-3.5 dark:bg-brand-900/40">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-brand-600 dark:bg-neutral-900">
-          <ShieldCheck className="h-5 w-5" aria-hidden />
+      <p className="-mt-1 text-[13px] text-neutral-500">
+        <span className="inline-flex items-center gap-1 font-bold text-neutral-900">
+          <ShieldCheck className="h-4 w-4" aria-hidden />
+          {role.name}
         </span>
-        <div className="min-w-0">
-          <p className="truncate text-[17px] font-bold text-neutral-900">{role.name}</p>
-          <p className="text-[13px] text-neutral-500">
-            {people} {people === 1 ? 'person' : 'people'} · {allowed} of {Object.keys(draft.state).length} functions allowed
-          </p>
-        </div>
+        : applies to {people} {people === 1 ? 'person' : 'people'} · {allowed} of {Object.keys(draft.state).length} functions on. Exceptions for one person are set under By person.
+      </p>
+      <div className="grid grid-cols-3 gap-2 rounded-xl bg-neutral-100 px-3 py-2 text-[11px] leading-4 text-neutral-600">
+        <span>
+          <b className="text-neutral-900">Own</b> = their own customers or records
+        </span>
+        <span>
+          <b className="text-neutral-900">Team</b> = people they manage
+        </span>
+        <span>
+          <b className="text-neutral-900">All</b> = everyone
+        </span>
       </div>
 
       {error && (
@@ -133,30 +138,36 @@ export function RoleTab({
               : fn.locations
                 ? clockSummary(draft.clock, data.locations)
                 : held
-                  ? `Self comes with ${FN_BY_KEY[held].label}`
+                  ? `Own comes with ${FN_BY_KEY[held].label}`
                   : describeGrant(fn, grant)
             return (
               <div key={fn.key} className="py-3">
-                <div className="flex items-center gap-3">
-                  <div className="min-w-0 flex-1">
-                    <p className={`text-[15px] font-bold ${grant ? 'text-neutral-900' : 'text-neutral-400'}`}>
-                      {fn.label}
-                      {changed && <span className="ml-1.5 text-xs font-semibold text-brand-500">• changed</span>}
-                    </p>
-                    <p className={`text-[13px] ${grant ? 'text-neutral-500' : 'text-neutral-400'}`}>{sub}</p>
-                  </div>
-                  <Switch checked={!!grant} disabled={!!held} label={fn.label} onChange={(on) => setGrant(fn.key, on)} />
+                <p className={`text-[15px] font-semibold ${grant ? 'text-neutral-900' : 'text-neutral-500'}`}>
+                  {fn.label}
+                  {changed && <span className="ml-1.5 text-xs font-semibold text-brand-500">• changed</span>}
+                </p>
+                <p className="text-xs text-neutral-500">{sub}</p>
+                <div role="radiogroup" aria-label={fn.label} className="mt-2 flex gap-0.5 rounded-[10px] bg-neutral-100 p-[3px]">
+                  {(['off', ...(fn.scopes ?? ['on'])] as (Scope | 'off' | 'on')[]).map((opt) => {
+                    const on = opt === 'off' ? !grant : opt === 'on' ? !!grant : grant?.scope === opt
+                    const disabled = !!held && opt === 'off'
+                    return (
+                      <button
+                        key={opt}
+                        type="button"
+                        role="radio"
+                        aria-checked={on}
+                        disabled={disabled}
+                        onClick={() => (opt === 'off' ? setGrant(fn.key, false) : setGrant(fn.key, true, opt === 'on' ? undefined : opt))}
+                        className={`h-8 flex-1 rounded-lg text-xs disabled:opacity-40 ${
+                          on ? (opt === 'off' ? 'seg-on font-bold text-neutral-900 shadow-sm' : 'bg-brand-500 font-bold text-white') : 'font-semibold text-neutral-500'
+                        }`}
+                      >
+                        {opt === 'off' ? 'Off' : opt === 'on' ? 'On' : SCOPE_LABEL[opt]}
+                      </button>
+                    )
+                  })}
                 </div>
-                {grant && fn.scopes && fn.scopes.length > 1 && (
-                  <SegmentedControl<Scope>
-                    ariaLabel={`${fn.label} scope`}
-                    shape="tabs"
-                    className="mt-2.5"
-                    value={grant.scope ?? fn.scopes[0]!}
-                    onChange={(s) => setGrant(fn.key, true, s)}
-                    options={fn.scopes.map((s) => ({ value: s, label: SCOPE_LABEL[s] }))}
-                  />
-                )}
                 {grant && fn.locations && <LocationPicker value={draft.clock} onChange={setClock} locations={data.locations} />}
               </div>
             )
@@ -165,7 +176,7 @@ export function RoleTab({
       ))}
 
       <p className="px-1 text-xs text-neutral-500">
-        Self = their own records · Team = the people they manage · All = everyone. Super Admins can always do everything.
+        Changes apply the next time each person opens the app. Super Admins can always do everything.
       </p>
 
       <SaveBar count={total} saving={saving} onSave={save} onDiscard={() => setDrafts({})} />

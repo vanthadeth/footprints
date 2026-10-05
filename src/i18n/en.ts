@@ -11,6 +11,9 @@ export const en = {
     yesterday: 'Yesterday',
   },
   nav: {
+    adminAttendance: 'Attendance',
+    geofence: 'Geofence & rules',
+    dataSync: 'Data & sync',
     clockIn: 'Clock In',
     checkIn: 'Check In',
     footprints: 'Footprints',
@@ -59,7 +62,7 @@ export const en = {
     tripSettings: 'Sales trip settings',
     settlement: 'Settlement',
     leaveAllowances: 'Leave Allowances',
-    workingHours: 'Working Hours & Days',
+    workingHours: 'Working hours',
     holidays: 'Public Holidays',
     permissions: 'Permissions',
     org: 'Departments & roles',
