@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Plus, Search, User as UserIcon, Users as UsersIcon } from 'lucide-react'
 import { EmptyState } from '@/components/EmptyState'
-import { SegmentedControl } from '@/components/SegmentedControl'
+import { Switch } from '@/components/Switch'
 import { useAvatarUrl } from '@/features/auth/useAvatarUrl'
 import { displayName } from '@/lib/displayName'
 import { useUsers } from '@/features/users/useUsers'
@@ -15,12 +15,6 @@ const STATUS_STYLES: Record<ManagedUser['status'], string> = {
 }
 
 type StatusFilter = 'active' | 'inactive' | 'all'
-
-const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
-  { key: 'active', label: 'Active' },
-  { key: 'inactive', label: 'Inactive' },
-  { key: 'all', label: 'All' },
-]
 
 const NO_DEPARTMENT = 'No Department'
 
@@ -100,7 +94,7 @@ export function UsersPage() {
           <CountTile label="Active" value={counts.active} tone="text-status-working" />
           <CountTile label="Suspended" value={counts.suspended} tone="text-status-warn" />
           <CountTile label="Discharged" value={counts.discharged} tone="text-status-danger" />
-          <CountTile label="Field Sales" value={counts.fieldSales} tone="text-neutral-900" />
+          <CountTile label="Field sales" value={counts.fieldSales} tone="text-neutral-900" />
         </div>
 
         <div className="flex items-center gap-2">
@@ -122,16 +116,17 @@ export function UsersPage() {
           </button>
         </div>
 
-        <SegmentedControl
-          ariaLabel="Status filter"
-          value={statusFilter}
-          onChange={setStatusFilter}
-          options={STATUS_FILTERS.map((f) => ({
-            value: f.key,
-            label: f.label,
-            count: f.key === 'active' ? counts.active : f.key === 'inactive' ? counts.suspended + counts.discharged : users.length,
-          }))}
-        />
+        <div className="flex items-center gap-3 rounded-2xl border border-neutral-100 bg-white px-3.5 py-2.5 shadow-card">
+          <span className="min-w-0 flex-1">
+            <span className="block text-[15px] font-semibold text-neutral-900">Show inactive users</span>
+            <span className="block text-xs text-neutral-500">
+              {statusFilter === 'all'
+                ? `${counts.suspended + counts.discharged} inactive shown · they can’t sign in`
+                : counts.suspended + counts.discharged === 1 ? '1 person who left or is suspended is hidden' : `${counts.suspended + counts.discharged} people who left or are suspended are hidden`}
+            </span>
+          </span>
+          <Switch checked={statusFilter === 'all'} onChange={(on) => setStatusFilter(on ? 'all' : 'active')} label="Show inactive users" />
+        </div>
 
         {roleNames.length > 1 && (
           <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 md:mx-0 md:px-0">
@@ -144,7 +139,7 @@ export function UsersPage() {
                   aria-pressed={active}
                   onClick={() => setRoleFilter(r)}
                   className={`h-[34px] shrink-0 rounded-full border-[1.5px] px-3 text-xs font-semibold ${
-                    active ? 'border-brand-500 bg-brand-500 text-white' : 'border-neutral-200 bg-white text-neutral-600'
+                    active ? 'border-brand-500 bg-brand-50 text-brand-500' : 'border-neutral-200 bg-white text-neutral-600'
                   }`}
                 >
                   {r || 'All roles'}
@@ -168,7 +163,7 @@ export function UsersPage() {
             title="No users found"
             body={
               statusFilter !== 'all'
-                ? `No ${statusFilter} users match. Try the "All" filter, a different search, or create a new user.`
+                ? 'No active users match. Turn on Show inactive users, try a different search, or create a new user.'
                 : 'Try a different search, or create a new user.'
             }
           />
@@ -176,10 +171,10 @@ export function UsersPage() {
           <div className="space-y-4">
             {groups.map(([department, members]) => (
               <section key={department} className="space-y-2">
-                <h2 className="px-0.5 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                <h2 className="px-1 text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">
                   {department} · {members.length}
                 </h2>
-                <div className="divide-y divide-neutral-100 overflow-hidden rounded-2xl bg-white shadow-card dark:divide-neutral-800">
+                <div className="divide-y divide-neutral-100 overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-card">
                   {members.map((u) => (
                     <UserRow key={u.id} user={u} onClick={() => openEdit(u)} />
                   ))}
@@ -206,7 +201,7 @@ export function UsersPage() {
 
 function CountTile({ label, value, tone }: { label: string; value: number; tone: string }) {
   return (
-    <div className="flex flex-col items-center rounded-xl bg-white px-1 py-2.5 shadow-card">
+    <div className="flex flex-col items-center rounded-xl border border-neutral-100 bg-white px-1 py-2.5 shadow-card">
       <span className={`text-xl font-extrabold ${tone}`}>{value}</span>
       <span className="text-center text-[10.5px] font-semibold text-neutral-500">{label}</span>
     </div>

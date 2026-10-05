@@ -157,6 +157,11 @@
   html.dark .border-neutral-300 {
     border-color: #3f3f3f; /* input line */
   }
+  html.dark .divide-neutral-50 > :not([hidden]) ~ :not([hidden]),
+  html.dark .divide-neutral-100 > :not([hidden]) ~ :not([hidden]),
+  html.dark .divide-neutral-200 > :not([hidden]) ~ :not([hidden]) {
+    border-color: #2c2c2c; /* line */
+  }
   html.dark .bg-brand-50 {
     background-color: rgb(22 143 255 / 0.16); /* dark-base blue tint */
   }
