@@ -97,9 +97,9 @@ export function CheckInPage() {
       ? { text: t('checkIn.clockInClosedShort'), tone: 'text-heroMuted' }
       : { text: t('checkIn.clockInOpensShort', { time: clockInOpensAt }), tone: 'text-heroMuted' }
     : untilStart > 0
-      ? { text: t('checkIn.startsIn', { n: untilStart }), tone: 'text-[#74E092]' }
+      ? { text: t('checkIn.startsIn', { n: formatDuration(untilStart * 60_000, language) }), tone: 'text-[#74E092]' }
       : untilStart < 0 && journey.todaysAttendance.length === 0
-        ? { text: t('checkIn.lateBy', { n: -untilStart }), tone: 'text-[#FFB257]' }
+        ? { text: t('checkIn.lateBy', { n: formatDuration(-untilStart * 60_000, language) }), tone: 'text-[#FFB257]' }
         : null
   const leaveLabel = leaveToday === 'annual' ? t('profile.annual') : leaveToday === 'sick' ? t('profile.sick') : leaveToday ? LEAVE_TYPE_LABEL[leaveToday] : ''
   const visitsLine = stats.totalVisits === 0 ? t('checkIn.noVisitsYet') : t('checkIn.visitsSoFar', { n: stats.totalVisits })
@@ -167,7 +167,7 @@ export function CheckInPage() {
               <button
                 type="button"
                 onClick={() => setFlowOpen(true)}
-                className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-white p-3 text-left text-neutral-900"
+                className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-[#ffffff] p-3 text-left"
               >
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white">
                   <Store className="h-5 w-5" aria-hidden />
@@ -192,7 +192,7 @@ export function CheckInPage() {
                 type="button"
                 onClick={() => setFlowOpen(true)}
                 disabled={journey.busy}
-                className="mt-3 flex h-[50px] w-full items-center justify-center gap-2 rounded-[14px] bg-white text-base font-extrabold text-[#2b2b2b] disabled:opacity-60"
+                className="mt-3 flex h-[50px] w-full items-center justify-center gap-2 rounded-[14px] bg-[#ffffff] text-base font-extrabold text-[#2b2b2b] disabled:opacity-60"
               >
                 <MapPin className="h-5 w-5" aria-hidden />
                 {t('checkIn.checkInButton')}
@@ -308,7 +308,7 @@ export function CheckInPage() {
                 type="button"
                 onClick={() => setClockSheet('in')}
                 disabled={!canClockIn || journey.busy}
-                className="relative mt-3.5 flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-white text-[17px] font-extrabold text-[#2b2b2b] disabled:opacity-50"
+                className="relative mt-3.5 flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-[#ffffff] text-[17px] font-extrabold text-[#2b2b2b] disabled:opacity-50"
               >
                 <Clock className="h-[22px] w-[22px]" aria-hidden />
                 {t('checkIn.clockInButton')}

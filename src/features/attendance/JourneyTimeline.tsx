@@ -218,7 +218,7 @@ export function JourneyTimeline({ attendance, visits, customerNames, interactive
     }
   }
 
-  return <ol className="relative ml-3 space-y-3 border-l-2 border-neutral-100 pl-8 dark:border-neutral-700">{rows}</ol>
+  return <ol className="relative ml-3 space-y-3 border-l-2 border-neutral-100 pl-8 dark:border-neutral-800">{rows}</ol>
 }
 
 /** Gap between two ISO timestamps in ms, or null if either is missing or the gap isn't positive (nothing to show). */
@@ -707,7 +707,7 @@ function VisitEntry({
     <li className="relative">
       <span
         className={`absolute -left-[2.875rem] top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-[11px] font-bold text-white ${
-          voided ? 'bg-neutral-400 dark:bg-neutral-600' : 'bg-neutral-900 dark:bg-neutral-700'
+          voided ? 'bg-neutral-400 dark:bg-neutral-600' : 'bg-brand-500'
         }`}
       >
         {visit.visit_number ?? index + 1}
@@ -715,7 +715,7 @@ function VisitEntry({
       <button
         onClick={() => setOpen(true)}
         className={`flex w-full flex-col rounded-xl2 border bg-white p-4 text-left shadow-card tap-target dark:bg-neutral-900 ${
-          voided ? 'border-dashed border-neutral-300 opacity-60 dark:border-neutral-600' : 'border-neutral-200 dark:border-neutral-700'
+          voided ? 'border-dashed border-neutral-300 opacity-60 dark:border-neutral-600' : 'border-neutral-100 dark:border-neutral-700'
         }`}
       >
         <div className="flex w-full items-start justify-between gap-3">
@@ -740,7 +740,7 @@ function VisitEntry({
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <div className="text-right">
-              <p className={`text-sm font-bold ${visit.out_of_range ? 'text-status-warn' : 'text-earth-500'}`}>{duration}</p>
+              <p className={`text-sm font-bold ${visit.out_of_range ? 'text-status-warn' : 'text-neutral-900'}`}>{duration}</p>
               <p className="text-[10px] font-medium uppercase tracking-wide text-neutral-400">{t('journey.duration')}</p>
             </div>
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
