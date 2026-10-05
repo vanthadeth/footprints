@@ -349,7 +349,7 @@ export function TripRequestPage() {
         </div>
         <div className="flex flex-wrap gap-1.5">
           {draft.people.map((uid, i) => (
-            <span key={uid} className="inline-flex h-9 items-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 pl-1 pr-1.5 dark:border-neutral-700 dark:bg-neutral-800">
+            <span key={uid} className="inline-flex h-9 items-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 pl-1 pr-1.5 dark:border-neutral-700">
               <Avatar name={fullNameOf(uid)} i={i} size="h-7 w-7 text-[11px]" />
               <span className={`text-[13.5px] font-bold text-neutral-900 ${uid === meId ? 'pr-1.5' : ''}`}>{nameOf(uid)}</span>
               {uid !== meId && (
@@ -419,7 +419,7 @@ export function TripRequestPage() {
                       <button key={c} type="button" onClick={() => setSheet({ kind: 'day', i })} className="inline-flex h-[34px] items-center gap-1.5 rounded-full bg-status-visiting/10 pl-1 pr-2.5">
                         <span className="flex h-6 w-6 items-center justify-center rounded-full bg-status-visiting text-[11.5px] font-extrabold text-white">{j + 1}</span>
                         <span className="text-[13.5px] font-bold text-neutral-900">{provinceName(c)}</span>
-                        {counts[c] && <span className="text-[11.5px] font-bold text-status-visiting dark:text-violet-300">{counts[c].total}</span>}
+                        {counts[c] && <span className="text-[11.5px] font-bold text-status-visiting">{counts[c].total}</span>}
                       </button>
                     ))}
                     <button
@@ -431,8 +431,8 @@ export function TripRequestPage() {
                     </button>
                   </div>
                 </div>
-                <button type="button" onClick={() => setSheet({ kind: 'day', i })} className={`flex min-h-[44px] w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left ${d.back ? 'bg-brand-50 dark:bg-brand-500/15' : 'bg-neutral-50 dark:bg-neutral-800'}`}>
-                  <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${d.back ? 'bg-brand-500 text-white' : 'bg-brand-900 text-amber-300'}`}>
+                <button type="button" onClick={() => setSheet({ kind: 'day', i })} className={`flex min-h-[44px] w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left ${d.back ? 'bg-brand-50 dark:bg-brand-500/15' : 'bg-neutral-50'}`}>
+                  <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${d.back ? 'bg-brand-500 text-white' : 'bg-brand-900 text-[#FFB257]'}`}>
                     {d.back ? <Home className="h-3.5 w-3.5" aria-hidden /> : <Moon className="h-3.5 w-3.5" aria-hidden />}
                   </span>
                   <span className="min-w-0 flex-1">
@@ -515,7 +515,7 @@ export function TripRequestPage() {
         </div>
         {draft.special.map((s, i) => (
           <div key={i} className={`flex items-center gap-2 py-1.5 ${i ? 'border-t border-neutral-100 dark:border-neutral-800' : ''}`}>
-            <span className="shrink-0 rounded-full bg-earth-50 px-2 py-0.5 text-[11.5px] font-extrabold text-earth-500 dark:bg-amber-900/30 dark:text-amber-200">{s.reason}</span>
+            <span className="shrink-0 rounded-full bg-earth-50 px-2 py-0.5 text-[11.5px] font-extrabold text-earth-500">{s.reason}</span>
             <input
               value={s.note}
               onChange={(e) => setSpecial(draft.special.map((x, j) => (j === i ? { ...x, note: e.target.value } : x)))}
@@ -558,7 +558,7 @@ export function TripRequestPage() {
       </div>
 
       <button type="button" onClick={() => ok && setStep('review')} className={`${card} flex w-full items-center gap-3 p-3.5 text-left`}>
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-earth-50 text-lg font-extrabold text-earth-500 dark:bg-amber-900/30 dark:text-amber-200">$</span>
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-earth-50 text-lg font-extrabold text-earth-500">$</span>
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-extrabold text-neutral-900">Estimated cost {money(cost.total)}</span>
           <span className="block text-[12.5px] text-neutral-500">

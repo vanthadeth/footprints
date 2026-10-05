@@ -61,7 +61,7 @@ export function PeopleSheet({
     <BottomSheet open={open} onClose={onClose} title="Who’s going?">
       <div className="space-y-3 p-4">
         <p className="text-[13px] text-neutral-500">{lengthLabel(days, Math.max(days - 1, 0))}. Leave and other trips on these days are shown.</p>
-        <label className="flex h-11 items-center gap-2 rounded-xl bg-neutral-100 px-3 text-neutral-500 dark:bg-neutral-800">
+        <label className="flex h-11 items-center gap-2 rounded-xl bg-neutral-100 px-3 text-neutral-500">
           <Search className="h-4 w-4" aria-hidden />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name" className="min-w-0 flex-1 bg-transparent text-[15px] text-neutral-900 outline-none" />
         </label>
@@ -88,7 +88,7 @@ export function PeopleSheet({
                     {me ? ' (you)' : ''}
                   </span>
                   <span className="block truncate text-[12.5px] text-neutral-500">{c.role ?? '—'}</span>
-                  <span className={`block text-[12.5px] font-bold ${busy ? 'text-status-warn' : me ? 'text-neutral-500' : 'text-status-working dark:text-emerald-300'}`}>
+                  <span className={`block text-[12.5px] font-bold ${busy ? 'text-status-warn' : me ? 'text-neutral-500' : 'text-status-working'}`}>
                     {me ? 'Requester · always on the trip' : busy || `Free all ${days} day${days === 1 ? '' : 's'}`}
                   </span>
                 </span>

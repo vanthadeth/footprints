@@ -125,7 +125,7 @@ function OnTrip({ trip, today }: { trip: TripRow; today: string }) {
   const others = trip.people.slice(1).map((p) => p.name)
   return (
     <div className="space-y-3 rounded-[20px] bg-brand-900 p-4 text-white">
-      <span className="inline-flex rounded-full bg-amber-300/20 px-2.5 py-1 text-[12px] font-extrabold text-amber-200">
+      <span className="inline-flex rounded-full bg-[#FF9F2D]/20 px-2.5 py-1 text-[12px] font-extrabold text-[#FFB257]">
         On a trip · Day {d.n} of {plan.days.length}
       </span>
       <div>
@@ -139,12 +139,12 @@ function OnTrip({ trip, today }: { trip: TripRow; today: string }) {
       <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${plan.days.length}, minmax(0, 1fr))` }}>
         {plan.days.map((x) => (
           <span key={x.n} className="min-w-0">
-            <span className={`block h-1.5 rounded-full ${x.n < d.n ? 'bg-emerald-400' : x.n === d.n ? 'bg-amber-300' : 'bg-white/15'}`} />
+            <span className={`block h-1.5 rounded-full ${x.n < d.n ? 'bg-[#17CB49]' : x.n === d.n ? 'bg-[#FFB257]' : 'bg-white/15'}`} />
             <span className={`mt-1 block text-[11px] ${x.n === d.n ? 'font-extrabold text-white' : 'text-white/70'}`}>{x.label.slice(0, 3)}</span>
           </span>
         ))}
       </div>
-      <Link to="/check-in" className="flex h-11 items-center justify-center rounded-xl bg-white text-sm font-extrabold text-brand-700">
+      <Link to="/check-in" className="flex h-11 items-center justify-center rounded-xl bg-[#ffffff] text-sm font-extrabold text-[#006ACC]">
         Open today’s Check In
       </Link>
       <Link to={`/trips/${trip.id}`} className={`${kicker} block text-center !text-white/70`}>
