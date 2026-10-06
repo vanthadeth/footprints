@@ -5,7 +5,8 @@ import { NotificationBell } from '@/components/NotificationBell'
 import { useJourneyContext } from '@/features/attendance/JourneyContext'
 import { useLanguage } from '@/i18n/LanguageContext'
 import { useRoleGroup } from '@/features/nav/useRoleGroup'
-import { FN, fnForPath, tabsFor, type FnKey } from '@/features/nav/navConfig'
+import { FN, tabsFor, type FnKey } from '@/features/nav/navConfig'
+import { parentPath } from '@/features/nav/backNav'
 
 const TITLE_KEYS: Record<string, string> = {
   '/footprints': 'nav.footprints',
@@ -51,25 +52,6 @@ const TITLE_KEYS: Record<string, string> = {
   '/admin/sync': 'nav.dataSync',
 }
 
-
-/** Where a sub-page's back link goes -- almost every secondary screen is reached from Hub. */
-function backTarget(pathname: string, search = ''): string {
-  if (pathname === '/plan') return '/check-in'
-  if (pathname === '/footprints' || pathname === '/report') return '/menu'
-  // Someone else's days off (a manager/HR from Flexible days off) goes back to that list.
-  const user = new URLSearchParams(search).get('user')
-  if (pathname === '/leave/days-off') return user ? '/leave/flexible' : '/leave'
-  if (pathname === '/leave/days-off/settlement') return user ? `/leave/days-off?user=${user}` : '/leave/days-off'
-  if (pathname === '/trips/calendar') return '/approvals?tab=trips'
-  if (pathname.startsWith('/trips/')) return '/trips'
-  if (pathname.startsWith('/admin/')) return '/admin'
-  if (pathname.startsWith('/customers/')) return '/customers'
-  if (pathname.startsWith('/messages/')) return '/messages'
-  if (pathname.startsWith('/menu/')) return '/menu'
-  // A Hub screen goes back to its function page (Leave & days off, Company setup…).
-  const fn = fnForPath(pathname)
-  return fn ? `/menu/${fn}` : '/menu'
-}
 
 /**
  * The one top bar for every authenticated screen (rendered once from
@@ -131,7 +113,8 @@ export function TitleBar() {
       className="sticky top-0 z-10 flex items-center gap-1 border-b border-neutral-200 bg-white/95 pb-2 pl-1.5 pr-4 backdrop-blur dark:border-neutral-800 md:px-8"
     >
       <Link
-        to={backTarget(pathname, search)}
+        to={parentPath(pathname, search)}
+        replace
         aria-label={t('common.back')}
         className="flex h-11 w-11 items-center justify-center rounded-full text-neutral-600 md:hidden"
       >

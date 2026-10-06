@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useBackHandler } from '@/hooks/useBackHandler'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { Bell, Briefcase, CalendarCheck, ChevronRight, LogOut, Settings, User } from 'lucide-react'
@@ -30,6 +31,7 @@ export function ProfileBadge() {
   const { attendance, openAttendance } = useJourneyContext()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
+  useBackHandler(open, () => setOpen(false))
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false)
   const { language, setLanguage, t } = useLanguage()
   const { mode, setMode } = useTheme()

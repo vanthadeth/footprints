@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
+import { useBackHandler } from '@/hooks/useBackHandler'
 
 /**
  * Edge-to-edge full-viewport overlay -- for content (a map) that wants
@@ -25,6 +26,7 @@ export function FullScreenSheet({
   showClose?: boolean
 }) {
   const [mounted, setMounted] = useState(open)
+  useBackHandler(open, onClose)
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
