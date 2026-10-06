@@ -5,7 +5,6 @@ import { useRoleGroup } from '@/features/nav/useRoleGroup'
 import { usePendingApprovals } from '@/features/nav/usePendingApprovals'
 import { canApprove, forYou, hubFunctions, hubSearch, shortLabel } from '@/features/nav/navConfig'
 import { useFlexCycle } from '@/features/flex/useFlexCycle'
-import { useNotificationsContext } from '@/features/notifications/NotificationsContext'
 import { useMessages } from '@/features/conversations/MessagesContext'
 import { useLanguage } from '@/i18n/LanguageContext'
 
@@ -23,9 +22,8 @@ export function MenuPage() {
   const flex = useFlexCycle()
   const { group, ctx } = useRoleGroup(!!flex.cycle?.isFlexible)
   const pendingApprovals = usePendingApprovals(canApprove(ctx))
-  const { unreadCount } = useNotificationsContext()
   const { unreadCount: unreadMessages } = useMessages()
-  const badge = (key: string) => (key === 'approvals' ? pendingApprovals : key === 'messages' ? unreadMessages : key === 'notifications' ? unreadCount : 0)
+  const badge = (key: string) => (key === 'approvals' ? pendingApprovals : key === 'messages' ? unreadMessages : 0)
   const shortcuts = forYou(group, ctx)
   const functions = hubFunctions(group, ctx)
   const results = hubSearch(group, ctx, query)

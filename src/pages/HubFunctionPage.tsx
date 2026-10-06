@@ -4,7 +4,6 @@ import { useRoleGroup } from '@/features/nav/useRoleGroup'
 import { usePendingApprovals } from '@/features/nav/usePendingApprovals'
 import { canApprove, hubFunctions } from '@/features/nav/navConfig'
 import { useFlexCycle } from '@/features/flex/useFlexCycle'
-import { useNotificationsContext } from '@/features/notifications/NotificationsContext'
 import { useMessages } from '@/features/conversations/MessagesContext'
 import { useLanguage } from '@/i18n/LanguageContext'
 
@@ -26,9 +25,8 @@ export function HubFunctionPage() {
   const flex = useFlexCycle()
   const { group, ctx, ready } = useRoleGroup(!!flex.cycle?.isFlexible)
   const pendingApprovals = usePendingApprovals(canApprove(ctx))
-  const { unreadCount } = useNotificationsContext()
   const { unreadCount: unreadMessages } = useMessages()
-  const badge = (key: string) => (key === 'approvals' ? pendingApprovals : key === 'messages' ? unreadMessages : key === 'notifications' ? unreadCount : undefined)
+  const badge = (key: string) => (key === 'approvals' ? pendingApprovals : key === 'messages' ? unreadMessages : undefined)
   const f = hubFunctions(group, ctx).find((x) => x.key === fn)
 
   // Wait for the profile and permissions before deciding the function isn't theirs.

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BarChart3, CalendarRange, CheckSquare, ChevronRight, MapPin, UserX, type LucideIcon } from 'lucide-react'
 import { TeamPulseCard } from '@/features/fleet/TeamPulse'
+import { useNotificationsContext } from '@/features/notifications/NotificationsContext'
+import { NotificationRow } from '@/features/notifications/NotificationRow'
 import { DAY_BAR_LEGEND, daySegments } from '@/features/fleet/dayBar'
 import { DayBar, DayBarSwatch } from '@/features/fleet/DayBar'
 import { useFleet } from '@/features/fleet/useFleet'
@@ -43,6 +45,8 @@ export function TeamHomePage() {
   const canBriefing = useCan('customer_briefing')
   const [flex, setFlex] = useState<FlexTeamRow[]>([])
   const settings = useAppSettings()
+  const { notifications } = useNotificationsContext()
+  const recent = notifications.slice(0, 4)
   const { language } = useLanguage()
 
   useEffect(() => {
@@ -138,6 +142,22 @@ export function TeamHomePage() {
           </Link>
         ))}
       </div>
+
+      {recent.length > 0 && (
+        <section aria-label="Recent alerts" className="rounded-2xl border border-neutral-100 bg-white px-3.5 pb-1 pt-3 shadow-card">
+          <div className="mb-1 flex items-center justify-between">
+            <p className="text-[12px] font-extrabold uppercase tracking-wide text-neutral-500">Recent alerts</p>
+            <Link to="/notifications" className="text-[13px] font-bold text-brand-600">
+              See all
+            </Link>
+          </div>
+          {recent.map((n, i) => (
+            <Link key={n.id} to="/notifications" className={`block py-2.5 ${i ? 'border-t border-neutral-100 dark:border-neutral-800' : ''}`}>
+              <NotificationRow notification={n} compact />
+            </Link>
+          ))}
+        </section>
+      )}
 
       <section aria-label="People" className="rounded-2xl border border-neutral-100 bg-white px-3.5 pb-3 pt-3 shadow-card">
         <div className="flex items-center justify-between">

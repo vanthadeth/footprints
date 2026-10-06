@@ -3,10 +3,9 @@ import { Bell, BellRing, ShieldAlert } from 'lucide-react'
 import { EmptyState } from '@/components/EmptyState'
 import { useProfile } from '@/features/auth/useProfile'
 import { useNotificationsContext } from '@/features/notifications/NotificationsContext'
-import { NOTIFICATION_KIND_META, type NotificationKind } from '@/features/notifications/notificationKindMeta'
-import type { NotificationFeedRow } from '@/features/notifications/notificationsService'
+import type { NotificationKind } from '@/features/notifications/notificationKindMeta'
+import { NotificationRow } from '@/features/notifications/NotificationRow'
 import { pushService, type PushPermissionState } from '@/features/notifications/pushService'
-import { timeAgo } from '@/lib/datetime'
 import { useLanguage } from '@/i18n/LanguageContext'
 
 type Filter = 'all' | NotificationKind
@@ -53,7 +52,7 @@ export function NotificationsPage() {
 }
 
 function NotificationsFeed() {
-  const { notifications, loading, error, markRead } = useNotificationsContext()
+  const { notifications, loading, error } = useNotificationsContext()
   const { t } = useLanguage()
   const [filter, setFilter] = useState<Filter>('all')
 
@@ -67,12 +66,12 @@ function NotificationsFeed() {
       <div className="px-4 pt-4 md:px-8">
         <PushNotificationsCard />
 
-        <div className="mt-4 flex gap-1 rounded-full bg-neutral-100 p-1">
+        <div className="mt-4 flex gap-1 overflow-x-auto rounded-full bg-neutral-100 p-1 [scrollbar-width:none]">
           {FILTERS.map((f) => (
             <button
               key={f.key}
               onClick={() => setFilter(f.key)}
-              className={`flex-1 whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold tap-target ${
+              className={`flex-1 shrink-0 whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-semibold tap-target ${
                 filter === f.key ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500'
               }`}
             >
@@ -96,13 +95,9 @@ function NotificationsFeed() {
         ) : (
           <div className="mt-4 space-y-2">
             {filtered.map((n) => (
-              <NotificationRow
-                key={n.id}
-                notification={n}
-                onOpen={() => {
-                  if (n.id && !n.read_at) void markRead(n.id)
-                }}
-              />
+              <div key={n.id} className="rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card">
+                <NotificationRow notification={n} />
+              </div>
             ))}
           </div>
         )}
@@ -202,38 +197,5 @@ function PushNotificationsCard() {
         )}
       </div>
     </div>
-  )
-}
-
-function NotificationRow({ notification, onOpen }: { notification: NotificationFeedRow; onOpen: () => void }) {
-  const { t, language } = useLanguage()
-  const meta = notification.kind ? NOTIFICATION_KIND_META[notification.kind] : null
-  const unread = !notification.read_at
-
-  return (
-    <button
-      onClick={onOpen}
-      className={`flex w-full items-start gap-3 rounded-xl2 bg-white p-3.5 text-left shadow-card tap-target ${unread ? '' : 'opacity-70'}`}
-    >
-      <span className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${meta?.tone ?? 'bg-neutral-100 text-neutral-500'}`}>
-        {meta ? <meta.icon className="h-4.5 w-4.5" /> : <Bell className="h-4.5 w-4.5" />}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="flex items-center gap-1.5">
-          <span className={`truncate text-sm ${unread ? 'font-semibold text-neutral-900' : 'font-medium text-neutral-700'}`}>
-            {notification.user_name ?? t('notifications.unknownUser')}
-          </span>
-          {unread && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand-500" aria-label="Unread" />}
-        </span>
-        <span className="mt-0.5 block text-xs font-medium uppercase tracking-wide text-neutral-400">
-          {meta ? t(meta.labelKey) : notification.kind}
-        </span>
-        <span className="mt-1 block text-sm text-neutral-600">{notification.comment}</span>
-        {notification.customer_name && <span className="mt-0.5 block text-xs text-neutral-400">{notification.customer_name}</span>}
-        <span className="mt-1 block text-xs text-neutral-400">
-          {notification.created_at ? timeAgo(notification.created_at, undefined, language) : ''}
-        </span>
-      </span>
-    </button>
   )
 }
