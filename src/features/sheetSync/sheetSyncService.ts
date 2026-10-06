@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import type { SheetCheck, SheetSyncRun, SheetSyncSettings, SyncResult, TabConfig, Schedule, DateOrder } from './sheetSync'
+import type { SheetCheck, SheetSyncRun, SheetSyncSettings, SyncResult, TabConfig, Schedule, DateOrder, OrderTab } from './sheetSync'
 
 /** Calls the sheet-sync Edge Function; business errors come back as { ok: false, error }. */
 async function invoke<T>(body: Record<string, unknown>): Promise<T> {
@@ -25,7 +25,7 @@ export const sheetSyncService = {
   async get(): Promise<SheetSyncSettings> {
     const { data, error } = await supabase
       .from('sheet_sync_settings')
-      .select('tabs, date_order, schedule, at_time, weekday, next_run_at, last_synced_at')
+      .select('tabs, orders, date_order, schedule, at_time, weekday, next_run_at, last_synced_at')
       .maybeSingle()
     if (error) throw new Error(errText(error))
     if (!data) throw new Error('Only a Super Admin can open the Google Sheet sync.')
@@ -40,6 +40,13 @@ export const sheetSyncService = {
       p_at_time: s.at_time,
       p_weekday: s.weekday,
     })
+    if (error) throw new Error(errText(error))
+    return data as unknown as SheetSyncSettings
+  },
+
+  /** Save (or, with null, turn off) the sale order tab. */
+  async saveOrders(orders: OrderTab | null): Promise<SheetSyncSettings> {
+    const { data, error } = await supabase.rpc('save_sheet_sync_orders', { p_orders: orders as never })
     if (error) throw new Error(errText(error))
     return data as unknown as SheetSyncSettings
   },

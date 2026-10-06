@@ -44,6 +44,7 @@ const PeoplePage = lazyPage(() => import('@/pages/PeoplePage').then((m) => ({ de
 const TripsPage = lazyPage(() => import('@/pages/TripsPage').then((m) => ({ default: m.TripsPage })))
 const TripRequestPage = lazyPage(() => import('@/pages/TripRequestPage').then((m) => ({ default: m.TripRequestPage })))
 const TripDetailPage = lazyPage(() => import('@/pages/TripDetailPage').then((m) => ({ default: m.TripDetailPage })))
+const MemberFootprintsPage = lazyPage(() => import('@/pages/MemberFootprintsPage').then((m) => ({ default: m.MemberFootprintsPage })))
 const TripsCalendarPage = lazyPage(() => import('@/pages/TripsCalendarPage').then((m) => ({ default: m.TripsCalendarPage })))
 const TripSettingsPage = lazyPage(() => import('@/pages/TripSettingsPage').then((m) => ({ default: m.TripSettingsPage })))
 const AdminPage = lazyPage(() => import('@/pages/AdminPage').then((m) => ({ default: m.AdminPage })))
@@ -179,6 +180,16 @@ export const router = createBrowserRouter([
           <RequirePermission module="footprints">
             <Suspense fallback={<PageFallback />}>
               <FootprintsPage />
+            </Suspense>
+          </RequirePermission>
+        ),
+      },
+      {
+        path: '/team/footprints/:userId',
+        element: (
+          <RequirePermission module="team_map">
+            <Suspense fallback={<PageFallback />}>
+              <MemberFootprintsPage />
             </Suspense>
           </RequirePermission>
         ),

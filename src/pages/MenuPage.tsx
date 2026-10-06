@@ -3,9 +3,8 @@ import { Link } from 'react-router-dom'
 import { ChevronDown, ChevronRight, Search, Settings, X } from 'lucide-react'
 import { useRoleGroup } from '@/features/nav/useRoleGroup'
 import { usePendingApprovals } from '@/features/nav/usePendingApprovals'
-import { canApprove, forYou, hubFunctions, hubSearch } from '@/features/nav/navConfig'
+import { canApprove, forYou, hubFunctions, hubSearch, shortLabel } from '@/features/nav/navConfig'
 import { useFlexCycle } from '@/features/flex/useFlexCycle'
-import { useNotificationsContext } from '@/features/notifications/NotificationsContext'
 import { useMessages } from '@/features/conversations/MessagesContext'
 import { useLanguage } from '@/i18n/LanguageContext'
 
@@ -23,27 +22,34 @@ export function MenuPage() {
   const flex = useFlexCycle()
   const { group, ctx } = useRoleGroup(!!flex.cycle?.isFlexible)
   const pendingApprovals = usePendingApprovals(canApprove(ctx))
-  const { unreadCount } = useNotificationsContext()
   const { unreadCount: unreadMessages } = useMessages()
-  const badge = (key: string) => (key === 'approvals' ? pendingApprovals : key === 'messages' ? unreadMessages : key === 'notifications' ? unreadCount : 0)
+  const badge = (key: string) => (key === 'approvals' ? pendingApprovals : key === 'messages' ? unreadMessages : 0)
   const shortcuts = forYou(group, ctx)
   const functions = hubFunctions(group, ctx)
   const results = hubSearch(group, ctx, query)
-  const total = functions.reduce((a, f) => a + f.rows.length, 0)
 
   const [openKey, setOpenKey] = useState<string | null | undefined>(undefined)
   // One function open at a time; the one with something waiting starts open.
   const defaultOpen = pendingApprovals > 0 ? (functions.find((f) => f.rows.some((r) => r.key === 'approvals'))?.key ?? null) : null
   const current = openKey === undefined ? defaultOpen : openKey
   const groups = [
-    ...functions.map((f) => ({ key: f.key, title: t(f.titleKey), icon: f.icon, rows: f.rows.map((r) => ({ key: r.key, label: r.label, to: r.to })) })),
+    ...functions.map((f) => ({
+      key: f.key,
+      title: t(f.titleKey),
+      icon: f.icon,
+      sub: f.rows.map(shortLabel).join(' · '),
+      rows: f.rows.map((r) => ({ key: r.key, label: r.label, to: r.to })),
+    })),
     {
       key: 'account',
       title: t('nav.account'),
       icon: Settings,
+      sub: 'Language, appearance, help, privacy',
       rows: [
-        { key: 'profile', label: t('nav.profile'), to: '/profile' },
-        { key: 'account', label: t('nav.account'), to: '/menu/account' },
+        { key: 'language', label: 'Language', to: '/menu/account' },
+        { key: 'appearance', label: 'Appearance', to: '/menu/account' },
+        { key: 'help', label: 'Help', to: '/menu/account?open=help' },
+        { key: 'privacy', label: 'Privacy', to: '/menu/account?open=privacy' },
       ],
     },
   ]
@@ -130,7 +136,7 @@ export function MenuPage() {
                         </span>
                         <span className="min-w-0 flex-1">
                           <span className="block text-[15px] font-bold text-neutral-900">{g.title}</span>
-                          <span className="block truncate text-[13px] text-neutral-500">{g.rows.map((r) => r.label).join(' · ')}</span>
+                          <span className="block truncate text-[13px] text-neutral-500">{g.sub}</span>
                         </span>
                         {waiting > 0 && <span className="inline-flex h-[22px] shrink-0 items-center rounded-full bg-status-warn/10 px-2 text-xs font-bold text-status-warn">{waiting} waiting</span>}
                         <ChevronDown className={`h-4 w-4 shrink-0 text-neutral-500 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />
@@ -152,9 +158,6 @@ export function MenuPage() {
               </div>
             </section>
 
-            <p className="px-1 text-center text-xs text-neutral-500">
-              {total} screens in {functions.length} functions · Footprints v{__APP_VERSION__}
-            </p>
           </>
         )}
       </div>

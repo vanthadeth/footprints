@@ -9,6 +9,7 @@ export function parentPath(pathname: string, search = ''): string {
   if (pathname === '/leave/days-off') return user ? '/leave/flexible' : '/leave'
   if (pathname === '/leave/days-off/settlement') return user ? `/leave/days-off?user=${user}` : '/leave/days-off'
   if (pathname === '/trips/calendar') return '/approvals?tab=trips'
+  if (pathname.startsWith('/team/footprints/')) return '/team'
   if (pathname.startsWith('/trips/')) return '/trips'
   if (pathname.startsWith('/admin/')) return '/admin'
   if (pathname.startsWith('/customers/')) return '/customers'

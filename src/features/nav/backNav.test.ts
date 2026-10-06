@@ -18,6 +18,7 @@ describe('appBack', () => {
   it('sends a sub-page to its parent, the same as the title bar', () => {
     expect(appBack('/customers/abc', '', nav)).toBe('/customers')
     expect(appBack('/trips/calendar', '', nav)).toBe('/approvals?tab=trips')
+    expect(appBack('/team/footprints/u2', '', nav)).toBe('/team')
     expect(appBack('/leave/days-off', '?user=u2', nav)).toBe('/leave/flexible')
     expect(appBack('/customers/abc', '', nav)).toBe(parentPath('/customers/abc'))
   })

@@ -17,9 +17,4 @@ export const notificationsService = {
     if (error) throw error
     return data ?? []
   },
-
-  async markRead(id: string): Promise<void> {
-    const { error } = await supabase.from('notifications').update({ read_at: new Date().toISOString() }).eq('id', id)
-    if (error) throw error
-  },
 }

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { ChevronRight, Plus, Search, User as UserIcon, Users as UsersIcon } from 'lucide-react'
+import { Mail, Phone, Plus, Search, User as UserIcon, Users as UsersIcon } from 'lucide-react'
+import { Bone } from '@/components/Skeleton'
 import { EmptyState } from '@/components/EmptyState'
 import { Switch } from '@/components/Switch'
 import { AdminFrame, AdminTabs } from '@/components/AdminKit'
@@ -18,6 +19,18 @@ const STATUS: Record<Exclude<ManagedUser['status'], 'active'>, { label: string; 
 const TABS = ['users', 'departments', 'roles'] as const
 
 type StatusFilter = 'active' | 'inactive' | 'all'
+type Grouping = 'az' | 'dept'
+const GROUPING_KEY = 'footprints.users.grouping'
+
+/** The contact-list letter a name files under: A–Z, else #. */
+const letterOf = (name: string) => {
+  const c = name.trim().charAt(0).toUpperCase()
+  return c >= 'A' && c <= 'Z' ? c : '#'
+}
+
+/** A steady colour per person for their initials, like a phone's contacts. */
+const TONES = ['bg-[#0a7ad6]', 'bg-[#1e9e5a]', 'bg-[#d9652b]', 'bg-[#8d4fd6]', 'bg-[#c23b6e]', 'bg-[#0f8f8f]', 'bg-[#b07d12]', 'bg-[#5b6b85]']
+const toneOf = (id: string) => TONES[[...id].reduce((n, ch) => (n * 31 + ch.charCodeAt(0)) >>> 0, 7) % TONES.length]
 
 const NO_DEPARTMENT = 'No Department'
 
@@ -35,6 +48,21 @@ export function UsersPage() {
   // you're looking for -- hidden by default, one tap away via the filter.
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('active')
   const [deptFilter, setDeptFilter] = useState('')
+  const [grouping, setGroupingState] = useState<Grouping>(() => {
+    try {
+      return localStorage.getItem(GROUPING_KEY) === 'dept' ? 'dept' : 'az'
+    } catch {
+      return 'az'
+    }
+  })
+  const setGrouping = (g: Grouping) => {
+    setGroupingState(g)
+    try {
+      localStorage.setItem(GROUPING_KEY, g)
+    } catch {
+      /* remembered for this visit only */
+    }
+  }
   const [formOpen, setFormOpen] = useState(false)
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
   const [editing, setEditing] = useState<ManagedUser | null>(null)
@@ -55,23 +83,20 @@ export function UsersPage() {
     })
   }, [users, query, statusFilter, deptFilter])
 
-  // Grouped by department, alphabetically -- users with no department
-  // assigned sort last under a catch-all group rather than being scattered
-  // or dropped.
+  // A–Z like a phone's contacts (by the name shown), or by department with
+  // "No Department" last; people sorted by name inside each group.
   const groups = useMemo(() => {
-    const byDepartment = new Map<string, ManagedUser[]>()
-    for (const u of filtered) {
-      const key = u.departmentName ?? NO_DEPARTMENT
-      const list = byDepartment.get(key) ?? []
+    const groups = new Map<string, ManagedUser[]>()
+    const sorted = [...filtered].sort((x, y) => displayName(x.fullName, x.nickname).localeCompare(displayName(y.fullName, y.nickname)))
+    for (const u of sorted) {
+      const key = grouping === 'az' ? letterOf(displayName(u.fullName, u.nickname)) : (u.departmentName ?? NO_DEPARTMENT)
+      const list = groups.get(key) ?? []
       list.push(u)
-      byDepartment.set(key, list)
+      groups.set(key, list)
     }
-    return [...byDepartment.entries()].sort(([a], [b]) => {
-      if (a === NO_DEPARTMENT) return 1
-      if (b === NO_DEPARTMENT) return -1
-      return a.localeCompare(b)
-    })
-  }, [filtered])
+    const last = grouping === 'az' ? '#' : NO_DEPARTMENT
+    return [...groups.entries()].sort(([x], [y]) => (x === last ? 1 : y === last ? -1 : x.localeCompare(y)))
+  }, [filtered, grouping])
 
   function openCreate() {
     setFormMode('create')
@@ -173,13 +198,39 @@ export function UsersPage() {
           <Switch checked={statusFilter === 'all'} onChange={(on) => setStatusFilter(on ? 'all' : 'active')} label="Show inactive users" />
         </div>
 
+        <div role="radiogroup" aria-label="Order" className="inline-flex gap-0.5 rounded-xl bg-neutral-100 p-[3px]">
+          {(
+            [
+              ['az', 'A–Z'],
+              ['dept', 'By department'],
+            ] as const
+          ).map(([k, l]) => (
+            <button
+              key={k}
+              type="button"
+              role="radio"
+              aria-checked={grouping === k}
+              onClick={() => setGrouping(k)}
+              className={`h-8 rounded-[9px] px-3.5 text-[13px] ${grouping === k ? 'seg-on font-bold text-neutral-900 shadow-sm' : 'font-semibold text-neutral-500'}`}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+
         {error && <p className="rounded-lg bg-status-danger/10 px-3 py-2 text-sm text-status-danger">{error}</p>}
 
         {loading ? (
-          <div className="space-y-2">
-            <div className="h-16 animate-pulse rounded-xl2 bg-neutral-100" />
-            <div className="h-16 animate-pulse rounded-xl2 bg-neutral-100" />
-            <div className="h-16 animate-pulse rounded-xl2 bg-neutral-100" />
+          <div className="space-y-1">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center gap-3.5 py-3">
+                <Bone className="h-12 w-12 shrink-0 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <Bone className="h-4 w-1/2" />
+                  <Bone className="h-3 w-1/3" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : filtered.length === 0 ? (
           <EmptyState
@@ -192,19 +243,34 @@ export function UsersPage() {
             }
           />
         ) : (
-          <div className="space-y-[18px]">
-            {groups.map(([department, members]) => (
-              <section key={department} aria-label={department}>
-                <h2 className="mb-0.5 text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">
-                  {department} · {members.length}
-                </h2>
-                <div className="border-b border-neutral-100 dark:border-neutral-800">
+          <div className="relative">
+            <div className={`space-y-5 ${grouping === 'az' && groups.length > 3 ? 'pr-5 md:pr-0' : ''}`}>
+              {groups.map(([key, members]) => (
+                <section key={key} id={`users-${key}`} aria-label={key} className="scroll-mt-20">
+                  <h2 className={grouping === 'az' ? 'border-b border-neutral-100 pb-1 text-lg font-extrabold text-brand-500 dark:border-neutral-800' : 'border-b border-neutral-100 pb-1.5 text-xs font-bold uppercase tracking-[0.06em] text-neutral-500 dark:border-neutral-800'}>
+                    {key}
+                    {grouping === 'dept' && ` · ${members.length}`}
+                  </h2>
                   {members.map((u) => (
-                    <UserRow key={u.id} user={u} onClick={() => openEdit(u)} />
+                    <ContactRow key={u.id} user={u} showDepartment={grouping === 'az'} onClick={() => openEdit(u)} />
                   ))}
-                </div>
-              </section>
-            ))}
+                </section>
+              ))}
+            </div>
+            {grouping === 'az' && groups.length > 3 && (
+              <nav aria-label="Jump to letter" className="fixed right-1 top-1/2 z-[5] flex -translate-y-1/2 flex-col items-center md:hidden">
+                {groups.map(([key]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => document.getElementById(`users-${key}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                    className="flex h-[22px] w-6 items-center justify-center text-[11px] font-bold text-brand-500"
+                  >
+                    {key}
+                  </button>
+                ))}
+              </nav>
+            )}
           </div>
         )}
         <button type="button" onClick={openCreate} className="inline-flex items-center gap-1.5 py-1 text-sm font-bold text-brand-500">
@@ -227,33 +293,48 @@ export function UsersPage() {
   )
 }
 
-function UserRow({ user, onClick }: { user: ManagedUser; onClick: () => void }) {
+/** One person, laid out like a phone contact: photo, name, job, number, and call / email buttons. */
+function ContactRow({ user, showDepartment, onClick }: { user: ManagedUser; showDepartment: boolean; onClick: () => void }) {
   const avatarUrl = useAvatarUrl(user.photoPath)
   const name = displayName(user.fullName, user.nickname)
-  const initials = user.fullName
+  const initials = name
     .split(' ')
     .map((w) => w[0])
     .join('')
     .slice(0, 2)
     .toUpperCase()
-
-  const sub = [user.roleName, user.position, user.isFieldSales ? 'field sales' : null].filter(Boolean).join(' · ')
+  const job = [user.position || user.roleName, showDepartment ? user.departmentName : null].filter(Boolean).join(' · ')
+  const detail = [user.phonePrimary ?? user.email, user.managerName ? `reports to ${user.managerName}` : null].filter(Boolean).join(' · ')
   const status = user.status === 'active' ? null : STATUS[user.status]
+  const action = 'flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600 dark:bg-brand-500/20 dark:text-brand-300'
 
   return (
-    <button onClick={onClick} className={`flex min-h-[58px] w-full items-center gap-3 border-t border-neutral-100 py-1.5 text-left dark:border-neutral-800 ${status ? 'opacity-70' : ''}`}>
-      <div className={`flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full text-xs font-bold ${status ? 'bg-neutral-200 text-neutral-500' : 'bg-brand-500 text-white'}`}>
-        {avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : initials || <UserIcon className="h-4 w-4" />}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-[15px] font-semibold text-neutral-900">
-          {name}
-          {user.nickname && <span className="font-normal text-neutral-500"> · {user.fullName}</span>}
-        </p>
-        <p className="truncate text-xs text-neutral-500">{[sub, user.managerName ? `reports to ${user.managerName}` : null].filter(Boolean).join(' · ')}</p>
-      </div>
-      {status && <span className={`inline-flex h-[22px] shrink-0 items-center rounded-full px-2 text-[11px] font-bold ${status.cls}`}>{status.label}</span>}
-      <ChevronRight className="h-4 w-4 shrink-0 text-neutral-500" aria-hidden />
-    </button>
+    <div className={`flex items-center gap-3.5 border-b border-neutral-100 py-3 last:border-b-0 dark:border-neutral-800 ${status ? 'opacity-70' : ''}`}>
+      <button type="button" onClick={onClick} className="flex min-w-0 flex-1 items-center gap-3.5 text-left">
+        <span className={`flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full text-base font-bold text-white ${status ? 'bg-neutral-400' : toneOf(user.id)}`}>
+          {avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : initials || <UserIcon className="h-5 w-5" />}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-2">
+            <span className="truncate text-[17px] font-bold text-neutral-900">{name}</span>
+            {status && <span className={`inline-flex h-5 shrink-0 items-center rounded-full px-2 text-[11px] font-bold ${status.cls}`}>{status.label}</span>}
+            {!status && user.isFieldSales && <span className="inline-flex h-5 shrink-0 items-center rounded-full bg-status-working/10 px-2 text-[11px] font-bold text-status-working">Field</span>}
+          </span>
+          {user.nickname && <span className="block truncate text-[13px] text-neutral-500">{user.fullName}</span>}
+          {job && <span className="block truncate text-[13.5px] text-neutral-700">{job}</span>}
+          {detail && <span className="block truncate text-[12.5px] text-neutral-500">{detail}</span>}
+        </span>
+      </button>
+      {user.phonePrimary && (
+        <a href={`tel:${user.phonePrimary.replace(/[^\d+]/g, '')}`} aria-label={`Call ${name}`} className={action}>
+          <Phone className="h-[18px] w-[18px]" aria-hidden />
+        </a>
+      )}
+      {user.email && (
+        <a href={`mailto:${user.email}`} aria-label={`Email ${name}`} className={`${action} hidden sm:flex ${user.phonePrimary ? '' : '!flex'}`}>
+          <Mail className="h-[18px] w-[18px]" aria-hidden />
+        </a>
+      )}
+    </div>
   )
 }

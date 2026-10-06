@@ -1,9 +1,11 @@
-// Footprints: Google Sheet sync for customers (Super Admin).
+// Footprints: Google Sheet sync for customers and sale orders (Super Admin).
 //
 // Reads one to three tabs of a Google Sheet shared as "Anyone with the link
 // can view" (CSV export), maps the columns the Super Admin chose to customer
 // fields, merges the rows by key and hands them to the sheet_sync_* RPCs
 // (supabase/migrations/0105_footprints_sheet_sync.sql), which do the writes.
+// Then, when set, reads the sale order tab (fixed SO columns) and mirrors it
+// into sale_orders through sheet_orders_apply (0107).
 //
 // Actions (POST JSON):
 //   { action: 'headers', url, tab? } -> the tab's headers, a sample and suggested mapping
@@ -15,7 +17,7 @@
 // against the Vault secret by sheet_sync_token_ok). Deployed with
 // verify_jwt = false because the cron call carries no user JWT.
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
-import { gidForTab, linkGid, mapTab, mergeRows, parseCsv, resolveProvince, resolveUser, sheetCsvUrl, sheetId, suggestMapping, type DateOrder, type MappedRow, type RowProblem, type TabConfig } from './parse.ts'
+import { gidForTab, isValidOrder, linkGid, mapOrders, mapTab, mergeRows, parseCsv, resolveAssignee, resolveProvince, resolveUser, sheetCsvUrl, sheetId, suggestMapping, type DateOrder, type MappedRow, type RowProblem, type TabConfig } from './parse.ts'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -146,10 +148,13 @@ Deno.serve(async (req) => {
   const trigger = action === 'preview' ? 'preview' : who.schedule ? 'schedule' : 'manual'
   const { data: begun, error: beginError } = await admin.rpc('sheet_sync_begin', { p_trigger: trigger, p_user: who.userId })
   if (beginError) return json({ ok: false, error: beginError.details || beginError.message })
-  const { run_id: runId, tabs, date_order: order } = begun as { run_id: string; tabs: TabConfig[]; date_order: DateOrder }
+  const { run_id: runId, tabs, orders: orderTab, date_order: order } = begun as { run_id: string; tabs: TabConfig[]; orders: { url: string; tab: string | null } | null; date_order: DateOrder }
 
   const problems: RowProblem[] = []
-  const counts = { rows_read: 0, updated: 0, created: 0, unchanged: 0, skipped: 0, contacts_updated: 0, contacts_created: 0 }
+  const counts = {
+    rows_read: 0, updated: 0, created: 0, unchanged: 0, skipped: 0, contacts_updated: 0, contacts_created: 0,
+    orders: { read: 0, valid: 0, created: 0, updated: 0, unchanged: 0, cancelled: 0, skipped: 0 },
+  }
   try {
     const mapped: { rows: MappedRow[]; balanceRows?: 'total' | 'sum' }[] = []
     for (let i = 0; i < tabs.length; i++) {
@@ -162,11 +167,12 @@ Deno.serve(async (req) => {
     }
     const merged = mergeRows(mapped)
 
-    const [{ data: provinces }, { data: users }] = await Promise.all([
+    const [{ data: provinces }, { data: activeUsers }] = await Promise.all([
       admin.from('geo_provinces').select('code, name, name_alt'),
       admin.from('users').select('id, full_name, nickname, email').eq('status', 'active'),
     ])
-    const payload = toPayload(merged, provinces ?? [], users ?? [], (reason) => problems.push({ tab: 0, row: 0, reason }))
+    const users = activeUsers ?? []
+    const payload = toPayload(merged, provinces ?? [], users, (reason) => problems.push({ tab: 0, row: 0, reason }))
 
     for (let i = 0; i < payload.length; i += BATCH) {
       const { data, error } = await admin.rpc('sheet_sync_apply', { p_run: runId, p_rows: payload.slice(i, i + BATCH), p_dry: action === 'preview' })
@@ -179,6 +185,37 @@ Deno.serve(async (req) => {
       counts.unchanged += c.unchanged
       counts.skipped += c.skipped
       for (const s of c.skipped_rows) problems.push({ tab: 0, row: 0, reason: `${s.key}: ${s.reason}` })
+    }
+
+    // Sale orders, after customers so an order can find a customer this run created.
+    // A sheet problem here is reported without failing the customer sync above.
+    if (orderTab) try {
+      const out = mapOrders(parseCsv(await fetchCsv(orderTab.url, orderTab.tab)), order)
+      if (out.missing.length) throw new SyncError(`The sale order tab has no column named ${out.missing.map((m) => `“${m}”`).join(', ')}. Check the sheet.`)
+      for (const p of out.problems) problems.push({ tab: 0, row: 0, reason: `Sale orders, row ${p.row}: ${p.reason}` })
+      counts.orders.read = out.rows.length
+      const unknownPeople = new Set<string>()
+      const rows = out.rows.map(({ assign_to, ...r }) => {
+        const user_id = resolveAssignee(assign_to, users)
+        if (assign_to && !user_id && isValidOrder(r)) unknownPeople.add(assign_to)
+        return { ...r, assign_to, user_id }
+      })
+      for (const p of [...unknownPeople].slice(0, 10)) problems.push({ tab: 0, row: 0, reason: `ASSIGN_TO “${p}” doesn’t name an active user, so those orders keep their salesperson` })
+      for (let i = 0; i < rows.length; i += BATCH) {
+        const { data, error } = await admin.rpc('sheet_orders_apply', { p_run: runId, p_rows: rows.slice(i, i + BATCH), p_dry: action === 'preview' })
+        if (error) throw new SyncError(error.details || error.message)
+        const c = data as { valid: number; created: number; updated: number; unchanged: number; cancelled: number; skipped: number; skipped_rows: { key: string; reason: string }[] }
+        counts.orders.valid += c.valid
+        counts.orders.created += c.created
+        counts.orders.updated += c.updated
+        counts.orders.unchanged += c.unchanged
+        counts.orders.cancelled += c.cancelled
+        counts.orders.skipped += c.skipped
+        for (const s of c.skipped_rows) problems.push({ tab: 0, row: 0, reason: `Order ${s.key}: ${s.reason}` })
+      }
+    } catch (e) {
+      if (!(e instanceof SyncError)) throw e
+      problems.unshift({ tab: 0, row: 0, reason: `Sale orders weren’t synced: ${e.message}` })
     }
 
     const status = problems.length ? 'partial' : 'ok'

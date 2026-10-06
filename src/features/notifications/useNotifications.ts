@@ -4,7 +4,6 @@ import { notificationsService, type NotificationFeedRow } from './notificationsS
 
 interface NotificationsState {
   notifications: NotificationFeedRow[]
-  unreadCount: number
   loading: boolean
   error: string | null
 }
@@ -26,13 +25,13 @@ const POLL_FALLBACK_MS = 60_000
  */
 export function useNotifications(
   enabled: boolean = true
-): NotificationsState & { refresh: () => void; markRead: (id: string) => Promise<void> } {
-  const [state, setState] = useState<NotificationsState>({ notifications: [], unreadCount: 0, loading: enabled, error: null })
+): NotificationsState & { refresh: () => void } {
+  const [state, setState] = useState<NotificationsState>({ notifications: [], loading: enabled, error: null })
 
   const load = useCallback(async () => {
     try {
       const notifications = await notificationsService.list()
-      setState({ notifications, unreadCount: notifications.filter((n) => !n.read_at).length, loading: false, error: null })
+      setState({ notifications, loading: false, error: null })
     } catch (e) {
       setState((s) => ({ ...s, loading: false, error: e instanceof Error ? e.message : 'Failed to load notifications.' }))
     }
@@ -56,16 +55,5 @@ export function useNotifications(
     }
   }, [enabled, load])
 
-  async function markRead(id: string) {
-    // Optimistic -- the realtime event for our own update will reconcile
-    // this shortly anyway, but no reason to wait for the round trip.
-    setState((s) => ({
-      ...s,
-      notifications: s.notifications.map((n) => (n.id === id ? { ...n, read_at: n.read_at ?? new Date().toISOString() } : n)),
-      unreadCount: s.notifications.find((n) => n.id === id && !n.read_at) ? Math.max(0, s.unreadCount - 1) : s.unreadCount,
-    }))
-    await notificationsService.markRead(id)
-  }
-
-  return { ...state, refresh: load, markRead }
+  return { ...state, refresh: load }
 }

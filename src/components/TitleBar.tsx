@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { ChevronLeft } from 'lucide-react'
 import { ProfileBadge } from '@/components/ProfileBadge'
@@ -74,6 +75,8 @@ export function TitleBar() {
           ? t('nav.messageThread')
           : pathname.startsWith('/menu/') && Object.prototype.hasOwnProperty.call(FN, pathname.slice(6))
             ? t(FN[pathname.slice(6) as FnKey].titleKey)
+          : pathname.startsWith('/team/footprints/')
+            ? t('nav.footprints')
           : pathname.startsWith('/trips/') && !TITLE_KEYS[pathname]
             ? t(pathname.endsWith('/edit') ? 'nav.editTrip' : 'nav.trip')
           : t(TITLE_KEYS[pathname] ?? 'nav.footprints')
@@ -81,47 +84,76 @@ export function TitleBar() {
   const { group, ctx } = useRoleGroup()
   const isRoot = tabsFor(group, ctx).some((tab) => tab.to === pathname)
 
-  const actions = (
-    <div className="flex items-center gap-1">
-      <NotificationBell />
-      <ProfileBadge />
-    </div>
-  )
+  const scrolled = useScrolled(pathname)
+  const largeRef = useRef<HTMLHeadingElement>(null)
+  const [titleGone, setTitleGone] = useState(false)
+  useEffect(() => {
+    // The compact title appears once the large one has scrolled up under the bar.
+    const el = largeRef.current
+    if (!isRoot || !el) return setTitleGone(false)
+    const io = new IntersectionObserver(([e]) => setTitleGone(!e.isIntersecting), { rootMargin: '-56px 0px 0px 0px' })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [isRoot, pathname])
+
+  // The bar's background: the page itself at the top, frosted with a hairline once the page scrolls under it.
+  const bar = (compact: boolean) =>
+    `sticky top-0 z-10 transition-[background-color,border-color] duration-200 ${
+      compact ? 'border-b border-neutral-200/80 bg-neutral-50/95 backdrop-blur-xl dark:border-neutral-800 dark:bg-[#1c1c1c]/95' : 'border-b border-transparent bg-neutral-50 dark:bg-[#1c1c1c]'
+    }`
 
   if (isRoot) {
     const today = new Date().toLocaleDateString(language === 'km' ? 'km-KH' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
     return (
-      <header
-        style={{ paddingTop: 'calc(0.5rem + env(safe-area-inset-top))' }}
-        className="sticky top-0 z-10 bg-neutral-50/95 px-4 pb-3 backdrop-blur md:px-8 dark:bg-neutral-950/95"
-      >
-        <div className="flex h-11 items-center justify-between">
-          <span className="text-[13px] font-semibold text-neutral-500">{today}</span>
-          {actions}
-        </div>
-        <h1 className="mt-0.5 text-[30px] font-extrabold leading-tight tracking-tight text-neutral-900">{title}</h1>
-      </header>
+      <>
+        <header style={{ paddingTop: 'env(safe-area-inset-top)' }} className={`${bar(titleGone)} px-4 md:px-8`}>
+          <div className="relative flex h-14 items-center justify-between gap-3">
+            <span className={`text-[13px] font-semibold text-neutral-500 transition-opacity duration-200 ${titleGone ? 'opacity-0' : 'opacity-100'}`}>{today}</span>
+            <span
+              aria-hidden={!titleGone}
+              className={`pointer-events-none absolute inset-x-24 truncate text-center text-[17px] font-bold text-neutral-900 transition-all duration-200 ${titleGone ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'}`}
+            >
+              {title}
+            </span>
+            <div className="flex shrink-0 items-center gap-2">
+              <NotificationBell framed />
+              <ProfileBadge />
+            </div>
+          </div>
+        </header>
+        <h1 ref={largeRef} className="-mt-1.5 px-4 pb-1.5 text-[30px] font-extrabold leading-9 tracking-[-0.02em] text-neutral-900 md:px-8">
+          {title}
+        </h1>
+      </>
     )
   }
 
   return (
-    <header
-      // Explicit calc(), not the .safe-top utility class -- that class sets
-      // padding-top on its own, which would just replace py-3's padding-top
-      // instead of adding to it.
-      style={{ paddingTop: 'calc(0.5rem + env(safe-area-inset-top))' }}
-      className="sticky top-0 z-10 flex items-center gap-1 border-b border-neutral-200 bg-white/95 pb-2 pl-1.5 pr-4 backdrop-blur dark:border-neutral-800 md:px-8"
-    >
-      <Link
-        to={parentPath(pathname, search)}
-        replace
-        aria-label={t('common.back')}
-        className="flex h-11 w-11 items-center justify-center rounded-full text-neutral-600 md:hidden"
-      >
-        <ChevronLeft className="h-6 w-6" aria-hidden />
-      </Link>
-      <h1 className="min-w-0 flex-1 truncate text-[17px] font-bold text-neutral-900">{title}</h1>
-      {actions}
+    <header style={{ paddingTop: 'env(safe-area-inset-top)' }} className={`${bar(scrolled)} px-3 md:px-8`}>
+      <div className={`grid h-14 items-center ${'grid-cols-[44px_minmax(0,1fr)_44px] md:grid-cols-[0px_minmax(0,1fr)_auto]'}`}>
+        <Link to={parentPath(pathname, search)} replace aria-label={t('common.back')} className="flex h-10 w-10 items-center justify-center rounded-full text-neutral-900 md:hidden">
+          <ChevronLeft className="h-6 w-6" aria-hidden />
+        </Link>
+        <h1 className="truncate px-1 text-center text-[17px] font-bold text-neutral-900 md:text-left">{title}</h1>
+        <div className="flex items-center justify-end gap-2">
+          <NotificationBell />
+          <span className="hidden md:block">
+            <ProfileBadge />
+          </span>
+        </div>
+      </div>
     </header>
   )
+}
+
+/** True once the page has scrolled a little (reset on every new screen). */
+function useScrolled(key: string): boolean {
+  const [scrolled, setScrolled] = useState(false)
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 4)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [key])
+  return scrolled
 }

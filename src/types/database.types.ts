@@ -5878,6 +5878,28 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      save_sheet_sync_orders: {
+        Args: { p_orders: Json }
+        Returns: {
+          at_time: string
+          date_order: string
+          id: boolean
+          last_synced_at: string | null
+          next_run_at: string | null
+          orders: Json | null
+          schedule: string
+          tabs: Json
+          updated_at: string
+          updated_by: string | null
+          weekday: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "sheet_sync_settings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       save_task: {
         Args: {
           p_customer?: string

@@ -1,12 +1,10 @@
 import { AdminGroup, AdminRow } from '@/components/AdminKit'
-import { useNotificationsContext } from '@/features/notifications/NotificationsContext'
 import { useRoleGroup } from '@/features/nav/useRoleGroup'
 import { adminRows } from '@/features/nav/navConfig'
 
 /** Admin (tab for System Admin / Super Admin): every administration screen the person can use, in one list. */
 export function AdminPage() {
   const { ctx } = useRoleGroup()
-  const { unreadCount } = useNotificationsContext()
   const rows = adminRows(ctx)
   // Sections as on the design canvas (Polish › Admin); anything new lands in System.
   const SECTIONS: [string, string[]][] = [
@@ -22,14 +20,7 @@ export function AdminPage() {
       {groups.map(([title, list]) => (
         <AdminGroup key={title} title={title}>
           {list.map((r) => (
-            <AdminRow
-              key={r.key}
-              icon={r.icon}
-              label={r.label}
-              sub={r.sub}
-              to={r.to}
-              pill={r.key === 'notifications' && unreadCount > 0 ? { text: String(unreadCount), tone: 'danger' } : undefined}
-            />
+            <AdminRow key={r.key} icon={r.icon} label={r.label} sub={r.sub} to={r.to} />
           ))}
         </AdminGroup>
       ))}

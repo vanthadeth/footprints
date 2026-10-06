@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
-import { AlertTriangle, ChevronDown, ChevronRight, Phone, Plus, RefreshCw, Sheet, Trash2, X } from 'lucide-react'
+import { AlertTriangle, ChevronDown, ChevronRight, Phone, Plus, ReceiptText, RefreshCw, Sheet, Trash2, X } from 'lucide-react'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { useProfile } from '@/features/auth/useProfile'
 import { sheetSyncService } from '@/features/sheetSync/sheetSyncService'
@@ -11,14 +11,18 @@ import {
   SCHEDULES,
   WEEKDAYS,
   countsText,
+  missingOrderColumns,
   newContact,
   newTab,
+  orderCountsText,
+  orderTabProblem,
   scheduleText,
   tabProblem,
   whenText,
   type ContactSlot,
   type DateOrder,
   type FieldKey,
+  type OrderTab,
   type Schedule,
   type SheetCheck,
   type SheetSyncRun,
@@ -232,6 +236,81 @@ function TabCard({ n, tab, check, checking, onChange, onCheck, onRemove }: {
   )
 }
 
+/** The sale order tab: a link (and tab name), checked for the SO columns; only valid orders are imported. */
+function OrdersCard({ orders, check, checking, onChange, onCheck }: {
+  orders: OrderTab | null
+  check: SheetCheck | undefined
+  checking: boolean
+  onChange: (o: OrderTab | null) => void
+  onCheck: () => void
+}) {
+  const missing = check?.ok ? missingOrderColumns(check.headers ?? []) : []
+  return (
+    <section className={`${card} space-y-3 p-3.5`} aria-label="Sale orders">
+      <div className="flex items-center gap-2">
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500 text-white">
+          <ReceiptText className="h-4 w-4" aria-hidden />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[15px] font-extrabold text-neutral-900">Sale orders</p>
+          <p className="text-[12px] text-neutral-500">{orders ? 'Synced after the customer tabs' : 'Not synced'}</p>
+        </div>
+        {orders ? (
+          <button type="button" onClick={() => onChange(null)} aria-label="Stop syncing sale orders" className="flex h-8 w-8 items-center justify-center rounded-full text-neutral-500">
+            <Trash2 className="h-4 w-4" />
+          </button>
+        ) : (
+          <button type="button" onClick={() => onChange({ url: '', tab: 'SO' })} className="flex h-9 items-center gap-1 rounded-lg bg-brand-50 px-3 text-sm font-extrabold text-brand-700 dark:bg-brand-500/15 dark:text-brand-200">
+            <Plus className="h-4 w-4" /> Add
+          </button>
+        )}
+      </div>
+
+      {orders && (
+        <>
+          <div className="space-y-1.5">
+            <label className="block text-[12.5px] font-bold text-neutral-600" htmlFor="sheet-orders-url">
+              Link to the sale order sheet
+            </label>
+            <div className="flex gap-2">
+              <input
+                id="sheet-orders-url"
+                value={orders.url}
+                onChange={(e) => onChange({ ...orders, url: e.target.value })}
+                placeholder="https://docs.google.com/spreadsheets/d/…/edit"
+                inputMode="url"
+                autoComplete="off"
+                className={`${input} flex-1`}
+              />
+              <button type="button" onClick={onCheck} disabled={checking || !orders.url.trim()} className="h-10 shrink-0 rounded-lg bg-brand-50 px-3 text-sm font-extrabold text-brand-700 disabled:opacity-50 dark:bg-brand-500/15 dark:text-brand-200">
+                {checking ? 'Checking…' : 'Check sheet'}
+              </button>
+            </div>
+            <label className="flex items-center gap-2">
+              <span className="w-[108px] shrink-0 text-[13px] font-semibold text-neutral-700">Tab name</span>
+              <input value={orders.tab ?? ''} onChange={(e) => onChange({ ...orders, tab: e.target.value || null })} placeholder="e.g. SO" autoComplete="off" aria-label="Sale order tab name" className={input} />
+            </label>
+            {check && !check.ok && <p className="rounded-lg bg-status-danger/10 px-2.5 py-1.5 text-[12.5px] text-status-danger">{check.error}</p>}
+            {check?.ok &&
+              (missing.length ? (
+                <p className="rounded-lg bg-status-danger/10 px-2.5 py-1.5 text-[12.5px] text-status-danger">No column named {missing.map((m) => `“${m}”`).join(', ')} in that tab.</p>
+              ) : (
+                <p className="text-[12.5px] font-semibold text-status-working">Found {check.rows?.toLocaleString('en-US')} orders · all the SO columns are there</p>
+              ))}
+          </div>
+          <ul className="space-y-1 rounded-xl bg-neutral-50 p-2.5 text-[12.5px] leading-snug text-neutral-700 dark:bg-neutral-800">
+            <li>
+              Only valid orders come in: <b>ORDER_STATUS = 1</b> and <b>APPROVED = TRUE</b>. An order that stops being valid is marked cancelled.
+            </li>
+            <li>Orders match by the sheet’s ID column; the customer by CUSTOMER_ID, the salesperson by the first ASSIGN_TO name that is a user.</li>
+            <li>The sheet wins: changes there replace what’s in the app. Orders removed from the sheet are left alone.</li>
+          </ul>
+        </>
+      )}
+    </section>
+  )
+}
+
 function ResultCard({ result, preview }: { result: SyncResult; preview: boolean }) {
   if (!result.ok)
     return (
@@ -246,6 +325,7 @@ function ResultCard({ result, preview }: { result: SyncResult; preview: boolean 
       <p className="text-[13.5px] text-neutral-700">
         {c.rows_read.toLocaleString('en-US')} rows read · {countsText(c, preview)}
       </p>
+      {orderCountsText(c.orders, preview) && <p className="text-[13.5px] text-neutral-700">{orderCountsText(c.orders, preview)}</p>}
       {(result.errors?.length ?? 0) > 0 && (
         <ul className="space-y-0.5 text-[12.5px] text-status-warn">
           {result.errors!.slice(0, 8).map((e, i) => (
@@ -270,6 +350,9 @@ export function SheetSyncPage() {
   const { profile, loading: profileLoading } = useProfile()
   const [saved, setSaved] = useState<SheetSyncSettings | null>(null)
   const [tabs, setTabs] = useState<TabConfig[]>([])
+  const [orders, setOrders] = useState<OrderTab | null>(null)
+  const [orderCheck, setOrderCheck] = useState<SheetCheck | undefined>()
+  const [checkingOrders, setCheckingOrders] = useState(false)
   const [dateOrder, setDateOrder] = useState<DateOrder>('dmy')
   const [schedule, setSchedule] = useState<Schedule>('off')
   const [atTime, setAtTime] = useState('06:00')
@@ -285,6 +368,7 @@ export function SheetSyncPage() {
   const load = (s: SheetSyncSettings) => {
     setSaved(s)
     setTabs(s.tabs.length ? s.tabs : [newTab()])
+    setOrders(s.orders ?? null)
     setDateOrder(s.date_order)
     setSchedule(s.schedule)
     setAtTime(s.at_time.slice(0, 5))
@@ -301,9 +385,12 @@ export function SheetSyncPage() {
   }, [profile?.is_super_admin])
 
   const draft = useMemo(() => ({ tabs, date_order: dateOrder, schedule, at_time: atTime, weekday }), [tabs, dateOrder, schedule, atTime, weekday])
-  const dirty = !!saved && JSON.stringify(draft) !== JSON.stringify({ tabs: saved.tabs.length ? saved.tabs : [newTab()], date_order: saved.date_order, schedule: saved.schedule, at_time: saved.at_time.slice(0, 5), weekday: saved.weekday })
-  const problem = tabs.map(tabProblem).find(Boolean) ?? null
-  const hasSaved = !!saved && saved.tabs.length > 0
+  const ordersDirty = !!saved && JSON.stringify(orders) !== JSON.stringify(saved.orders ?? null)
+  const dirty =
+    !!saved &&
+    (ordersDirty || JSON.stringify(draft) !== JSON.stringify({ tabs: saved.tabs.length ? saved.tabs : [newTab()], date_order: saved.date_order, schedule: saved.schedule, at_time: saved.at_time.slice(0, 5), weekday: saved.weekday }))
+  const problem = tabs.map(tabProblem).find(Boolean) ?? orderTabProblem(orders)
+  const hasSaved = !!saved && (saved.tabs.length > 0 || !!saved.orders)
 
   if (!profileLoading && !profile?.is_super_admin) return <Navigate to="/menu" replace />
   if (!saved) return msg ? <p className="mx-auto max-w-lg px-4 py-10 text-center text-sm text-status-danger">{msg.text}</p> : <div className="mx-auto mt-4 h-64 max-w-lg animate-pulse rounded-2xl bg-neutral-100" />
@@ -324,11 +411,25 @@ export function SheetSyncPage() {
     }
   }
 
+  const checkOrders = async () => {
+    if (!orders) return
+    setCheckingOrders(true)
+    try {
+      setOrderCheck(await sheetSyncService.check(orders.url, orders.tab))
+    } catch (e) {
+      setOrderCheck({ ok: false, error: (e as Error).message })
+    } finally {
+      setCheckingOrders(false)
+    }
+  }
+
   const save = async () => {
     setBusy('save')
     setMsg(null)
     try {
-      load(await sheetSyncService.save(draft))
+      let s = await sheetSyncService.save(draft)
+      if (ordersDirty) s = await sheetSyncService.saveOrders(orders ? { url: orders.url.trim(), tab: orders.tab?.trim() || null } : null)
+      load(s)
       setMsg({ ok: true, text: 'Saved.' })
     } catch (e) {
       setMsg({ ok: false, text: (e as Error).message })
@@ -356,7 +457,7 @@ export function SheetSyncPage() {
   return (
     <div className="mx-auto max-w-lg space-y-3 px-4 pb-8 pt-2 md:max-w-2xl md:px-8">
       <p className="px-1 text-[13px] leading-snug text-neutral-500">
-        Keep customers, their contacts, last purchase date and balance in step with a Google Sheet. Rows match customers by the key column; new rows become new customers, and customers missing from the sheet are left alone. Empty cells never erase what’s in the app.
+        Keep customers, their contacts, last purchase date and balance — and sale orders — in step with a Google Sheet. Rows match customers by the key column; new rows become new customers, and customers missing from the sheet are left alone. Empty cells never erase customer info in the app.
       </p>
       <p className="flex gap-2 rounded-xl bg-status-warn/10 px-3 py-2.5 text-[12.5px] leading-snug text-neutral-800 dark:text-neutral-200">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-status-warn" aria-hidden />
@@ -382,6 +483,17 @@ export function SheetSyncPage() {
           <Plus className="h-4 w-4" /> Add another tab <span className="font-semibold text-neutral-500">· e.g. balances on their own tab</span>
         </button>
       )}
+
+      <OrdersCard
+        orders={orders}
+        check={orderCheck}
+        checking={checkingOrders}
+        onChange={(o) => {
+          setOrders(o)
+          if (!o || o.url !== orders?.url || o.tab !== orders?.tab) setOrderCheck(undefined)
+        }}
+        onCheck={checkOrders}
+      />
 
       <section className={`${card} space-y-3 p-3.5`}>
         <div className="space-y-1.5">
@@ -464,6 +576,7 @@ export function SheetSyncPage() {
                   <span className="block truncate text-[12.5px] text-neutral-500">
                     {r.status === 'failed' ? r.message : `${r.rows_read.toLocaleString('en-US')} rows · ${countsText(r, r.trigger === 'preview')}`}
                   </span>
+                  {r.status !== 'failed' && orderCountsText(r.orders, r.trigger === 'preview') && <span className="block truncate text-[12.5px] text-neutral-500">{orderCountsText(r.orders, r.trigger === 'preview')}</span>}
                 </span>
                 {r.errors.length > 0 || r.message ? open ? <ChevronDown className="h-4 w-4 text-neutral-400" /> : <ChevronRight className="h-4 w-4 text-neutral-400" /> : null}
               </button>
