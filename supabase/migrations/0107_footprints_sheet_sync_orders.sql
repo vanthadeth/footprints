@@ -46,7 +46,6 @@ alter table public.sale_orders
   add column synced_at          timestamptz;
 
 create unique index sale_orders_sheet_id_key on public.sale_orders (sheet_id) where sheet_id is not null;
-create index sale_orders_customer_id_idx on public.sale_orders (customer_id);
 create index sale_orders_user_id_order_date_idx on public.sale_orders (user_id, order_date desc);
 
 comment on column public.sale_orders.sheet_id is 'The order''s ID in the sale order sheet (tab SO); set only on orders synced from it.';
