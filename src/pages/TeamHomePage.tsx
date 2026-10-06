@@ -230,7 +230,7 @@ export function TeamHomePage() {
             ? `Clocked in ${formatTime(s.attendance.clock_in_at)}, ${done.length} ${done.length === 1 ? 'visit' : 'visits'}, ${formatDuration(visitMs, language)} on visits`
             : `No clock-in since ${settings.workStartTime.slice(0, 5)}`
           return (
-            <Link key={s.member.id} to={`/fleet?member=${s.member.id}`} className="flex items-start gap-3 border-t border-neutral-100 py-2.5 first-of-type:border-t-0 dark:border-neutral-800">
+            <Link key={s.member.id} to={`/team/footprints/${s.member.id}`} state={{ name, sub: [s.member.position, s.member.departmentName].filter(Boolean).join(' · ') }} className="flex items-start gap-3 border-t border-neutral-100 py-2.5 first-of-type:border-t-0 dark:border-neutral-800">
               <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-[12px] font-extrabold text-brand-700 dark:bg-brand-500/20 dark:text-brand-100">
                 {name.slice(0, 2).toUpperCase()}
                 <span className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white dark:border-[#232323] ${DOT[st]}`} />

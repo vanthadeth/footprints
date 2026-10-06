@@ -75,6 +75,8 @@ export function TitleBar() {
           ? t('nav.messageThread')
           : pathname.startsWith('/menu/') && Object.prototype.hasOwnProperty.call(FN, pathname.slice(6))
             ? t(FN[pathname.slice(6) as FnKey].titleKey)
+          : pathname.startsWith('/team/footprints/')
+            ? t('nav.footprints')
           : pathname.startsWith('/trips/') && !TITLE_KEYS[pathname]
             ? t(pathname.endsWith('/edit') ? 'nav.editTrip' : 'nav.trip')
           : t(TITLE_KEYS[pathname] ?? 'nav.footprints')
