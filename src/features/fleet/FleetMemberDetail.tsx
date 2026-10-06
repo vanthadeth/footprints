@@ -12,6 +12,7 @@ import { formatDuration, formatTime } from '@/lib/datetime'
 import { Freshness } from './Freshness'
 import { FleetStatusBadge } from './FleetStatusBadge'
 import type { FleetMemberSnapshot } from './types'
+import { firstClockIn } from '@/features/attendance/sessions'
 
 export function FleetMemberDetail({ snapshot, onClose }: { snapshot: FleetMemberSnapshot | null; onClose: () => void }) {
   const customerNames = useCustomerNames(snapshot?.visitsToday.map((v) => v.customer_id) ?? [])
@@ -44,7 +45,7 @@ export function FleetMemberDetail({ snapshot, onClose }: { snapshot: FleetMember
         <div className="mt-4 grid grid-cols-3 gap-2 text-center">
           <div className="rounded-xl bg-neutral-50 p-2.5">
             <p className="text-xs text-neutral-400">Clock In</p>
-            <p className="text-sm font-semibold text-neutral-900">{attendance ? formatTime(attendance.clock_in_at) : '—'}</p>
+            <p className="text-sm font-semibold text-neutral-900">{snapshot.sessions.length ? formatTime(firstClockIn(snapshot.sessions)) : attendance ? formatTime(attendance.clock_in_at) : '—'}</p>
           </div>
           <div className="rounded-xl bg-neutral-50 p-2.5">
             <p className="text-xs text-neutral-400">Visits</p>
@@ -89,11 +90,7 @@ export function FleetMemberDetail({ snapshot, onClose }: { snapshot: FleetMember
 
         <div className="mt-4">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Journey Map</p>
-          {/* Fleet's snapshot only ever keeps this member's most recent
-              session today (fleetService.fetchSnapshot) -- fine for a live
-              glance, so only that one session's clock in/out pin shows here
-              even on a day with more than one. */}
-          <JourneyMap visits={visitsToday} attendance={attendance ? [attendance] : []} customerNames={customerNames} />
+          <JourneyMap visits={visitsToday} attendance={snapshot.sessions} customerNames={customerNames} />
         </div>
 
         {attendance && (

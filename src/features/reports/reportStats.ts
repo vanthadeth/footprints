@@ -1,6 +1,7 @@
 import type { AttendanceRow, VisitRow } from '@/features/attendance/types'
 import type { FleetMemberSnapshot } from '@/features/fleet/types'
 import { formatTime } from '@/lib/datetime'
+import { firstClockIn, workedMs } from '@/features/attendance/sessions'
 
 export interface LiveFleetKpis {
   clockedIn: number
@@ -38,10 +39,11 @@ export function computeLiveFleetKpis(snapshots: FleetMemberSnapshot[], now: numb
     if (s.attendance.clock_out_at) clockedOut += 1
     else clockedIn += 1
 
-    const start = new Date(s.attendance.clock_in_at)
+    // The day starts at the first clock-in and counts time on the clock across every session.
+    const sessions = s.sessions.length ? s.sessions : [s.attendance]
+    const start = new Date(firstClockIn(sessions)!)
     clockInTimes.push(start.getHours() * 60 + start.getMinutes())
-    const end = s.attendance.clock_out_at ? new Date(s.attendance.clock_out_at).getTime() : now
-    workingDurations.push(end - start.getTime())
+    workingDurations.push(workedMs(sessions, now))
 
     if (s.attendance.flags?.includes('TRACKING_INTERRUPTED')) trackingIssues += 1
   }

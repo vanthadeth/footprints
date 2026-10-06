@@ -19,6 +19,7 @@ function snapshot(overrides: Partial<FleetMemberSnapshot>): FleetMemberSnapshot 
     },
     status: 'OFF',
     attendance: null,
+    sessions: overrides.attendance ? [overrides.attendance] : [],
     openVisit: null,
     visitsToday: [],
     lastLocation: null,
@@ -58,6 +59,16 @@ describe('computeLiveFleetKpis', () => {
     expect(kpis.visiting).toBe(1)
     expect(kpis.idling).toBe(1)
     expect(kpis.off).toBe(2)
+  })
+
+  it('counts a day with a lunch break as one working day from the first clock-in, without the break', () => {
+    const morning = attendance('u1', '2026-01-01T01:00:00Z', '2026-01-01T05:00:00Z')
+    const afternoon = attendance('u1', '2026-01-01T06:00:00Z', null)
+    const kpis = computeLiveFleetKpis([snapshot({ status: 'IDLING', attendance: afternoon, sessions: [morning, afternoon] })], new Date('2026-01-01T08:00:00Z').getTime())
+    expect(kpis.clockedIn).toBe(1)
+    expect(kpis.avgWorkingDurationMs).toBe(6 * 3600e3)
+    const first = new Date('2026-01-01T01:00:00Z')
+    expect(kpis.avgClockInTime).toBe(`${String(first.getHours()).padStart(2, '0')}:${String(first.getMinutes()).padStart(2, '0')}`)
   })
 
   it('never divides by zero when nobody has clocked in', () => {

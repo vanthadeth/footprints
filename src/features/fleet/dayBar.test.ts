@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dayBreakdown, daySegments } from './dayBar'
+import { dayBreakdown, daySegments, segmentsFor } from './dayBar'
 
 const t = (h: number, m = 0) => (h * 60 + m) * 60_000
 const base = { shiftStart: t(8), shiftEnd: t(17), flagAfterMin: 45 }
@@ -43,9 +43,49 @@ describe('daySegments', () => {
     expect(kinds(s)).toEqual(['visit 480-500', 'gap 500-545', 'flag 545-600'])
   })
 
+  it('shows the time between two sessions as off the clock, and restarts the idle limit at the next clock-in', () => {
+    const s = daySegments({
+      ...base,
+      clockIn: t(8),
+      clockOut: null,
+      sessions: [
+        [t(13), null],
+        [t(8), t(12)],
+      ],
+      visits: [
+        [t(8, 30), t(11, 30)],
+        [t(13, 40), t(14)],
+      ],
+      now: t(14, 30),
+    })
+    expect(kinds(s)).toEqual(['gap 480-510', 'visit 510-690', 'gap 690-720', 'off 720-780', 'gap 780-820', 'visit 820-840', 'gap 840-870', 'todo 870-1020'])
+  })
+
+  it('ends at the last clock-out when every session is closed', () => {
+    const s = daySegments({ ...base, clockIn: t(8), clockOut: t(16), sessions: [[t(8), t(10)], [t(11), t(16)]], visits: [], now: t(17) })
+    expect(kinds(s)).toEqual(['gap 480-525', 'flag 525-600', 'off 600-660', 'gap 660-705', 'flag 705-960'])
+  })
+
   it('remembers which visit each visit stretch is', () => {
     const s = daySegments({ ...base, clockIn: t(8), clockOut: t(12), visits: [[t(10), t(11)], [t(8, 30), t(9)]], now: t(12) })
     expect(s.filter((g) => g.kind === 'visit').map((g) => g.visit)).toEqual([1, 0])
+  })
+})
+
+describe('segmentsFor', () => {
+  it('builds the sessions from every attendance row of the day', () => {
+    const iso = (h: number, m = 0) => new Date((h * 60 + m) * 60_000).toISOString()
+    const r = segmentsFor({
+      attendance: [
+        { clock_in_at: iso(8), clock_out_at: iso(12) },
+        { clock_in_at: iso(13), clock_out_at: iso(17) },
+      ],
+      visits: [],
+      ...base,
+      now: t(18),
+    })
+    expect([r.clockIn, r.clockOut]).toEqual([t(8), t(17)])
+    expect(r.segs.some((g) => g.kind === 'off' && g.from === t(12) && g.to === t(13))).toBe(true)
   })
 })
 

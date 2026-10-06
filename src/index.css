@@ -262,6 +262,12 @@
       animation: none;
     }
   }
+  /* Day bar (features/fleet/DayBar.tsx): time off the clock between two
+     sessions, hatched in the text colour so it reads as "not working"
+     rather than as another kind of work. */
+  .seg-off {
+    background: repeating-linear-gradient(135deg, currentColor 0 2px, transparent 2px 5px);
+  }
 }
 
 @keyframes skeleton-shimmer {

@@ -11,6 +11,7 @@ import { atLocal, segText, segmentsFor } from './dayBar'
 import { useAppSettings } from '@/hooks/useAppSettings'
 import { todayDateString } from '@/lib/dateRange'
 import type { FleetMemberSnapshot } from './types'
+import { firstClockIn, lastClockOut, workedMs } from '@/features/attendance/sessions'
 
 const DOT: Record<FleetMemberSnapshot['status'], string> = { VISITING: 'bg-status-visiting', IDLING: 'bg-earth-500', OFF: 'bg-neutral-400' }
 
@@ -51,7 +52,9 @@ export function TeamTodayList({ snapshots }: { snapshots: FleetMemberSnapshot[] 
         const name = displayName(s.member.fullName, s.member.nickname)
         const done = s.visitsToday.filter((v) => !v.cancelled_at)
         const isOpen = open === s.member.id
-        const workMs = s.attendance ? (s.attendance.clock_out_at ? Date.parse(s.attendance.clock_out_at) : now) - Date.parse(s.attendance.clock_in_at) : 0
+        const workMs = workedMs(s.sessions, now)
+        const firstIn = firstClockIn(s.sessions)
+        const lastOut = lastClockOut(s.sessions)
         const visitMs = done.reduce((n, v) => n + ((v.checked_out_at ? Date.parse(v.checked_out_at) : now) - Date.parse(v.checked_in_at)), 0)
         const eff = workMs > 0 ? Math.round((visitMs / workMs) * 100) : null
         const last = done[done.length - 1]
@@ -60,8 +63,8 @@ export function TeamTodayList({ snapshots }: { snapshots: FleetMemberSnapshot[] 
             ? `At ${s.openVisit.customer_id ? (customerNames[s.openVisit.customer_id] ?? '…') : t('common.unassignedVisit')}`
             : s.status === 'IDLING'
               ? 'Between visits'
-              : s.attendance?.clock_out_at
-                ? `Clocked out ${formatTime(s.attendance.clock_out_at)}`
+              : lastOut
+                ? `Clocked out ${formatTime(lastOut)}`
                 : 'Not clocked in'
         const nowSub =
           s.status === 'VISITING' && s.openVisit
@@ -69,7 +72,7 @@ export function TeamTodayList({ snapshots }: { snapshots: FleetMemberSnapshot[] 
             : s.status === 'IDLING'
               ? last
                 ? `No visit since ${formatTime(last.checked_out_at ?? last.checked_in_at)}`
-                : `Clocked in ${formatTime(s.attendance!.clock_in_at)}`
+                : `Clocked in ${formatTime(firstIn)}`
               : s.attendance
                 ? `Worked ${formatDuration(workMs, language)}`
                 : 'Shift started without a clock-in'
@@ -86,7 +89,7 @@ export function TeamTodayList({ snapshots }: { snapshots: FleetMemberSnapshot[] 
               </span>
               <span className="shrink-0 text-right">
                 <span className="block text-sm font-extrabold text-neutral-900">{s.attendance ? `${done.length} ${done.length === 1 ? 'visit' : 'visits'}` : '—'}</span>
-                <span className="block text-[11px] text-neutral-500">{s.attendance ? `in ${formatTime(s.attendance.clock_in_at)}` : ''}</span>
+                <span className="block text-[11px] text-neutral-500">{firstIn ? `in ${formatTime(firstIn)}` : ''}</span>
               </span>
               <ChevronDown className={`h-4 w-4 shrink-0 text-neutral-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} aria-hidden />
             </button>
@@ -111,15 +114,15 @@ export function TeamTodayList({ snapshots }: { snapshots: FleetMemberSnapshot[] 
                 )}
                 {s.attendance &&
                   (() => {
-                    const { segs, live, clockIn, clockOut } = segmentsFor({ attendance: [s.attendance], visits: s.visitsToday, shiftStart, shiftEnd, now, flagAfterMin: settings.idleAlertThresholdMinutes })
+                    const { segs, live, clockIn, clockOut } = segmentsFor({ attendance: s.sessions, visits: s.visitsToday, shiftStart, shiftEnd, now, flagAfterMin: settings.idleAlertThresholdMinutes })
                     if (clockIn == null) return null
                     const name = (g: (typeof segs)[number]) => (g.visit != null ? (live[g.visit]?.customer_id ? (customerNames[live[g.visit].customer_id!] ?? null) : null) : null)
                     return (
                       <div className="mt-3">
-                        <DayBar segs={segs} from={clockIn} to={Math.max(shiftEnd, clockOut ?? now)} size="md" label={`Clocked in ${formatTime(s.attendance.clock_in_at)}, ${live.length} ${live.length === 1 ? 'visit' : 'visits'}`} describe={(g) => segText(g, name(g))} />
+                        <DayBar segs={segs} from={clockIn} to={Math.max(shiftEnd, clockOut ?? now)} size="md" label={`Clocked in ${formatTime(firstIn)}${s.sessions.length > 1 ? ` (${s.sessions.length} sessions)` : ''}, ${live.length} ${live.length === 1 ? 'visit' : 'visits'}`} describe={(g) => segText(g, name(g))} />
                         <div className="mt-1 flex justify-between text-[10px] font-semibold text-neutral-500">
-                          <span>In {formatTime(s.attendance.clock_in_at)}</span>
-                          <span>{s.attendance.clock_out_at ? `Out ${formatTime(s.attendance.clock_out_at)}` : settings.workEndTime.slice(0, 5)}</span>
+                          <span>In {formatTime(firstIn)}</span>
+                          <span>{lastOut ? `Out ${formatTime(lastOut)}` : settings.workEndTime.slice(0, 5)}</span>
                         </div>
                       </div>
                     )
