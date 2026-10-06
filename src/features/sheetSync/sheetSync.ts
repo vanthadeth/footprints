@@ -1,4 +1,4 @@
-import { FIELDS, MAX_CONTACTS, ORDER_COLUMNS, normHeader, type ContactSlot, type FieldKey, type TabConfig } from '../../../supabase/functions/sheet-sync/parse'
+import { FIELDS, MAX_CONTACTS, ORDER_COLUMNS, ORDER_REQUIRED, normHeader, type ContactSlot, type FieldKey, type TabConfig } from '../../../supabase/functions/sheet-sync/parse'
 
 export { FIELDS, MAX_CONTACTS, ORDER_COLUMNS, type ContactSlot, type FieldKey, type TabConfig }
 
@@ -146,7 +146,7 @@ export function tabProblem(t: TabConfig): string | null {
 /** The required sale order columns a tab's header row lacks. */
 export function missingOrderColumns(headers: string[]): string[] {
   const have = new Set(headers.map(normHeader))
-  return ORDER_COLUMNS.slice(0, 5)
+  return ORDER_COLUMNS.slice(0, ORDER_REQUIRED)
     .map(([, h]) => h)
     .filter((h) => !have.has(normHeader(h)))
 }
