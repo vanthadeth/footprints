@@ -1,5 +1,5 @@
 /** What a stretch of someone's day was, in the bar's colours. */
-export type SegKind = 'visit' | 'gap' | 'flag' | 'out' | 'todo' | 'miss'
+export type SegKind = 'visit' | 'gap' | 'flag' | 'out' | 'off' | 'todo' | 'miss'
 
 /** Legend order and labels, as on the canvas. */
 export const DAY_BAR_LEGEND: [SegKind, string][] = [
@@ -7,6 +7,7 @@ export const DAY_BAR_LEGEND: [SegKind, string][] = [
   ['gap', 'Travel / gaps'],
   ['flag', 'Flagged'],
   ['out', 'Outside hours'],
+  ['off', 'Clocked out'],
   ['miss', 'Missed'],
 ]
 
@@ -23,6 +24,12 @@ export interface DayInput {
   clockIn: number | null
   /** Epoch ms of the clock-out, or null while still on the clock. */
   clockOut: number | null
+  /**
+   * Each clock-in / clock-out session as [in, out or null while open]. A day
+   * can have several (a lunch break, a split shift); the time between them is
+   * off the clock. Omitted: one session from clockIn to clockOut.
+   */
+  sessions?: [number, number | null][]
   /** Today's visits as [check-in, check-out or null while open], any order. */
   visits: [number, number | null][]
   shiftStart: number
@@ -36,8 +43,9 @@ export interface DayInput {
  * The day as coloured stretches (canvas Polish › Team, "same bar language
  * as Today › Your day"): visits; travel and gaps between them, the part
  * past the idle limit flagged; time on the clock outside working hours;
- * the rest of the shift still to come; and, with no clock-in after the
- * shift started, the missed time.
+ * time off the clock between two sessions; the rest of the shift still to
+ * come; and, with no clock-in after the shift started, the missed time.
+ * The idle limit starts again at each clock-in.
  */
 export function daySegments(d: DayInput): Seg[] {
   const out: Seg[] = []
@@ -47,10 +55,19 @@ export function daySegments(d: DayInput): Seg[] {
     return out
   }
   const endWork = d.clockOut ?? d.now
+  const sessions = (d.sessions?.length ? d.sessions : [[d.clockIn, d.clockOut] as [number, number | null]])
+    .map(([a, b]) => [a, Math.min(b ?? d.now, endWork)] as const)
+    .filter(([a, b]) => b > a)
+    .sort((x, y) => x[0] - y[0])
   const visits = d.visits
     .map(([a, b], i) => [Math.max(a, d.clockIn!), Math.min(b ?? d.now, endWork), i] as const)
     .filter(([a, b]) => b > a)
     .sort((x, y) => x[0] - y[0])
+  const push = (kind: SegKind, x: number, y: number, visit?: number) => {
+    const last = out[out.length - 1]
+    if (visit === undefined && last && last.kind === kind && last.to === x) last.to = y
+    else out.push(visit === undefined ? { kind, from: x, to: y } : { kind, from: x, to: y, visit })
+  }
 
   // A gap: travel first; past the idle limit the rest is flagged. Time outside working hours is its own colour.
   const gap = (a: number, b: number) => {
@@ -59,21 +76,24 @@ export function daySegments(d: DayInput): Seg[] {
     const cuts = [a, ...[flagFrom, d.shiftStart, d.shiftEnd].filter((t) => t > a && t < b), b].sort((x, y) => x - y)
     for (let i = 0; i < cuts.length - 1; i++) {
       const [x, y] = [cuts[i], cuts[i + 1]]
-      const kind: SegKind = y <= d.shiftStart || x >= d.shiftEnd ? 'out' : x >= flagFrom ? 'flag' : 'gap'
-      const last = out[out.length - 1]
-      if (last && last.kind === kind && last.to === x) last.to = y
-      else out.push({ kind, from: x, to: y })
+      push(y <= d.shiftStart || x >= d.shiftEnd ? 'out' : x >= flagFrom ? 'flag' : 'gap', x, y)
     }
   }
 
-  let at = d.clockIn
-  for (const [a, b, i] of visits) {
-    if (b <= at) continue
-    gap(at, Math.max(a, at))
-    out.push({ kind: 'visit', from: Math.max(a, at), to: b, visit: i })
-    at = b
+  let prevEnd: number | null = null
+  for (const [s, e] of sessions) {
+    if (prevEnd != null && s > prevEnd) push('off', prevEnd, s)
+    let at = prevEnd != null ? Math.max(s, prevEnd) : s
+    for (const [a0, b0, i] of visits) {
+      const [a, b] = [Math.max(a0, s), Math.min(b0, e)]
+      if (b <= at || b <= a) continue
+      gap(at, Math.max(a, at))
+      push('visit', Math.max(a, at), b, i)
+      at = b
+    }
+    gap(at, e)
+    prevEnd = Math.max(prevEnd ?? e, e)
   }
-  gap(at, endWork)
   if (d.clockOut == null && d.now < d.shiftEnd) out.push({ kind: 'todo', from: Math.max(d.now, d.clockIn), to: d.shiftEnd })
   return out
 }
@@ -100,6 +120,7 @@ export const SEG_LABEL: Record<SegKind, string> = {
   gap: 'Travel, rest & gaps',
   flag: 'Flagged travel or rest',
   out: 'Outside working hours',
+  off: 'Clocked out (between sessions)',
   todo: 'Still to go',
   miss: 'Missed — not clocked in',
 }
@@ -141,6 +162,7 @@ export function segmentsFor<V extends { checked_in_at: string; checked_out_at: s
     clockIn,
     clockOut,
     visits: live.map((v) => [Date.parse(v.checked_in_at), v.checked_out_at ? Date.parse(v.checked_out_at) : null]),
+    sessions: opts.attendance.map((a) => [Date.parse(a.clock_in_at), a.clock_out_at ? Date.parse(a.clock_out_at) : null]),
     shiftStart: opts.shiftStart,
     shiftEnd: opts.shiftEnd,
     now: opts.now,

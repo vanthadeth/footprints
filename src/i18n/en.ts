@@ -190,6 +190,8 @@ export const en = {
     confirmOutNote: 'Your selfie and location are saved with your clock-out.',
     needLocationSelfie: 'Check your location and take a selfie first',
     notClockedIn: 'Not clocked in',
+    clockedOutAt: 'Clocked out at {{time}}',
+    clockInAgain: 'Clock in again',
     startsIn: 'starts in {{n}}',
     lateBy: '{{n}} late',
     clockInClosedShort: 'Clock-in has closed for today',

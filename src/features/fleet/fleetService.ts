@@ -8,11 +8,13 @@ function deriveStatus(attendance: AttendanceRow | null, openVisit: VisitRow | nu
   return openVisit ? 'VISITING' : 'IDLING'
 }
 
-function lastLocationFor(attendance: AttendanceRow | null, visits: VisitRow[]): LastLocation | null {
+function lastLocationFor(sessions: AttendanceRow[], visits: VisitRow[]): LastLocation | null {
   const candidates: LastLocation[] = []
-  if (attendance) candidates.push({ latitude: attendance.clock_in_latitude, longitude: attendance.clock_in_longitude, at: attendance.clock_in_at })
-  if (attendance?.clock_out_at && attendance.clock_out_latitude != null && attendance.clock_out_longitude != null) {
-    candidates.push({ latitude: attendance.clock_out_latitude, longitude: attendance.clock_out_longitude, at: attendance.clock_out_at })
+  for (const a of sessions) {
+    candidates.push({ latitude: a.clock_in_latitude, longitude: a.clock_in_longitude, at: a.clock_in_at })
+    if (a.clock_out_at && a.clock_out_latitude != null && a.clock_out_longitude != null) {
+      candidates.push({ latitude: a.clock_out_latitude, longitude: a.clock_out_longitude, at: a.clock_out_at })
+    }
   }
   for (const v of visits) {
     if (v.in_latitude != null && v.in_longitude != null) candidates.push({ latitude: v.in_latitude, longitude: v.in_longitude, at: v.checked_in_at })
@@ -59,11 +61,12 @@ export const fleetService = {
     if (attendanceRes.error) throw attendanceRes.error
     if (visitsRes.error) throw visitsRes.error
 
-    const attendanceByUser = new Map<string, AttendanceRow>()
-    for (const a of attendanceRes.data ?? []) {
-      // A user should only have one open (or, today, effectively one) session; keep the most recent.
-      const existing = attendanceByUser.get(a.user_id)
-      if (!existing || a.clock_in_at > existing.clock_in_at) attendanceByUser.set(a.user_id, a)
+    // Several sessions a day are allowed (a lunch break, a split shift): keep them all, oldest first.
+    const sessionsByUser = new Map<string, AttendanceRow[]>()
+    for (const a of [...(attendanceRes.data ?? [])].sort((x, y) => x.clock_in_at.localeCompare(y.clock_in_at))) {
+      const list = sessionsByUser.get(a.user_id) ?? []
+      list.push(a)
+      sessionsByUser.set(a.user_id, list)
     }
     const visitsByUser = new Map<string, VisitRow[]>()
     for (const v of visitsRes.data ?? []) {
@@ -73,16 +76,18 @@ export const fleetService = {
     }
 
     return team.map((member) => {
-      const attendance = attendanceByUser.get(member.id) ?? null
+      const sessions = sessionsByUser.get(member.id) ?? []
+      const attendance = sessions[sessions.length - 1] ?? null
       const visits = visitsByUser.get(member.id) ?? []
       const openVisit = visits.find((v) => !v.checked_out_at) ?? null
       return {
         member,
         status: deriveStatus(attendance, openVisit),
         attendance,
+        sessions,
         openVisit,
         visitsToday: visits,
-        lastLocation: lastLocationFor(attendance, visits),
+        lastLocation: lastLocationFor(sessions, visits),
       }
     })
   },

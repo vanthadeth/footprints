@@ -49,7 +49,7 @@ export function CheckInPage() {
   // Computed above the loading guard below (hooks can't follow a
   // conditional return) -- summarizeAttendanceTimes handles an empty
   // todaysAttendance fine, returning all-null.
-  const { clockInTime, clockInLocationId } = summarizeAttendanceTimes(journey.todaysAttendance, journey.openAttendance)
+  const { clockInTime, clockOutTime, clockInLocationId } = summarizeAttendanceTimes(journey.todaysAttendance, journey.openAttendance)
   const locationNames = useLocationNames([clockInLocationId])
   const firstName = profile ? displayName(profile.full_name, profile.nickname).split(' ')[0] : undefined
 
@@ -270,7 +270,7 @@ export function CheckInPage() {
               <HeroRings />
               <span className="relative inline-flex h-[26px] items-center gap-[7px] rounded-full bg-white/[.08] px-2.5 text-xs font-bold text-white/70">
                 <span className="h-2 w-2 rounded-full border-2 border-white/70" />
-                {t('checkIn.notClockedIn')}
+                {clockOutTime ? t('checkIn.clockedOutAt', { time: formatTime(clockOutTime) }) : t('checkIn.notClockedIn')}
               </span>
               <p className="relative mt-3.5 text-[15px] font-semibold text-white/60">
                 {greeting(undefined, language)}
@@ -303,7 +303,7 @@ export function CheckInPage() {
                 className="relative mt-3.5 flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-[#ffffff] text-[17px] font-extrabold text-[#2b2b2b] disabled:opacity-50"
               >
                 <Clock className="h-[22px] w-[22px]" aria-hidden />
-                {t('checkIn.clockInButton')}
+                {journey.todaysAttendance.length > 0 ? t('checkIn.clockInAgain') : t('checkIn.clockInButton')}
               </button>
               <p className="relative mt-2.5 text-center text-xs text-white/60">{t('checkIn.confirmInNote')}</p>
             </section>

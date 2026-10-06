@@ -26,7 +26,10 @@ export interface LastLocation {
 export interface FleetMemberSnapshot {
   member: TeamMember
   status: FleetStatus
+  /** The latest session today (open or closed): what the person is doing now. */
   attendance: AttendanceRow | null
+  /** Every session that started today, oldest first; a day can have several (a lunch break, a split shift). */
+  sessions: AttendanceRow[]
   openVisit: VisitRow | null
   visitsToday: VisitRow[]
   lastLocation: LastLocation | null

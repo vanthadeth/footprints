@@ -6,6 +6,7 @@ import { useNotificationsContext } from '@/features/notifications/NotificationsC
 import { NotificationRow } from '@/features/notifications/NotificationRow'
 import { DAY_BAR_LEGEND, daySegments } from '@/features/fleet/dayBar'
 import { DayBar, DayBarSwatch } from '@/features/fleet/DayBar'
+import { firstClockIn, lastClockOut, workedMs } from '@/features/attendance/sessions'
 import { useFleet } from '@/features/fleet/useFleet'
 import { flexService, type FlexTeamRow } from '@/features/flex/flexService'
 import { useRoleGroup } from '@/features/nav/useRoleGroup'
@@ -107,9 +108,9 @@ export function TeamHomePage() {
   // stretched for anyone who clocked in earlier or is still working later.
   const shiftStart = new Date(`${today}T${settings.workStartTime.slice(0, 5)}:00+07:00`).getTime()
   const shiftEnd = new Date(`${today}T${settings.workEndTime.slice(0, 5)}:00+07:00`).getTime()
-  const clocked = field.filter((s) => s.attendance).map((s) => s.attendance!)
-  const rangeFrom = Math.min(shiftStart - 30 * 60_000, ...clocked.map((a) => Date.parse(a.clock_in_at)))
-  const rangeTo = Math.max(shiftEnd, ...clocked.map((a) => (a.clock_out_at ? Date.parse(a.clock_out_at) : now)))
+  const clocked = field.filter((s) => s.sessions.length)
+  const rangeFrom = Math.min(shiftStart - 30 * 60_000, ...clocked.map((s) => Date.parse(firstClockIn(s.sessions)!)))
+  const rangeTo = Math.max(shiftEnd, ...clocked.map((s) => { const out = lastClockOut(s.sessions); return out ? Date.parse(out) : now }))
   const tickAt = (ms: number) => ((ms - rangeFrom) / (rangeTo - rangeFrom)) * 100
   const noon = new Date(`${today}T12:00:00+07:00`).getTime()
   const ticks = [
@@ -201,7 +202,9 @@ export function TeamHomePage() {
           const st = statusOf(s)
           const name = displayName(s.member.fullName, s.member.nickname)
           const done = s.visitsToday.filter((v) => !v.cancelled_at)
-          const workMs = s.attendance ? msOf(s.attendance.clock_in_at, s.attendance.clock_out_at) : 0
+          const workMs = workedMs(s.sessions, now)
+          const firstIn = firstClockIn(s.sessions)
+          const lastOut = lastClockOut(s.sessions)
           const visitMs = done.reduce((n, v) => n + msOf(v.checked_in_at, v.checked_out_at), 0)
           const eff = workMs ? Math.round((visitMs / workMs) * 100) : null
           const sub =
@@ -211,23 +214,24 @@ export function TeamHomePage() {
                 ? `Between visits${done.length ? ` · last ${formatTime(done[done.length - 1].checked_out_at ?? done[done.length - 1].checked_in_at)}` : ''}`
                 : st === 'leave'
                   ? 'On leave today'
-                  : s.attendance?.clock_out_at
-                    ? `Clocked out ${formatTime(s.attendance.clock_out_at)}`
+                  : lastOut
+                    ? `Clocked out ${formatTime(lastOut)}`
                     : 'Not clocked in'
           const segs =
             st === 'leave'
               ? []
               : daySegments({
-                  clockIn: s.attendance ? Date.parse(s.attendance.clock_in_at) : null,
-                  clockOut: s.attendance?.clock_out_at ? Date.parse(s.attendance.clock_out_at) : null,
+                  clockIn: firstIn ? Date.parse(firstIn) : null,
+                  clockOut: lastOut ? Date.parse(lastOut) : null,
+                  sessions: s.sessions.map((a) => [Date.parse(a.clock_in_at), a.clock_out_at ? Date.parse(a.clock_out_at) : null]),
                   visits: done.map((v) => [Date.parse(v.checked_in_at), v.checked_out_at ? Date.parse(v.checked_out_at) : null]),
                   shiftStart,
                   shiftEnd,
                   now,
                   flagAfterMin: settings.idleAlertThresholdMinutes,
                 })
-          const barLabel = s.attendance
-            ? `Clocked in ${formatTime(s.attendance.clock_in_at)}, ${done.length} ${done.length === 1 ? 'visit' : 'visits'}, ${formatDuration(visitMs, language)} on visits`
+          const barLabel = firstIn
+            ? `Clocked in ${formatTime(firstIn)}${s.sessions.length > 1 ? ` (${s.sessions.length} sessions)` : ''}, ${done.length} ${done.length === 1 ? 'visit' : 'visits'}, ${formatDuration(visitMs, language)} on visits`
             : `No clock-in since ${settings.workStartTime.slice(0, 5)}`
           return (
             <Link key={s.member.id} to={`/team/footprints/${s.member.id}`} state={{ name, sub: [s.member.position, s.member.departmentName].filter(Boolean).join(' · ') }} className="flex items-start gap-3 border-t border-neutral-100 py-2.5 first-of-type:border-t-0 dark:border-neutral-800">

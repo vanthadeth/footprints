@@ -6,6 +6,7 @@ import { useAppSettings } from '@/hooks/useAppSettings'
 import { todayDateString } from '@/lib/dateRange'
 import { formatTime } from '@/lib/datetime'
 import type { FleetMemberSnapshot } from './types'
+import { firstClockIn } from '@/features/attendance/sessions'
 
 const COLLAPSED_KEY = 'footprints-team-pulse-collapsed'
 
@@ -54,7 +55,8 @@ export function TeamPulseCard({ snapshots }: { snapshots: FleetMemberSnapshot[] 
   const [sh, sm] = settings.workStartTime.split(':').map(Number)
   const lateAfter = sh * 60 + sm + settings.lateGraceMinutes
   const late = worked.filter((s) => {
-    const [h, m] = formatTime(s.attendance!.clock_in_at).split(':').map(Number)
+    // Late is judged on the first clock-in; a later session (after lunch) doesn't count.
+    const [h, m] = formatTime(firstClockIn(s.sessions) ?? s.attendance!.clock_in_at).split(':').map(Number)
     return h * 60 + m > lateAfter
   }).length
   const visits = snapshots.flatMap((s) => s.visitsToday.filter((v) => !v.cancelled_at))

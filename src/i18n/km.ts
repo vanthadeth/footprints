@@ -197,6 +197,8 @@ export const km: TranslationKey = {
     confirmOutNote: 'សែលហ្វី និងទីតាំងរបស់អ្នកត្រូវបានរក្សាទុកជាមួយការចេញម៉ោង។',
     needLocationSelfie: 'សូមពិនិត្យទីតាំង និងថតសែលហ្វីជាមុនសិន',
     notClockedIn: 'មិនទាន់ចូលម៉ោង',
+    clockedOutAt: 'បានចេញម៉ោងនៅ {{time}}',
+    clockInAgain: 'ចូលម៉ោងម្តងទៀត',
     startsIn: 'ចាប់ផ្តើមក្នុង {{n}}',
     lateBy: 'យឺត {{n}}',
     clockInClosedShort: 'ការចូលម៉ោងបានបិទសម្រាប់ថ្ងៃនេះ',
