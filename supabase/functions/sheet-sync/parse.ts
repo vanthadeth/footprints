@@ -411,15 +411,14 @@ export function resolveUser(raw: string | undefined, users: { id: string; full_n
 // ---------------------------------------------------------------- sale orders
 
 export type OrderKey =
-  | 'sheet_id' | 'order_no' | 'assign_to' | 'customer_sheet_id' | 'order_date' | 'delivery_date' | 'is_khr' | 'note'
+  | 'sheet_id' | 'assign_to' | 'customer_sheet_id' | 'order_date' | 'delivery_date' | 'is_khr' | 'note'
   | 'delivery_request' | 'truck_id' | 'cartons' | 'order_status' | 'approved' | 'stock_checked' | 'approved_by'
   | 'approved_at' | 'created_by' | 'created_at' | 'modified_by' | 'modified_at' | 'payment_term' | 'so_type'
   | 'lat_long' | 'distance' | 'value'
 
-/** The sale order sheet's columns (tab SO), by header; the first five must be there. */
+/** The sale order sheet's columns (tab SO), by header; the first ORDER_REQUIRED must be there. ORDER_NUMBER isn't read: the ID is every order's reference. */
 export const ORDER_COLUMNS: [OrderKey, string][] = [
   ['sheet_id', 'ID'],
-  ['order_no', 'ORDER_NUMBER'],
   ['customer_sheet_id', 'CUSTOMER_ID'],
   ['order_status', 'ORDER_STATUS'],
   ['approved', 'APPROVED'],
@@ -444,7 +443,7 @@ export const ORDER_COLUMNS: [OrderKey, string][] = [
   ['distance', 'DISTANCE'],
   ['value', 'SO_VALUE'],
 ]
-const ORDER_REQUIRED = 5
+export const ORDER_REQUIRED = 4
 
 /** TRUE / FALSE as Google exports them, plus 1/0, yes/no, ✓; "" -> null; anything else -> undefined. */
 export function parseBool(raw: string): boolean | null | undefined {
@@ -471,7 +470,7 @@ export function parseDateTime(raw: string, order: DateOrder): string | null | un
   return `${d}T${p(h)}:${p(min)}:${p(sec)}+07:00`
 }
 
-/** One sale order row, parsed. assign_to is the raw name list ("pheakdey , seyha"). */
+/** One sale order row, parsed. assign_to is kept as the sheet's text ("pheakdey , seyha", "9587d41f"); people are linked later. */
 export interface OrderRow {
   sheet_id: string
   order_no: string | null
@@ -537,7 +536,8 @@ export function mapOrders(rows: string[][], order: DateOrder, tabNo = 0): { rows
     const status = cell('order_status')
     const o: OrderRow = {
       sheet_id: id,
-      order_no: cell('order_no') || null,
+      // The sheet's ID is every order's reference (ORDER_NUMBER can be empty or repeated).
+      order_no: id,
       customer_sheet_id: cell('customer_sheet_id') || null,
       order_status: /^-?\d+(\.0+)?$/.test(status) ? parseInt(status, 10) : null,
       approved: parseBool(cell('approved')) === true,
@@ -591,13 +591,4 @@ export function mapOrders(rows: string[][], order: DateOrder, tabNo = 0): { rows
     byId.set(id, o)
   }
   return { rows: [...byId.values()], problems, missing }
-}
-
-/** "pheakdey , seyha" -> the first name that is exactly one active user; null when none is. */
-export function resolveAssignee(raw: string | null, users: { id: string; full_name: string | null; nickname: string | null; email: string | null }[]): string | null {
-  for (const name of (raw ?? '').split(/[,;/]/)) {
-    const id = resolveUser(name.trim() || undefined, users)
-    if (id) return id
-  }
-  return null
 }

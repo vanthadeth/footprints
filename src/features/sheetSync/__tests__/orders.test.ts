@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isValidOrder, mapOrders, parseBool, parseCsv, parseDateTime, resolveAssignee } from '../../../../supabase/functions/sheet-sync/parse'
+import { isValidOrder, mapOrders, parseBool, parseCsv, parseDateTime } from '../../../../supabase/functions/sheet-sync/parse'
 import { missingOrderColumns, orderCountsText, orderTabProblem } from '../sheetSync'
 
 const HEADER =
@@ -39,7 +39,7 @@ describe('sale order parsing', () => {
     const [a, b, c] = rows
     expect(a).toMatchObject({
       sheet_id: '992F',
-      order_no: 'AG2215-327',
+      order_no: '992F',
       assign_to: 'pheakdey , seyha',
       customer_sheet_id: 'DC7A',
       order_date: '2021-08-24',
@@ -68,9 +68,9 @@ describe('sale order parsing', () => {
 
   it('stops on missing required columns, but not on missing optional ones', () => {
     expect(mapOrders(parseCsv('ID,ORDER_NUMBER,CUSTOMER_ID\nx,1,c'), 'dmy').missing).toEqual(['ORDER_STATUS', 'APPROVED'])
-    const { rows, missing } = mapOrders(parseCsv('id,Order Number,Customer_ID,Order Status,Approved\nx,1,c,1,TRUE'), 'dmy')
+    const { rows, missing } = mapOrders(parseCsv('id,Customer_ID,Order Status,Approved\nx,c,1,TRUE'), 'dmy')
     expect(missing).toEqual([])
-    expect(rows[0]).toMatchObject({ sheet_id: 'x', order_no: '1', customer_sheet_id: 'c', order_status: 1, approved: true, value: null })
+    expect(rows[0]).toMatchObject({ sheet_id: 'x', order_no: 'x', customer_sheet_id: 'c', order_status: 1, approved: true, value: null })
   })
 
   it('reports bad cells only on valid orders, and keeps the last row for a repeated ID', () => {
@@ -90,22 +90,19 @@ describe('sale order parsing', () => {
     ])
   })
 
-  it('picks the first ASSIGN_TO name that is one active user', () => {
-    const users = [
-      { id: 'u1', full_name: 'MEN SEYHA', nickname: 'Seyha', email: null },
-      { id: 'u2', full_name: 'ប៊ូ បុទុមភក្តី', nickname: 'Pheakdey', email: null },
-    ]
-    expect(resolveAssignee('pheakdey , seyha', users)).toBe('u2')
-    expect(resolveAssignee('nobody, seyha', users)).toBe('u1')
-    expect(resolveAssignee('nobody', users)).toBeNull()
-    expect(resolveAssignee(null, users)).toBeNull()
+  it('always uses the sheet ID as the reference, whatever ORDER_NUMBER holds, and keeps ASSIGN_TO as text', () => {
+    const { rows } = mapOrders(csv('00af2dec,,"9587d41f , 9af927a9",C1,01/09/2021,,,,,,,1,TRUE,,,,,,,,,,,,10', 'X9,AG1,seyha,C1,01/09/2021,,,,,,,1,TRUE,,,,,,,,,,,,10'), 'dmy')
+    expect(rows.map((r) => [r.sheet_id, r.order_no, r.assign_to])).toEqual([
+      ['00af2dec', '00af2dec', '9587d41f , 9af927a9'],
+      ['X9', 'X9', 'seyha'],
+    ])
   })
 })
 
 describe('sale order page helpers', () => {
   it('lists the required columns a tab lacks', () => {
     expect(missingOrderColumns(HEADER.split(','))).toEqual([])
-    expect(missingOrderColumns(['ID', 'order number', 'CUSTOMER_ID'])).toEqual(['ORDER_STATUS', 'APPROVED'])
+    expect(missingOrderColumns(['ID', 'CUSTOMER_ID'])).toEqual(['ORDER_STATUS', 'APPROVED'])
   })
 
   it('needs a Google Sheets link when on', () => {
