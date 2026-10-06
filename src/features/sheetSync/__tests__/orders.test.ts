@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isValidOrder, mapOrders, parseBool, parseCsv, parseDateTime, resolveAssignee } from '../../../../supabase/functions/sheet-sync/parse'
+import { isValidOrder, mapOrders, parseBool, parseCsv, parseDateTime } from '../../../../supabase/functions/sheet-sync/parse'
 import { missingOrderColumns, orderCountsText, orderTabProblem } from '../sheetSync'
 
 const HEADER =
@@ -90,15 +90,9 @@ describe('sale order parsing', () => {
     ])
   })
 
-  it('picks the first ASSIGN_TO name that is one active user', () => {
-    const users = [
-      { id: 'u1', full_name: 'MEN SEYHA', nickname: 'Seyha', email: null },
-      { id: 'u2', full_name: 'ប៊ូ បុទុមភក្តី', nickname: 'Pheakdey', email: null },
-    ]
-    expect(resolveAssignee('pheakdey , seyha', users)).toBe('u2')
-    expect(resolveAssignee('nobody, seyha', users)).toBe('u1')
-    expect(resolveAssignee('nobody', users)).toBeNull()
-    expect(resolveAssignee(null, users)).toBeNull()
+  it('uses the sheet ID as the reference when ORDER_NUMBER is empty, and keeps ASSIGN_TO as text', () => {
+    const { rows } = mapOrders(csv('00af2dec,,"9587d41f , 9af927a9",C1,01/09/2021,,,,,,,1,TRUE,,,,,,,,,,,,10'), 'dmy')
+    expect(rows[0]).toMatchObject({ sheet_id: '00af2dec', order_no: '00af2dec', assign_to: '9587d41f , 9af927a9' })
   })
 })
 

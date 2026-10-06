@@ -471,7 +471,7 @@ export function parseDateTime(raw: string, order: DateOrder): string | null | un
   return `${d}T${p(h)}:${p(min)}:${p(sec)}+07:00`
 }
 
-/** One sale order row, parsed. assign_to is the raw name list ("pheakdey , seyha"). */
+/** One sale order row, parsed. assign_to is kept as the sheet's text ("pheakdey , seyha", "9587d41f"); people are linked later. */
 export interface OrderRow {
   sheet_id: string
   order_no: string | null
@@ -537,7 +537,8 @@ export function mapOrders(rows: string[][], order: DateOrder, tabNo = 0): { rows
     const status = cell('order_status')
     const o: OrderRow = {
       sheet_id: id,
-      order_no: cell('order_no') || null,
+      // No ORDER_NUMBER: the sheet's ID stands in as the order's reference.
+      order_no: cell('order_no') || id,
       customer_sheet_id: cell('customer_sheet_id') || null,
       order_status: /^-?\d+(\.0+)?$/.test(status) ? parseInt(status, 10) : null,
       approved: parseBool(cell('approved')) === true,
@@ -591,13 +592,4 @@ export function mapOrders(rows: string[][], order: DateOrder, tabNo = 0): { rows
     byId.set(id, o)
   }
   return { rows: [...byId.values()], problems, missing }
-}
-
-/** "pheakdey , seyha" -> the first name that is exactly one active user; null when none is. */
-export function resolveAssignee(raw: string | null, users: { id: string; full_name: string | null; nickname: string | null; email: string | null }[]): string | null {
-  for (const name of (raw ?? '').split(/[,;/]/)) {
-    const id = resolveUser(name.trim() || undefined, users)
-    if (id) return id
-  }
-  return null
 }

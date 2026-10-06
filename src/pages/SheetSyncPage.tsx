@@ -302,7 +302,7 @@ function OrdersCard({ orders, check, checking, onChange, onCheck }: {
             <li>
               Only valid orders come in: <b>ORDER_STATUS = 1</b> and <b>APPROVED = TRUE</b>. An order that stops being valid is marked cancelled.
             </li>
-            <li>Orders match by the sheet’s ID column; the customer by CUSTOMER_ID, the salesperson by the first ASSIGN_TO name that is a user.</li>
+            <li>Orders match by the sheet’s ID column (which also stands in for a missing ORDER_NUMBER) and the customer by CUSTOMER_ID. ASSIGN_TO is kept as text for now.</li>
             <li>The sheet wins: changes there replace what’s in the app. Orders removed from the sheet are left alone.</li>
           </ul>
         </>

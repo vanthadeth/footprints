@@ -17,7 +17,7 @@
 // against the Vault secret by sheet_sync_token_ok). Deployed with
 // verify_jwt = false because the cron call carries no user JWT.
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
-import { gidForTab, isValidOrder, linkGid, mapOrders, mapTab, mergeRows, parseCsv, resolveAssignee, resolveProvince, resolveUser, sheetCsvUrl, sheetId, suggestMapping, type DateOrder, type MappedRow, type RowProblem, type TabConfig } from './parse.ts'
+import { gidForTab, linkGid, mapOrders, mapTab, mergeRows, parseCsv, resolveProvince, resolveUser, sheetCsvUrl, sheetId, suggestMapping, type DateOrder, type MappedRow, type RowProblem, type TabConfig } from './parse.ts'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -194,13 +194,8 @@ Deno.serve(async (req) => {
       if (out.missing.length) throw new SyncError(`The sale order tab has no column named ${out.missing.map((m) => `“${m}”`).join(', ')}. Check the sheet.`)
       for (const p of out.problems) problems.push({ tab: 0, row: 0, reason: `Sale orders, row ${p.row}: ${p.reason}` })
       counts.orders.read = out.rows.length
-      const unknownPeople = new Set<string>()
-      const rows = out.rows.map(({ assign_to, ...r }) => {
-        const user_id = resolveAssignee(assign_to, users)
-        if (assign_to && !user_id && isValidOrder(r)) unknownPeople.add(assign_to)
-        return { ...r, assign_to, user_id }
-      })
-      for (const p of [...unknownPeople].slice(0, 10)) problems.push({ tab: 0, row: 0, reason: `ASSIGN_TO “${p}” doesn’t name an active user, so those orders keep their salesperson` })
+      // ASSIGN_TO is kept as text; orders are linked to people later, so no salesperson is set here.
+      const rows = out.rows.map((r) => ({ ...r, user_id: null }))
       for (let i = 0; i < rows.length; i += BATCH) {
         const { data, error } = await admin.rpc('sheet_orders_apply', { p_run: runId, p_rows: rows.slice(i, i + BATCH), p_dry: action === 'preview' })
         if (error) throw new SyncError(error.details || error.message)
