@@ -172,7 +172,7 @@ export function gidForTab(html: string, name: string): string | null {
   return null
 }
 
-/** "11.047996, 103.803276" -> { lat, lng }; null when empty; undefined when unreadable or out of range. */
+/** "11.047996, 103.803276" -> { lat, lng }; null when empty or 0, 0 (no pin); undefined when unreadable or out of range. */
 export function parseLatLong(raw: string): { lat: number; lng: number } | null | undefined {
   const s = raw.trim()
   if (!s) return null
@@ -180,7 +180,8 @@ export function parseLatLong(raw: string): { lat: number; lng: number } | null |
   if (!m) return undefined
   const lat = Number(m[1])
   const lng = Number(m[2])
-  if (Math.abs(lat) > 90 || Math.abs(lng) > 180 || (lat === 0 && lng === 0)) return undefined
+  if (lat === 0 && lng === 0) return null
+  if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return undefined
   return { lat, lng }
 }
 

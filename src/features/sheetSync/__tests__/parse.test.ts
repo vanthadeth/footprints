@@ -136,7 +136,8 @@ describe('previous app setup (CUS tab)', () => {
     expect(parseLatLong('')).toBeNull()
     expect(parseLatLong('near the market')).toBeUndefined()
     expect(parseLatLong('200, 10')).toBeUndefined()
-    expect(parseLatLong('0, 0')).toBeUndefined()
+    expect(parseLatLong('0, 0')).toBeNull()
+    expect(parseLatLong('0.000000, 0.000000')).toBeNull()
   })
 
   it('suggests the old mapping, with three phone contacts', () => {
