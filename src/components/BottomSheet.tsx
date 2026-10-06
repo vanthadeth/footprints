@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
+import { useBackHandler } from '@/hooks/useBackHandler'
 
 /** Shared bottom-sheet shell for selection/confirmation flows (spec: "Bottom sheets for selection where useful"). */
 export function BottomSheet({
@@ -19,6 +20,7 @@ export function BottomSheet({
   // before the sheet actually leaves the DOM -- otherwise it would just
   // vanish instantly, same as before this component had any transition.
   const [mounted, setMounted] = useState(open)
+  useBackHandler(open, onClose)
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {

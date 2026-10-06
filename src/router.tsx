@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { installHistoryGuard } from '@/features/nav/historyGuard'
 import { AppLayout } from '@/layouts/AppLayout'
 import { RequireAuth } from '@/features/auth/RequireAuth'
 import { RedirectIfAuthed } from '@/features/auth/RedirectIfAuthed'
@@ -438,3 +439,6 @@ export const router = createBrowserRouter([
   { path: '/', element: <Navigate to="/welcome" replace /> },
   { path: '*', element: <Navigate to="/welcome" replace /> },
 ])
+
+// The browser's Back / Forward buttons follow the app's own routes instead of the browser history (see historyGuard).
+if (typeof window !== 'undefined') installHistoryGuard(router)

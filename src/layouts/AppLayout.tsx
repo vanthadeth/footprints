@@ -10,7 +10,8 @@ import { MessagesProvider, useMessages } from '@/features/conversations/Messages
 import { PermissionsProvider } from '@/features/permissions/PermissionsContext'
 import { useRoleGroup } from '@/features/nav/useRoleGroup'
 import { usePendingApprovals } from '@/features/nav/usePendingApprovals'
-import { canApprove, hubFunctions, tabsFor, type FnKey, type NavContext, type TabKey } from '@/features/nav/navConfig'
+import { canApprove, homeFor, hubFunctions, tabsFor, type FnKey, type NavContext, type TabKey } from '@/features/nav/navConfig'
+import { setBackNav } from '@/features/nav/historyGuard'
 import { useLanguage } from '@/i18n/LanguageContext'
 
 /**
@@ -26,6 +27,7 @@ export function AppLayout() {
 
   return (
     <PermissionsProvider>
+      <BackNav />
       <JourneyProvider>
         <NotificationsProvider>
           <MessagesProvider>
@@ -53,6 +55,17 @@ export function AppLayout() {
       </JourneyProvider>
     </PermissionsProvider>
   )
+}
+
+/** Tells the Back-button guard which screens are this person's tabs and which is home. */
+function BackNav() {
+  const { group, ctx, ready } = useRoleGroup()
+  useEffect(() => {
+    if (!ready) return
+    setBackNav({ tabs: tabsFor(group, ctx).map((t) => t.to), home: homeFor(group, ctx) })
+    return () => setBackNav(null)
+  }, [group, ctx, ready])
+  return null
 }
 
 function DesktopSidebar() {
