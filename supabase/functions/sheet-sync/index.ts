@@ -188,7 +188,8 @@ Deno.serve(async (req) => {
     }
 
     // Sale orders, after customers so an order can find a customer this run created.
-    if (orderTab) {
+    // A sheet problem here is reported without failing the customer sync above.
+    if (orderTab) try {
       const out = mapOrders(parseCsv(await fetchCsv(orderTab.url, orderTab.tab)), order)
       if (out.missing.length) throw new SyncError(`The sale order tab has no column named ${out.missing.map((m) => `“${m}”`).join(', ')}. Check the sheet.`)
       for (const p of out.problems) problems.push({ tab: 0, row: 0, reason: `Sale orders, row ${p.row}: ${p.reason}` })
@@ -212,6 +213,9 @@ Deno.serve(async (req) => {
         counts.orders.skipped += c.skipped
         for (const s of c.skipped_rows) problems.push({ tab: 0, row: 0, reason: `Order ${s.key}: ${s.reason}` })
       }
+    } catch (e) {
+      if (!(e instanceof SyncError)) throw e
+      problems.unshift({ tab: 0, row: 0, reason: `Sale orders weren’t synced: ${e.message}` })
     }
 
     const status = problems.length ? 'partial' : 'ok'

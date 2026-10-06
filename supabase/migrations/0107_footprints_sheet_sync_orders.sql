@@ -348,12 +348,12 @@ $function$;
 -- ---------------------------------------------------------------- wrappers
 
 create function public.save_sheet_sync_orders(p_orders jsonb)
-returns public.sheet_sync_settings language sql security invoker set search_path to ''
-as $$ select app.save_sheet_sync_orders(p_orders); $$;
+returns public.sheet_sync_settings language sql set search_path to ''
+as $function$ select * from app.save_sheet_sync_orders(p_orders); $function$;
 
 create function public.sheet_orders_apply(p_run uuid, p_rows jsonb, p_dry boolean default false)
-returns jsonb language sql security invoker set search_path to ''
-as $$ select app.sheet_orders_apply(p_run, p_rows, p_dry); $$;
+returns jsonb language sql set search_path to ''
+as $function$ select app.sheet_orders_apply(p_run, p_rows, p_dry); $function$;
 
 revoke execute on function app.save_sheet_sync_orders(jsonb) from public;
 revoke execute on function app.sheet_orders_apply(uuid, jsonb, boolean) from public;
