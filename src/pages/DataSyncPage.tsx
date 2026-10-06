@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Eye, FileSpreadsheet, Loader2, RefreshCw, ShieldAlert } from 'lucide-react'
+import { Eye, FileSpreadsheet, Loader2, ReceiptText, RefreshCw, ShieldAlert } from 'lucide-react'
 import { AdminFrame, AdminGroup, AdminRow } from '@/components/AdminKit'
 import { useProfile } from '@/features/auth/useProfile'
 import { sheetSyncService } from '@/features/sheetSync/sheetSyncService'
-import { countsText, SCHEDULES, type SheetSyncRun, type SheetSyncSettings } from '@/features/sheetSync/sheetSync'
+import { countsText, orderCountsText, SCHEDULES, type SheetSyncRun, type SheetSyncSettings } from '@/features/sheetSync/sheetSync'
 import { formatTime, timeAgo } from '@/lib/datetime'
 import { useLanguage } from '@/i18n/LanguageContext'
 
@@ -49,7 +49,7 @@ function DataSync() {
     setMessage(null)
     try {
       const res = kind === 'preview' ? await sheetSyncService.preview() : await sheetSyncService.run()
-      setMessage(res.ok && res.counts ? { ok: true, text: countsText(res.counts, kind === 'preview') } : { ok: false, text: res.error ?? 'The sync didn’t finish.' })
+      setMessage(res.ok && res.counts ? { ok: true, text: [countsText(res.counts, kind === 'preview'), orderCountsText(res.counts.orders, kind === 'preview')].filter(Boolean).join(' · ') } : { ok: false, text: res.error ?? 'The sync didn’t finish.' })
       await load()
     } catch (e) {
       setMessage({ ok: false, text: e instanceof Error ? e.message : 'The sync didn’t finish.' })
@@ -58,14 +58,14 @@ function DataSync() {
     }
   }
 
-  const configured = !!settings && settings.tabs.length > 0
+  const configured = !!settings && (settings.tabs.length > 0 || !!settings.orders)
   const schedule = SCHEDULES.find((x) => x.value === settings?.schedule)?.label ?? 'Off'
   const lastReal = runs.find((r) => r.trigger !== 'preview' && r.status !== 'running')
   const failed = lastReal?.status === 'failed'
 
   return (
     <AdminFrame sub="Where data comes from and goes to">
-      <AdminGroup title={`Syncs · ${configured ? 1 : 0}`}>
+      <AdminGroup title={`Syncs · ${configured ? (settings!.orders ? 2 : 1) : 0}`}>
         <AdminRow
           icon={FileSpreadsheet}
           label="Customers & contacts"
@@ -74,6 +74,15 @@ function DataSync() {
           pill={configured ? (failed ? { text: 'Failed', tone: 'danger' } : lastReal ? { text: 'OK', tone: 'ok' } : undefined) : { text: 'Set up', tone: 'brand' }}
           to="/settings/sheet-sync"
         />
+        {settings?.orders && (
+          <AdminRow
+            icon={ReceiptText}
+            label="Sale orders"
+            sub={`Google Sheet · ${settings.orders.tab ?? 'tab'} · valid orders only · ${schedule.toLowerCase()}`}
+            value={lastReal?.orders?.valid !== undefined ? `${lastReal.orders.valid.toLocaleString('en-US')} valid` : undefined}
+            to="/settings/sheet-sync"
+          />
+        )}
       </AdminGroup>
 
       {configured && (
@@ -116,7 +125,11 @@ function DataSync() {
             <div key={r.id} className="flex items-start gap-3 border-t border-neutral-100 py-2.5 dark:border-neutral-800">
               <span className="w-11 shrink-0 pt-px text-xs font-bold tabular-nums text-neutral-500">{formatTime(r.started_at)}</span>
               <span className="min-w-0 flex-1 text-[13px] text-neutral-900">
-                {r.status === 'failed' ? (r.message ?? 'Failed') : r.status === 'running' ? 'Running…' : `${r.rows_read.toLocaleString('en-US')} read · ${countsText(r, r.trigger === 'preview')}`}
+                {r.status === 'failed'
+                  ? (r.message ?? 'Failed')
+                  : r.status === 'running'
+                    ? 'Running…'
+                    : [`${r.rows_read.toLocaleString('en-US')} read · ${countsText(r, r.trigger === 'preview')}`, orderCountsText(r.orders, r.trigger === 'preview')].filter(Boolean).join(' · ')}
               </span>
               <span
                 className={`inline-flex h-[22px] shrink-0 items-center rounded-full px-2 text-[11px] font-bold ${

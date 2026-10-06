@@ -1,12 +1,29 @@
-import { FIELDS, MAX_CONTACTS, type ContactSlot, type FieldKey, type TabConfig } from '../../../supabase/functions/sheet-sync/parse'
+import { FIELDS, MAX_CONTACTS, ORDER_COLUMNS, normHeader, type ContactSlot, type FieldKey, type TabConfig } from '../../../supabase/functions/sheet-sync/parse'
 
-export { FIELDS, MAX_CONTACTS, type ContactSlot, type FieldKey, type TabConfig }
+export { FIELDS, MAX_CONTACTS, ORDER_COLUMNS, type ContactSlot, type FieldKey, type TabConfig }
+
+/** The sale order tab: synced after the customer tabs with fixed SO columns. */
+export interface OrderTab {
+  url: string
+  tab: string | null
+}
+
+export interface OrderCounts {
+  read: number
+  valid: number
+  created: number
+  updated: number
+  unchanged: number
+  cancelled: number
+  skipped: number
+}
 
 export type Schedule = 'off' | 'hourly' | 'every6h' | 'daily' | 'weekly'
 export type DateOrder = 'dmy' | 'mdy'
 
 export interface SheetSyncSettings {
   tabs: TabConfig[]
+  orders: OrderTab | null
   date_order: DateOrder
   schedule: Schedule
   at_time: string
@@ -29,6 +46,7 @@ export interface SheetSyncRun {
   skipped: number
   contacts_updated: number
   contacts_created: number
+  orders: Partial<OrderCounts>
   errors: { tab: number; row: number; reason: string }[]
   message: string | null
 }
@@ -38,7 +56,7 @@ export interface SyncResult {
   run_id?: string
   status?: SheetSyncRun['status']
   error?: string
-  counts?: { rows_read: number; updated: number; created: number; unchanged: number; skipped: number; contacts_updated?: number; contacts_created?: number }
+  counts?: { rows_read: number; updated: number; created: number; unchanged: number; skipped: number; contacts_updated?: number; contacts_created?: number; orders?: OrderCounts }
   errors?: SheetSyncRun['errors']
   more_errors?: number
 }
@@ -123,4 +141,30 @@ export function tabProblem(t: TabConfig): string | null {
   if (contacts.length && t.key.matches !== 'sheet_id') return 'Contacts need the key column to be the sheet row ID'
   if (!Object.values(t.fields).some(Boolean) && !contacts.length) return 'Pick at least one column to sync'
   return null
+}
+
+/** The required sale order columns a tab's header row lacks. */
+export function missingOrderColumns(headers: string[]): string[] {
+  const have = new Set(headers.map(normHeader))
+  return ORDER_COLUMNS.slice(0, 5)
+    .map(([, h]) => h)
+    .filter((h) => !have.has(normHeader(h)))
+}
+
+/** Whether the sale order tab is ready to save. */
+export function orderTabProblem(o: OrderTab | null): string | null {
+  if (!o) return null
+  if (!/^https:\/\/docs\.google\.com\/spreadsheets\/d\/[A-Za-z0-9_-]+/.test(o.url.trim())) return 'Paste the sale order sheet’s Google Sheets link'
+  return null
+}
+
+/** "Orders: 3,120 valid · added 12 · updated 4 · cancelled 1 · skipped 2" (or "would add …" for a preview); null before any order sync. */
+export function orderCountsText(c: Partial<OrderCounts> | undefined, preview = false): string | null {
+  if (!c || c.read === undefined) return null
+  const n = (x = 0) => x.toLocaleString('en-US')
+  const parts = [`Orders: ${n(c.valid)} valid of ${n(c.read)}`, `${preview ? 'would add' : 'added'} ${n(c.created)}`, `${preview ? 'update' : 'updated'} ${n(c.updated)}`]
+  if (c.cancelled) parts.push(`${preview ? 'cancel' : 'cancelled'} ${n(c.cancelled)}`)
+  if (c.unchanged) parts.push(`${n(c.unchanged)} up to date`)
+  if (c.skipped) parts.push(`${preview ? 'skip' : 'skipped'} ${n(c.skipped)}`)
+  return parts.join(' · ')
 }

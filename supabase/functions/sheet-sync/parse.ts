@@ -406,3 +406,197 @@ export function resolveUser(raw: string | undefined, users: { id: string; full_n
   const hits = users.filter((u) => [u.full_name, u.nickname, u.email].some((x) => x && normHeader(x) === v))
   return hits.length === 1 ? hits[0].id : null
 }
+
+// ---------------------------------------------------------------- sale orders
+
+export type OrderKey =
+  | 'sheet_id' | 'order_no' | 'assign_to' | 'customer_sheet_id' | 'order_date' | 'delivery_date' | 'is_khr' | 'note'
+  | 'delivery_request' | 'truck_id' | 'cartons' | 'order_status' | 'approved' | 'stock_checked' | 'approved_by'
+  | 'approved_at' | 'created_by' | 'created_at' | 'modified_by' | 'modified_at' | 'payment_term' | 'so_type'
+  | 'lat_long' | 'distance' | 'value'
+
+/** The sale order sheet's columns (tab SO), by header; the first five must be there. */
+export const ORDER_COLUMNS: [OrderKey, string][] = [
+  ['sheet_id', 'ID'],
+  ['order_no', 'ORDER_NUMBER'],
+  ['customer_sheet_id', 'CUSTOMER_ID'],
+  ['order_status', 'ORDER_STATUS'],
+  ['approved', 'APPROVED'],
+  ['assign_to', 'ASSIGN_TO'],
+  ['order_date', 'ORDER_DATE'],
+  ['delivery_date', 'DL_DATE'],
+  ['is_khr', 'IS_KHR'],
+  ['note', 'REMARKS'],
+  ['delivery_request', 'DL_REQ'],
+  ['truck_id', 'TRUCK_ID'],
+  ['cartons', 'NUMBER_OF_CTN'],
+  ['stock_checked', 'STOCK_CHECKED'],
+  ['approved_by', 'APPROVED_BY'],
+  ['approved_at', 'APPROVED_TS'],
+  ['created_by', 'CR'],
+  ['created_at', 'CRTS'],
+  ['modified_by', 'MD'],
+  ['modified_at', 'MDTS'],
+  ['payment_term', 'PAYMENT_TERM'],
+  ['so_type', 'SO_TYPE'],
+  ['lat_long', 'LAT/LONG'],
+  ['distance', 'DISTANCE'],
+  ['value', 'SO_VALUE'],
+]
+const ORDER_REQUIRED = 5
+
+/** TRUE / FALSE as Google exports them, plus 1/0, yes/no, ✓; "" -> null; anything else -> undefined. */
+export function parseBool(raw: string): boolean | null | undefined {
+  const s = raw.trim().toLowerCase()
+  if (!s) return null
+  if (['true', '1', 'yes', 'y', '✓', '✔', 'x'].includes(s)) return true
+  if (['false', '0', 'no', 'n'].includes(s)) return false
+  return undefined
+}
+
+/** A sheet date and time ("26/08/2021 23:55:53") -> ISO in Phnom Penh time; a plain date is midnight. "" -> null; unreadable -> undefined. */
+export function parseDateTime(raw: string, order: DateOrder): string | null | undefined {
+  const s = raw.trim()
+  if (!s) return null
+  const m = s.match(/^(.+?)[\sT]+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([ap]m)?$/i)
+  const d = parseDate(m ? m[1] : s, order)
+  if (!d) return undefined
+  let h = m ? +m[2] : 0
+  const min = m ? +m[3] : 0
+  const sec = m?.[4] ? +m[4] : 0
+  if (m?.[5]) h = (h % 12) + (m[5].toLowerCase() === 'pm' ? 12 : 0)
+  if (h > 23 || min > 59 || sec > 59) return undefined
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d}T${p(h)}:${p(min)}:${p(sec)}+07:00`
+}
+
+/** One sale order row, parsed. assign_to is the raw name list ("pheakdey , seyha"). */
+export interface OrderRow {
+  sheet_id: string
+  order_no: string | null
+  customer_sheet_id: string | null
+  order_status: number | null
+  approved: boolean
+  assign_to: string | null
+  order_date: string | null
+  delivery_date: string | null
+  is_khr: boolean
+  note: string | null
+  delivery_request: string | null
+  truck_id: string | null
+  cartons: number | null
+  stock_checked: boolean
+  approved_by: string | null
+  approved_at: string | null
+  created_by: string | null
+  created_at: string | null
+  modified_by: string | null
+  modified_at: string | null
+  payment_term: string | null
+  so_type: string | null
+  latitude: number | null
+  longitude: number | null
+  distance: number | null
+  value: number | null
+}
+
+/** A valid order: ORDER_STATUS = 1 and APPROVED = TRUE. */
+export const isValidOrder = (r: Pick<OrderRow, 'order_status' | 'approved'>) => r.order_status === 1 && r.approved
+
+/**
+ * Map the sale order tab's CSV rows (header first). Missing required headers
+ * stop it (missing lists them); optional columns may be absent. Unreadable
+ * cells are dropped and reported only on valid orders; rows without an ID are
+ * reported unless blank. A repeated ID keeps its last row.
+ */
+export function mapOrders(rows: string[][], order: DateOrder, tabNo = 0): { rows: OrderRow[]; problems: RowProblem[]; missing: string[] } {
+  const header = (rows[0] ?? []).map((h) => h.trim())
+  const at = new Map<OrderKey, number>()
+  const missing: string[] = []
+  ORDER_COLUMNS.forEach(([k, h], i) => {
+    const idx = header.findIndex((x) => x === h || normHeader(x) === normHeader(h))
+    if (idx >= 0) at.set(k, idx)
+    else if (i < ORDER_REQUIRED) missing.push(h)
+  })
+  if (missing.length) return { rows: [], problems: [], missing }
+
+  const byId = new Map<string, OrderRow>()
+  const problems: RowProblem[] = []
+  for (let r = 1; r < rows.length; r++) {
+    const cells = rows[r]
+    const cell = (k: OrderKey) => {
+      const i = at.get(k)
+      return i === undefined ? '' : (cells[i] ?? '').trim()
+    }
+    const id = cell('sheet_id')
+    if (!id) {
+      if (cells.some((c) => c.trim())) problems.push({ tab: tabNo, row: r + 1, reason: 'No ID' })
+      continue
+    }
+    const status = cell('order_status')
+    const o: OrderRow = {
+      sheet_id: id,
+      order_no: cell('order_no') || null,
+      customer_sheet_id: cell('customer_sheet_id') || null,
+      order_status: /^-?\d+(\.0+)?$/.test(status) ? parseInt(status, 10) : null,
+      approved: parseBool(cell('approved')) === true,
+      assign_to: cell('assign_to') || null,
+      order_date: null,
+      delivery_date: null,
+      is_khr: parseBool(cell('is_khr')) === true,
+      note: cell('note') || null,
+      delivery_request: cell('delivery_request') || null,
+      truck_id: cell('truck_id') || null,
+      cartons: null,
+      stock_checked: parseBool(cell('stock_checked')) === true,
+      approved_by: cell('approved_by') || null,
+      approved_at: null,
+      created_by: cell('created_by') || null,
+      created_at: null,
+      modified_by: cell('modified_by') || null,
+      modified_at: null,
+      payment_term: cell('payment_term') || null,
+      so_type: cell('so_type') || null,
+      latitude: null,
+      longitude: null,
+      distance: null,
+      value: null,
+    }
+    const valid = isValidOrder(o)
+    const bad = (k: OrderKey, what: string) => {
+      if (valid) problems.push({ tab: tabNo, row: r + 1, reason: `“${cell(k)}” in ${header[at.get(k)!]} isn’t ${what}` })
+    }
+    for (const k of ['order_date', 'delivery_date'] as const) {
+      const d = parseDate(cell(k), order)
+      if (d === undefined) bad(k, 'a date')
+      else o[k] = d
+    }
+    for (const k of ['approved_at', 'created_at', 'modified_at'] as const) {
+      const d = parseDateTime(cell(k), order)
+      if (d === undefined) bad(k, 'a date and time')
+      else o[k] = d
+    }
+    for (const k of ['cartons', 'distance', 'value'] as const) {
+      const n = parseMoney(cell(k))
+      if (Number.isNaN(n)) bad(k, k === 'value' ? 'an amount' : 'a number')
+      else o[k] = n
+    }
+    const pin = parseLatLong(cell('lat_long'))
+    if (pin === undefined) bad('lat_long', 'a map pin (lat, long)')
+    else if (pin) {
+      o.latitude = pin.lat
+      o.longitude = pin.lng
+    }
+    byId.set(id, o)
+  }
+  return { rows: [...byId.values()], problems, missing }
+}
+
+/** "pheakdey , seyha" -> the first name that is exactly one active user; null when none is. */
+export function resolveAssignee(raw: string | null, users: { id: string; full_name: string | null; nickname: string | null; email: string | null }[]): string | null {
+  for (const name of (raw ?? '').split(/[,;/]/)) {
+    const id = resolveUser(name.trim() || undefined, users)
+    if (id) return id
+  }
+  return null
+}
