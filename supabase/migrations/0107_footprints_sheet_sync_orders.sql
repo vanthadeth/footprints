@@ -177,7 +177,8 @@ begin
   end if;
 
   begin
-    create temp table if not exists pg_temp.sheet_order_rows (
+    -- Each batch is its own transaction (one RPC call), so the table is new every time and goes at commit.
+    create temp table pg_temp.sheet_order_rows (
       sheet_id text primary key, order_no text, customer_sheet_id text, user_id uuid, assign_to text,
       order_date date, delivery_date date, is_khr boolean, note text, delivery_request text, truck_id text,
       cartons numeric, order_status integer, approved boolean, stock_checked boolean, approved_by text,
@@ -185,7 +186,6 @@ begin
       payment_term text, so_type text, latitude numeric, longitude numeric, distance numeric, value numeric,
       valid boolean, order_id uuid, customer_id uuid, reason text
     ) on commit drop;
-    truncate pg_temp.sheet_order_rows;
 
     insert into pg_temp.sheet_order_rows
     select distinct on (btrim(s.sheet_id))
