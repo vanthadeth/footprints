@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { ChevronRight, Globe, HelpCircle, Info, LogOut, MapPin, Moon, Shield, User } from 'lucide-react'
 import { InfoSheet } from '@/components/InfoSheet'
 import { AppBuildInfo } from '@/components/AppBuildInfo'
@@ -28,7 +28,12 @@ export function AccountPage() {
   const { language, setLanguage } = useLanguage()
   const { mode, setMode } = useTheme()
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false)
-  const [openSheet, setOpenSheet] = useState<SheetKey>(null)
+  // ?open=help / ?open=privacy (from the Hub's Account & settings) opens that sheet straight away.
+  const [params] = useSearchParams()
+  const [openSheet, setOpenSheet] = useState<SheetKey>(() => {
+    const o = params.get('open')
+    return o === 'help' || o === 'privacy' || o === 'about' || o === 'location' ? o : null
+  })
 
   const name = profile ? displayName(profile.full_name, profile.nickname) : ''
   const roleLine = [profile?.position, profile?.role_name].filter(Boolean).join(' · ')

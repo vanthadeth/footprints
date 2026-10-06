@@ -162,11 +162,11 @@ export const ROW: Record<RowKey, RowDef> = {
 }
 
 const FOR_YOU: Record<RoleGroup, RowKey[]> = {
-  field: ['plan', 'leave', 'report', 'customers'],
-  manager: ['attendance', 'briefing', 'flexteam', 'reports'],
-  hr: ['allowances', 'holidays', 'flexteam', 'attendance'],
-  office: ['calendar', 'customers', 'team', 'leave'],
-  admin: ['users', 'permissions', 'hours', 'notifications'],
+  field: ['plan', 'leave', 'report', 'customers', 'journey', 'trips'],
+  manager: ['attendance', 'briefing', 'flexteam', 'reports', 'trips', 'logs'],
+  hr: ['allowances', 'holidays', 'flexteam', 'attendance', 'users', 'leave'],
+  office: ['calendar', 'customers', 'team', 'leave', 'messages', 'journey'],
+  admin: ['users', 'permissions', 'hours', 'notifications', 'locations', 'sheetsync'],
 }
 
 const allowed = (ctx: NavContext) => (r: RowDef) => !r.needs || r.needs(ctx)
@@ -258,8 +258,35 @@ export const ADMIN_ROWS: RowKey[] = ['users', 'permissions', 'hours', 'adminatt'
 
 /** Hub "For you": up to four shortcuts for the group. */
 export function forYou(group: RoleGroup, ctx: NavContext): RowDef[] {
-  return FOR_YOU[group].map((k) => ROW[k]).filter(allowed(ctx))
+  const rows = FOR_YOU[group].map((k) => ROW[k]).filter(allowed(ctx))
+  // Full rows of three tiles, as on the canvas: top up a short row with the
+  // person's next screens from the Hub, or drop the stragglers if there are none.
+  const extra = hubFunctions(group, ctx)
+    .flatMap((f) => f.rows)
+    .filter((r) => !rows.some((x) => x.key === r.key))
+  while (rows.length % 3 && extra.length) rows.push(extra.shift()!)
+  return rows.length > 3 ? rows.slice(0, rows.length - (rows.length % 3)) : rows
 }
+
+/** Shorter names for a function's one-line summary in the Hub (falls back to the label). */
+const SHORT: Partial<Record<RowKey, string>> = {
+  attendance: 'Attendance',
+  reports: 'Reports',
+  logs: 'Logs',
+  briefing: 'Briefing',
+  flexteam: 'Flexible days off',
+  allowances: 'Allowances',
+  holidays: 'Holidays',
+  org: 'Departments',
+  hours: 'Hours',
+  adminatt: 'Attendance',
+  locations: 'Geofence',
+  sheetsync: 'Sync',
+  settings: 'System',
+  journey: 'Journey history',
+  tripset: 'Trip settings',
+}
+export const shortLabel = (r: RowDef) => SHORT[r.key] ?? r.label
 
 /** Every Admin-tab row the person can use. */
 export function adminRows(ctx: NavContext): RowDef[] {
