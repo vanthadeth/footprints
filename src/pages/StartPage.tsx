@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom'
 import { useProfile } from '@/features/auth/useProfile'
 import { useRoleGroup } from '@/features/nav/useRoleGroup'
 import { homeFor } from '@/features/nav/navConfig'
+import { PageSkeleton } from '@/components/Skeleton'
 
 /**
  * Where a fresh sign-in lands. Login/ResetPassword send everyone here
@@ -22,13 +23,7 @@ export function StartPage() {
   }, [])
 
   if (!ready && gaveUp && !loading) return <Navigate to="/check-in" replace />
-  if (loading || !ready) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-200 border-t-brand-500" />
-      </div>
-    )
-  }
+  if (loading || !ready) return <PageSkeleton />
 
   return <Navigate to={homeFor(group, ctx)} replace />
 }

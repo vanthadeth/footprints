@@ -1,4 +1,6 @@
-import { lazy, Suspense } from 'react'
+import { Suspense } from 'react'
+import { lazyPage } from '@/lib/lazyPage'
+import { PageSkeleton } from '@/components/Skeleton'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { installHistoryGuard } from '@/features/nav/historyGuard'
 import { AppLayout } from '@/layouts/AppLayout'
@@ -17,52 +19,48 @@ import { RequirePermission } from '@/features/permissions/RequirePermission'
 // Map libraries (leaflet/react-leaflet) only load once someone actually
 // visits a page that needs them, instead of bloating the initial bundle
 // every user pays for just to see the Check In screen.
-const FootprintsPage = lazy(() => import('@/pages/FootprintsPage').then((m) => ({ default: m.FootprintsPage })))
-const CustomerBriefingPage = lazy(() => import('@/pages/CustomerBriefingPage').then((m) => ({ default: m.CustomerBriefingPage })))
-const OrgPage = lazy(() => import('@/pages/OrgPage').then((m) => ({ default: m.OrgPage })))
-const FleetPage = lazy(() => import('@/pages/FleetPage').then((m) => ({ default: m.FleetPage })))
-const SettingsPage = lazy(() => import('@/features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })))
-const UsersPage = lazy(() => import('@/pages/UsersPage').then((m) => ({ default: m.UsersPage })))
-const HomePage = lazy(() => import('@/pages/HomePage').then((m) => ({ default: m.HomePage })))
-const CustomersPage = lazy(() => import('@/pages/CustomersPage').then((m) => ({ default: m.CustomersPage })))
-const CustomerDetailPage = lazy(() => import('@/pages/CustomerDetailPage').then((m) => ({ default: m.CustomerDetailPage })))
-const VisitsPage = lazy(() => import('@/pages/VisitsPage').then((m) => ({ default: m.VisitsPage })))
-const ReportPage = lazy(() => import('@/pages/ReportPage').then((m) => ({ default: m.ReportPage })))
-const LeaveApprovalsPage = lazy(() => import('@/pages/LeaveApprovalsPage').then((m) => ({ default: m.LeaveApprovalsPage })))
-const WorkingHoursPage = lazy(() => import('@/pages/WorkingHoursPage').then((m) => ({ default: m.WorkingHoursPage })))
-const PlanPage = lazy(() => import('@/pages/PlanPage').then((m) => ({ default: m.PlanPage })))
-const MessagesPage = lazy(() => import('@/pages/MessagesPage').then((m) => ({ default: m.MessagesPage })))
-const MessageThreadPage = lazy(() => import('@/pages/MessageThreadPage').then((m) => ({ default: m.MessageThreadPage })))
-const NotificationsPage = lazy(() => import('@/pages/NotificationsPage').then((m) => ({ default: m.NotificationsPage })))
-const TranslationsPage = lazy(() => import('@/pages/TranslationsPage').then((m) => ({ default: m.TranslationsPage })))
-const PermissionsPage = lazy(() => import('@/pages/PermissionsPage').then((m) => ({ default: m.PermissionsPage })))
-const TodayPage = lazy(() => import('@/pages/TodayPage').then((m) => ({ default: m.TodayPage })))
-const TeamHomePage = lazy(() => import('@/pages/TeamHomePage').then((m) => ({ default: m.TeamHomePage })))
-const PeoplePage = lazy(() => import('@/pages/PeoplePage').then((m) => ({ default: m.PeoplePage })))
-const TripsPage = lazy(() => import('@/pages/TripsPage').then((m) => ({ default: m.TripsPage })))
-const TripRequestPage = lazy(() => import('@/pages/TripRequestPage').then((m) => ({ default: m.TripRequestPage })))
-const TripDetailPage = lazy(() => import('@/pages/TripDetailPage').then((m) => ({ default: m.TripDetailPage })))
-const TripsCalendarPage = lazy(() => import('@/pages/TripsCalendarPage').then((m) => ({ default: m.TripsCalendarPage })))
-const TripSettingsPage = lazy(() => import('@/pages/TripSettingsPage').then((m) => ({ default: m.TripSettingsPage })))
-const AdminPage = lazy(() => import('@/pages/AdminPage').then((m) => ({ default: m.AdminPage })))
-const CalendarPage = lazy(() => import('@/pages/CalendarPage').then((m) => ({ default: m.CalendarPage })))
-const FlexTeamPage = lazy(() => import('@/pages/FlexTeamPage').then((m) => ({ default: m.FlexTeamPage })))
-const DaysOffPage = lazy(() => import('@/pages/DaysOffPage').then((m) => ({ default: m.DaysOffPage })))
-const FlexSettlementPage = lazy(() => import('@/pages/FlexSettlementPage').then((m) => ({ default: m.FlexSettlementPage })))
-const SheetSyncPage = lazy(() => import('@/pages/SheetSyncPage').then((m) => ({ default: m.SheetSyncPage })))
-const AdminAttendancePage = lazy(() => import('@/pages/AdminAttendancePage').then((m) => ({ default: m.AdminAttendancePage })))
-const GeofencePage = lazy(() => import('@/pages/GeofencePage').then((m) => ({ default: m.GeofencePage })))
-const DataSyncPage = lazy(() => import('@/pages/DataSyncPage').then((m) => ({ default: m.DataSyncPage })))
-const AccountPage = lazy(() => import('@/pages/AccountPage').then((m) => ({ default: m.AccountPage })))
-const HubFunctionPage = lazy(() => import('@/pages/HubFunctionPage').then((m) => ({ default: m.HubFunctionPage })))
-const LeavePage = lazy(() => import('@/pages/LeavePage').then((m) => ({ default: m.LeavePage })))
+const FootprintsPage = lazyPage(() => import('@/pages/FootprintsPage').then((m) => ({ default: m.FootprintsPage })))
+const CustomerBriefingPage = lazyPage(() => import('@/pages/CustomerBriefingPage').then((m) => ({ default: m.CustomerBriefingPage })))
+const OrgPage = lazyPage(() => import('@/pages/OrgPage').then((m) => ({ default: m.OrgPage })))
+const FleetPage = lazyPage(() => import('@/pages/FleetPage').then((m) => ({ default: m.FleetPage })))
+const SettingsPage = lazyPage(() => import('@/features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })))
+const UsersPage = lazyPage(() => import('@/pages/UsersPage').then((m) => ({ default: m.UsersPage })))
+const HomePage = lazyPage(() => import('@/pages/HomePage').then((m) => ({ default: m.HomePage })))
+const CustomersPage = lazyPage(() => import('@/pages/CustomersPage').then((m) => ({ default: m.CustomersPage })))
+const CustomerDetailPage = lazyPage(() => import('@/pages/CustomerDetailPage').then((m) => ({ default: m.CustomerDetailPage })))
+const VisitsPage = lazyPage(() => import('@/pages/VisitsPage').then((m) => ({ default: m.VisitsPage })))
+const ReportPage = lazyPage(() => import('@/pages/ReportPage').then((m) => ({ default: m.ReportPage })))
+const LeaveApprovalsPage = lazyPage(() => import('@/pages/LeaveApprovalsPage').then((m) => ({ default: m.LeaveApprovalsPage })))
+const WorkingHoursPage = lazyPage(() => import('@/pages/WorkingHoursPage').then((m) => ({ default: m.WorkingHoursPage })))
+const PlanPage = lazyPage(() => import('@/pages/PlanPage').then((m) => ({ default: m.PlanPage })))
+const MessagesPage = lazyPage(() => import('@/pages/MessagesPage').then((m) => ({ default: m.MessagesPage })))
+const MessageThreadPage = lazyPage(() => import('@/pages/MessageThreadPage').then((m) => ({ default: m.MessageThreadPage })))
+const NotificationsPage = lazyPage(() => import('@/pages/NotificationsPage').then((m) => ({ default: m.NotificationsPage })))
+const TranslationsPage = lazyPage(() => import('@/pages/TranslationsPage').then((m) => ({ default: m.TranslationsPage })))
+const PermissionsPage = lazyPage(() => import('@/pages/PermissionsPage').then((m) => ({ default: m.PermissionsPage })))
+const TodayPage = lazyPage(() => import('@/pages/TodayPage').then((m) => ({ default: m.TodayPage })))
+const TeamHomePage = lazyPage(() => import('@/pages/TeamHomePage').then((m) => ({ default: m.TeamHomePage })))
+const PeoplePage = lazyPage(() => import('@/pages/PeoplePage').then((m) => ({ default: m.PeoplePage })))
+const TripsPage = lazyPage(() => import('@/pages/TripsPage').then((m) => ({ default: m.TripsPage })))
+const TripRequestPage = lazyPage(() => import('@/pages/TripRequestPage').then((m) => ({ default: m.TripRequestPage })))
+const TripDetailPage = lazyPage(() => import('@/pages/TripDetailPage').then((m) => ({ default: m.TripDetailPage })))
+const TripsCalendarPage = lazyPage(() => import('@/pages/TripsCalendarPage').then((m) => ({ default: m.TripsCalendarPage })))
+const TripSettingsPage = lazyPage(() => import('@/pages/TripSettingsPage').then((m) => ({ default: m.TripSettingsPage })))
+const AdminPage = lazyPage(() => import('@/pages/AdminPage').then((m) => ({ default: m.AdminPage })))
+const CalendarPage = lazyPage(() => import('@/pages/CalendarPage').then((m) => ({ default: m.CalendarPage })))
+const FlexTeamPage = lazyPage(() => import('@/pages/FlexTeamPage').then((m) => ({ default: m.FlexTeamPage })))
+const DaysOffPage = lazyPage(() => import('@/pages/DaysOffPage').then((m) => ({ default: m.DaysOffPage })))
+const FlexSettlementPage = lazyPage(() => import('@/pages/FlexSettlementPage').then((m) => ({ default: m.FlexSettlementPage })))
+const SheetSyncPage = lazyPage(() => import('@/pages/SheetSyncPage').then((m) => ({ default: m.SheetSyncPage })))
+const AdminAttendancePage = lazyPage(() => import('@/pages/AdminAttendancePage').then((m) => ({ default: m.AdminAttendancePage })))
+const GeofencePage = lazyPage(() => import('@/pages/GeofencePage').then((m) => ({ default: m.GeofencePage })))
+const DataSyncPage = lazyPage(() => import('@/pages/DataSyncPage').then((m) => ({ default: m.DataSyncPage })))
+const AccountPage = lazyPage(() => import('@/pages/AccountPage').then((m) => ({ default: m.AccountPage })))
+const HubFunctionPage = lazyPage(() => import('@/pages/HubFunctionPage').then((m) => ({ default: m.HubFunctionPage })))
+const LeavePage = lazyPage(() => import('@/pages/LeavePage').then((m) => ({ default: m.LeavePage })))
 
 function PageFallback() {
-  return (
-    <div className="flex min-h-[50vh] items-center justify-center">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-200 border-t-brand-500" />
-    </div>
-  )
+  return <PageSkeleton />
 }
 
 export const router = createBrowserRouter([

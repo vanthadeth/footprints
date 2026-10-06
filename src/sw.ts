@@ -15,7 +15,7 @@ declare const self: ServiceWorkerGlobalScope & {
 // offline write succeeded).
 import { precacheAndRoute, createHandlerBoundToURL } from 'workbox-precaching'
 import { registerRoute, NavigationRoute } from 'workbox-routing'
-import { CacheFirst } from 'workbox-strategies'
+import { CacheFirst, StaleWhileRevalidate } from 'workbox-strategies'
 import { ExpirationPlugin } from 'workbox-expiration'
 
 precacheAndRoute(self.__WB_MANIFEST)
@@ -31,6 +31,18 @@ registerRoute(
   new CacheFirst({
     cacheName: 'footprints-media',
     plugins: [new ExpirationPlugin({ maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 7 })],
+  })
+)
+
+// Google Sans (index.html): the stylesheet is re-checked in the background,
+// the font files themselves never change, so the app's text renders at once
+// on every launch after the first, online or not.
+registerRoute(({ url }) => url.origin === 'https://fonts.googleapis.com', new StaleWhileRevalidate({ cacheName: 'footprints-font-css' }))
+registerRoute(
+  ({ url }) => url.origin === 'https://fonts.gstatic.com',
+  new CacheFirst({
+    cacheName: 'footprints-fonts',
+    plugins: [new ExpirationPlugin({ maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 365 })],
   })
 )
 

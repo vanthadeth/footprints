@@ -243,3 +243,32 @@
 .leaflet-container {
   font-family: inherit;
 }
+
+/* Skeleton placeholders (components/Skeleton.tsx): a soft shimmer moving
+   across grey bones while a screen's code or data loads. The same look is
+   inlined in index.html for the very first paint, before any JS runs. */
+@layer components {
+  .skeleton {
+    background: linear-gradient(90deg, #e3e3e3 25%, #eeeeee 37%, #e3e3e3 63%);
+    background-size: 400% 100%;
+    animation: skeleton-shimmer 1.4s ease infinite;
+  }
+  html.dark .skeleton {
+    background: linear-gradient(90deg, #2a2a2a 25%, #333333 37%, #2a2a2a 63%);
+    background-size: 400% 100%;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton {
+      animation: none;
+    }
+  }
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
