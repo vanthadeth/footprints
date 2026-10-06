@@ -12,6 +12,7 @@ import { useRoleGroup } from '@/features/nav/useRoleGroup'
 import { usePendingApprovals } from '@/features/nav/usePendingApprovals'
 import { canApprove, homeFor, hubFunctions, tabsFor, type FnKey, type NavContext, type TabKey } from '@/features/nav/navConfig'
 import { setBackNav } from '@/features/nav/historyGuard'
+import { prefetchPages } from '@/lib/lazyPage'
 import { useLanguage } from '@/i18n/LanguageContext'
 
 /**
@@ -24,6 +25,8 @@ import { useLanguage } from '@/i18n/LanguageContext'
  */
 export function AppLayout() {
   const location = useLocation()
+  // Signed in and on screen: warm every other screen's code in the background.
+  useEffect(() => prefetchPages(), [])
 
   return (
     <PermissionsProvider>

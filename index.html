@@ -21,6 +21,35 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="Footprints" />
     <title>Footprints, by HIG</title>
+    <style>
+      /* First paint, before any JS: the app shell as grey shimmering bones
+         (signed in) or the app icon (signed out). React replaces #root's
+         contents on its first render. Same look as components/Skeleton.tsx. */
+      #boot { position: fixed; inset: 0; overflow: hidden; background: #f4f4f4; font-size: 0; }
+      html.dark #boot { background: #1c1c1c; }
+      #boot .b { display: block; border-radius: 8px; background: linear-gradient(90deg, #e3e3e3 25%, #eeeeee 37%, #e3e3e3 63%); background-size: 400% 100%; animation: boot-shimmer 1.4s ease infinite; }
+      html.dark #boot .b { background: linear-gradient(90deg, #2a2a2a 25%, #333333 37%, #2a2a2a 63%); background-size: 400% 100%; }
+      @keyframes boot-shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+      @media (prefers-reduced-motion: reduce) { #boot .b { animation: none; } }
+      #boot .main { max-width: 512px; margin: 0 auto; padding: calc(8px + env(safe-area-inset-top)) 16px 0; }
+      #boot .row { display: flex; align-items: center; justify-content: space-between; height: 44px; }
+      #boot .card { margin-top: 12px; padding: 14px; border-radius: 18px; background: #ffffff; border: 1px solid #ebebeb; }
+      html.dark #boot .card { background: #232323; border-color: #262626; }
+      #boot .tabs { position: fixed; left: 0; right: 0; bottom: 0; height: calc(76px + env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(5, 1fr); align-items: start; padding-top: 8px; background: #ffffff; border-top: 1px solid #e8e8e8; }
+      html.dark #boot .tabs { background: #1c1c1c; border-color: #2c2c2c; }
+      #boot .tab { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+      #boot .rail { display: none; }
+      @media (min-width: 768px) {
+        #boot .tabs { display: none; }
+        #boot .rail { display: block; position: fixed; top: 0; bottom: 0; left: 0; width: 240px; padding: 16px 12px; background: #ffffff; border-right: 1px solid #e8e8e8; }
+        html.dark #boot .rail { background: #232323; border-color: #2c2c2c; }
+        #boot .main { margin-left: 240px; max-width: 768px; padding-left: 32px; padding-right: 32px; }
+      }
+      #boot .splash { display: none; position: absolute; inset: 0; align-items: center; justify-content: center; }
+      #boot .splash img { width: 76px; height: 76px; border-radius: 20px; }
+      html[data-boot='out'] #boot .shell { display: none; }
+      html[data-boot='out'] #boot .splash { display: flex; }
+    </style>
     <script>
       // Runs before first paint so a dark-preferring/previously-toggled
       // visitor never sees a flash of the light theme. Keep in sync with
@@ -38,6 +67,15 @@
       // is already "km" for that common case; only flip it here for a
       // visitor who explicitly opted into English (src/lib/language.ts
       // has the same storage key + fallback logic).
+      // Signed in already? (Supabase keeps the session under sb-<project>-auth-token.)
+      // Then the first paint is the app shell skeleton; otherwise just the app icon.
+      try {
+        var signedIn = false
+        for (var i = 0; i < localStorage.length; i++) {
+          if (/^sb-.+-auth-token$/.test(localStorage.key(i) || '')) signedIn = true
+        }
+        document.documentElement.setAttribute('data-boot', signedIn ? 'app' : 'out')
+      } catch (e) {}
       try {
         if (localStorage.getItem('footprints-language') === 'en') {
           document.documentElement.lang = 'en'
@@ -46,7 +84,22 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="boot" aria-busy="true" aria-label="Loading Footprints">
+        <div class="shell">
+          <div class="rail"><i class="b" style="width:100%;height:40px;border-radius:12px;margin-bottom:8px"></i><i class="b" style="width:100%;height:40px;border-radius:12px;margin-bottom:8px"></i><i class="b" style="width:100%;height:40px;border-radius:12px;margin-bottom:8px"></i><i class="b" style="width:100%;height:40px;border-radius:12px;margin-bottom:8px"></i><i class="b" style="width:100%;height:40px;border-radius:12px;margin-bottom:8px"></i><i class="b" style="width:100%;height:40px;border-radius:12px;margin-bottom:8px"></i></div>
+          <div class="main">
+            <div class="row"><i class="b" style="width:110px;height:12px;"></i><span style="display:flex;gap:8px"><i class="b" style="width:36px;height:36px;border-radius:999px"></i><i class="b" style="width:40px;height:40px;border-radius:999px"></i></span></div>
+            <i class="b" style="width:160px;height:32px;margin-top:4px"></i>
+            <div class="card" style="margin-top:16px;border-radius:20px;padding:16px"><i class="b" style="width:96px;height:12px;"></i><i class="b" style="width:128px;height:32px;margin-top:12px"></i><i class="b" style="width:100%;height:20px;margin-top:16px;border-radius:4px"></i></div>
+            <i class="b" style="width:112px;height:12px;margin-top:16px"></i>
+            <div class="card"><div style="display:flex;gap:12px;align-items:center"><i class="b" style="width:40px;height:40px;border-radius:12px;flex:none"></i><div style="flex:1"><i class="b" style="width:66%;height:14px;"></i><i class="b" style="width:33%;height:12px;margin-top:8px"></i></div></div><i class="b" style="width:100%;height:12px;margin-top:12px"></i><i class="b" style="width:80%;height:12px;margin-top:10px"></i></div><div class="card"><div style="display:flex;gap:12px;align-items:center"><i class="b" style="width:40px;height:40px;border-radius:12px;flex:none"></i><div style="flex:1"><i class="b" style="width:66%;height:14px;"></i><i class="b" style="width:33%;height:12px;margin-top:8px"></i></div></div><i class="b" style="width:100%;height:12px;margin-top:12px"></i><i class="b" style="width:80%;height:12px;margin-top:10px"></i></div>
+          </div>
+          <div class="tabs"><span class="tab"><i class="b" style="width:24px;height:24px;border-radius:6px"></i><i class="b" style="width:40px;height:8px;"></i></span><span class="tab"><i class="b" style="width:24px;height:24px;border-radius:6px"></i><i class="b" style="width:40px;height:8px;"></i></span><span class="tab"><i class="b" style="width:56px;height:56px;border-radius:999px;margin-top:-20px"></i><i class="b" style="width:40px;height:8px;"></i></span><span class="tab"><i class="b" style="width:24px;height:24px;border-radius:6px"></i><i class="b" style="width:40px;height:8px;"></i></span><span class="tab"><i class="b" style="width:24px;height:24px;border-radius:6px"></i><i class="b" style="width:40px;height:8px;"></i></span></div>
+        </div>
+        <div class="splash"><img src="/icons/icon-192.png" alt="" /></div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
