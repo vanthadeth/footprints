@@ -42,6 +42,7 @@ export const km: TranslationKey = {
     locations: 'ទីតាំង',
     translations: 'ការបកប្រែ',
     customer: 'អតិថិជន',
+    orderHistory: 'ប្រវត្តិការបញ្ជាទិញ',
     leave: 'ច្បាប់',
     report: 'របាយការណ៍',
     hub: 'មជ្ឈមណ្ឌល',

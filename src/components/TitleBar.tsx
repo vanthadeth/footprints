@@ -69,6 +69,8 @@ export function TitleBar() {
       ? attendance === 'CLOCKED_IN'
         ? t('nav.checkIn')
         : t('nav.clockIn')
+      : pathname.startsWith('/customers/') && pathname.endsWith('/orders')
+        ? t('nav.orderHistory')
       : pathname.startsWith('/customers/') && !TITLE_KEYS[pathname]
         ? t('nav.customer')
         : pathname.startsWith('/messages/')
