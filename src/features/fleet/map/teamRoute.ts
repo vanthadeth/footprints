@@ -1,4 +1,4 @@
-import { GAP_FLAG_MAX_DISTANCE_METERS, GAP_FLAG_THRESHOLD_MINUTES } from '@/lib/config'
+import { DEFAULT_IDLE_ALERT_THRESHOLD_MINUTES, GAP_FLAG_MAX_DISTANCE_METERS } from '@/lib/config'
 import { distanceInMeters } from '@/lib/geo'
 import type { DayJourney } from '@/features/attendance/useJourneyHistory'
 
@@ -45,11 +45,11 @@ interface Stop {
  * One person's day as an ordered route: clock-in, each visit (numbered),
  * idle stretches, clock-out -- and the path through them. Idle uses the
  * same rule the journey timeline flags a gap by: longer than
- * GAP_FLAG_THRESHOLD_MINUTES while moving no further than
+ * the admin's idle threshold while moving no further than
  * GAP_FLAG_MAX_DISTANCE_METERS. A trailing gap (last check-out until now,
  * still clocked in) counts too. Gaps across a clock-out are off the clock.
  */
-export function buildTeamRoute(day: DayJourney | null, nowIso: string = new Date().toISOString()): TeamRoute {
+export function buildTeamRoute(day: DayJourney | null, nowIso: string = new Date().toISOString(), idleThresholdMinutes: number = DEFAULT_IDLE_ALERT_THRESHOLD_MINUTES): TeamRoute {
   if (!day) return { events: [], path: [], stats: { visits: 0, distanceMeters: 0, visitingMs: 0, idleMs: 0 } }
 
   const stops: Stop[] = []
@@ -86,7 +86,7 @@ export function buildTeamRoute(day: DayJourney | null, nowIso: string = new Date
     if (!prev.end) return
     const gap = mins(prev.end, nextStartIso)
     const moved = distanceInMeters(prev.outLat, prev.outLng, nextLat, nextLng)
-    if (gap > GAP_FLAG_THRESHOLD_MINUTES && moved <= GAP_FLAG_MAX_DISTANCE_METERS) {
+    if (gap > idleThresholdMinutes && moved <= GAP_FLAG_MAX_DISTANCE_METERS) {
       events.push({ kind: 'idle', start: prev.end, end: ongoing ? null : nextStartIso, lat: prev.outLat, lng: prev.outLng, minutes: gap, ongoing })
       idleMs += gap * 60_000
     }

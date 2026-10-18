@@ -7,7 +7,10 @@ import { PeriodChips } from './PeriodChips'
 import { useFleetHistory } from './useFleetHistory'
 import { computeUserReportRows, computeVisitKpis, type UserReportRow } from './reportStats'
 import { formatDuration } from '@/lib/datetime'
-import { getPresetRange } from '@/lib/dateRange'
+import { getPresetRange, localDateKey } from '@/lib/dateRange'
+import { useAttendanceDays } from '@/features/attendanceSummary/useAttendanceDays'
+import { useAppSettings } from '@/hooks/useAppSettings'
+import { effectiveness, GOOD_EFFECTIVENESS } from '@/features/attendance/efficiency'
 import { displayName } from '@/lib/displayName'
 import { groupBy, sortGroupKeys } from '@/lib/groupBy'
 import type { TeamMember } from '@/features/fleet/types'
@@ -15,12 +18,8 @@ import type { TeamMember } from '@/features/fleet/types'
 type View = 'team' | 'user'
 
 const NO_DEPARTMENT = 'No Department'
-/** Visiting ÷ working at or above this reads as healthy (green); below it, as needing attention (orange). */
-const GOOD_EFFECTIVENESS = 0.3
-
-function ratio(visitMs: number, workMs: number): number {
-  return workMs > 0 ? visitMs / workMs : 0
-}
+/** attendance_days answers at most this many days; a longer period falls back to time clocked in. */
+const MAX_PAID_DAYS = 62
 
 /** Team › Reports: the team's visits and effectiveness by department (By Team) or per person (By User), for a chosen period. */
 export function ReportsTab({ team }: { team: TeamMember[] }) {
@@ -29,16 +28,27 @@ export function ReportsTab({ team }: { team: TeamMember[] }) {
   const [historyUserId, setHistoryUserId] = useState<string | null>(null)
   const userIds = team.map((m) => m.id)
   const { attendance, visits, loading } = useFleetHistory(userIds, range)
+  // Paid working time per person as the server counts it (unpaid break off), so
+  // effectiveness is on the same basis as "hours worked" everywhere else.
+  const fromKey = localDateKey(range.startIso)
+  const toKey = localDateKey(new Date(Math.min(Date.parse(range.endIso) - 1, Date.now())).toISOString())
+  const { rows: dayRows } = useAttendanceDays(fromKey, toKey, userIds)
+  const withinServerWindow = (Date.parse(toKey) - Date.parse(fromKey)) / 86_400_000 + 1 <= MAX_PAID_DAYS
+  const paidMsByUser: Record<string, number> | undefined = withinServerWindow && dayRows.length ? {} : undefined
+  if (paidMsByUser) for (const r of dayRows) paidMsByUser[r.userId] = (paidMsByUser[r.userId] ?? 0) + r.workedMinutes * 60_000
 
   const rows = computeUserReportRows(
     team.map((m) => ({ id: m.id, fullName: m.fullName, nickname: m.nickname, departmentId: m.departmentId, departmentName: m.departmentName })),
     attendance,
-    visits
+    visits,
+    undefined,
+    paidMsByUser
   )
-  const kpis = computeVisitKpis(visits, team.length)
+  const { shortVisitThresholdMinutes } = useAppSettings()
+  const kpis = computeVisitKpis(visits, team.length, undefined, shortVisitThresholdMinutes)
   const groups = groupBy(rows, (r) => r.departmentName ?? NO_DEPARTMENT)
   const deptKeys = sortGroupKeys(groups.keys(), NO_DEPARTMENT)
-  const totalWork = rows.reduce((a, r) => a + r.totalWorkingMs, 0)
+  const totalPaid = rows.reduce((a, r) => a + r.totalPaidMs, 0)
   const totalVisit = rows.reduce((a, r) => a + r.totalVisitMs, 0)
   const historyRow = rows.find((r) => r.userId === historyUserId) ?? null
 
@@ -66,18 +76,19 @@ export function ReportsTab({ team }: { team: TeamMember[] }) {
         </div>
       ) : view === 'team' ? (
         <>
-          <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2.5 md:grid-cols-5">
             <Kpi label="Working days" value={String(rows.reduce((s, r) => s + r.workingDays, 0))} />
             <Kpi label="Total visits" value={String(kpis.totalVisits)} />
             <Kpi label="Avg visits / person" value={kpis.avgVisitsPerUser.toFixed(1)} />
-            <Kpi label="Effectiveness" value={`${Math.round(ratio(totalVisit, totalWork) * 100)}%`} good={ratio(totalVisit, totalWork) >= GOOD_EFFECTIVENESS} />
+            <Kpi label="Short visits" value={String(kpis.shortVisits)} />
+            <Kpi label="Effectiveness" value={`${Math.round(effectiveness(totalVisit, totalPaid) * 100)}%`} good={effectiveness(totalVisit, totalPaid) >= GOOD_EFFECTIVENESS} />
           </div>
           <div className="space-y-2.5 md:grid md:grid-cols-2 md:gap-3 md:space-y-0">
             {deptKeys.map((key) => {
               const list = groups.get(key)!
               const work = list.reduce((a, r) => a + r.totalWorkingMs, 0)
               const visit = list.reduce((a, r) => a + r.totalVisitMs, 0)
-              const eff = ratio(visit, work)
+              const eff = effectiveness(visit, list.reduce((a, r) => a + r.totalPaidMs, 0))
               return (
                 <div key={key} className="space-y-3 rounded-2xl bg-white p-3.5 shadow-card">
                   <div className="flex items-center gap-2">
@@ -104,9 +115,9 @@ export function ReportsTab({ team }: { team: TeamMember[] }) {
         <div className="space-y-4">
           {deptKeys.map((key) => {
             const list = groups.get(key)!
-            const eff = ratio(
+            const eff = effectiveness(
               list.reduce((a, r) => a + r.totalVisitMs, 0),
-              list.reduce((a, r) => a + r.totalWorkingMs, 0)
+              list.reduce((a, r) => a + r.totalPaidMs, 0)
             )
             return (
               <section key={key} className="space-y-2">
@@ -144,7 +155,7 @@ export function ReportsTab({ team }: { team: TeamMember[] }) {
 
 function UserCard({ row, onFootprints }: { row: UserReportRow; onFootprints: () => void }) {
   const name = displayName(row.fullName, row.nickname)
-  const eff = ratio(row.totalVisitMs, row.totalWorkingMs)
+  const eff = effectiveness(row.totalVisitMs, row.totalPaidMs)
   const initials = row.fullName
     .split(' ')
     .map((w) => w[0])

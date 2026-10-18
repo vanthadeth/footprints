@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bucketAverage, comparableCutoff, effectiveness, highlightSentence, topCustomers, visitBuckets, zonedParts } from '../personalReport'
+import { bucketAverage, comparableCutoff, highlightSentence, topCustomers, visitBuckets, zonedParts } from '../personalReport'
 
 const TZ = 'Asia/Phnom_Penh' // UTC+7, no DST
 // Thursday 24 Sep 2026, 14:05 in Phnom Penh
@@ -58,14 +58,6 @@ describe('topCustomers', () => {
       { customerId: 'b', visits: 2 },
       { customerId: 'a', visits: 1 },
     ])
-  })
-})
-
-describe('effectiveness', () => {
-  it('is visiting ÷ working, capped at 1, and 0 with no working time', () => {
-    expect(effectiveness({ totalVisitingMs: 30, totalWorkingMs: 100 })).toBeCloseTo(0.3)
-    expect(effectiveness({ totalVisitingMs: 300, totalWorkingMs: 100 })).toBe(1)
-    expect(effectiveness({ totalVisitingMs: 0, totalWorkingMs: 0 })).toBe(0)
   })
 })
 

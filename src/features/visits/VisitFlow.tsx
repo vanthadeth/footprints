@@ -10,7 +10,7 @@ import { useAppSettings } from '@/hooks/useAppSettings'
 import { locationService } from '@/features/location/locationService'
 import { LocationError } from '@/features/location/types'
 import { formatDistance } from '@/lib/geo'
-import { formatDate, formatDuration, formatTime } from '@/lib/datetime'
+import { formatDate, formatDuration, formatTime, isPastTimeOfDay } from '@/lib/datetime'
 import { haptic } from '@/lib/haptic'
 import { usePlan } from '@/features/plan/usePlan'
 import { todayDateString } from '@/lib/dateRange'
@@ -239,7 +239,10 @@ export function VisitFlow({
   // `position: fixed` descendant.
   const selected = customers.find((c) => c.id === selectedId) ?? null
   const accuracyTooLow = locState === 'ready' && accuracy != null && accuracy > settings.maxLocationAccuracyM
-  const pickBlocked = journey.busy || accuracyTooLow || locState !== 'ready'
+  // The server refuses customer check-in/out outside the admin's hours (app.within_check_window); say so up front.
+  const checkWindowOpen = isPastTimeOfDay(settings.checkWindowStart) && !isPastTimeOfDay(settings.checkWindowEnd)
+  const checkWindowText = `Customer check-in is open ${settings.checkWindowStart.slice(0, 5)}–${settings.checkWindowEnd.slice(0, 5)}.`
+  const pickBlocked = journey.busy || accuracyTooLow || locState !== 'ready' || !checkWindowOpen
   const pickTarget = step === 'confirm' && presetCustomer ? { id: presetCustomer.id, name: presetCustomer.shopName, far: false, distance: null as number | null } : selected ? { id: selected.id, name: selected.shop_name, far: selected.distance_m > settings.checkinRadiusM, distance: selected.distance_m } : null
   const filtered = query.trim() ? customers.filter((c) => c.shop_name.toLowerCase().includes(query.trim().toLowerCase())) : customers
 
@@ -456,8 +459,10 @@ export function VisitFlow({
         <div className="mx-auto max-w-md">
           {step === 'record' ? (
             <>
-              <SlideToConfirm label={journey.busy ? 'Checking out…' : 'Slide to check out'} variant="danger" busy={journey.busy} onConfirm={handleConfirm} />
-              <p className="mt-2 text-center text-xs text-neutral-500">All fields are optional. Checking out can’t be undone.</p>
+              <SlideToConfirm label={journey.busy ? 'Checking out…' : 'Slide to check out'} variant="danger" busy={journey.busy} disabled={!checkWindowOpen} onConfirm={handleConfirm} />
+              <p className="mt-2 text-center text-xs text-neutral-500">
+                {checkWindowOpen ? 'All fields are optional. Checking out can’t be undone.' : `${checkWindowText} Clock out to close this visit.`}
+              </p>
             </>
           ) : (
             <>
@@ -472,7 +477,9 @@ export function VisitFlow({
                 }}
               />
               <p className="mt-2 text-center text-xs text-neutral-500">
-                {!pickTarget
+                {!checkWindowOpen
+                  ? checkWindowText
+                  : !pickTarget
                   ? 'Pick a customer, or visit without one'
                   : pickTarget.far && pickTarget.distance != null
                     ? `${pickTarget.name} is ${formatDistance(pickTarget.distance)} away — you’ll be asked to confirm.`

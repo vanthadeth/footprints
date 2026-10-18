@@ -31,7 +31,19 @@ export interface MyWorkDay {
   holidayHalf: boolean
   start: string
   end: string
+  breakMinutes: number
+  breakPaid: boolean
   teamSchedule: boolean
+}
+
+/** One person's own work day on a date (app.team_work_days): their hours and unpaid-break rule. */
+export interface PersonWorkDay {
+  userId: string
+  isWorking: boolean
+  start: string
+  end: string
+  breakMinutes: number
+  breakPaid: boolean
 }
 
 const hhmm = (t: string) => t.slice(0, 5)
@@ -99,13 +111,40 @@ export const scheduleService = {
   },
 
   async myWorkDay(date?: string): Promise<MyWorkDay | null> {
-    const rows = await callRpc<{ is_working: boolean; holiday_name: string | null; holiday_half: boolean; start_time: string; end_time: string; team_schedule: boolean }[]>(
+    const rows = await callRpc<
+      { is_working: boolean; holiday_name: string | null; holiday_half: boolean; start_time: string; end_time: string; break_minutes: number; break_paid: boolean; team_schedule: boolean }[]
+    >(
       'my_work_day',
       date ? { p_date: date } : {}
     )
     const r = rows?.[0]
     if (!r) return null
-    return { isWorking: r.is_working, holidayName: r.holiday_name, holidayHalf: r.holiday_half, start: hhmm(r.start_time), end: hhmm(r.end_time), teamSchedule: r.team_schedule }
+    return {
+      isWorking: r.is_working,
+      holidayName: r.holiday_name,
+      holidayHalf: r.holiday_half,
+      start: hhmm(r.start_time),
+      end: hhmm(r.end_time),
+      breakMinutes: r.break_minutes,
+      breakPaid: r.break_paid,
+      teamSchedule: r.team_schedule,
+    }
+  },
+
+  /** Every person's own work day on `date` (default today), for the people the signed-in person may see attendance for. */
+  async teamWorkDays(date?: string): Promise<PersonWorkDay[]> {
+    const rows = await callRpc<{ user_id: string; is_working: boolean; start_time: string; end_time: string; break_minutes: number; break_paid: boolean }[]>(
+      'team_work_days',
+      date ? { p_date: date } : {}
+    )
+    return (rows ?? []).map((r) => ({
+      userId: r.user_id,
+      isWorking: r.is_working,
+      start: hhmm(r.start_time),
+      end: hhmm(r.end_time),
+      breakMinutes: r.break_minutes,
+      breakPaid: r.break_paid,
+    }))
   },
   /** The signed-in person's own early clock-in and auto clock-out minutes (their override, else the company's). */
   async myClockWindow(): Promise<{ allowEarlyClockinMinutes: number; autoClockoutGraceMinutes: number } | null> {

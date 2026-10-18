@@ -91,6 +91,18 @@ describe('computeVisitKpis', () => {
     const visits = [visit('u1'), visit('u1')]
     expect(computeVisitKpis(visits, 4).avgVisitsPerUser).toBe(0.5)
   })
+
+  it('counts completed visits shorter than the short-visit threshold', () => {
+    const at = (m: number) => new Date(Date.parse('2026-01-01T02:00:00Z') + m * 60_000).toISOString()
+    const visits = [
+      visit('u1', { checked_in_at: at(0), checked_out_at: at(1) }),
+      visit('u1', { checked_in_at: at(10), checked_out_at: at(40) }),
+      visit('u1', { checked_in_at: at(50), checked_out_at: null }),
+      visit('u1', { checked_in_at: at(60), checked_out_at: at(61), cancelled_at: at(62), cancel_reason: 'wrong shop' }),
+    ]
+    expect(computeVisitKpis(visits, 1, Date.parse('2026-01-01T09:00:00Z'), 5).shortVisits).toBe(1)
+    expect(computeVisitKpis(visits, 1, Date.parse('2026-01-01T09:00:00Z')).shortVisits).toBe(0)
+  })
 })
 
 describe('computeUserReportRows', () => {
@@ -107,5 +119,26 @@ describe('computeUserReportRows', () => {
     const rows = computeUserReportRows([{ id: 'u1', fullName: 'A' }, { id: 'u2', fullName: 'B' }], attendanceRows, visitRows)
     expect(rows[0].visitCount).toBe(1)
     expect(rows[1].visitCount).toBe(2)
+  })
+})
+
+describe('computeUserReportRows days and paid time', () => {
+  const member = { id: 'u1', fullName: 'Sok Dara' }
+
+  it('groups a day by the Phnom Penh date, not the UTC one', () => {
+    // 06:00 and 14:00 local on the 15th: the first is still the 14th in UTC.
+    const rows = computeUserReportRows(
+      [member],
+      [attendance('u1', '2026-01-14T23:00:00.000Z', '2026-01-14T23:30:00.000Z'), attendance('u1', '2026-01-15T07:00:00.000Z', '2026-01-15T07:30:00.000Z')],
+      []
+    )
+    expect(rows[0].workingDays).toBe(1)
+  })
+
+  it('uses the server paid time when given, else time clocked in', () => {
+    const att = [attendance('u1', '2026-01-15T01:00:00.000Z', '2026-01-15T09:00:00.000Z')]
+    expect(computeUserReportRows([member], att, [])[0].totalPaidMs).toBe(8 * 3_600_000)
+    expect(computeUserReportRows([member], att, [], undefined, { u1: 7.5 * 3_600_000 })[0].totalPaidMs).toBe(7.5 * 3_600_000)
+    expect(computeUserReportRows([member], att, [], undefined, { u1: 7.5 * 3_600_000 })[0].totalWorkingMs).toBe(8 * 3_600_000)
   })
 })

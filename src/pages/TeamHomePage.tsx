@@ -6,7 +6,7 @@ import { useNotificationsContext } from '@/features/notifications/NotificationsC
 import { NotificationRow } from '@/features/notifications/NotificationRow'
 import { DAY_BAR_LEGEND, daySegments } from '@/features/fleet/dayBar'
 import { DayBar, DayBarSwatch } from '@/features/fleet/DayBar'
-import { firstClockIn, lastClockOut, workedMs } from '@/features/attendance/sessions'
+import { firstClockIn, lastClockOut } from '@/features/attendance/sessions'
 import { useFleet } from '@/features/fleet/useFleet'
 import { flexService, type FlexTeamRow } from '@/features/flex/flexService'
 import { useRoleGroup } from '@/features/nav/useRoleGroup'
@@ -20,7 +20,10 @@ import { useFleetHistory } from '@/features/reports/useFleetHistory'
 import { useVisitOptions } from '@/features/visits/useVisitOptions'
 import { useAppSettings } from '@/hooks/useAppSettings'
 import { useLanguage } from '@/i18n/LanguageContext'
-import { getPresetRange, todayDateString } from '@/lib/dateRange'
+import { getPresetRange, localDateKey, todayDateString } from '@/lib/dateRange'
+import { useAttendanceDays } from '@/features/attendanceSummary/useAttendanceDays'
+import { useTeamWorkDays } from '@/features/schedule/useTeamWorkDays'
+import { effectivenessPercent, paidWorkMs } from '@/features/attendance/efficiency'
 import { formatDuration, formatTime } from '@/lib/datetime'
 
 interface Need {
@@ -78,6 +81,7 @@ export function TeamHomePage() {
   const today = todayDateString()
   const ids = useMemo(() => field.map((s) => s.member.id), [field])
   const leave = useApprovedLeaveOnDate(ids, today)
+  const workDays = useTeamWorkDays(today)
   const weekRange = useMemo(() => getPresetRange('this_week'), [])
   const week = useFleetHistory(ids, weekRange)
   const { byKind } = useVisitOptions()
@@ -98,25 +102,31 @@ export function TeamHomePage() {
   const weekVisits = week.visits.length
   const weekOrdered = week.visits.filter((v) => label(v.order_status_id) === 'ordered').length
   const msOf = (a: string, b: string | null) => Math.max(0, (b ? Date.parse(b) : now) - Date.parse(a))
-  const weekWork = week.attendance.reduce((n, a) => n + msOf(a.clock_in_at, a.clock_out_at), 0)
   const weekVisitMs = week.visits.reduce((n, v) => n + msOf(v.checked_in_at, v.checked_out_at), 0)
-  const weekEff = weekWork ? Math.round((weekVisitMs / weekWork) * 100) : 0
+  // Paid working time (clocked in less the unpaid break) as the server counts it, per person per day.
+  const weekDays = useAttendanceDays(localDateKey(weekRange.startIso), today, ids)
+  const weekPaidMs = weekDays.rows.reduce((n, r) => n + r.workedMinutes * 60_000, 0)
+  const weekEff = effectivenessPercent(weekVisitMs, weekPaidMs) ?? 0
 
   const count = (k: Filter) => (k === 'all' ? field.length : field.filter((s) => statusOf(s) === k).length)
   const shown = field.filter((s) => filter === 'all' || statusOf(s) === filter)
   // One time range for every bar, so they line up under the ticks: half an hour before the shift to its end,
   // stretched for anyone who clocked in earlier or is still working later.
-  const shiftStart = new Date(`${today}T${settings.workStartTime.slice(0, 5)}:00+07:00`).getTime()
-  const shiftEnd = new Date(`${today}T${settings.workEndTime.slice(0, 5)}:00+07:00`).getTime()
+  // Each bar is judged against that person's own shift; the axis spans the earliest start to the latest end.
+  const atToday = (hhmm: string) => new Date(`${today}T${hhmm.slice(0, 5)}:00+07:00`).getTime()
+  const shiftOf = (id: string) => ({ start: atToday(workDays[id]?.start ?? settings.workStartTime), end: atToday(workDays[id]?.end ?? settings.workEndTime) })
+  const shifts = field.map((s) => shiftOf(s.member.id))
+  const shiftStart = shifts.length ? Math.min(...shifts.map((x) => x.start)) : atToday(settings.workStartTime)
+  const shiftEnd = shifts.length ? Math.max(...shifts.map((x) => x.end)) : atToday(settings.workEndTime)
   const clocked = field.filter((s) => s.sessions.length)
   const rangeFrom = Math.min(shiftStart - 30 * 60_000, ...clocked.map((s) => Date.parse(firstClockIn(s.sessions)!)))
   const rangeTo = Math.max(shiftEnd, ...clocked.map((s) => { const out = lastClockOut(s.sessions); return out ? Date.parse(out) : now }))
   const tickAt = (ms: number) => ((ms - rangeFrom) / (rangeTo - rangeFrom)) * 100
   const noon = new Date(`${today}T12:00:00+07:00`).getTime()
   const ticks = [
-    { at: shiftStart, label: settings.workStartTime.slice(0, 5) },
+    { at: shiftStart, label: formatTime(new Date(shiftStart).toISOString()) },
     ...(noon > shiftStart + 90 * 60_000 && noon < shiftEnd - 90 * 60_000 ? [{ at: noon, label: '12:00' }] : []),
-    { at: shiftEnd, label: settings.workEndTime.slice(0, 5) },
+    { at: shiftEnd, label: formatTime(new Date(shiftEnd).toISOString()) },
   ]
 
   return (
@@ -202,11 +212,11 @@ export function TeamHomePage() {
           const st = statusOf(s)
           const name = displayName(s.member.fullName, s.member.nickname)
           const done = s.visitsToday.filter((v) => !v.cancelled_at)
-          const workMs = workedMs(s.sessions, now)
           const firstIn = firstClockIn(s.sessions)
           const lastOut = lastClockOut(s.sessions)
           const visitMs = done.reduce((n, v) => n + msOf(v.checked_in_at, v.checked_out_at), 0)
-          const eff = workMs ? Math.round((visitMs / workMs) * 100) : null
+          const own = shiftOf(s.member.id)
+          const eff = effectivenessPercent(visitMs, paidWorkMs(s.sessions, now, workDays[s.member.id]))
           const sub =
             st === 'visiting' && s.openVisit
               ? `On a visit · ${formatDuration(now - Date.parse(s.openVisit.checked_in_at), language)}`
@@ -225,14 +235,14 @@ export function TeamHomePage() {
                   clockOut: lastOut ? Date.parse(lastOut) : null,
                   sessions: s.sessions.map((a) => [Date.parse(a.clock_in_at), a.clock_out_at ? Date.parse(a.clock_out_at) : null]),
                   visits: done.map((v) => [Date.parse(v.checked_in_at), v.checked_out_at ? Date.parse(v.checked_out_at) : null]),
-                  shiftStart,
-                  shiftEnd,
+                  shiftStart: own.start,
+                  shiftEnd: own.end,
                   now,
                   flagAfterMin: settings.idleAlertThresholdMinutes,
                 })
           const barLabel = firstIn
             ? `Clocked in ${formatTime(firstIn)}${s.sessions.length > 1 ? ` (${s.sessions.length} sessions)` : ''}, ${done.length} ${done.length === 1 ? 'visit' : 'visits'}, ${formatDuration(visitMs, language)} on visits`
-            : `No clock-in since ${settings.workStartTime.slice(0, 5)}`
+            : `No clock-in since ${formatTime(new Date(own.start).toISOString())}`
           return (
             <Link key={s.member.id} to={`/team/footprints/${s.member.id}`} state={{ name, sub: [s.member.position, s.member.departmentName].filter(Boolean).join(' · ') }} className="flex items-start gap-3 border-t border-neutral-100 py-2.5 first-of-type:border-t-0 dark:border-neutral-800">
               <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-[12px] font-extrabold text-brand-700 dark:bg-brand-500/20 dark:text-brand-100">

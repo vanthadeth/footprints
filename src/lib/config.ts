@@ -21,8 +21,10 @@ export const DEFAULT_VISIT_RADIUS_METERS = 100
 export const DEFAULT_LOCATION_PING_INTERVAL_MINUTES = 5
 
 /**
- * GPS accuracy (metres) above which a reading is flagged LOW_LOCATION_ACCURACY.
- * This never blocks an action -- it only attaches a flag for review.
+ * GPS accuracy (metres) above which a reading counts as low accuracy
+ * (app_settings.max_location_accuracy_m). Clock-in and customer check-in need a
+ * fix at least this good; clock-out only flags it (LOW_LOCATION_ACCURACY), and a
+ * low-accuracy GPS ping never triggers an automatic check-out.
  */
 export const MAX_ACCEPTABLE_LOCATION_ACCURACY_METERS = 100
 
@@ -39,6 +41,13 @@ export const DEFAULT_AUTO_CHECKOUT_ENABLED = true
 export const DEFAULT_WORK_START_TIME = '08:00'
 export const DEFAULT_WORK_END_TIME = '17:00'
 
+/** Until the live setting loads: a completed visit shorter than this is a short (ineffective) visit (app_settings.short_visit_threshold_minutes). */
+export const DEFAULT_SHORT_VISIT_THRESHOLD_MINUTES = 2
+
+/** Until the live setting loads: customer check-in / check-out is allowed between these times (app_settings.check_window_start / check_window_end). */
+export const DEFAULT_CHECK_WINDOW_START = '07:00:00'
+export const DEFAULT_CHECK_WINDOW_END = '20:00:00'
+
 /** How many minutes before work_start_time a clock-in is still allowed. */
 export const DEFAULT_ALLOW_EARLY_CLOCKIN_MINUTES = 15
 
@@ -46,20 +55,17 @@ export const DEFAULT_ALLOW_EARLY_CLOCKIN_MINUTES = 15
 export const DEFAULT_AUTO_CLOCKOUT_GRACE_MINUTES = 60
 
 /**
- * A transit/gap between clock-in and the first visit, between two visits,
- * or between the last visit and clock-out is visually flagged on the
- * Footprints timeline once it exceeds this many minutes AND the
- * straight-line distance between the gap's two endpoints is at or below
- * GAP_FLAG_MAX_DISTANCE_METERS -- a long gap is only suspicious if the
- * person barely moved (looks like idle/rest passed off as transit), not
- * when the distance shows real travel. When either endpoint's coordinates
- * are missing, distance can't be checked, so a long gap is still flagged
- * (same conservative default as before this distance check existed). A UI
- * heuristic only (unlike the other thresholds above, nothing server-side
- * enforces or stores it) -- easy to move into app_settings later if it
- * needs to be admin-configurable.
+ * Until the live setting loads: app_settings.idle_alert_threshold_minutes, the
+ * one idle threshold the alerts, the day bar, the Footprints timeline, the team
+ * map and the stale-pin badge all use. A transit/gap between clock-in and the
+ * first visit, between two visits, or between the last visit and clock-out is
+ * flagged once it exceeds it AND the straight-line distance between the gap's
+ * two endpoints is at or below GAP_FLAG_MAX_DISTANCE_METERS -- a long gap is
+ * only suspicious if the person barely moved, not when the distance shows real
+ * travel. When either endpoint's coordinates are missing, distance can't be
+ * checked, so a long gap is still flagged.
  */
-export const GAP_FLAG_THRESHOLD_MINUTES = 45
+export const DEFAULT_IDLE_ALERT_THRESHOLD_MINUTES = 45
 export const GAP_FLAG_MAX_DISTANCE_METERS = 300
 
 /** Standardised flags used across attendance, visits, fleet, and reports. */
@@ -70,6 +76,7 @@ export const FLAGS = {
   AUTO_CHECKOUT_OUTSIDE_RADIUS: 'AUTO_CHECKOUT_OUTSIDE_RADIUS',
   AUTO_CHECKOUT_CLOCK_OUT: 'AUTO_CHECKOUT_CLOCK_OUT',
   AUTO_CHECKOUT_WORKING_HOURS_END: 'AUTO_CHECKOUT_WORKING_HOURS_END',
+  SHORT_VISIT: 'SHORT_VISIT',
   TRACKING_INTERRUPTED: 'TRACKING_INTERRUPTED',
 } as const
 

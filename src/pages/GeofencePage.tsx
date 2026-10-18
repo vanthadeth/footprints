@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Building2, Crosshair, Loader2, LocateFixed, LogOut, PauseCircle, RefreshCw, ShieldAlert, Store, Timer } from 'lucide-react'
+import { Building2, Clock3, Crosshair, Loader2, LocateFixed, LogOut, PauseCircle, RefreshCw, ShieldAlert, Store, Timer } from 'lucide-react'
 import { Circle, Marker } from 'react-leaflet'
 import { AdminFrame, AdminGroup, AdminRow, AdminSwitch } from '@/components/AdminKit'
 import { Stepper } from '@/components/Stepper'
@@ -79,6 +79,7 @@ function Geofence() {
   const active = locations.filter((l) => l.active)
   const points = active.map((l) => [l.latitude, l.longitude] as [number, number])
   const dirty = !!settings && JSON.stringify(settings) !== saved
+  const windowInvalid = !!settings && settings.checkWindowEnd <= settings.checkWindowStart
   const patch = (p: Partial<EditableSettings>) => setSettings((s) => (s ? { ...s, ...p } : s))
 
   async function save() {
@@ -166,16 +167,31 @@ function Geofence() {
             <AdminRow
               icon={PauseCircle}
               label="Flag a gap after"
-              sub="Clocked in with no visit open"
+              sub="Between visits during the shift, after the first visit"
               control={<Stepper label="Idle threshold" value={settings.idleAlertThresholdMinutes} step={5} min={5} max={240} format={(v) => `${v} min`} onChange={(v) => patch({ idleAlertThresholdMinutes: v })} />}
             />
             <AdminRow
               icon={Timer}
               label="Flag a short visit under"
-              sub="Counted as an ineffective visit"
+              sub="Flagged on the visit and counted as an ineffective visit"
               control={<Stepper label="Short visit threshold" value={settings.shortVisitThresholdMinutes} step={1} min={1} max={60} format={(v) => `${v} min`} onChange={(v) => patch({ shortVisitThresholdMinutes: v })} />}
             />
           </AdminGroup>
+          <AdminGroup title="Check-in and check-out hours">
+            <AdminRow
+              icon={Clock3}
+              label="Opens at"
+              sub="Customer check-in and check-out are refused before this"
+              control={<input type="time" value={settings.checkWindowStart} onChange={(e) => patch({ checkWindowStart: e.target.value || '07:00' })} aria-label="Check-in opens at" className="h-9 rounded-lg border-[1.5px] border-neutral-200 bg-white px-2 text-sm font-bold text-neutral-900 dark:border-neutral-700" />}
+            />
+            <AdminRow
+              icon={Clock3}
+              label="Closes at"
+              sub="…and after this"
+              control={<input type="time" value={settings.checkWindowEnd} onChange={(e) => patch({ checkWindowEnd: e.target.value || '20:00' })} aria-label="Check-in closes at" className="h-9 rounded-lg border-[1.5px] border-neutral-200 bg-white px-2 text-sm font-bold text-neutral-900 dark:border-neutral-700" />}
+            />
+          </AdminGroup>
+          {windowInvalid && <p className="rounded-xl bg-status-danger/10 px-3 py-2 text-sm text-status-danger">Closing time must be after opening time.</p>}
           <section aria-label="Save location every">
             <div className="flex items-baseline justify-between">
               <h2 className="mb-0.5 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">
@@ -205,7 +221,7 @@ function Geofence() {
       {dirty && (
         <div className="fixed inset-x-0 bottom-[calc(84px+env(safe-area-inset-bottom))] z-20 px-4 md:bottom-6">
           <div className="mx-auto max-w-lg md:max-w-2xl">
-            <button type="button" onClick={save} disabled={saving} className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-brand-500 text-[15px] font-bold text-white shadow-lg disabled:opacity-50">
+            <button type="button" onClick={save} disabled={saving || windowInvalid} className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-brand-500 text-[15px] font-bold text-white shadow-lg disabled:opacity-50">
               {saving && <Loader2 className="h-4 w-4 animate-spin" />} Save changes
             </button>
           </div>

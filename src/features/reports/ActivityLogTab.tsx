@@ -17,6 +17,8 @@ const FLAG_TEXT: Record<string, string> = {
   LOCATION_UNAVAILABLE: 'no location',
   AUTO_CHECKOUT_OUTSIDE_RADIUS: 'left the customer radius',
   AUTO_CHECKOUT_CLOCK_OUT: 'clocked out mid-visit',
+  AUTO_CHECKOUT_WORKING_HOURS_END: 'closed automatically at the end of the day',
+  SHORT_VISIT: 'very short visit',
   TRACKING_INTERRUPTED: 'tracking interrupted',
   OUT_OF_RANGE: 'checked in outside the radius',
 }

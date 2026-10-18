@@ -8,14 +8,16 @@ import { useCustomerNames } from '@/features/customers/useCustomerNames'
 import {
   bucketAverage,
   comparableCutoff,
-  effectiveness,
   highlightSentence,
   previousLabel,
   topCustomers,
   visitBuckets,
   type ReportPeriod,
 } from '@/features/reports/personalReport'
-import { getPresetRange } from '@/lib/dateRange'
+import { getPresetRange, localDateKey, todayDateString } from '@/lib/dateRange'
+import { effectiveness, paidMsOverDays } from '@/features/attendance/efficiency'
+import { useAttendanceDays } from '@/features/attendanceSummary/useAttendanceDays'
+import { useAppSettings } from '@/hooks/useAppSettings'
 import { formatDuration } from '@/lib/datetime'
 import { useLanguage } from '@/i18n/LanguageContext'
 
@@ -47,24 +49,48 @@ export function ReportPage() {
 
   const stats = useMemo(() => computeJourneyStats(current.days), [current.days])
   // Compare against the same stretch of the previous period (Mon–Thu vs Mon–Thu), not all of it.
-  const prevStats = useMemo(() => {
-    const cutoff = comparableCutoff(range.startIso, prevRange.startIso, new Date().toISOString(), prevRange.endIso)
+  const { cutoff, prevDays, prevEndMs } = useMemo(() => {
+    const cut = comparableCutoff(range.startIso, prevRange.startIso, new Date().toISOString(), prevRange.endIso)
     const trimmed = previous.days.map((d) => ({
       ...d,
-      attendance: d.attendance.filter((a) => a.clock_in_at < cutoff),
-      visits: d.visits.filter((v) => v.checked_in_at < cutoff),
+      attendance: d.attendance.filter((a) => a.clock_in_at < cut),
+      visits: d.visits.filter((v) => v.checked_in_at < cut),
     }))
-    const endMs = new Date(cutoff).getTime()
-    return computeJourneyStats(trimmed, endMs)
+    return { cutoff: cut, prevDays: trimmed, prevEndMs: new Date(cut).getTime() }
   }, [previous.days, range.startIso, prevRange.startIso, prevRange.endIso])
+  const prevStats = useMemo(() => computeJourneyStats(prevDays, prevEndMs), [prevDays, prevEndMs])
+
+  // Paid working time (clocked in less the unpaid break): whole days as the server counts them, today and
+  // the partly counted comparison day worked out here with today's break rule.
+  const settings = useAppSettings()
+  const me = profile?.id ? [profile.id] : []
+  const today = todayDateString()
+  const curServer = useAttendanceDays(localDateKey(range.startIso), today, me)
+  const prevServer = useAttendanceDays(localDateKey(prevRange.startIso), localDateKey(new Date(Date.parse(prevRange.endIso) - 1).toISOString()), me)
+  const paidByDay = (rows: { day: string; workedMinutes: number }[]) => {
+    const m: Record<string, number> = {}
+    for (const r of rows) m[r.day] = (m[r.day] ?? 0) + r.workedMinutes
+    return m
+  }
+  const rule = { breakMinutes: settings.breakMinutes, breakPaid: settings.breakPaid }
+  const paidMs = useMemo(
+    () => paidMsOverDays(current.days, paidByDay(curServer.rows), new Set([today]), Date.now(), rule),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the rule's two fields are the real inputs
+    [current.days, curServer.rows, today, settings.breakMinutes, settings.breakPaid]
+  )
+  const prevPaidMs = useMemo(
+    () => paidMsOverDays(prevDays, paidByDay(prevServer.rows), new Set([localDateKey(cutoff)]), prevEndMs, rule),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the rule's two fields are the real inputs
+    [prevDays, prevServer.rows, cutoff, prevEndMs, settings.breakMinutes, settings.breakPaid]
+  )
   const buckets = useMemo(() => visitBuckets(period, current.allVisits, new Date().toISOString()), [period, current.allVisits])
   const avg = bucketAverage(buckets)
   const max = Math.max(1, ...buckets.map((b) => b.value ?? 0), avg)
   const top = useMemo(() => topCustomers(current.allVisits), [current.allVisits])
   const names = useCustomerNames(top.map((t) => t.customerId))
 
-  const eff = effectiveness(stats)
-  const prevEff = effectiveness(prevStats)
+  const eff = effectiveness(stats.totalVisitingMs, paidMs)
+  const prevEff = effectiveness(prevStats.totalVisitingMs, prevPaidMs)
   const vsPrev = `vs ${previousLabel(period)}`
   const metrics = [
     {

@@ -1,8 +1,12 @@
+import { paidWorkMs, type BreakRule } from './efficiency'
 import type { DayJourney } from './useJourneyHistory'
 
 export interface JourneyStats {
   workingDays: number
+  /** Time clocked in. */
   totalWorkingMs: number
+  /** Paid working time: clocked in less the unpaid break (the efficiency denominator). Equals totalWorkingMs when no break rule is given. */
+  totalPaidMs: number
   totalVisits: number
   totalVisitingMs: number
   averageVisitMs: number
@@ -15,10 +19,11 @@ export interface JourneyStats {
 /**
  * Aggregate stats over a set of days (spec §29-30, §39). Pure function so
  * the gap/duration math -- easy to get subtly wrong -- is unit-testable
- * without a database.
+ * without a database. `rule` is the person's unpaid break, for paid time.
  */
-export function computeJourneyStats(days: DayJourney[], now: number = Date.now()): JourneyStats {
+export function computeJourneyStats(days: DayJourney[], now: number = Date.now(), rule?: BreakRule | null): JourneyStats {
   let totalWorkingMs = 0
+  let totalPaidMs = 0
   let totalVisits = 0
   let totalVisitingMs = 0
   let totalGapMs = 0
@@ -30,6 +35,7 @@ export function computeJourneyStats(days: DayJourney[], now: number = Date.now()
   for (const day of days) {
     if (day.attendance.length > 0) {
       workingDays += 1
+      totalPaidMs += paidWorkMs(day.attendance, now, rule)
       // A day can have more than one clock-in/clock-out session -- sum
       // working time across all of them, not just the first.
       for (const session of day.attendance) {
@@ -65,6 +71,7 @@ export function computeJourneyStats(days: DayJourney[], now: number = Date.now()
   return {
     workingDays,
     totalWorkingMs,
+    totalPaidMs,
     totalVisits,
     totalVisitingMs,
     averageVisitMs: totalVisits > 0 ? totalVisitingMs / totalVisits : 0,

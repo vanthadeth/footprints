@@ -5,6 +5,8 @@ import { EmptyState } from '@/components/EmptyState'
 import { FlagBadge } from '@/components/FlagBadge'
 import { useJourneyHistory, type DayJourney } from '@/features/attendance/useJourneyHistory'
 import { computeJourneyStats } from '@/features/attendance/journeyStats'
+import { effectivenessPercent } from '@/features/attendance/efficiency'
+import { useTeamWorkDays } from '@/features/schedule/useTeamWorkDays'
 import { JourneyTimeline } from '@/features/attendance/JourneyTimeline'
 import { JourneyMap } from '@/features/attendance/JourneyMap'
 import { DatePickerButton } from '@/features/attendance/DatePickerButton'
@@ -58,8 +60,10 @@ export function JourneyHistoryReport({ userId, interactive, subtitle }: { userId
 
   const day = days[0] ?? null
   const leaveType = useApprovedLeaveOnDate(userId ? [userId] : [], selectedDate)[userId ?? '']
-  const stats = computeJourneyStats(day ? [day] : [])
-  const effectiveness = stats.totalWorkingMs > 0 ? Math.round((stats.totalVisitingMs / stats.totalWorkingMs) * 100) : 0
+  // This person's own shift and break on this date (not the signed-in person's, and not today's).
+  const workDay = useTeamWorkDays(selectedDate)[userId ?? '']
+  const stats = computeJourneyStats(day ? [day] : [], undefined, workDay ? { breakMinutes: workDay.breakMinutes, breakPaid: workDay.breakPaid } : null)
+  const effectiveness = effectivenessPercent(stats.totalVisitingMs, stats.totalPaidMs) ?? 0
   const flags = [...new Set((day?.visits ?? []).flatMap((v) => v.flags ?? []))]
   const liveVisits = (day?.visits ?? []).filter((v) => !v.cancelled_at)
   const ordered = liveVisits.filter((v) => (v.order_amount_usd ?? 0) > 0).length
@@ -128,7 +132,7 @@ export function JourneyHistoryReport({ userId, interactive, subtitle }: { userId
             <div className="grid grid-cols-2 gap-2.5">
               <div className="rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card">
                 <p className="text-[13px] font-semibold text-neutral-500">{t('footprints.effective')}</p>
-                <p className="text-[30px] font-extrabold leading-9 text-neutral-900">{stats.totalWorkingMs > 0 ? `${effectiveness}%` : '—'}</p>
+                <p className="text-[30px] font-extrabold leading-9 text-neutral-900">{stats.totalPaidMs > 0 ? `${effectiveness}%` : '—'}</p>
                 <p className="text-[11px] text-neutral-500">{t('footprints.effectiveSub')}</p>
                 <div className="mt-2.5 space-y-1 border-t border-neutral-100 pt-2.5 text-xs">
                   <Line label={t('footprints.clockedInFor')} value={formatDuration(stats.totalWorkingMs, language)} />
@@ -155,7 +159,7 @@ export function JourneyHistoryReport({ userId, interactive, subtitle }: { userId
                 <p className="text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">{t('footprints.yourDay')}</p>
                 <span className="text-[11px] text-neutral-500">{t('footprints.dayBarLegend')}</span>
               </div>
-              <DayStrip day={day} date={selectedDate} isToday={selectedDate === today} customerNames={customerNames} />
+              <DayStrip day={day} date={selectedDate} isToday={selectedDate === today} customerNames={customerNames} workDay={workDay} />
               {flags.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {flags.map((f) => (
@@ -213,11 +217,12 @@ function Line({ label, value, tone = 'text-neutral-900' }: { label: string; valu
  * each visit's outcomes (ordered, paid, appointment) under it, then the
  * minutes and share of each kind of time. Tap or hover a stretch to see it.
  */
-function DayStrip({ day, date, isToday, customerNames }: { day: DayJourney; date: string; isToday: boolean; customerNames: Record<string, string> }) {
+function DayStrip({ day, date, isToday, customerNames, workDay }: { day: DayJourney; date: string; isToday: boolean; customerNames: Record<string, string>; workDay?: { start: string; end: string } }) {
   const settings = useAppSettings()
   const now = isToday ? Date.now() : atLocal(date, '23:59')
-  const shiftStart = atLocal(date, settings.workStartTime)
-  const shiftEnd = atLocal(date, settings.workEndTime)
+  // The person's own shift on that date; the signed-in person's today until it loads.
+  const shiftStart = atLocal(date, workDay?.start ?? settings.workStartTime)
+  const shiftEnd = atLocal(date, workDay?.end ?? settings.workEndTime)
   const { segs, live, clockIn, clockOut } = segmentsFor({ attendance: day.attendance, visits: day.visits, shiftStart, shiftEnd, now, flagAfterMin: settings.idleAlertThresholdMinutes })
   if (clockIn == null) return null
   const last = clockOut ?? now

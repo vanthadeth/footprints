@@ -12,6 +12,8 @@ import { useAppSettings } from '@/hooks/useAppSettings'
 import { todayDateString } from '@/lib/dateRange'
 import type { FleetMemberSnapshot } from './types'
 import { firstClockIn, lastClockOut, workedMs } from '@/features/attendance/sessions'
+import { effectivenessPercent, paidWorkMs } from '@/features/attendance/efficiency'
+import { useTeamWorkDays } from '@/features/schedule/useTeamWorkDays'
 
 const DOT: Record<FleetMemberSnapshot['status'], string> = { VISITING: 'bg-status-visiting', IDLING: 'bg-earth-500', OFF: 'bg-neutral-400' }
 
@@ -29,8 +31,8 @@ export function TeamTodayList({ snapshots }: { snapshots: FleetMemberSnapshot[] 
   const { t, tValue, language } = useLanguage()
   const settings = useAppSettings()
   const day = todayDateString()
-  const shiftStart = atLocal(day, settings.workStartTime)
-  const shiftEnd = atLocal(day, settings.workEndTime)
+  // Each person's own shift and unpaid break today (not the signed-in person's).
+  const workDays = useTeamWorkDays(day)
   const optionLabel = (id: string | null) => {
     if (!id) return null
     for (const list of Object.values(byKind)) {
@@ -53,10 +55,13 @@ export function TeamTodayList({ snapshots }: { snapshots: FleetMemberSnapshot[] 
         const done = s.visitsToday.filter((v) => !v.cancelled_at)
         const isOpen = open === s.member.id
         const workMs = workedMs(s.sessions, now)
+        const workDay = workDays[s.member.id]
+        const shiftStart = atLocal(day, workDay?.start ?? settings.workStartTime)
+        const shiftEnd = atLocal(day, workDay?.end ?? settings.workEndTime)
         const firstIn = firstClockIn(s.sessions)
         const lastOut = lastClockOut(s.sessions)
         const visitMs = done.reduce((n, v) => n + ((v.checked_out_at ? Date.parse(v.checked_out_at) : now) - Date.parse(v.checked_in_at)), 0)
-        const eff = workMs > 0 ? Math.round((visitMs / workMs) * 100) : null
+        const eff = effectivenessPercent(visitMs, paidWorkMs(s.sessions, now, workDay))
         const last = done[done.length - 1]
         const nowTitle =
           s.status === 'VISITING' && s.openVisit
@@ -122,7 +127,7 @@ export function TeamTodayList({ snapshots }: { snapshots: FleetMemberSnapshot[] 
                         <DayBar segs={segs} from={clockIn} to={Math.max(shiftEnd, clockOut ?? now)} size="md" label={`Clocked in ${formatTime(firstIn)}${s.sessions.length > 1 ? ` (${s.sessions.length} sessions)` : ''}, ${live.length} ${live.length === 1 ? 'visit' : 'visits'}`} describe={(g) => segText(g, name(g))} />
                         <div className="mt-1 flex justify-between text-[10px] font-semibold text-neutral-500">
                           <span>In {formatTime(firstIn)}</span>
-                          <span>{lastOut ? `Out ${formatTime(lastOut)}` : settings.workEndTime.slice(0, 5)}</span>
+                          <span>{lastOut ? `Out ${formatTime(lastOut)}` : (workDay?.end ?? settings.workEndTime).slice(0, 5)}</span>
                         </div>
                       </div>
                     )

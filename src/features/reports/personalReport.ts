@@ -1,5 +1,4 @@
 import { APP_TIMEZONE } from '@/lib/config'
-import type { JourneyStats } from '@/features/attendance/journeyStats'
 
 export type ReportPeriod = 'today' | 'week' | 'month'
 
@@ -114,11 +113,6 @@ export function topCustomers(visits: VisitLike[], limit = 3): { customerId: stri
     .map(([customerId, n]) => ({ customerId, visits: n }))
     .sort((a, b) => b.visits - a.visits || a.customerId.localeCompare(b.customerId))
     .slice(0, limit)
-}
-
-/** Share of working time spent inside a visit, 0-1. */
-export function effectiveness(stats: Pick<JourneyStats, 'totalVisitingMs' | 'totalWorkingMs'>): number {
-  return stats.totalWorkingMs > 0 ? Math.min(1, stats.totalVisitingMs / stats.totalWorkingMs) : 0
 }
 
 const PREVIOUS_LABEL: Record<ReportPeriod, string> = { today: 'this time yesterday', week: 'this point last week', month: 'this point last month' }

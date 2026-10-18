@@ -1,6 +1,7 @@
 import type { AttendanceRow, VisitRow } from '@/features/attendance/types'
 import type { FleetMemberSnapshot } from '@/features/fleet/types'
 import { formatTime } from '@/lib/datetime'
+import { localDateKey } from '@/lib/dateRange'
 import { firstClockIn, workedMs } from '@/features/attendance/sessions'
 
 export interface LiveFleetKpis {
@@ -73,15 +74,18 @@ export interface VisitKpis {
   unassignedVisits: number
   autoCheckouts: number
   flaggedVisits: number
+  /** Completed visits shorter than the admin's short-visit threshold. */
+  shortVisits: number
   uniqueCustomers: number
 }
 
 /** The date-filterable half of the Dashboard (Visits + Customer Coverage sections). */
-export function computeVisitKpis(visits: VisitRow[], userCount: number, now: number = Date.now()): VisitKpis {
+export function computeVisitKpis(visits: VisitRow[], userCount: number, now: number = Date.now(), shortUnderMinutes: number = 0): VisitKpis {
   let totalVisitingMs = 0
   let unassignedVisits = 0
   let autoCheckouts = 0
   let flaggedVisits = 0
+  let shortVisits = 0
   const customers = new Set<string>()
 
   for (const v of visits) {
@@ -91,6 +95,7 @@ export function computeVisitKpis(visits: VisitRow[], userCount: number, now: num
     else customers.add(v.customer_id)
     if (v.auto_closed) autoCheckouts += 1
     if (v.flags && v.flags.length > 0) flaggedVisits += 1
+    if (shortUnderMinutes > 0 && v.checked_out_at && !v.cancelled_at && end - new Date(v.checked_in_at).getTime() < shortUnderMinutes * 60_000) shortVisits += 1
   }
 
   return {
@@ -101,6 +106,7 @@ export function computeVisitKpis(visits: VisitRow[], userCount: number, now: num
     unassignedVisits,
     autoCheckouts,
     flaggedVisits,
+    shortVisits,
     uniqueCustomers: customers.size,
   }
 }
@@ -114,7 +120,10 @@ export interface UserReportRow {
   workingDays: number
   firstClockIn: string | null
   lastClockOut: string | null
+  /** Time clocked in. */
   totalWorkingMs: number
+  /** Paid working time (clocked in less the unpaid break) -- the efficiency denominator; falls back to totalWorkingMs when the server's figure isn't available. */
+  totalPaidMs: number
   visitCount: number
   totalVisitMs: number
   avgVisitMs: number
@@ -130,13 +139,14 @@ export function computeUserReportRows(
   members: { id: string; fullName: string; nickname?: string | null; departmentId?: string | null; departmentName?: string | null }[],
   attendanceRows: AttendanceRow[],
   visitRows: VisitRow[],
-  now: number = Date.now()
+  now: number = Date.now(),
+  paidMsByUser?: Record<string, number>
 ): UserReportRow[] {
   return members.map((member) => {
     const myAttendance = attendanceRows.filter((a) => a.user_id === member.id)
     const myVisits = visitRows.filter((v) => v.user_id === member.id)
 
-    const workDayKeys = new Set(myAttendance.map((a) => a.clock_in_at.slice(0, 10)))
+    const workDayKeys = new Set(myAttendance.map((a) => localDateKey(a.clock_in_at)))
     const totalWorkingMs = myAttendance.reduce((sum, a) => {
       const end = a.clock_out_at ? new Date(a.clock_out_at).getTime() : now
       return sum + Math.max(0, end - new Date(a.clock_in_at).getTime())
@@ -144,7 +154,7 @@ export function computeUserReportRows(
 
     const byDay = new Map<string, VisitRow[]>()
     for (const v of myVisits) {
-      const key = v.checked_in_at.slice(0, 10)
+      const key = localDateKey(v.checked_in_at)
       byDay.set(key, [...(byDay.get(key) ?? []), v])
     }
     let totalGapMs = 0
@@ -175,6 +185,7 @@ export function computeUserReportRows(
       firstClockIn: sortedAttendance[0] ? formatTime(sortedAttendance[0].clock_in_at) : null,
       lastClockOut: lastClockOuts[0] ? formatTime(lastClockOuts[0].clock_out_at) : null,
       totalWorkingMs,
+      totalPaidMs: paidMsByUser?.[member.id] ?? totalWorkingMs,
       visitCount: myVisits.length,
       totalVisitMs,
       avgVisitMs: myVisits.length > 0 ? totalVisitMs / myVisits.length : 0,
