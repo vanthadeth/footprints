@@ -34,6 +34,7 @@ export const en = {
     locations: 'Locations',
     translations: 'Translations',
     customer: 'Customer',
+    orderHistory: 'Order history',
     leave: 'Leave',
     report: 'Report',
     hub: 'Hub',

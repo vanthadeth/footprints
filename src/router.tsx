@@ -44,6 +44,7 @@ const PeoplePage = lazyPage(() => import('@/pages/PeoplePage').then((m) => ({ de
 const TripsPage = lazyPage(() => import('@/pages/TripsPage').then((m) => ({ default: m.TripsPage })))
 const TripRequestPage = lazyPage(() => import('@/pages/TripRequestPage').then((m) => ({ default: m.TripRequestPage })))
 const TripDetailPage = lazyPage(() => import('@/pages/TripDetailPage').then((m) => ({ default: m.TripDetailPage })))
+const CustomerOrdersPage = lazyPage(() => import('@/pages/CustomerOrdersPage').then((m) => ({ default: m.CustomerOrdersPage })))
 const MemberFootprintsPage = lazyPage(() => import('@/pages/MemberFootprintsPage').then((m) => ({ default: m.MemberFootprintsPage })))
 const TripsCalendarPage = lazyPage(() => import('@/pages/TripsCalendarPage').then((m) => ({ default: m.TripsCalendarPage })))
 const TripSettingsPage = lazyPage(() => import('@/pages/TripSettingsPage').then((m) => ({ default: m.TripSettingsPage })))
@@ -163,6 +164,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageFallback />}>
             <CustomerDetailPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/customers/:id/orders',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <CustomerOrdersPage />
           </Suspense>
         ),
       },

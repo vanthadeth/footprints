@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTab } from '@/hooks/useTab'
-import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Construction, MapPin, Navigation, NotebookPen, Phone, Store } from 'lucide-react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { ArrowLeft, ChevronRight, Construction, MapPin, Navigation, NotebookPen, Phone, ReceiptText, Store } from 'lucide-react'
 import { customersService, type CustomerDirectoryRow } from '@/features/customers/customersService'
 import { VisitFlow, type PresetCustomer } from '@/features/visits/VisitFlow'
 import { TierCard } from '@/features/customers/TierCard'
@@ -14,6 +14,7 @@ import { ConversationSection } from '@/features/conversations/ConversationSectio
 import { sheetSyncService } from '@/features/sheetSync/sheetSyncService'
 import { LogCallSheet } from '@/features/conversations/LogCallSheet'
 import { conversationsService } from '@/features/conversations/conversationsService'
+import { ordersService } from '@/features/orders/ordersService'
 import type { ConversationKind } from '@/features/conversations/conversationMeta'
 
 const usd = (n: number) => (n < 0 ? '-' : '') + '$' + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -55,6 +56,7 @@ function CustomerDetail() {
   const [tab, setTab] = useTab(['info', 'cal', 'conv'] as const, 'info')
   // When balances last came from the Google Sheet sync ("as of" next to the balance).
   const [balanceAsOf, setBalanceAsOf] = useState<string | null>(null)
+  const [orders, setOrders] = useState<{ total: number; latest: string | null } | null>(null)
 
   useEffect(() => {
     sheetSyncService.balanceAsOf().then(setBalanceAsOf).catch(() => {})
@@ -65,6 +67,10 @@ function CustomerDetail() {
     let cancelled = false
     setLoading(true)
     setError(null)
+    ordersService
+      .summary(id)
+      .then((o) => !cancelled && setOrders(o))
+      .catch(() => !cancelled && setOrders(null))
     conversationsService
       .canLog(id)
       .then((ok) => {
@@ -189,6 +195,22 @@ function CustomerDetail() {
               <InfoRow label="Address" value={[customer.street_address, customer.commune_name, customer.district_name, customer.province_name].filter(Boolean).join(', ') || '—'} />
               {customer.owner_name && <InfoRow label="Salesperson" value={customer.owner_name} />}
             </div>
+            <Link
+              to={`/customers/${customer.id}/orders`}
+              state={{ name: customer.shop_name }}
+              className="flex items-center gap-3 rounded-2xl border border-neutral-100 bg-white px-3.5 py-3 shadow-card"
+            >
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-200">
+                <ReceiptText className="h-5 w-5" aria-hidden />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[15px] font-bold text-neutral-900">Order history</span>
+                <span className="block truncate text-[12.5px] text-neutral-500">
+                  {orders == null ? 'Status and approval of each order' : orders.total === 0 ? 'No orders yet' : `${orders.total.toLocaleString('en-US')} ${orders.total === 1 ? 'order' : 'orders'}${orders.latest ? ` · latest ${shortDate(orders.latest)}` : ''}`}
+                </span>
+              </span>
+              <ChevronRight className="h-5 w-5 shrink-0 text-neutral-400" aria-hidden />
+            </Link>
             <TierCard customerId={customer.id!} />
             {activity.error && <p className="rounded-xl bg-status-danger/10 px-3 py-2 text-sm text-status-danger">{activity.error}</p>}
             <CustomerVisitActivity rows={activity.data} loading={activity.loading} />

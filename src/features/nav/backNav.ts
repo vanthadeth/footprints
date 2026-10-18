@@ -12,6 +12,8 @@ export function parentPath(pathname: string, search = ''): string {
   if (pathname.startsWith('/team/footprints/')) return '/team'
   if (pathname.startsWith('/trips/')) return '/trips'
   if (pathname.startsWith('/admin/')) return '/admin'
+  // A customer's order history goes back to that customer.
+  if (/^\/customers\/[^/]+\/orders$/.test(pathname)) return pathname.slice(0, -'/orders'.length)
   if (pathname.startsWith('/customers/')) return '/customers'
   if (pathname.startsWith('/messages/')) return '/messages'
   if (pathname.startsWith('/menu/')) return '/menu'

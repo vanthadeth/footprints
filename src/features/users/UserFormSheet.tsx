@@ -9,6 +9,8 @@ import { generateSuggestedPassword, PasswordBox } from './PasswordBox'
 import { usersService, type ManagedUser, type Option, type UserStatus } from './usersService'
 import { flexService, type DayOffMode, type DayOffModeInfo } from '@/features/flex/flexService'
 import { dayDate, rate, shortDate } from '@/features/flex/flex'
+import { scheduleService, type UserClockWindow } from '@/features/schedule/scheduleService'
+import { Stepper } from '@/components/Stepper'
 
 const STATUSES: UserStatus[] = ['active', 'suspended', 'discharged']
 const MIN_PASSWORD_LENGTH = 8
@@ -48,6 +50,11 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
   const [dayOffMode, setDayOffMode] = useState<DayOffMode>('company')
   const [thisCycle, setThisCycle] = useState(false)
   const [rates, setRates] = useState({ sat: 0.5, sun: 1 })
+  // Clock-in window (0109): this person's own early clock-in / auto
+  // clock-out minutes, null = the company setting.
+  const [clockWindow, setClockWindow] = useState<UserClockWindow | null>(null)
+  const [earlyMinutes, setEarlyMinutes] = useState<number | null>(null)
+  const [graceMinutes, setGraceMinutes] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -93,7 +100,18 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
     setModeInfo(null)
     setDayOffMode('company')
     setThisCycle(false)
+    setClockWindow(null)
+    setEarlyMinutes(null)
+    setGraceMinutes(null)
     if (mode === 'edit' && user) {
+      scheduleService
+        .userClockWindow(user.id)
+        .then((w) => {
+          setClockWindow(w)
+          setEarlyMinutes(w?.allowEarlyClockinMinutes ?? null)
+          setGraceMinutes(w?.autoClockoutGraceMinutes ?? null)
+        })
+        .catch(() => setClockWindow(null))
       flexService
         .modeInfo(user.id)
         .then((info) => {
@@ -109,6 +127,8 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
   }, [open, mode, user])
 
   const modeChanges = !!modeInfo && (dayOffMode !== (modeInfo.nextMode ?? modeInfo.mode) || (thisCycle && dayOffMode !== modeInfo.mode))
+  const clockWindowChanges =
+    !!clockWindow && (earlyMinutes !== clockWindow.allowEarlyClockinMinutes || graceMinutes !== clockWindow.autoClockoutGraceMinutes)
 
   const statusNeedsMoreInput =
     (status === 'suspended' && (!suspendedFrom || !suspendedTo)) || (status === 'discharged' && !dischargedDate)
@@ -155,6 +175,7 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
           dischargedDate: dischargedDate || null,
         })
         if (modeChanges) await flexService.setMode(user.id, dayOffMode, thisCycle && dayOffMode !== modeInfo?.mode)
+        if (clockWindowChanges) await scheduleService.setUserClockWindow(user.id, earlyMinutes, graceMinutes)
         haptic('success')
         onSaved()
         onClose()
@@ -328,6 +349,29 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
           </Section>
         )}
 
+        {mode === 'edit' && clockWindow && (
+          <Section title="Clock-in window">
+            <ClockWindowField
+              label="Early clock-in"
+              hint="How long before the start of their day they can clock in."
+              companyMinutes={clockWindow.companyEarlyClockinMinutes}
+              value={earlyMinutes}
+              onChange={setEarlyMinutes}
+              step={15}
+              max={180}
+            />
+            <ClockWindowField
+              label="Auto clock-out delay"
+              hint="How long after the end of their day they're clocked out automatically, if still clocked in."
+              companyMinutes={clockWindow.companyAutoClockoutGraceMinutes}
+              value={graceMinutes}
+              onChange={setGraceMinutes}
+              step={15}
+              max={480}
+            />
+          </Section>
+        )}
+
         {mode === 'edit' && (
           <Section title="Status">
             <SegmentedControl<UserStatus>
@@ -483,6 +527,47 @@ function Field({ label, hint, inline, children }: { label: string; hint?: string
       </div>
       {hint && <p className="mb-1.5 text-xs text-neutral-400">{hint}</p>}
       {!inline && children}
+    </div>
+  )
+}
+
+/** One clock-window setting: the company's, or (switched on) this person's own minutes. */
+function ClockWindowField({
+  label,
+  hint,
+  companyMinutes,
+  value,
+  onChange,
+  step,
+  max,
+}: {
+  label: string
+  hint: string
+  companyMinutes: number
+  value: number | null
+  onChange: (v: number | null) => void
+  step: number
+  max: number
+}) {
+  const own = value !== null
+  return (
+    <div>
+      <div className="mb-1.5 flex items-center justify-between gap-3">
+        <p className="text-sm font-medium text-neutral-800">{label}</p>
+        <label className="flex items-center gap-2 text-xs text-neutral-500">
+          Own setting
+          <Switch checked={own} onChange={(on) => onChange(on ? companyMinutes : null)} />
+        </label>
+      </div>
+      <p className="mb-1.5 text-xs text-neutral-400">{hint}</p>
+      {own ? (
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs text-neutral-500">Company: {companyMinutes} min</p>
+          <Stepper label={label} value={value} step={step} max={max} format={(v) => `${v} min`} onChange={onChange} />
+        </div>
+      ) : (
+        <p className="text-xs text-neutral-500">Company setting: {companyMinutes} min</p>
+      )}
     </div>
   )
 }
