@@ -8,10 +8,6 @@ export type LeaveDayPeriod = LeaveRequest['start_period']
 
 export const LEAVE_DAY_PERIOD_LABEL: Record<LeaveDayPeriod, string> = { full: 'Full Day', morning: 'Morning', afternoon: 'Afternoon' }
 
-export const LEAVE_TYPES: LeaveType[] = ['annual', 'sick', 'unpaid']
-/** Only these two are ever quota-tracked (see leave_balances/leave_balance_summary) -- unpaid has no balance row. */
-export const QUOTA_TRACKED_LEAVE_TYPES: LeaveType[] = ['annual', 'sick']
-
 export const LEAVE_TYPE_LABEL: Record<LeaveType, string> = { annual: 'Annual', sick: 'Sick', unpaid: 'Unpaid', flex: 'Flexible day off' }
 
 /** "Annual Leave", "Sick Leave" … but a flexible day off is just that. */

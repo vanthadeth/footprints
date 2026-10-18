@@ -1,7 +1,5 @@
 import type { CoverageRow, DueState, Tier } from './coverageService'
 
-export const TIERS: Tier[] = ['A', 'B', 'C']
-
 /** How often each tier should be seen -- mirrors app.tier_cadence_days (0087). */
 export const TIER_CADENCE_DAYS: Record<Tier, number> = { A: 7, B: 14, C: 30 }
 
