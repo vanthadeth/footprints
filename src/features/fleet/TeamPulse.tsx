@@ -2,11 +2,9 @@ import { useState } from 'react'
 import { Banknote, Check, ChevronDown, Clock, XCircle, Calendar as CalendarIcon, type LucideIcon } from 'lucide-react'
 import { useApprovedLeaveOnDate } from '@/features/leave/useApprovedLeaveOnDate'
 import { useVisitOptions } from '@/features/visits/useVisitOptions'
-import { useAppSettings } from '@/hooks/useAppSettings'
+import { useAttendanceDays } from '@/features/attendanceSummary/useAttendanceDays'
 import { todayDateString } from '@/lib/dateRange'
-import { formatTime } from '@/lib/datetime'
 import type { FleetMemberSnapshot } from './types'
-import { firstClockIn } from '@/features/attendance/sessions'
 
 const COLLAPSED_KEY = 'footprints-team-pulse-collapsed'
 
@@ -25,7 +23,6 @@ function readCollapsed(): boolean {
  * remembered on this device.
  */
 export function TeamPulseCard({ snapshots }: { snapshots: FleetMemberSnapshot[] }) {
-  const settings = useAppSettings()
   const { byKind } = useVisitOptions()
   const [collapsed, setCollapsed] = useState(readCollapsed)
   const toggle = () => {
@@ -49,16 +46,18 @@ export function TeamPulseCard({ snapshots }: { snapshots: FleetMemberSnapshot[] 
     }
     return ''
   }
+  // Lateness and days off come from the server per person, against THEIR OWN
+  // schedule (team hours, grace, holidays, flexible days) -- not the signed-in
+  // person's start time applied to everyone.
+  const today = todayDateString()
+  const { rows: dayRows } = useAttendanceDays(today, today, snapshots.map((s) => s.member.id))
   const onLeave = snapshots.filter((s) => leave[s.member.id] && !s.attendance).length
   const worked = snapshots.filter((s) => s.attendance)
-  const due = snapshots.length - onLeave
-  const [sh, sm] = settings.workStartTime.split(':').map(Number)
-  const lateAfter = sh * 60 + sm + settings.lateGraceMinutes
-  const late = worked.filter((s) => {
-    // Late is judged on the first clock-in; a later session (after lunch) doesn't count.
-    const [h, m] = formatTime(firstClockIn(s.sessions) ?? s.attendance!.clock_in_at).split(':').map(Number)
-    return h * 60 + m > lateAfter
-  }).length
+  const workedIds = new Set(worked.map((s) => s.member.id))
+  const excused = new Set(snapshots.filter((s) => leave[s.member.id] && !s.attendance).map((s) => s.member.id))
+  for (const r of dayRows) if (!r.isWorking && !workedIds.has(r.userId)) excused.add(r.userId)
+  const due = snapshots.length - excused.size
+  const late = dayRows.filter((r) => r.status === 'late').length
   const visits = snapshots.flatMap((s) => s.visitsToday.filter((v) => !v.cancelled_at))
   const ordered = visits.filter((v) => label(v.order_status_id) === 'ordered').length
   const paid = visits.filter((v) => /full|part/.test(label(v.payment_status_id))).length

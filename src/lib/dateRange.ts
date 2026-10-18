@@ -109,6 +109,15 @@ export function todayDateString(timezone: string = APP_TIMEZONE): string {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }
 
+/**
+ * "YYYY-MM-DD" of the instant `iso` as a calendar date in `timezone`. Not the
+ * UTC date: a 06:00 clock-in in Phnom Penh is still the previous day in UTC, so
+ * grouping by `iso.slice(0, 10)` splits that person's day in two.
+ */
+export function localDateKey(iso: string, timezone: string = APP_TIMEZONE): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(iso))
+}
+
 /** The `n` calendar dates ("YYYY-MM-DD") ending at (and including) `endDate`, oldest first -- backs the Footprints 7-day picker strip. */
 export function lastNDaysEnding(endDate: string, n: number): string[] {
   const [y, m, d] = endDate.split('-').map(Number)

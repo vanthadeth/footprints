@@ -25,7 +25,8 @@ import { usePhoneNumbers } from './usePhoneNumbers'
 import { MapView } from '@/features/maps/MapView'
 import { pinIcon } from '@/features/maps/markers'
 import { attendanceService } from './attendanceService'
-import { GAP_FLAG_MAX_DISTANCE_METERS, GAP_FLAG_THRESHOLD_MINUTES, MAX_ACCEPTABLE_LOCATION_ACCURACY_METERS } from '@/lib/config'
+import { GAP_FLAG_MAX_DISTANCE_METERS, MAX_ACCEPTABLE_LOCATION_ACCURACY_METERS } from '@/lib/config'
+import { useAppSettings } from '@/hooks/useAppSettings'
 import { formatDate, formatDuration, formatLongDate, formatTime } from '@/lib/datetime'
 import { distanceInMeters, formatDistance } from '@/lib/geo'
 import { useVisitOptions } from '@/features/visits/useVisitOptions'
@@ -88,7 +89,7 @@ type TimelineEvent =
  * A gap that falls between a clock-out and the next clock-in is "off the
  * clock" -- shown distinctly and never flagged, since time away between
  * shifts is expected, unlike a long gap while actually clocked in (flagged
- * once it runs long, GAP_FLAG_THRESHOLD_MINUTES, AND the straight-line
+ * once it runs long, the admin's idle threshold, AND the straight-line
  * distance between the gap's two endpoints is short, GAP_FLAG_MAX_DISTANCE_METERS
  * -- a long gap with real travel distance behind it isn't flagged, only one
  * that looks like idle/rest passed off as transit).
@@ -105,6 +106,7 @@ export function JourneyTimeline({ attendance, visits, customerNames, interactive
   // icons (and, when interactive, the edit form's chip options) for free
   // rather than having to fetch and thread it through.
   const { t } = useLanguage()
+  const { idleAlertThresholdMinutes } = useAppSettings()
   const { byKind } = useVisitOptions()
   const optionsById: Record<string, VisitOption> = {}
   for (const options of Object.values(byKind)) {
@@ -141,6 +143,7 @@ export function JourneyTimeline({ attendance, visits, customerNames, interactive
             key={`gap-before-${event.kind}-${event.time}`}
             ms={gapMs}
             distanceMeters={distanceMeters}
+            idleThresholdMinutes={idleAlertThresholdMinutes}
             offClock={cursorWasClockOut && event.kind === 'clock-in'}
           />
         )
@@ -382,9 +385,9 @@ function Row({ label, value, warn = false, flagged = false }: { label: string; v
   )
 }
 
-function GapEntry({ ms, distanceMeters, offClock = false }: { ms: number; distanceMeters: number | null; offClock?: boolean }) {
+function GapEntry({ ms, distanceMeters, idleThresholdMinutes, offClock = false }: { ms: number; distanceMeters: number | null; idleThresholdMinutes: number; offClock?: boolean }) {
   const { t, language } = useLanguage()
-  const isLong = ms / 60_000 > GAP_FLAG_THRESHOLD_MINUTES
+  const isLong = ms / 60_000 > idleThresholdMinutes
   // A long gap is only flagged when it also looks like idle/rest rather
   // than real travel -- i.e. the distance is short, or unknown (missing
   // coordinates keep the old, conservative "flag it" default).

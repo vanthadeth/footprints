@@ -4,6 +4,8 @@ const FLAG_LABELS: Record<string, string> = {
   LOCATION_UNAVAILABLE: 'Location Unavailable',
   AUTO_CHECKOUT_OUTSIDE_RADIUS: 'Auto: Outside Radius',
   AUTO_CHECKOUT_CLOCK_OUT: 'Auto: Clock Out',
+  AUTO_CHECKOUT_WORKING_HOURS_END: 'Auto: End of Day',
+  SHORT_VISIT: 'Short Visit',
   TRACKING_INTERRUPTED: 'Tracking Interrupted',
 }
 
@@ -13,6 +15,8 @@ const FLAG_TONE: Record<string, string> = {
   LOCATION_UNAVAILABLE: 'bg-status-danger/10 text-status-danger',
   AUTO_CHECKOUT_OUTSIDE_RADIUS: 'bg-status-warn/10 text-status-warn',
   AUTO_CHECKOUT_CLOCK_OUT: 'bg-status-warn/10 text-status-warn',
+  AUTO_CHECKOUT_WORKING_HOURS_END: 'bg-status-warn/10 text-status-warn',
+  SHORT_VISIT: 'bg-neutral-100 text-neutral-500',
   TRACKING_INTERRUPTED: 'bg-status-danger/10 text-status-danger',
 }
 

@@ -113,3 +113,18 @@ describe('computeJourneyStats', () => {
     expect(stats.totalGapMs).toBe(0)
   })
 })
+
+describe('computeJourneyStats paid time', () => {
+  const day: DayJourney = { date: '2026-01-01', attendance: [attendance('2026-01-01T01:00:00Z', '2026-01-01T09:00:00Z')], visits: [] }
+
+  it('is time clocked in when there is no break rule', () => {
+    const stats = computeJourneyStats([day], new Date('2026-01-02T00:00:00Z').getTime())
+    expect(stats.totalPaidMs).toBe(stats.totalWorkingMs)
+  })
+
+  it('takes the unpaid break off a long day, leaving time clocked in as it was', () => {
+    const stats = computeJourneyStats([day], new Date('2026-01-02T00:00:00Z').getTime(), { breakMinutes: 30, breakPaid: false })
+    expect(stats.totalWorkingMs).toBe(8 * 60 * 60 * 1000)
+    expect(stats.totalPaidMs).toBe(7.5 * 60 * 60 * 1000)
+  })
+})

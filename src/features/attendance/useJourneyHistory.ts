@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import type { DateRange } from '@/lib/dateRange'
+import { localDateKey, type DateRange } from '@/lib/dateRange'
 import type { AttendanceRow, VisitRow } from './types'
 
 export interface DayJourney {
@@ -65,13 +65,13 @@ export function useJourneyHistory(userId: string | null, range: DateRange): Hist
       const byDate = new Map<string, DayJourney>()
 
       for (const a of attendanceRows) {
-        const date = a.clock_in_at.slice(0, 10)
+        const date = localDateKey(a.clock_in_at)
         const existing = byDate.get(date)
         if (existing) existing.attendance.push(a)
         else byDate.set(date, { date, attendance: [a], visits: [] })
       }
       for (const v of visitRows) {
-        const date = v.checked_in_at.slice(0, 10)
+        const date = localDateKey(v.checked_in_at)
         const existing = byDate.get(date)
         if (existing) existing.visits.push(v)
         else byDate.set(date, { date, attendance: [], visits: [v] })

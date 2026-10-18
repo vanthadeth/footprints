@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, afterEach } from 'vitest'
-import { getCustomRange, getPresetRange, lastNDaysEnding, todayDateString } from '../dateRange'
+import { getCustomRange, getPresetRange, lastNDaysEnding, localDateKey, todayDateString } from '../dateRange'
 
 describe('getCustomRange', () => {
   it('converts a Phnom Penh calendar date to the correct UTC instant (UTC+7, no DST)', () => {
@@ -69,5 +69,18 @@ describe('lastNDaysEnding', () => {
 
   it('crosses a month boundary correctly', () => {
     expect(lastNDaysEnding('2026-03-02', 4)).toEqual(['2026-02-27', '2026-02-28', '2026-03-01', '2026-03-02'])
+  })
+})
+
+describe('localDateKey', () => {
+  it('is the Phnom Penh calendar date, not the UTC one', () => {
+    // 06:00 on the 15th in Phnom Penh is 23:00 on the 14th in UTC.
+    expect(localDateKey('2026-01-14T23:00:00.000Z', 'Asia/Phnom_Penh')).toBe('2026-01-15')
+    expect(localDateKey('2026-01-14T23:00:00.000Z', 'UTC')).toBe('2026-01-14')
+  })
+
+  it('rolls over at local midnight', () => {
+    expect(localDateKey('2026-01-15T16:59:59.000Z', 'Asia/Phnom_Penh')).toBe('2026-01-15')
+    expect(localDateKey('2026-01-15T17:00:00.000Z', 'Asia/Phnom_Penh')).toBe('2026-01-16')
   })
 })

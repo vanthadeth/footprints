@@ -13,8 +13,11 @@ export interface EditableSettings {
   idleAlertThresholdMinutes: number
   /** Minutes; a completed visit shorter than this triggers an "ineffective visit" notification. */
   shortVisitThresholdMinutes: number
-  /** GPS readings less accurate than this are rejected for clock-in/out and check-in. */
+  /** GPS readings less accurate than this are rejected for clock-in and check-in (clock-out only flags it). */
   maxLocationAccuracyM: number
+  /** Customer check-in / check-out is only allowed between these times ("HH:MM", Asia/Phnom_Penh). */
+  checkWindowStart: string
+  checkWindowEnd: string
 }
 
 /**
@@ -28,7 +31,7 @@ export const settingsService = {
     const { data, error } = await supabase
       .from('app_settings')
       .select(
-        'checkin_radius_m, location_ping_interval_minutes, auto_checkout_enabled, idle_alert_threshold_minutes, short_visit_threshold_minutes, max_location_accuracy_m'
+        'checkin_radius_m, location_ping_interval_minutes, auto_checkout_enabled, idle_alert_threshold_minutes, short_visit_threshold_minutes, max_location_accuracy_m, check_window_start, check_window_end'
       )
       .single()
     if (error) throw error
@@ -39,6 +42,8 @@ export const settingsService = {
       idleAlertThresholdMinutes: data.idle_alert_threshold_minutes,
       shortVisitThresholdMinutes: data.short_visit_threshold_minutes,
       maxLocationAccuracyM: data.max_location_accuracy_m,
+      checkWindowStart: data.check_window_start.slice(0, 5),
+      checkWindowEnd: data.check_window_end.slice(0, 5),
     }
   },
 
@@ -52,6 +57,8 @@ export const settingsService = {
         idle_alert_threshold_minutes: settings.idleAlertThresholdMinutes,
         short_visit_threshold_minutes: settings.shortVisitThresholdMinutes,
         max_location_accuracy_m: settings.maxLocationAccuracyM,
+        check_window_start: settings.checkWindowStart,
+        check_window_end: settings.checkWindowEnd,
       })
       .eq('id', true)
     if (error) throw error

@@ -10,6 +10,7 @@ import { getCustomRange, todayDateString } from '@/lib/dateRange'
 import { useTeamDayJourneys } from '../useTeamDayJourneys'
 import type { FleetMemberSnapshot } from '../types'
 import { buildTeamRoute, type RouteEvent } from './teamRoute'
+import { useAppSettings } from '@/hooks/useAppSettings'
 import { stopIcon } from './mapIcons'
 
 const KIND = {
@@ -41,7 +42,8 @@ export function RoutesMap({ snapshots, userId, onUserChange }: { snapshots: Flee
     [snapshots, journeysByUserId]
   )
   const who = userId && ids.includes(userId) ? userId : people[0]?.member.id ?? null
-  const route = useMemo(() => buildTeamRoute(who ? journeysByUserId[who] ?? null : null), [who, journeysByUserId])
+  const { idleAlertThresholdMinutes } = useAppSettings()
+  const route = useMemo(() => buildTeamRoute(who ? journeysByUserId[who] ?? null : null, undefined, idleAlertThresholdMinutes), [who, journeysByUserId, idleAlertThresholdMinutes])
   const names = useCustomerNames(route.events.map((e) => e.customerId ?? null))
   const current = selected !== null && selected < route.events.length ? selected : route.events.length - 1
   const isToday = date === todayDateString()

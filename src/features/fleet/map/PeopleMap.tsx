@@ -8,6 +8,7 @@ import { FLEET_STATUS_LABELS } from '../FleetStatusBadge'
 import type { FleetMemberSnapshot, FleetStatus } from '../types'
 import { personIcon } from './mapIcons'
 import { ageLabel, isStale, minutesSince } from './lastKnown'
+import { useAppSettings } from '@/hooks/useAppSettings'
 
 const COLOR: Record<FleetStatus, string> = { VISITING: '#6552c9', IDLING: '#96703f', OFF: '#8a8f98' }
 type Filter = 'all' | FleetStatus
@@ -26,6 +27,7 @@ export function PeopleMap({ snapshots, onShowRoute }: { snapshots: FleetMemberSn
   const [filter, setFilter] = useState<Filter>('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const customerNames = useCustomerNames(snapshots.map((s) => s.openVisit?.customer_id ?? null))
+  const { idleAlertThresholdMinutes } = useAppSettings()
   const now = Date.now()
 
   const rows = useMemo(
@@ -33,10 +35,10 @@ export function PeopleMap({ snapshots, onShowRoute }: { snapshots: FleetMemberSn
       snapshots
         .map((s) => {
           const minutes = s.lastLocation ? minutesSince(s.lastLocation.at, now) : null
-          return { s, minutes, stale: minutes !== null && isStale(s.status, minutes) }
+          return { s, minutes, stale: minutes !== null && isStale(s.status, minutes, idleAlertThresholdMinutes) }
         })
         .sort((a, b) => (a.minutes ?? Infinity) - (b.minutes ?? Infinity)),
-    [snapshots, now]
+    [snapshots, now, idleAlertThresholdMinutes]
   )
   const shown = rows.filter((r) => filter === 'all' || r.s.status === filter)
   const located = shown.filter((r) => r.s.lastLocation)

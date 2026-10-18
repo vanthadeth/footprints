@@ -24,6 +24,11 @@ describe('lastKnown', () => {
     expect(isStale('VISITING', 200)).toBe(false)
     expect(isStale('OFF', 200)).toBe(false)
   })
+
+  it('follows the admin idle threshold when given one', () => {
+    expect(isStale('IDLING', 25, 20)).toBe(true)
+    expect(isStale('IDLING', 25, 30)).toBe(false)
+  })
 })
 
 describe('classifyCoverage', () => {

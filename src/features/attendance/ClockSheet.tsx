@@ -53,7 +53,8 @@ export function ClockSheet({ open, direction, required, onClose }: { open: boole
     setLoc({ status: 'checking' })
     try {
       const r = await locationService.getCurrentPosition()
-      if (r.accuracy > settings.maxLocationAccuracyM) return setLoc({ status: 'low', accuracy: r.accuracy })
+      // A rough fix blocks clock-in, but never clock-out -- the server just flags it (LOW_LOCATION_ACCURACY).
+      if (r.accuracy > settings.maxLocationAccuracyM && direction === 'in') return setLoc({ status: 'low', accuracy: r.accuracy })
       const block = clockBlock(required, r)
       if (block) return setLoc({ status: 'blocked', accuracy: r.accuracy, block })
       setLoc({ status: 'ok', accuracy: r.accuracy, place: placeAt(required.length ? required : locations.filter((l) => l.active), r.latitude, r.longitude) })

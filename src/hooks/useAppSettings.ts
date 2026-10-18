@@ -5,7 +5,11 @@ import {
   DEFAULT_ALLOW_EARLY_CLOCKIN_MINUTES,
   DEFAULT_AUTO_CHECKOUT_ENABLED,
   DEFAULT_AUTO_CLOCKOUT_GRACE_MINUTES,
+  DEFAULT_CHECK_WINDOW_END,
+  DEFAULT_CHECK_WINDOW_START,
+  DEFAULT_IDLE_ALERT_THRESHOLD_MINUTES,
   DEFAULT_LATE_GRACE_MINUTES,
+  DEFAULT_SHORT_VISIT_THRESHOLD_MINUTES,
   DEFAULT_LOCATION_PING_INTERVAL_MINUTES,
   DEFAULT_VISIT_RADIUS_METERS,
   DEFAULT_WORK_END_TIME,
@@ -27,6 +31,14 @@ export interface AppSettings {
   lateGraceMinutes: number
   /** A gap between visits at least this long counts as idle (flagged). */
   idleAlertThresholdMinutes: number
+  /** A completed visit shorter than this many minutes is a short (ineffective) visit. */
+  shortVisitThresholdMinutes: number
+  /** Customer check-in / check-out is only allowed between these times ("HH:MM:SS", Asia/Phnom_Penh). */
+  checkWindowStart: string
+  checkWindowEnd: string
+  /** The signed-in person's unpaid break today (their schedule), for paid working time. */
+  breakMinutes: number
+  breakPaid: boolean
   /** Today is a working day for the signed-in person (their team schedule, minus public holidays). */
   isWorkingDay: boolean
   /** Today's public holiday, if any. */
@@ -43,7 +55,12 @@ const FALLBACK: AppSettings = {
   allowEarlyClockinMinutes: DEFAULT_ALLOW_EARLY_CLOCKIN_MINUTES,
   autoClockoutGraceMinutes: DEFAULT_AUTO_CLOCKOUT_GRACE_MINUTES,
   lateGraceMinutes: DEFAULT_LATE_GRACE_MINUTES,
-  idleAlertThresholdMinutes: 45,
+  idleAlertThresholdMinutes: DEFAULT_IDLE_ALERT_THRESHOLD_MINUTES,
+  shortVisitThresholdMinutes: DEFAULT_SHORT_VISIT_THRESHOLD_MINUTES,
+  checkWindowStart: DEFAULT_CHECK_WINDOW_START,
+  checkWindowEnd: DEFAULT_CHECK_WINDOW_END,
+  breakMinutes: 0,
+  breakPaid: false,
   isWorkingDay: true,
   holidayName: null,
 }
@@ -58,11 +75,11 @@ export function useAppSettings(): AppSettings {
     let cancelled = false
     // Set once the person's own day / clock window arrives, so the
     // company-wide values (which can land later) never overwrite them.
-    let personal: Partial<Pick<AppSettings, 'workStartTime' | 'workEndTime' | 'allowEarlyClockinMinutes' | 'autoClockoutGraceMinutes'>> | null = null
+    let personal: Partial<Pick<AppSettings, 'workStartTime' | 'workEndTime' | 'allowEarlyClockinMinutes' | 'autoClockoutGraceMinutes' | 'breakMinutes' | 'breakPaid'>> | null = null
     supabase
       .from('app_settings')
       .select(
-        'checkin_radius_m, location_ping_interval_minutes, max_location_accuracy_m, auto_checkout_enabled, work_start_time, work_end_time, allow_early_clockin_minutes, auto_clockout_grace_minutes, late_grace_minutes, idle_alert_threshold_minutes'
+        'checkin_radius_m, location_ping_interval_minutes, max_location_accuracy_m, auto_checkout_enabled, work_start_time, work_end_time, allow_early_clockin_minutes, auto_clockout_grace_minutes, late_grace_minutes, idle_alert_threshold_minutes, short_visit_threshold_minutes'
       )
       .maybeSingle()
       .then(({ data }) => {
@@ -78,9 +95,20 @@ export function useAppSettings(): AppSettings {
           allowEarlyClockinMinutes: data.allow_early_clockin_minutes,
           autoClockoutGraceMinutes: data.auto_clockout_grace_minutes,
           lateGraceMinutes: data.late_grace_minutes ?? DEFAULT_LATE_GRACE_MINUTES,
-          idleAlertThresholdMinutes: data.idle_alert_threshold_minutes ?? 45,
+          idleAlertThresholdMinutes: data.idle_alert_threshold_minutes ?? DEFAULT_IDLE_ALERT_THRESHOLD_MINUTES,
+          shortVisitThresholdMinutes: data.short_visit_threshold_minutes ?? DEFAULT_SHORT_VISIT_THRESHOLD_MINUTES,
           ...(personal ?? {}),
         }))
+      })
+    // The check-in/out hours are read on their own: until migration 0110 adds the columns this
+    // query simply fails, and the settings above (radius, accuracy, ...) must not be lost with it.
+    supabase
+      .from('app_settings')
+      .select('check_window_start, check_window_end')
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled || !data) return
+        setSettings((prev) => ({ ...prev, checkWindowStart: data.check_window_start, checkWindowEnd: data.check_window_end }))
       })
     // The signed-in person's own hours today (team schedule or company
     // schedule, minus holidays -- app.work_day). Overrides the company-wide
@@ -90,7 +118,7 @@ export function useAppSettings(): AppSettings {
       .myWorkDay()
       .then((day) => {
         if (cancelled || !day) return
-        personal = { ...personal, workStartTime: day.start, workEndTime: day.end }
+        personal = { ...personal, workStartTime: day.start, workEndTime: day.end, breakMinutes: day.breakMinutes, breakPaid: day.breakPaid }
         setSettings((prev) => ({ ...prev, ...personal, isWorkingDay: day.isWorking, holidayName: day.holidayName }))
       })
       .catch(() => {

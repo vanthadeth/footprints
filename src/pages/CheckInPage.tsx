@@ -5,6 +5,7 @@ import { useJourneyContext } from '@/features/attendance/JourneyContext'
 import type { AttendanceRow, VisitRow } from '@/features/attendance/types'
 import { ClockSheet } from '@/features/attendance/ClockSheet'
 import { computeJourneyStats } from '@/features/attendance/journeyStats'
+import { effectivenessPercent } from '@/features/attendance/efficiency'
 import type { DayJourney } from '@/features/attendance/useJourneyHistory'
 import { VisitFlow, type PresetCustomer } from '@/features/visits/VisitFlow'
 import { HeroLocationCard, PlanSection, TodayCard, TodaysTimeline, WeekStrip } from '@/features/checkin/CheckInSections'
@@ -77,8 +78,8 @@ export function CheckInPage() {
   // break, a split shift) -- stats and the hero times below are summed
   // across every session today, not just whichever one is currently open.
   const today: DayJourney = { date: '', attendance: journey.todaysAttendance, visits: journey.todaysVisits }
-  const stats = computeJourneyStats([today])
-  const effectivenessRatio = stats.totalWorkingMs > 0 ? Math.round((stats.totalVisitingMs / stats.totalWorkingMs) * 100) : 0
+  const stats = computeJourneyStats([today], undefined, { breakMinutes: settings.breakMinutes, breakPaid: settings.breakPaid })
+  const effectivenessRatio = effectivenessPercent(stats.totalVisitingMs, stats.totalPaidMs) ?? 0
 
   const minutesNow = (() => {
     const [h, m] = formatTime(new Date().toISOString()).split(':').map(Number)
@@ -97,7 +98,7 @@ export function CheckInPage() {
       : { text: t('checkIn.clockInOpensShort', { time: clockInOpensAt }), tone: 'text-heroMuted' }
     : untilStart > 0
       ? { text: t('checkIn.startsIn', { n: formatDuration(untilStart * 60_000, language) }), tone: 'text-[#74E092]' }
-      : untilStart < 0 && journey.todaysAttendance.length === 0
+      : untilStart < -settings.lateGraceMinutes && settings.isWorkingDay && journey.todaysAttendance.length === 0
         ? { text: t('checkIn.lateBy', { n: formatDuration(-untilStart * 60_000, language) }), tone: 'text-[#FFB257]' }
         : null
   const leaveLabel = leaveToday === 'annual' ? t('profile.annual') : leaveToday === 'sick' ? t('profile.sick') : leaveToday ? LEAVE_TYPE_LABEL[leaveToday] : ''
@@ -203,7 +204,7 @@ export function CheckInPage() {
                 <div className="grid grid-cols-3">
                   <HeroFact label={t('nav.visits')} value={String(stats.totalVisits)} />
                   <HeroFact label={t('checkIn.statActive')} value={formatDuration(stats.totalVisitingMs, language)} />
-                  <HeroFact label={t('checkIn.effectiveness')} value={stats.totalWorkingMs > 0 ? `${effectivenessRatio}%` : '—'} />
+                  <HeroFact label={t('checkIn.effectiveness')} value={stats.totalPaidMs > 0 ? `${effectivenessRatio}%` : '—'} />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="rounded-xl bg-white/[.06] px-3 py-2.5">

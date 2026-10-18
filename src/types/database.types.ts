@@ -20,6 +20,8 @@ export type Database = {
           attendance_cycle_close_day: number
           auto_checkout_enabled: boolean
           auto_clockout_grace_minutes: number
+          check_window_end: string
+          check_window_start: string
           checkin_radius_m: number
           daily_active_hours: number | null
           daily_visit_target: number | null
@@ -60,6 +62,8 @@ export type Database = {
           attendance_cycle_close_day?: number
           auto_checkout_enabled?: boolean
           auto_clockout_grace_minutes?: number
+          check_window_end?: string
+          check_window_start?: string
           checkin_radius_m?: number
           daily_active_hours?: number | null
           daily_visit_target?: number | null
@@ -100,6 +104,8 @@ export type Database = {
           attendance_cycle_close_day?: number
           auto_checkout_enabled?: boolean
           auto_clockout_grace_minutes?: number
+          check_window_end?: string
+          check_window_start?: string
           checkin_radius_m?: number
           daily_active_hours?: number | null
           daily_visit_target?: number | null
