@@ -55,9 +55,9 @@ export function useAppSettings(): AppSettings {
 
   useEffect(() => {
     let cancelled = false
-    // Set once the person's own day arrives, so the company-wide times
-    // (which can land later) never overwrite it.
-    let personal: { workStartTime: string; workEndTime: string } | null = null
+    // Set once the person's own day / clock window arrives, so the
+    // company-wide values (which can land later) never overwrite them.
+    let personal: Partial<Pick<AppSettings, 'workStartTime' | 'workEndTime' | 'allowEarlyClockinMinutes' | 'autoClockoutGraceMinutes'>> | null = null
     supabase
       .from('app_settings')
       .select(
@@ -89,11 +89,23 @@ export function useAppSettings(): AppSettings {
       .myWorkDay()
       .then((day) => {
         if (cancelled || !day) return
-        personal = { workStartTime: day.start, workEndTime: day.end }
+        personal = { ...personal, workStartTime: day.start, workEndTime: day.end }
         setSettings((prev) => ({ ...prev, ...personal, isWorkingDay: day.isWorking, holidayName: day.holidayName }))
       })
       .catch(() => {
         // Keep the company-wide times.
+      })
+    // The person's own early clock-in / auto clock-out minutes -- an admin
+    // can override the company's per person (app.clock_window).
+    scheduleService
+      .myClockWindow()
+      .then((w) => {
+        if (cancelled || !w) return
+        personal = { ...personal, ...w }
+        setSettings((prev) => ({ ...prev, ...personal }))
+      })
+      .catch(() => {
+        // Keep the company-wide minutes.
       })
     return () => {
       cancelled = true

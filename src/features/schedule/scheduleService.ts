@@ -17,6 +17,14 @@ export interface ClockRules {
   lateClockinThresholdMinutes: number
 }
 
+/** A person's early clock-in / auto clock-out override (null = the company setting), next to the company setting. */
+export interface UserClockWindow {
+  allowEarlyClockinMinutes: number | null
+  autoClockoutGraceMinutes: number | null
+  companyEarlyClockinMinutes: number
+  companyAutoClockoutGraceMinutes: number
+}
+
 export interface MyWorkDay {
   isWorking: boolean
   holidayName: string | null
@@ -98,5 +106,31 @@ export const scheduleService = {
     const r = rows?.[0]
     if (!r) return null
     return { isWorking: r.is_working, holidayName: r.holiday_name, holidayHalf: r.holiday_half, start: hhmm(r.start_time), end: hhmm(r.end_time), teamSchedule: r.team_schedule }
+  },
+  /** The signed-in person's own early clock-in and auto clock-out minutes (their override, else the company's). */
+  async myClockWindow(): Promise<{ allowEarlyClockinMinutes: number; autoClockoutGraceMinutes: number } | null> {
+    const rows = await callRpc<{ allow_early_clockin_minutes: number; auto_clockout_grace_minutes: number }[]>('my_clock_window')
+    const r = rows?.[0]
+    if (!r) return null
+    return { allowEarlyClockinMinutes: r.allow_early_clockin_minutes, autoClockoutGraceMinutes: r.auto_clockout_grace_minutes }
+  },
+
+  async userClockWindow(userId: string): Promise<UserClockWindow | null> {
+    const rows = await callRpc<
+      { allow_early_clockin_minutes: number | null; auto_clockout_grace_minutes: number | null; company_early_clockin_minutes: number; company_clockout_grace_minutes: number }[]
+    >('user_clock_window', { p_user: userId })
+    const r = rows?.[0]
+    if (!r) return null
+    return {
+      allowEarlyClockinMinutes: r.allow_early_clockin_minutes,
+      autoClockoutGraceMinutes: r.auto_clockout_grace_minutes,
+      companyEarlyClockinMinutes: r.company_early_clockin_minutes,
+      companyAutoClockoutGraceMinutes: r.company_clockout_grace_minutes,
+    }
+  },
+
+  /** null = follow the company setting; both null removes the override. Needs user:edit for that person. */
+  async setUserClockWindow(userId: string, earlyMinutes: number | null, graceMinutes: number | null): Promise<void> {
+    await callRpc<null>('set_user_clock_window', { p_user: userId, p_early: earlyMinutes, p_grace: graceMinutes })
   },
 }
