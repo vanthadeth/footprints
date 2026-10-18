@@ -79,8 +79,8 @@ export type FlagKey = (typeof FLAGS)[keyof typeof FLAGS]
 export const SELFIE_MAX_DIMENSION_PX = 720
 export const SELFIE_JPEG_QUALITY = 0.7
 
-/** A first clock-in more than this many minutes after the shift start shows as "Late" in Team › Attendance. */
-export const LATE_GRACE_MINUTES = 5
+/** Until the live setting loads: a clock-in more than this many minutes after the shift start counts as late (matches app_settings.late_grace_minutes' default). */
+export const DEFAULT_LATE_GRACE_MINUTES = 5
 
 /** A customer counts as due for a visit (Customers' "due" filter, the Team map's "overdue") once their last visit is this many days old. */
 export const CUSTOMER_DUE_AFTER_DAYS = 14

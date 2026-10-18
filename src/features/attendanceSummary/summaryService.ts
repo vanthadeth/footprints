@@ -1,6 +1,7 @@
 import { callRpc } from '@/lib/rpc'
 import type { AttendanceDay, DayStatus } from './attendanceSummary'
 import type { LeaveType } from '@/features/leave/types'
+import { DEFAULT_LATE_GRACE_MINUTES } from '@/lib/config'
 
 type Row = {
   user_id: string
@@ -48,7 +49,7 @@ export const summaryService = {
   async settings(): Promise<AttendanceSettings> {
     const rows = await callRpc<{ late_grace_minutes: number; attendance_cycle_close_day: number }[]>('attendance_settings')
     const r = rows?.[0]
-    return { lateGraceMinutes: r?.late_grace_minutes ?? 5, cycleCloseDay: r?.attendance_cycle_close_day ?? 20 }
+    return { lateGraceMinutes: r?.late_grace_minutes ?? DEFAULT_LATE_GRACE_MINUTES, cycleCloseDay: r?.attendance_cycle_close_day ?? 20 }
   },
 
   async setCycleCloseDay(day: number): Promise<void> {

@@ -14,7 +14,6 @@ import { formatDuration, formatTime } from '@/lib/datetime'
 import { getCustomRange, todayDateString } from '@/lib/dateRange'
 import { useTeamDayJourneys } from './useTeamDayJourneys'
 import { useAppSettings } from '@/hooks/useAppSettings'
-import { LATE_GRACE_MINUTES } from '@/lib/config'
 import { FleetStatusBadge } from './FleetStatusBadge'
 import type { FleetMemberSnapshot } from './types'
 import { useApprovedLeaveOnDate } from '@/features/leave/useApprovedLeaveOnDate'
@@ -50,7 +49,7 @@ export function CheckInOutTab({ snapshots }: { snapshots: FleetMemberSnapshot[] 
   )
   const locationNames = useLocationNames(locationIds)
 
-  const { workStartTime } = useAppSettings()
+  const { workStartTime, lateGraceMinutes } = useAppSettings()
   const summary = useMemo(() => {
     const days = Object.values(journeysByUserId)
     const firstIns = days.map((d) => d.attendance[0]?.clock_in_at).filter((t): t is string => !!t)
@@ -58,11 +57,11 @@ export function CheckInOutTab({ snapshots }: { snapshots: FleetMemberSnapshot[] 
       clockedIn: firstIns.length,
       late: dayRows.length
         ? Object.values(serverLate).filter((m) => m > 0).length
-        : firstIns.filter((t) => minutesLate(formatTime(t), workStartTime) > LATE_GRACE_MINUTES).length,
+        : firstIns.filter((t) => minutesLate(formatTime(t), workStartTime) > lateGraceMinutes).length,
       onLeave: userIds.filter((id) => leaveByUserId[id] && !journeysByUserId[id]).length,
       stillWorking: days.filter((d) => d.attendance.some((a) => !a.clock_out_at)).length,
     }
-  }, [journeysByUserId, leaveByUserId, userIds, workStartTime, dayRows.length, serverLate])
+  }, [journeysByUserId, leaveByUserId, userIds, workStartTime, lateGraceMinutes, dayRows.length, serverLate])
 
   const groups = groupBy(snapshots, (s) => s.member.departmentName ?? NO_DEPARTMENT)
   const orderedKeys = sortGroupKeys(groups.keys(), NO_DEPARTMENT)
@@ -110,6 +109,7 @@ export function CheckInOutTab({ snapshots }: { snapshots: FleetMemberSnapshot[] 
                     locationNames={locationNames}
                     leaveType={leaveByUserId[snapshot.member.id]}
                     workStartTime={workStartTime}
+                    lateGraceMinutes={lateGraceMinutes}
                     serverLateMinutes={snapshot.member.id in serverLate ? serverLate[snapshot.member.id] : null}
                   />
                 ))}
@@ -133,6 +133,7 @@ function MemberCheckInOutCard({
   locationNames,
   leaveType,
   workStartTime,
+  lateGraceMinutes,
   serverLateMinutes,
 }: {
   snapshot: FleetMemberSnapshot
@@ -140,6 +141,8 @@ function MemberCheckInOutCard({
   locationNames: Record<string, string>
   leaveType: LeaveType | undefined
   workStartTime: string
+  /** Minutes after the start before a clock-in counts as late (the admin setting). */
+  lateGraceMinutes: number
   /** Minutes late against the person's own schedule (0 = on time), or null while unknown. */
   serverLateMinutes: number | null
 }) {
@@ -154,7 +157,7 @@ function MemberCheckInOutCard({
   // day -- an actual clock-in/out session is ground truth and always wins.
   const onLeaveLabel = !day && leaveType ? leaveType === 'flex' ? 'On a day off' : `On ${LEAVE_TYPE_LABEL[leaveType]} Leave` : null
   const lateMinutes = serverLateMinutes ?? (firstSession ? minutesLate(formatTime(firstSession.clock_in_at), workStartTime) : 0)
-  const isLate = serverLateMinutes !== null ? serverLateMinutes > 0 : lateMinutes > LATE_GRACE_MINUTES
+  const isLate = serverLateMinutes !== null ? serverLateMinutes > 0 : lateMinutes > lateGraceMinutes
   const initials = member.fullName
     .split(' ')
     .map((w) => w[0])
