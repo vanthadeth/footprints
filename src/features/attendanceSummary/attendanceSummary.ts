@@ -106,11 +106,6 @@ export function formatDays(n: number): string {
   return Number.isInteger(n) ? String(n) : n.toFixed(1)
 }
 
-/** Working days in a set of rows for one person (the cycle length shown in the header). */
-export function workingDayCount(rows: AttendanceDay[]): number {
-  return rows.filter((r) => r.isWorking).length
-}
-
 /** CSV for the monthly export: one line per person. */
 export function totalsCsv(rows: { name: string; totals: PersonTotals }[]): string {
   const esc = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v)

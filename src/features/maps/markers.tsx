@@ -36,9 +36,3 @@ export function pinIcon(color: string, opts?: { size?: number; label?: string })
   })
 }
 
-export const STATUS_COLORS = {
-  visiting: '#1d6fb8',
-  idling: '#b48a5a',
-  off: '#8a8f98',
-  working: '#0f6e4f',
-} as const

@@ -7,8 +7,7 @@ import { useLanguage } from '@/i18n/LanguageContext'
 import { useTheme } from '@/lib/ThemeContext'
 import { haptic } from '@/lib/haptic'
 import { LANGUAGES } from '@/lib/language'
-import logoIcon from '@/assets/logo-icon.png'
-import logoIconDark from '@/assets/logo-icon-dark.png'
+import { LogoIcon } from '@/components/Logo'
 
 // Greeting colours per scene: dark ink on the bright morning/afternoon skies, white on the evening one.
 const SCENE_INK: Record<SceneKey, { title: string; line: string }> = {
@@ -63,7 +62,7 @@ export function LoginPage() {
     <div className="flex min-h-dvh flex-col bg-neutral-50 safe-top safe-bottom">
       <header className="mx-auto flex w-full max-w-md items-center justify-between px-4 pt-3.5">
         <span className="inline-flex items-center gap-2 text-[15px] font-bold text-neutral-900">
-          <img src={theme === 'dark' ? logoIconDark : logoIcon} alt="HIG" className="h-9 w-9" />
+          <LogoIcon alt="HIG" className="h-9 w-9" />
           Footprints
         </span>
         <div className="flex items-center gap-2">
