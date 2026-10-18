@@ -28,6 +28,7 @@ export function ReportsTab({ team }: { team: TeamMember[] }) {
   const [historyUserId, setHistoryUserId] = useState<string | null>(null)
   const userIds = team.map((m) => m.id)
   const { attendance, visits, loading } = useFleetHistory(userIds, range)
+  const { shortVisitThresholdMinutes, flagRules } = useAppSettings()
   // Paid working time per person as the server counts it (unpaid break off), so
   // effectiveness is on the same basis as "hours worked" everywhere else.
   const fromKey = localDateKey(range.startIso)
@@ -42,10 +43,10 @@ export function ReportsTab({ team }: { team: TeamMember[] }) {
     attendance,
     visits,
     undefined,
-    paidMsByUser
+    paidMsByUser,
+    flagRules.forgottenCapMin
   )
-  const { shortVisitThresholdMinutes } = useAppSettings()
-  const kpis = computeVisitKpis(visits, team.length, undefined, shortVisitThresholdMinutes)
+  const kpis = computeVisitKpis(visits, team.length, undefined, shortVisitThresholdMinutes, flagRules.forgottenCapMin)
   const groups = groupBy(rows, (r) => r.departmentName ?? NO_DEPARTMENT)
   const deptKeys = sortGroupKeys(groups.keys(), NO_DEPARTMENT)
   const totalPaid = rows.reduce((a, r) => a + r.totalPaidMs, 0)

@@ -1,14 +1,20 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { scheduleService } from '@/features/schedule/scheduleService'
+import { flagRulesOf, type FlagRules } from '@/features/attendance/flagRules'
 import {
   DEFAULT_ALLOW_EARLY_CLOCKIN_MINUTES,
   DEFAULT_AUTO_CHECKOUT_ENABLED,
   DEFAULT_AUTO_CLOCKOUT_GRACE_MINUTES,
   DEFAULT_CHECK_WINDOW_END,
   DEFAULT_CHECK_WINDOW_START,
+  DEFAULT_FIRST_VISIT_DEADLINE,
+  DEFAULT_FORGOTTEN_VISIT_CAP_MINUTES,
   DEFAULT_IDLE_ALERT_THRESHOLD_MINUTES,
   DEFAULT_LATE_GRACE_MINUTES,
+  DEFAULT_LUNCH_IDLE_THRESHOLD_MINUTES,
+  DEFAULT_LUNCH_WINDOW_END,
+  DEFAULT_LUNCH_WINDOW_START,
   DEFAULT_SHORT_VISIT_THRESHOLD_MINUTES,
   DEFAULT_LOCATION_PING_INTERVAL_MINUTES,
   DEFAULT_VISIT_RADIUS_METERS,
@@ -33,6 +39,12 @@ export interface AppSettings {
   idleAlertThresholdMinutes: number
   /** A completed visit shorter than this many minutes is a short (ineffective) visit. */
   shortVisitThresholdMinutes: number
+  /** A gap overlapping the lunch window needs to be longer than this to be flagged idle; a first customer visit after the deadline is flagged; a forgotten visit counts at most the cap. */
+  lunchWindowStart: string
+  lunchWindowEnd: string
+  lunchIdleThresholdMinutes: number
+  firstVisitDeadline: string
+  forgottenVisitCapMinutes: number
   /** Customer check-in / check-out is only allowed between these times ("HH:MM:SS", Asia/Phnom_Penh). */
   checkWindowStart: string
   checkWindowEnd: string
@@ -57,6 +69,11 @@ const FALLBACK: AppSettings = {
   lateGraceMinutes: DEFAULT_LATE_GRACE_MINUTES,
   idleAlertThresholdMinutes: DEFAULT_IDLE_ALERT_THRESHOLD_MINUTES,
   shortVisitThresholdMinutes: DEFAULT_SHORT_VISIT_THRESHOLD_MINUTES,
+  lunchWindowStart: DEFAULT_LUNCH_WINDOW_START,
+  lunchWindowEnd: DEFAULT_LUNCH_WINDOW_END,
+  lunchIdleThresholdMinutes: DEFAULT_LUNCH_IDLE_THRESHOLD_MINUTES,
+  firstVisitDeadline: DEFAULT_FIRST_VISIT_DEADLINE,
+  forgottenVisitCapMinutes: DEFAULT_FORGOTTEN_VISIT_CAP_MINUTES,
   checkWindowStart: DEFAULT_CHECK_WINDOW_START,
   checkWindowEnd: DEFAULT_CHECK_WINDOW_END,
   breakMinutes: 0,
@@ -68,7 +85,7 @@ const FALLBACK: AppSettings = {
 /** Live, super-admin-editable settings from `public.app_settings`. Falls
  * back to the hardcoded defaults in lib/config.ts if the row can't be read
  * yet -- see features/settings/SettingsPage.tsx for where these are edited. */
-export function useAppSettings(): AppSettings {
+export function useAppSettings(): AppSettings & { flagRules: FlagRules } {
   const [settings, setSettings] = useState<AppSettings>(FALLBACK)
 
   useEffect(() => {
@@ -110,6 +127,22 @@ export function useAppSettings(): AppSettings {
         if (cancelled || !data) return
         setSettings((prev) => ({ ...prev, checkWindowStart: data.check_window_start, checkWindowEnd: data.check_window_end }))
       })
+    // The flag-rule settings (migration 0111), read on their own for the same reason.
+    supabase
+      .from('app_settings')
+      .select('first_visit_deadline, lunch_window_start, lunch_window_end, lunch_idle_threshold_minutes, forgotten_visit_cap_minutes')
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled || !data) return
+        setSettings((prev) => ({
+          ...prev,
+          firstVisitDeadline: data.first_visit_deadline,
+          lunchWindowStart: data.lunch_window_start,
+          lunchWindowEnd: data.lunch_window_end,
+          lunchIdleThresholdMinutes: data.lunch_idle_threshold_minutes,
+          forgottenVisitCapMinutes: data.forgotten_visit_cap_minutes,
+        }))
+      })
     // The signed-in person's own hours today (team schedule or company
     // schedule, minus holidays -- app.work_day). Overrides the company-wide
     // times above so the clock-in window and shift chip match what the
@@ -141,5 +174,6 @@ export function useAppSettings(): AppSettings {
     }
   }, [])
 
-  return settings
+  const flagRules = useMemo(() => flagRulesOf(settings), [settings])
+  return useMemo(() => ({ ...settings, flagRules }), [settings, flagRules])
 }

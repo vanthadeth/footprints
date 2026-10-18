@@ -128,3 +128,38 @@ describe('computeJourneyStats paid time', () => {
     expect(stats.totalPaidMs).toBe(7.5 * 60 * 60 * 1000)
   })
 })
+
+describe('computeJourneyStats flag rules', () => {
+  const now = new Date('2026-01-01T10:00:00Z').getTime() // 17:00 local
+  const day = (visits: VisitRow[], sessions = [attendance('2026-01-01T01:00:00Z', '2026-01-01T09:00:00Z')]): DayJourney[] => [{ date: '2026-01-01', attendance: sessions, visits }]
+  // local 08:30-09:00 and 10:00-10:20 (UTC 01:30-02:00, 03:00-03:20)
+  const v1 = visit({ checked_in_at: '2026-01-01T01:30:00Z', checked_out_at: '2026-01-01T02:00:00Z' })
+  const v2 = visit({ checked_in_at: '2026-01-01T03:00:00Z', checked_out_at: '2026-01-01T03:20:00Z' })
+
+  it('counts the gap between visits and the time after the last check-out to clock-out as flagged idle', () => {
+    const stats = computeJourneyStats(day([v1, v2]), now)
+    expect(stats.totalGapMs).toBe(60 * 60_000)
+    // 09:00 -> 10:00 (60 min), then 10:20 -> 16:00 clock-out (340 min)
+    expect(stats.flaggedGaps).toBe(2)
+    expect(stats.flaggedGapMs).toBe((60 + 340) * 60_000)
+  })
+
+  it('does not flag a gap of 45 min or less, nor the time before the first visit', () => {
+    const near = visit({ checked_in_at: '2026-01-01T02:45:00Z', checked_out_at: '2026-01-01T09:00:00Z' }) // 45 min after v1 ends, runs to clock-out
+    const stats = computeJourneyStats(day([v1, near]), now)
+    expect(stats.flaggedGaps).toBe(0)
+  })
+
+  it('counts a forgotten visit at the cap, and the rest as a flagged gap', () => {
+    const forgotten = visit({ checked_in_at: '2026-01-01T01:30:00Z', checked_out_at: '2026-01-01T09:00:00Z', flags: ['AUTO_CHECKOUT_CLOCK_OUT'], auto_closed: true })
+    const stats = computeJourneyStats(day([forgotten]), now)
+    expect(stats.totalVisitingMs).toBe(30 * 60_000)
+    expect(stats.flaggedGaps).toBe(1)
+    expect(stats.flaggedGapMs).toBe(((9 - 2) * 60 - 0) * 60_000) // 02:00 -> 09:00 UTC
+  })
+
+  it('runs the trailing gap to now while still clocked in', () => {
+    const stats = computeJourneyStats(day([v1], [attendance('2026-01-01T01:00:00Z', null)]), now)
+    expect(stats.flaggedGapMs).toBe(8 * 60 * 60_000) // 02:00 -> 10:00 UTC
+  })
+})

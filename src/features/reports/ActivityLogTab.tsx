@@ -19,6 +19,7 @@ const FLAG_TEXT: Record<string, string> = {
   AUTO_CHECKOUT_CLOCK_OUT: 'clocked out mid-visit',
   AUTO_CHECKOUT_WORKING_HOURS_END: 'closed automatically at the end of the day',
   SHORT_VISIT: 'very short visit',
+  LATE_FIRST_VISIT: 'first customer visit after the deadline',
   TRACKING_INTERRUPTED: 'tracking interrupted',
   OUT_OF_RANGE: 'checked in outside the radius',
 }

@@ -25,7 +25,8 @@ import { usePhoneNumbers } from './usePhoneNumbers'
 import { MapView } from '@/features/maps/MapView'
 import { pinIcon } from '@/features/maps/markers'
 import { attendanceService } from './attendanceService'
-import { GAP_FLAG_MAX_DISTANCE_METERS, MAX_ACCEPTABLE_LOCATION_ACCURACY_METERS } from '@/lib/config'
+import { MAX_ACCEPTABLE_LOCATION_ACCURACY_METERS } from '@/lib/config'
+import { isFlaggedGap, visitSpan, type IdleRule } from '@/features/attendance/flagRules'
 import { useAppSettings } from '@/hooks/useAppSettings'
 import { formatDate, formatDuration, formatLongDate, formatTime } from '@/lib/datetime'
 import { distanceInMeters, formatDistance } from '@/lib/geo'
@@ -89,10 +90,8 @@ type TimelineEvent =
  * A gap that falls between a clock-out and the next clock-in is "off the
  * clock" -- shown distinctly and never flagged, since time away between
  * shifts is expected, unlike a long gap while actually clocked in (flagged
- * once it runs long, the admin's idle threshold, AND the straight-line
- * distance between the gap's two endpoints is short, GAP_FLAG_MAX_DISTANCE_METERS
- * -- a long gap with real travel distance behind it isn't flagged, only one
- * that looks like idle/rest passed off as transit).
+ * once it runs longer than the idle threshold -- longer around lunch -- and only
+ * after the session's first visit, the same rule the alert and the day bar use).
  *
  * A voided visit still renders here in its chronological slot (so it can
  * be found and restored) but is visually de-emphasized and excluded from
@@ -106,7 +105,7 @@ export function JourneyTimeline({ attendance, visits, customerNames, interactive
   // icons (and, when interactive, the edit form's chip options) for free
   // rather than having to fetch and thread it through.
   const { t } = useLanguage()
-  const { idleAlertThresholdMinutes } = useAppSettings()
+  const { flagRules } = useAppSettings()
   const { byKind } = useVisitOptions()
   const optionsById: Record<string, VisitOption> = {}
   for (const options of Object.values(byKind)) {
@@ -131,11 +130,14 @@ export function JourneyTimeline({ attendance, visits, customerNames, interactive
   let cursor: string | null = null
   let cursorLocation: LatLng | null = null
   let cursorWasClockOut = false
+  // Gaps are only flagged after the session's first visit.
+  let seenVisit = false
 
   for (const event of events) {
     if (cursor) {
       const gapMs = gapBetween(cursor, event.time)
       if (gapMs != null) {
+        // Distance covered is shown for context; it no longer decides whether the gap is flagged.
         const arrival = arrivalLocationOf(event)
         const distanceMeters = cursorLocation && arrival ? distanceInMeters(cursorLocation.lat, cursorLocation.lng, arrival.lat, arrival.lng) : null
         rows.push(
@@ -143,7 +145,9 @@ export function JourneyTimeline({ attendance, visits, customerNames, interactive
             key={`gap-before-${event.kind}-${event.time}`}
             ms={gapMs}
             distanceMeters={distanceMeters}
-            idleThresholdMinutes={idleAlertThresholdMinutes}
+            fromMs={new Date(cursor).getTime()}
+            idle={flagRules.idle}
+            flaggable={seenVisit}
             offClock={cursorWasClockOut && event.kind === 'clock-in'}
           />
         )
@@ -170,6 +174,7 @@ export function JourneyTimeline({ attendance, visits, customerNames, interactive
       cursor = event.time
       cursorLocation = latLng(event.session.clock_in_latitude, event.session.clock_in_longitude)
       cursorWasClockOut = false
+      seenVisit = false
     } else if (event.kind === 'clock-out') {
       rows.push(
         <ClockEntry
@@ -202,9 +207,11 @@ export function JourneyTimeline({ attendance, visits, customerNames, interactive
           onVisitChanged={onVisitChanged}
         />
       )
-      cursor = event.visit.checked_out_at
+      // A visit nobody checked out of counts at most the cap; the rest is a gap.
+      cursor = event.visit.checked_out_at ? new Date(visitSpan(event.visit, Date.now(), flagRules.forgottenCapMin)[1]).toISOString() : null
       cursorLocation = event.visit.checked_out_at ? latLng(event.visit.out_latitude, event.visit.out_longitude) : null
       cursorWasClockOut = false
+      seenVisit = true
     }
   }
 
@@ -385,14 +392,11 @@ function Row({ label, value, warn = false, flagged = false }: { label: string; v
   )
 }
 
-function GapEntry({ ms, distanceMeters, idleThresholdMinutes, offClock = false }: { ms: number; distanceMeters: number | null; idleThresholdMinutes: number; offClock?: boolean }) {
+function GapEntry({ ms, distanceMeters, fromMs, idle, flaggable, offClock = false }: { ms: number; distanceMeters: number | null; fromMs: number; idle: IdleRule; flaggable: boolean; offClock?: boolean }) {
   const { t, language } = useLanguage()
-  const isLong = ms / 60_000 > idleThresholdMinutes
-  // A long gap is only flagged when it also looks like idle/rest rather
-  // than real travel -- i.e. the distance is short, or unknown (missing
-  // coordinates keep the old, conservative "flag it" default).
-  const looksStationary = distanceMeters == null || distanceMeters <= GAP_FLAG_MAX_DISTANCE_METERS
-  const flagged = !offClock && isLong && looksStationary
+  // Flagged in full once it is longer than the idle threshold (longer around lunch),
+  // after the session's first visit; time off the clock is never flagged.
+  const flagged = !offClock && flaggable && isFlaggedGap(fromMs, fromMs + ms, idle)
   return (
     <li className="relative flex items-center justify-between gap-3 py-0.5">
       <span

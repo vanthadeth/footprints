@@ -6,6 +6,7 @@ import type { AttendanceRow, VisitRow } from '@/features/attendance/types'
 import { ClockSheet } from '@/features/attendance/ClockSheet'
 import { computeJourneyStats } from '@/features/attendance/journeyStats'
 import { effectivenessPercent } from '@/features/attendance/efficiency'
+import type { FlagRules } from '@/features/attendance/flagRules'
 import type { DayJourney } from '@/features/attendance/useJourneyHistory'
 import { VisitFlow, type PresetCustomer } from '@/features/visits/VisitFlow'
 import { HeroLocationCard, PlanSection, TodayCard, TodaysTimeline, WeekStrip } from '@/features/checkin/CheckInSections'
@@ -78,7 +79,7 @@ export function CheckInPage() {
   // break, a split shift) -- stats and the hero times below are summed
   // across every session today, not just whichever one is currently open.
   const today: DayJourney = { date: '', attendance: journey.todaysAttendance, visits: journey.todaysVisits }
-  const stats = computeJourneyStats([today], undefined, { breakMinutes: settings.breakMinutes, breakPaid: settings.breakPaid })
+  const stats = computeJourneyStats([today], undefined, { breakMinutes: settings.breakMinutes, breakPaid: settings.breakPaid }, settings.flagRules)
   const effectivenessRatio = effectivenessPercent(stats.totalVisitingMs, stats.totalPaidMs) ?? 0
 
   const minutesNow = (() => {
@@ -160,7 +161,7 @@ export function CheckInPage() {
                 {t('checkIn.clockOutTitle')}
               </button>
             </div>
-            <HeroDayBar attendance={journey.todaysAttendance} visits={journey.todaysVisits} workStart={settings.workStartTime} workEnd={settings.workEndTime} flagAfterMin={settings.idleAlertThresholdMinutes} customerNames={customerNames} />
+            <HeroDayBar attendance={journey.todaysAttendance} visits={journey.todaysVisits} workStart={settings.workStartTime} workEnd={settings.workEndTime} flagRules={settings.flagRules} customerNames={customerNames} />
             <p className="mt-2 text-[13px] text-white/60">{visitsLine}</p>
 
             {isVisiting && journey.openVisit ? (
@@ -383,14 +384,14 @@ function HeroDayBar({
   visits,
   workStart,
   workEnd,
-  flagAfterMin,
+  flagRules,
   customerNames,
 }: {
   attendance: AttendanceRow[]
   visits: VisitRow[]
   workStart: string
   workEnd: string
-  flagAfterMin: number
+  flagRules: FlagRules
   customerNames: Record<string, string>
 }) {
   if (attendance.length === 0) return null
@@ -398,7 +399,7 @@ function HeroDayBar({
   const day = todayDateString()
   const shiftStart = atLocal(day, workStart)
   const shiftEnd = atLocal(day, workEnd)
-  const { segs, live, clockIn, clockOut } = segmentsFor({ attendance, visits, shiftStart, shiftEnd, now, flagAfterMin })
+  const { segs, live, clockIn, clockOut } = segmentsFor({ attendance, visits, shiftStart, shiftEnd, now, flagRules })
   const from = clockIn!
   const to = Math.max(shiftEnd, clockOut ?? now)
   const name = (g: Seg) => (g.visit != null ? (customerNames[live[g.visit]?.customer_id ?? ''] ?? null) : null)

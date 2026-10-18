@@ -6,6 +6,7 @@ const FLAG_LABELS: Record<string, string> = {
   AUTO_CHECKOUT_CLOCK_OUT: 'Auto: Clock Out',
   AUTO_CHECKOUT_WORKING_HOURS_END: 'Auto: End of Day',
   SHORT_VISIT: 'Short Visit',
+  LATE_FIRST_VISIT: 'Late First Visit',
   TRACKING_INTERRUPTED: 'Tracking Interrupted',
 }
 
@@ -17,6 +18,7 @@ const FLAG_TONE: Record<string, string> = {
   AUTO_CHECKOUT_CLOCK_OUT: 'bg-status-warn/10 text-status-warn',
   AUTO_CHECKOUT_WORKING_HOURS_END: 'bg-status-warn/10 text-status-warn',
   SHORT_VISIT: 'bg-neutral-100 text-neutral-500',
+  LATE_FIRST_VISIT: 'bg-status-warn/10 text-status-warn',
   TRACKING_INTERRUPTED: 'bg-status-danger/10 text-status-danger',
 }
 

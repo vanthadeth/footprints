@@ -42,8 +42,8 @@ export function RoutesMap({ snapshots, userId, onUserChange }: { snapshots: Flee
     [snapshots, journeysByUserId]
   )
   const who = userId && ids.includes(userId) ? userId : people[0]?.member.id ?? null
-  const { idleAlertThresholdMinutes } = useAppSettings()
-  const route = useMemo(() => buildTeamRoute(who ? journeysByUserId[who] ?? null : null, undefined, idleAlertThresholdMinutes), [who, journeysByUserId, idleAlertThresholdMinutes])
+  const { flagRules } = useAppSettings()
+  const route = useMemo(() => buildTeamRoute(who ? journeysByUserId[who] ?? null : null, undefined, flagRules), [who, journeysByUserId, flagRules])
   const names = useCustomerNames(route.events.map((e) => e.customerId ?? null))
   const current = selected !== null && selected < route.events.length ? selected : route.events.length - 1
   const isToday = date === todayDateString()

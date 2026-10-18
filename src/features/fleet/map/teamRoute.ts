@@ -1,4 +1,4 @@
-import { DEFAULT_IDLE_ALERT_THRESHOLD_MINUTES, GAP_FLAG_MAX_DISTANCE_METERS } from '@/lib/config'
+import { DEFAULT_FLAG_RULES, isFlaggedGap, visitSpan, type FlagRules } from '@/features/attendance/flagRules'
 import { distanceInMeters } from '@/lib/geo'
 import type { DayJourney } from '@/features/attendance/useJourneyHistory'
 
@@ -43,13 +43,13 @@ interface Stop {
 
 /**
  * One person's day as an ordered route: clock-in, each visit (numbered),
- * idle stretches, clock-out -- and the path through them. Idle uses the
- * same rule the journey timeline flags a gap by: longer than
- * the admin's idle threshold while moving no further than
- * GAP_FLAG_MAX_DISTANCE_METERS. A trailing gap (last check-out until now,
+ * idle stretches, clock-out -- and the path through them. Idle is the flag
+ * rule everywhere else uses: a gap after a visit longer than the idle
+ * threshold (longer around lunch). A trailing gap (last check-out until now,
  * still clocked in) counts too. Gaps across a clock-out are off the clock.
+ * A visit nobody checked out of counts at most the forgotten-visit cap.
  */
-export function buildTeamRoute(day: DayJourney | null, nowIso: string = new Date().toISOString(), idleThresholdMinutes: number = DEFAULT_IDLE_ALERT_THRESHOLD_MINUTES): TeamRoute {
+export function buildTeamRoute(day: DayJourney | null, nowIso: string = new Date().toISOString(), rules: FlagRules = DEFAULT_FLAG_RULES): TeamRoute {
   if (!day) return { events: [], path: [], stats: { visits: 0, distanceMeters: 0, visitingMs: 0, idleMs: 0 } }
 
   const stops: Stop[] = []
@@ -64,7 +64,7 @@ export function buildTeamRoute(day: DayJourney | null, nowIso: string = new Date
     stops.push({
       kind: 'visit',
       start: v.checked_in_at,
-      end: v.checked_out_at,
+      end: v.checked_out_at ? new Date(visitSpan(v, Date.parse(nowIso), rules.forgottenCapMin)[1]).toISOString() : null,
       inLat: v.in_latitude,
       inLng: v.in_longitude,
       outLat: v.out_latitude ?? v.in_latitude,
@@ -82,11 +82,11 @@ export function buildTeamRoute(day: DayJourney | null, nowIso: string = new Date
   let idleMs = 0
   let distance = 0
 
-  const idleIfLong = (prev: Stop, nextStartIso: string, nextLat: number, nextLng: number, ongoing: boolean) => {
-    if (!prev.end) return
+  const idleIfLong = (prev: Stop, nextStartIso: string, ongoing: boolean) => {
+    // Only the time after a visit can be idle (not clock-in to the first visit).
+    if (!prev.end || prev.kind !== 'visit') return
     const gap = mins(prev.end, nextStartIso)
-    const moved = distanceInMeters(prev.outLat, prev.outLng, nextLat, nextLng)
-    if (gap > idleThresholdMinutes && moved <= GAP_FLAG_MAX_DISTANCE_METERS) {
+    if (isFlaggedGap(Date.parse(prev.end), Date.parse(nextStartIso), rules.idle)) {
       events.push({ kind: 'idle', start: prev.end, end: ongoing ? null : nextStartIso, lat: prev.outLat, lng: prev.outLng, minutes: gap, ongoing })
       idleMs += gap * 60_000
     }
@@ -94,7 +94,7 @@ export function buildTeamRoute(day: DayJourney | null, nowIso: string = new Date
 
   stops.forEach((s, i) => {
     const prev = stops[i - 1]
-    if (prev && !prev.sessionEnd && s.kind !== 'clock-in') idleIfLong(prev, s.start, s.inLat, s.inLng, false)
+    if (prev && !prev.sessionEnd && s.kind !== 'clock-in') idleIfLong(prev, s.start, false)
     if (prev) distance += distanceInMeters(prev.outLat, prev.outLng, s.inLat, s.inLng)
     path.push([s.inLat, s.inLng])
     if (s.kind === 'visit') {
@@ -109,7 +109,7 @@ export function buildTeamRoute(day: DayJourney | null, nowIso: string = new Date
 
   // Still on shift with nothing open since the last stop: that trailing gap may itself be idling.
   const last = stops[stops.length - 1]
-  if (last && last.kind === 'visit' && last.end) idleIfLong(last, nowIso, last.outLat, last.outLng, true)
+  if (last && last.kind === 'visit' && last.end) idleIfLong(last, nowIso, true)
 
   return { events, path, stats: { visits: visitN, distanceMeters: Math.round(distance), visitingMs, idleMs } }
 }

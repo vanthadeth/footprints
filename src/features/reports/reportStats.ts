@@ -2,6 +2,8 @@ import type { AttendanceRow, VisitRow } from '@/features/attendance/types'
 import type { FleetMemberSnapshot } from '@/features/fleet/types'
 import { formatTime } from '@/lib/datetime'
 import { localDateKey } from '@/lib/dateRange'
+import { DEFAULT_FORGOTTEN_VISIT_CAP_MINUTES } from '@/lib/config'
+import { visitSpan } from '@/features/attendance/flagRules'
 import { firstClockIn, workedMs } from '@/features/attendance/sessions'
 
 export interface LiveFleetKpis {
@@ -80,7 +82,7 @@ export interface VisitKpis {
 }
 
 /** The date-filterable half of the Dashboard (Visits + Customer Coverage sections). */
-export function computeVisitKpis(visits: VisitRow[], userCount: number, now: number = Date.now(), shortUnderMinutes: number = 0): VisitKpis {
+export function computeVisitKpis(visits: VisitRow[], userCount: number, now: number = Date.now(), shortUnderMinutes: number = 0, capMin: number = DEFAULT_FORGOTTEN_VISIT_CAP_MINUTES): VisitKpis {
   let totalVisitingMs = 0
   let unassignedVisits = 0
   let autoCheckouts = 0
@@ -89,13 +91,14 @@ export function computeVisitKpis(visits: VisitRow[], userCount: number, now: num
   const customers = new Set<string>()
 
   for (const v of visits) {
-    const end = v.checked_out_at ? new Date(v.checked_out_at).getTime() : now
-    totalVisitingMs += Math.max(0, end - new Date(v.checked_in_at).getTime())
+    // A visit nobody checked out of counts at most the cap.
+    const [vStart, vEnd] = visitSpan(v, now, capMin)
+    totalVisitingMs += vEnd - vStart
     if (!v.customer_id) unassignedVisits += 1
     else customers.add(v.customer_id)
     if (v.auto_closed) autoCheckouts += 1
     if (v.flags && v.flags.length > 0) flaggedVisits += 1
-    if (shortUnderMinutes > 0 && v.checked_out_at && !v.cancelled_at && end - new Date(v.checked_in_at).getTime() < shortUnderMinutes * 60_000) shortVisits += 1
+    if (shortUnderMinutes > 0 && v.checked_out_at && !v.cancelled_at && vEnd - vStart < shortUnderMinutes * 60_000) shortVisits += 1
   }
 
   return {
@@ -140,7 +143,8 @@ export function computeUserReportRows(
   attendanceRows: AttendanceRow[],
   visitRows: VisitRow[],
   now: number = Date.now(),
-  paidMsByUser?: Record<string, number>
+  paidMsByUser?: Record<string, number>,
+  capMin: number = DEFAULT_FORGOTTEN_VISIT_CAP_MINUTES
 ): UserReportRow[] {
   return members.map((member) => {
     const myAttendance = attendanceRows.filter((a) => a.user_id === member.id)
@@ -162,14 +166,14 @@ export function computeUserReportRows(
       const sorted = [...dayVisits].sort((a, b) => a.checked_in_at.localeCompare(b.checked_in_at))
       for (let i = 1; i < sorted.length; i++) {
         if (!sorted[i - 1].checked_out_at) continue
-        const gap = new Date(sorted[i].checked_in_at).getTime() - new Date(sorted[i - 1].checked_out_at!).getTime()
+        const gap = new Date(sorted[i].checked_in_at).getTime() - visitSpan(sorted[i - 1], now, capMin)[1]
         if (gap > 0) totalGapMs += gap
       }
     }
 
     const totalVisitMs = myVisits.reduce((sum, v) => {
-      const end = v.checked_out_at ? new Date(v.checked_out_at).getTime() : now
-      return sum + Math.max(0, end - new Date(v.checked_in_at).getTime())
+      const [a, b] = visitSpan(v, now, capMin)
+      return sum + (b - a)
     }, 0)
 
     const sortedAttendance = [...myAttendance].sort((a, b) => a.clock_in_at.localeCompare(b.clock_in_at))
