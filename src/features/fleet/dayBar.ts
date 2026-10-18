@@ -1,3 +1,5 @@
+import { isFlaggedGap, visitSpan, type FlagRules, type IdleRule } from '@/features/attendance/flagRules'
+
 /** What a stretch of someone's day was, in the bar's colours. */
 export type SegKind = 'visit' | 'gap' | 'flag' | 'out' | 'off' | 'todo' | 'miss'
 
@@ -35,17 +37,18 @@ export interface DayInput {
   shiftStart: number
   shiftEnd: number
   now: number
-  /** A gap between visits at least this long is flagged. */
-  flagAfterMin: number
+  /** When a gap is flagged (the idle threshold, longer around lunch). */
+  idle: IdleRule
 }
 
 /**
  * The day as coloured stretches (canvas Polish › Team, "same bar language
- * as Today › Your day"): visits; travel and gaps between them, the part
- * past the idle limit flagged; time on the clock outside working hours;
- * time off the clock between two sessions; the rest of the shift still to
- * come; and, with no clock-in after the shift started, the missed time.
- * The idle limit starts again at each clock-in.
+ * as Today › Your day"): visits; travel and gaps between them -- a gap
+ * longer than the idle limit is flagged in full (the limit is longer around
+ * lunch); time on the clock outside working hours; time off the clock between
+ * two sessions; the rest of the shift still to come; and, with no clock-in
+ * after the shift started, the missed time. Only gaps after a session's first
+ * visit can be flagged: the stretch from clock-in to the first visit isn't.
  */
 export function daySegments(d: DayInput): Seg[] {
   const out: Seg[] = []
@@ -69,14 +72,15 @@ export function daySegments(d: DayInput): Seg[] {
     else out.push(visit === undefined ? { kind, from: x, to: y } : { kind, from: x, to: y, visit })
   }
 
-  // A gap: travel first; past the idle limit the rest is flagged. Time outside working hours is its own colour.
-  const gap = (a: number, b: number) => {
+  // A gap: ordinary travel and waiting, or -- once past the idle limit, after the session's
+  // first visit -- flagged as a whole. Time outside working hours is its own colour.
+  const gap = (a: number, b: number, flaggable: boolean) => {
     if (b <= a) return
-    const flagFrom = a + d.flagAfterMin * 60_000
-    const cuts = [a, ...[flagFrom, d.shiftStart, d.shiftEnd].filter((t) => t > a && t < b), b].sort((x, y) => x - y)
+    const flagged = flaggable && isFlaggedGap(a, b, d.idle)
+    const cuts = [a, ...[d.shiftStart, d.shiftEnd].filter((t) => t > a && t < b), b].sort((x, y) => x - y)
     for (let i = 0; i < cuts.length - 1; i++) {
       const [x, y] = [cuts[i], cuts[i + 1]]
-      push(y <= d.shiftStart || x >= d.shiftEnd ? 'out' : x >= flagFrom ? 'flag' : 'gap', x, y)
+      push(y <= d.shiftStart || x >= d.shiftEnd ? 'out' : flagged ? 'flag' : 'gap', x, y)
     }
   }
 
@@ -84,14 +88,16 @@ export function daySegments(d: DayInput): Seg[] {
   for (const [s, e] of sessions) {
     if (prevEnd != null && s > prevEnd) push('off', prevEnd, s)
     let at = prevEnd != null ? Math.max(s, prevEnd) : s
+    let seenVisit = false
     for (const [a0, b0, i] of visits) {
       const [a, b] = [Math.max(a0, s), Math.min(b0, e)]
       if (b <= at || b <= a) continue
-      gap(at, Math.max(a, at))
+      gap(at, Math.max(a, at), seenVisit)
       push('visit', Math.max(a, at), b, i)
+      seenVisit = true
       at = b
     }
-    gap(at, e)
+    gap(at, e, seenVisit)
     prevEnd = Math.max(prevEnd ?? e, e)
   }
   if (d.clockOut == null && d.now < d.shiftEnd) out.push({ kind: 'todo', from: Math.max(d.now, d.clockIn), to: d.shiftEnd })
@@ -145,13 +151,13 @@ export const atLocal = (day: string, hm: string) => new Date(`${day}T${hm.slice(
  * to the last clock-out (still open if any session is), cancelled visits
  * left out. `live` is the visits kept, in the order `Seg.visit` refers to.
  */
-export function segmentsFor<V extends { checked_in_at: string; checked_out_at: string | null; cancelled_at: string | null }>(opts: {
+export function segmentsFor<V extends { checked_in_at: string; checked_out_at: string | null; cancelled_at: string | null; flags?: string[] | null }>(opts: {
   attendance: { clock_in_at: string; clock_out_at: string | null }[]
   visits: V[]
   shiftStart: number
   shiftEnd: number
   now: number
-  flagAfterMin: number
+  flagRules: FlagRules
 }): { segs: Seg[]; live: V[]; clockIn: number | null; clockOut: number | null } {
   const live = opts.visits.filter((v) => !v.cancelled_at)
   const ins = opts.attendance.map((a) => Date.parse(a.clock_in_at))
@@ -161,12 +167,16 @@ export function segmentsFor<V extends { checked_in_at: string; checked_out_at: s
   const segs = daySegments({
     clockIn,
     clockOut,
-    visits: live.map((v) => [Date.parse(v.checked_in_at), v.checked_out_at ? Date.parse(v.checked_out_at) : null]),
+    // A visit nobody checked out of counts at most the cap; the rest is a gap.
+    visits: live.map((v) => {
+      const [start, end] = visitSpan(v, opts.now, opts.flagRules.forgottenCapMin)
+      return [start, v.checked_out_at ? end : null] as [number, number | null]
+    }),
     sessions: opts.attendance.map((a) => [Date.parse(a.clock_in_at), a.clock_out_at ? Date.parse(a.clock_out_at) : null]),
     shiftStart: opts.shiftStart,
     shiftEnd: opts.shiftEnd,
     now: opts.now,
-    flagAfterMin: opts.flagAfterMin,
+    idle: opts.flagRules.idle,
   })
   return { segs, live, clockIn, clockOut }
 }

@@ -48,7 +48,7 @@ export function HomePage() {
   const firstName = profile ? displayName(profile.full_name, profile.nickname).split(' ')[0] : undefined
 
   const today: DayJourney = { date: '', attendance: journey.todaysAttendance, visits: journey.todaysVisits }
-  const stats = computeJourneyStats([today], undefined, { breakMinutes: settings.breakMinutes, breakPaid: settings.breakPaid })
+  const stats = computeJourneyStats([today], undefined, { breakMinutes: settings.breakMinutes, breakPaid: settings.breakPaid }, settings.flagRules)
   const effectivenessRatio = effectivenessPercent(stats.totalVisitingMs, stats.totalPaidMs) ?? 0
 
   const completedVisits = [...journey.todaysVisits]

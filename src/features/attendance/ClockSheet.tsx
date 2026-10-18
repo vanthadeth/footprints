@@ -89,7 +89,7 @@ export function ClockSheet({ open, direction, required, onClose }: { open: boole
     { label: t('checkIn.stepConfirm'), done: false },
   ]
   const today: DayJourney = { date: '', attendance: journey.todaysAttendance, visits: journey.todaysVisits }
-  const stats = computeJourneyStats([today])
+  const stats = computeJourneyStats([today], undefined, null, settings.flagRules)
   const shift = t('checkIn.shift', { start: settings.workStartTime.slice(0, 5), end: settings.workEndTime.slice(0, 5) })
 
   async function confirm() {
@@ -272,7 +272,7 @@ function ClockOutDayBar({ attendance, visits, now }: { attendance: DayJourney['a
     shiftStart: atLocal(day, settings.workStartTime),
     shiftEnd: atLocal(day, settings.workEndTime),
     now,
-    flagAfterMin: settings.idleAlertThresholdMinutes,
+    flagRules: settings.flagRules,
   })
   if (clockIn == null) return null
   // Clocking out now: nothing is still to come.

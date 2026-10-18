@@ -6,6 +6,7 @@ import { FlagBadge } from '@/components/FlagBadge'
 import { useJourneyHistory, type DayJourney } from '@/features/attendance/useJourneyHistory'
 import { computeJourneyStats } from '@/features/attendance/journeyStats'
 import { effectivenessPercent } from '@/features/attendance/efficiency'
+import { firstVisitStatus } from '@/features/attendance/flagRules'
 import { useTeamWorkDays } from '@/features/schedule/useTeamWorkDays'
 import { JourneyTimeline } from '@/features/attendance/JourneyTimeline'
 import { JourneyMap } from '@/features/attendance/JourneyMap'
@@ -60,10 +61,12 @@ export function JourneyHistoryReport({ userId, interactive, subtitle }: { userId
 
   const day = days[0] ?? null
   const leaveType = useApprovedLeaveOnDate(userId ? [userId] : [], selectedDate)[userId ?? '']
+  const appSettings = useAppSettings()
   // This person's own shift and break on this date (not the signed-in person's, and not today's).
   const workDay = useTeamWorkDays(selectedDate)[userId ?? '']
-  const stats = computeJourneyStats(day ? [day] : [], undefined, workDay ? { breakMinutes: workDay.breakMinutes, breakPaid: workDay.breakPaid } : null)
+  const stats = computeJourneyStats(day ? [day] : [], undefined, workDay ? { breakMinutes: workDay.breakMinutes, breakPaid: workDay.breakPaid } : null, appSettings.flagRules)
   const effectiveness = effectivenessPercent(stats.totalVisitingMs, stats.totalPaidMs) ?? 0
+  const firstVisit = firstVisitStatus(day?.visits ?? [], !!day?.attendance.length, selectedDate, appSettings.flagRules.firstVisitDeadline, Date.now())
   const flags = [...new Set((day?.visits ?? []).flatMap((v) => v.flags ?? []))]
   const liveVisits = (day?.visits ?? []).filter((v) => !v.cancelled_at)
   const ordered = liveVisits.filter((v) => (v.order_amount_usd ?? 0) > 0).length
@@ -138,6 +141,9 @@ export function JourneyHistoryReport({ userId, interactive, subtitle }: { userId
                   <Line label={t('footprints.clockedInFor')} value={formatDuration(stats.totalWorkingMs, language)} />
                   <Line label={t('checkIn.statActive')} value={formatDuration(stats.totalVisitingMs, language)} tone="text-brand-500" />
                   <Line label={t('footprints.gaps')} value={formatDuration(stats.totalGapMs, language)} />
+                  {stats.flaggedGapMs > 0 && <Line label="Flagged idle" value={`${formatDuration(stats.flaggedGapMs, language)} · ${stats.flaggedGaps}×`} tone="text-status-warn" />}
+                  {firstVisit.kind === 'late' && <Line label="First visit" value={formatTime(new Date(firstVisit.at).toISOString())} tone="text-status-warn" />}
+                  {firstVisit.kind === 'none' && <Line label="First visit" value={`None by ${appSettings.flagRules.firstVisitDeadline.slice(0, 5)}`} tone="text-status-warn" />}
                 </div>
               </div>
               <div className="rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card">
@@ -223,7 +229,7 @@ function DayStrip({ day, date, isToday, customerNames, workDay }: { day: DayJour
   // The person's own shift on that date; the signed-in person's today until it loads.
   const shiftStart = atLocal(date, workDay?.start ?? settings.workStartTime)
   const shiftEnd = atLocal(date, workDay?.end ?? settings.workEndTime)
-  const { segs, live, clockIn, clockOut } = segmentsFor({ attendance: day.attendance, visits: day.visits, shiftStart, shiftEnd, now, flagAfterMin: settings.idleAlertThresholdMinutes })
+  const { segs, live, clockIn, clockOut } = segmentsFor({ attendance: day.attendance, visits: day.visits, shiftStart, shiftEnd, now, flagRules: settings.flagRules })
   if (clockIn == null) return null
   const last = clockOut ?? now
   const from = Math.min(shiftStart - 30 * 60_000, clockIn)

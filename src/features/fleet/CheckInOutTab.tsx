@@ -15,6 +15,8 @@ import { getCustomRange, todayDateString } from '@/lib/dateRange'
 import { useTeamDayJourneys } from './useTeamDayJourneys'
 import { useTeamWorkDays } from '@/features/schedule/useTeamWorkDays'
 import { effectivenessPercent } from '@/features/attendance/efficiency'
+import { firstVisitStatus, type FlagRules } from '@/features/attendance/flagRules'
+import { useAppSettings } from '@/hooks/useAppSettings'
 import { FleetStatusBadge } from './FleetStatusBadge'
 import type { FleetMemberSnapshot } from './types'
 import { useApprovedLeaveOnDate } from '@/features/leave/useApprovedLeaveOnDate'
@@ -40,6 +42,7 @@ export function CheckInOutTab({ snapshots }: { snapshots: FleetMemberSnapshot[] 
   const { rows: dayRows } = useAttendanceDays(selectedDate, selectedDate, userIds)
   // Each person's own unpaid break that day, for paid working time.
   const workDays = useTeamWorkDays(selectedDate)
+  const { flagRules } = useAppSettings()
   const serverLate = useMemo(() => {
     const m: Record<string, number> = {}
     for (const r of dayRows) m[r.userId] = r.status === 'late' ? Math.max(1, r.lateMinutes) : 0
@@ -109,6 +112,8 @@ export function CheckInOutTab({ snapshots }: { snapshots: FleetMemberSnapshot[] 
                     locationNames={locationNames}
                     leaveType={leaveByUserId[snapshot.member.id]}
                     workDay={workDays[snapshot.member.id]}
+                    flagRules={flagRules}
+                    date={selectedDate}
                     serverLateMinutes={snapshot.member.id in serverLate ? serverLate[snapshot.member.id] : null}
                   />
                 ))}
@@ -132,12 +137,17 @@ function MemberCheckInOutCard({
   locationNames,
   leaveType,
   workDay,
+  flagRules,
+  date,
   serverLateMinutes,
 }: {
   snapshot: FleetMemberSnapshot
   day: DayJourney | null
   locationNames: Record<string, string>
   leaveType: LeaveType | undefined
+  flagRules: FlagRules
+  /** The local day being shown ("YYYY-MM-DD"). */
+  date: string
   /** This person's own work day that date (their unpaid break), when loaded. */
   workDay: { breakMinutes: number; breakPaid: boolean } | undefined
   /** Minutes late against the person's own schedule (0 = on time), or null while unknown. */
@@ -148,12 +158,14 @@ function MemberCheckInOutCard({
   const sessions = day?.attendance ?? []
   const firstSession = sessions[0] ?? null
   const lastSession = sessions[sessions.length - 1] ?? null
-  const stats = computeJourneyStats(day ? [day] : [], undefined, workDay ? { breakMinutes: workDay.breakMinutes, breakPaid: workDay.breakPaid } : null)
+  const stats = computeJourneyStats(day ? [day] : [], undefined, workDay ? { breakMinutes: workDay.breakMinutes, breakPaid: workDay.breakPaid } : null, flagRules)
   const effectivenessRatio = effectivenessPercent(stats.totalVisitingMs, stats.totalPaidMs) ?? 0
   // Only overrides the placeholder when there's no attendance at all that
   // day -- an actual clock-in/out session is ground truth and always wins.
   const onLeaveLabel = !day && leaveType ? leaveType === 'flex' ? 'On a day off' : `On ${LEAVE_TYPE_LABEL[leaveType]} Leave` : null
   const lateMinutes = serverLateMinutes ?? 0
+  // The first customer visit of the day after the deadline, or none yet by then.
+  const firstVisit = firstVisitStatus(day?.visits ?? [], sessions.length > 0, date, flagRules.firstVisitDeadline, Date.now())
   const isLate = lateMinutes > 0
   const initials = member.fullName
     .split(' ')
@@ -169,6 +181,12 @@ function MemberCheckInOutCard({
         <p className="min-w-0 flex-1 truncate text-[15px] font-bold text-neutral-900">{displayName(member.fullName, member.nickname)}</p>
         {isLate && (
           <span className="shrink-0 rounded-full bg-status-danger/10 px-2 py-0.5 text-[11px] font-bold text-status-danger">Late {lateMinutes}m</span>
+        )}
+        {firstVisit.kind === 'late' && (
+          <span className="shrink-0 rounded-full bg-status-warn/10 px-2 py-0.5 text-[11px] font-bold text-status-warn">First visit {formatTime(new Date(firstVisit.at).toISOString())}</span>
+        )}
+        {firstVisit.kind === 'none' && (
+          <span className="shrink-0 rounded-full bg-status-warn/10 px-2 py-0.5 text-[11px] font-bold text-status-warn">No visit by {flagRules.firstVisitDeadline.slice(0, 5)}</span>
         )}
         <FleetStatusBadge status={status} />
       </div>

@@ -18,6 +18,14 @@ export interface EditableSettings {
   /** Customer check-in / check-out is only allowed between these times ("HH:MM", Asia/Phnom_Penh). */
   checkWindowStart: string
   checkWindowEnd: string
+  /** A first customer visit of the day after this time is flagged ("HH:MM"). */
+  firstVisitDeadline: string
+  /** A gap overlapping this window needs to be longer than lunchIdleThresholdMinutes to be flagged idle. */
+  lunchWindowStart: string
+  lunchWindowEnd: string
+  lunchIdleThresholdMinutes: number
+  /** A visit nobody checked out of counts at most this many minutes. */
+  forgottenVisitCapMinutes: number
 }
 
 /**
@@ -31,7 +39,7 @@ export const settingsService = {
     const { data, error } = await supabase
       .from('app_settings')
       .select(
-        'checkin_radius_m, location_ping_interval_minutes, auto_checkout_enabled, idle_alert_threshold_minutes, short_visit_threshold_minutes, max_location_accuracy_m, check_window_start, check_window_end'
+        'checkin_radius_m, location_ping_interval_minutes, auto_checkout_enabled, idle_alert_threshold_minutes, short_visit_threshold_minutes, max_location_accuracy_m, check_window_start, check_window_end, first_visit_deadline, lunch_window_start, lunch_window_end, lunch_idle_threshold_minutes, forgotten_visit_cap_minutes'
       )
       .single()
     if (error) throw error
@@ -44,6 +52,11 @@ export const settingsService = {
       maxLocationAccuracyM: data.max_location_accuracy_m,
       checkWindowStart: data.check_window_start.slice(0, 5),
       checkWindowEnd: data.check_window_end.slice(0, 5),
+      firstVisitDeadline: data.first_visit_deadline.slice(0, 5),
+      lunchWindowStart: data.lunch_window_start.slice(0, 5),
+      lunchWindowEnd: data.lunch_window_end.slice(0, 5),
+      lunchIdleThresholdMinutes: data.lunch_idle_threshold_minutes,
+      forgottenVisitCapMinutes: data.forgotten_visit_cap_minutes,
     }
   },
 
@@ -59,6 +72,11 @@ export const settingsService = {
         max_location_accuracy_m: settings.maxLocationAccuracyM,
         check_window_start: settings.checkWindowStart,
         check_window_end: settings.checkWindowEnd,
+        first_visit_deadline: settings.firstVisitDeadline,
+        lunch_window_start: settings.lunchWindowStart,
+        lunch_window_end: settings.lunchWindowEnd,
+        lunch_idle_threshold_minutes: settings.lunchIdleThresholdMinutes,
+        forgotten_visit_cap_minutes: settings.forgottenVisitCapMinutes,
       })
       .eq('id', true)
     if (error) throw error

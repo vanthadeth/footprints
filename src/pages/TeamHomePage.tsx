@@ -24,6 +24,7 @@ import { getPresetRange, localDateKey, todayDateString } from '@/lib/dateRange'
 import { useAttendanceDays } from '@/features/attendanceSummary/useAttendanceDays'
 import { useTeamWorkDays } from '@/features/schedule/useTeamWorkDays'
 import { effectivenessPercent, paidWorkMs } from '@/features/attendance/efficiency'
+import { visitSpan } from '@/features/attendance/flagRules'
 import { formatDuration, formatTime } from '@/lib/datetime'
 
 interface Need {
@@ -101,8 +102,12 @@ export function TeamHomePage() {
 
   const weekVisits = week.visits.length
   const weekOrdered = week.visits.filter((v) => label(v.order_status_id) === 'ordered').length
-  const msOf = (a: string, b: string | null) => Math.max(0, (b ? Date.parse(b) : now) - Date.parse(a))
-  const weekVisitMs = week.visits.reduce((n, v) => n + msOf(v.checked_in_at, v.checked_out_at), 0)
+  // A visit nobody checked out of counts at most the cap.
+  const visitMsOf = (v: { checked_in_at: string; checked_out_at: string | null; flags?: string[] | null }) => {
+    const [a, b] = visitSpan(v, now, settings.flagRules.forgottenCapMin)
+    return b - a
+  }
+  const weekVisitMs = week.visits.reduce((n, v) => n + visitMsOf(v), 0)
   // Paid working time (clocked in less the unpaid break) as the server counts it, per person per day.
   const weekDays = useAttendanceDays(localDateKey(weekRange.startIso), today, ids)
   const weekPaidMs = weekDays.rows.reduce((n, r) => n + r.workedMinutes * 60_000, 0)
@@ -214,7 +219,7 @@ export function TeamHomePage() {
           const done = s.visitsToday.filter((v) => !v.cancelled_at)
           const firstIn = firstClockIn(s.sessions)
           const lastOut = lastClockOut(s.sessions)
-          const visitMs = done.reduce((n, v) => n + msOf(v.checked_in_at, v.checked_out_at), 0)
+          const visitMs = done.reduce((n, v) => n + visitMsOf(v), 0)
           const own = shiftOf(s.member.id)
           const eff = effectivenessPercent(visitMs, paidWorkMs(s.sessions, now, workDays[s.member.id]))
           const sub =
@@ -234,11 +239,14 @@ export function TeamHomePage() {
                   clockIn: firstIn ? Date.parse(firstIn) : null,
                   clockOut: lastOut ? Date.parse(lastOut) : null,
                   sessions: s.sessions.map((a) => [Date.parse(a.clock_in_at), a.clock_out_at ? Date.parse(a.clock_out_at) : null]),
-                  visits: done.map((v) => [Date.parse(v.checked_in_at), v.checked_out_at ? Date.parse(v.checked_out_at) : null]),
+                  visits: done.map((v) => {
+                    const [a, b] = visitSpan(v, now, settings.flagRules.forgottenCapMin)
+                    return [a, v.checked_out_at ? b : null] as [number, number | null]
+                  }),
                   shiftStart: own.start,
                   shiftEnd: own.end,
                   now,
-                  flagAfterMin: settings.idleAlertThresholdMinutes,
+                  idle: settings.flagRules.idle,
                 })
           const barLabel = firstIn
             ? `Clocked in ${formatTime(firstIn)}${s.sessions.length > 1 ? ` (${s.sessions.length} sessions)` : ''}, ${done.length} ${done.length === 1 ? 'visit' : 'visits'}, ${formatDuration(visitMs, language)} on visits`

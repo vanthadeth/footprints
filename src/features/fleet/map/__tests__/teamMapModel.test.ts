@@ -87,7 +87,7 @@ describe('buildTeamRoute', () => {
     expect(route.path).toHaveLength(3)
   })
 
-  it('does not call a long gap idle when the person moved far', () => {
+  it('flags a long gap after a visit even when the person moved far (one rule everywhere)', () => {
     const route = buildTeamRoute(
       {
         date: '2026-09-24',
@@ -99,8 +99,46 @@ describe('buildTeamRoute', () => {
       },
       '2026-09-24T03:10:00Z'
     )
-    expect(route.events.map((e) => e.kind)).toEqual(['clock-in', 'visit', 'visit'])
-    expect(route.events[2].ongoing).toBe(true)
+    expect(route.events.map((e) => e.kind)).toEqual(['clock-in', 'visit', 'idle', 'visit'])
+    expect(route.events[2].minutes).toBe(60)
+    expect(route.events[3].ongoing).toBe(true)
+  })
+
+  it('does not flag the time from clock-in to the first visit', () => {
+    const route = buildTeamRoute(
+      { date: '2026-09-24', attendance: [att({})], visits: [vis({ id: 'v1', checked_in_at: '2026-09-24T03:00:00Z', checked_out_at: '2026-09-24T03:20:00Z', in_latitude: 11.56, in_longitude: 104.93 })] },
+      '2026-09-24T03:30:00Z'
+    )
+    expect(route.events.map((e) => e.kind)).toEqual(['clock-in', 'visit'])
+  })
+
+  it('needs more than 90 min for a gap overlapping the lunch window (11:00-14:00 local)', () => {
+    const day = (nextIn: string) => ({
+      date: '2026-09-24',
+      attendance: [att({})],
+      visits: [
+        vis({ id: 'v1', checked_in_at: '2026-09-24T03:30:00Z', checked_out_at: '2026-09-24T04:00:00Z', in_latitude: 11.56, in_longitude: 104.93 }), // out 11:00 local
+        vis({ id: 'v2', checked_in_at: nextIn, checked_out_at: null, in_latitude: 11.5601, in_longitude: 104.93 }),
+      ],
+    })
+    // back at 12:20 local: an 80 min gap over lunch -> not flagged
+    expect(buildTeamRoute(day('2026-09-24T05:20:00Z'), '2026-09-24T05:30:00Z').events.map((e) => e.kind)).toEqual(['clock-in', 'visit', 'visit'])
+    // back at 12:41 local: 101 min -> flagged
+    expect(buildTeamRoute(day('2026-09-24T05:41:00Z'), '2026-09-24T05:50:00Z').events.map((e) => e.kind)).toEqual(['clock-in', 'visit', 'idle', 'visit'])
+  })
+
+  it('counts a forgotten visit at the cap and flags the rest as idle', () => {
+    const route = buildTeamRoute(
+      {
+        date: '2026-09-24',
+        attendance: [att({})],
+        visits: [vis({ id: 'v1', checked_in_at: '2026-09-24T01:30:00Z', checked_out_at: '2026-09-24T06:00:00Z', flags: ['AUTO_CHECKOUT_CLOCK_OUT'], auto_closed: true, in_latitude: 11.56, in_longitude: 104.93 })],
+      },
+      '2026-09-24T06:00:00Z'
+    )
+    expect(route.stats.visitingMs).toBe(30 * 60_000)
+    expect(route.events.map((e) => e.kind)).toEqual(['clock-in', 'visit', 'idle'])
+    expect(route.events[2].minutes).toBe(240)
   })
 
   it('returns an empty route for no day', () => {

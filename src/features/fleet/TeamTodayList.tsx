@@ -13,6 +13,7 @@ import { todayDateString } from '@/lib/dateRange'
 import type { FleetMemberSnapshot } from './types'
 import { firstClockIn, lastClockOut, workedMs } from '@/features/attendance/sessions'
 import { effectivenessPercent, paidWorkMs } from '@/features/attendance/efficiency'
+import { visitSpan } from '@/features/attendance/flagRules'
 import { useTeamWorkDays } from '@/features/schedule/useTeamWorkDays'
 
 const DOT: Record<FleetMemberSnapshot['status'], string> = { VISITING: 'bg-status-visiting', IDLING: 'bg-earth-500', OFF: 'bg-neutral-400' }
@@ -60,7 +61,10 @@ export function TeamTodayList({ snapshots }: { snapshots: FleetMemberSnapshot[] 
         const shiftEnd = atLocal(day, workDay?.end ?? settings.workEndTime)
         const firstIn = firstClockIn(s.sessions)
         const lastOut = lastClockOut(s.sessions)
-        const visitMs = done.reduce((n, v) => n + ((v.checked_out_at ? Date.parse(v.checked_out_at) : now) - Date.parse(v.checked_in_at)), 0)
+        const visitMs = done.reduce((n, v) => {
+          const [a, b] = visitSpan(v, now, settings.flagRules.forgottenCapMin)
+          return n + (b - a)
+        }, 0)
         const eff = effectivenessPercent(visitMs, paidWorkMs(s.sessions, now, workDay))
         const last = done[done.length - 1]
         const nowTitle =
@@ -119,7 +123,7 @@ export function TeamTodayList({ snapshots }: { snapshots: FleetMemberSnapshot[] 
                 )}
                 {s.attendance &&
                   (() => {
-                    const { segs, live, clockIn, clockOut } = segmentsFor({ attendance: s.sessions, visits: s.visitsToday, shiftStart, shiftEnd, now, flagAfterMin: settings.idleAlertThresholdMinutes })
+                    const { segs, live, clockIn, clockOut } = segmentsFor({ attendance: s.sessions, visits: s.visitsToday, shiftStart, shiftEnd, now, flagRules: settings.flagRules })
                     if (clockIn == null) return null
                     const name = (g: (typeof segs)[number]) => (g.visit != null ? (live[g.visit]?.customer_id ? (customerNames[live[g.visit].customer_id!] ?? null) : null) : null)
                     return (

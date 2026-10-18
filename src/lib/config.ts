@@ -55,18 +55,23 @@ export const DEFAULT_ALLOW_EARLY_CLOCKIN_MINUTES = 15
 export const DEFAULT_AUTO_CLOCKOUT_GRACE_MINUTES = 60
 
 /**
- * Until the live setting loads: app_settings.idle_alert_threshold_minutes, the
- * one idle threshold the alerts, the day bar, the Footprints timeline, the team
- * map and the stale-pin badge all use. A transit/gap between clock-in and the
- * first visit, between two visits, or between the last visit and clock-out is
- * flagged once it exceeds it AND the straight-line distance between the gap's
- * two endpoints is at or below GAP_FLAG_MAX_DISTANCE_METERS -- a long gap is
- * only suspicious if the person barely moved, not when the distance shows real
- * travel. When either endpoint's coordinates are missing, distance can't be
- * checked, so a long gap is still flagged.
+ * Until the live settings load: the flag rules (app_settings). After a person's
+ * first customer visit, a gap -- between two visits, or from the last check-out
+ * to clock-out or now -- is flagged once it is longer than the idle threshold
+ * (idle_alert_threshold_minutes); a gap overlapping the lunch window needs to
+ * be longer than the lunch threshold. One rule for the manager alert, the day
+ * bar, the Footprints timeline, the team map and the reports.
  */
 export const DEFAULT_IDLE_ALERT_THRESHOLD_MINUTES = 45
-export const GAP_FLAG_MAX_DISTANCE_METERS = 300
+export const DEFAULT_LUNCH_WINDOW_START = '11:00:00'
+export const DEFAULT_LUNCH_WINDOW_END = '14:00:00'
+export const DEFAULT_LUNCH_IDLE_THRESHOLD_MINUTES = 90
+
+/** A first customer visit of the day after this time is flagged LATE_FIRST_VISIT (app_settings.first_visit_deadline). */
+export const DEFAULT_FIRST_VISIT_DEADLINE = '10:00:00'
+
+/** A visit nobody checked out of (closed by clock-out or at the end of the day) counts at most this long (app_settings.forgotten_visit_cap_minutes). */
+export const DEFAULT_FORGOTTEN_VISIT_CAP_MINUTES = 30
 
 /** Standardised flags used across attendance, visits, fleet, and reports. */
 export const FLAGS = {
@@ -77,6 +82,7 @@ export const FLAGS = {
   AUTO_CHECKOUT_CLOCK_OUT: 'AUTO_CHECKOUT_CLOCK_OUT',
   AUTO_CHECKOUT_WORKING_HOURS_END: 'AUTO_CHECKOUT_WORKING_HOURS_END',
   SHORT_VISIT: 'SHORT_VISIT',
+  LATE_FIRST_VISIT: 'LATE_FIRST_VISIT',
   TRACKING_INTERRUPTED: 'TRACKING_INTERRUPTED',
 } as const
 

@@ -47,7 +47,8 @@ export function ReportPage() {
   const current = useJourneyHistory(profile?.id ?? null, range)
   const previous = useJourneyHistory(profile?.id ?? null, prevRange)
 
-  const stats = useMemo(() => computeJourneyStats(current.days), [current.days])
+  const settings = useAppSettings()
+  const stats = useMemo(() => computeJourneyStats(current.days, undefined, null, settings.flagRules), [current.days, settings.flagRules])
   // Compare against the same stretch of the previous period (Mon–Thu vs Mon–Thu), not all of it.
   const { cutoff, prevDays, prevEndMs } = useMemo(() => {
     const cut = comparableCutoff(range.startIso, prevRange.startIso, new Date().toISOString(), prevRange.endIso)
@@ -58,11 +59,10 @@ export function ReportPage() {
     }))
     return { cutoff: cut, prevDays: trimmed, prevEndMs: new Date(cut).getTime() }
   }, [previous.days, range.startIso, prevRange.startIso, prevRange.endIso])
-  const prevStats = useMemo(() => computeJourneyStats(prevDays, prevEndMs), [prevDays, prevEndMs])
+  const prevStats = useMemo(() => computeJourneyStats(prevDays, prevEndMs, null, settings.flagRules), [prevDays, prevEndMs, settings.flagRules])
 
   // Paid working time (clocked in less the unpaid break): whole days as the server counts them, today and
   // the partly counted comparison day worked out here with today's break rule.
-  const settings = useAppSettings()
   const me = profile?.id ? [profile.id] : []
   const today = todayDateString()
   const curServer = useAttendanceDays(localDateKey(range.startIso), today, me)

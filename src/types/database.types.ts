@@ -28,6 +28,8 @@ export type Database = {
           daily_working_hours: number | null
           default_annual_leave_days: number
           default_sick_leave_days: number
+          first_visit_deadline: string
+          forgotten_visit_cap_minutes: number
           flex_saturday_rate: number
           flex_sunday_rate: number
           id: boolean
@@ -36,6 +38,9 @@ export type Database = {
           late_grace_minutes: number
           leave_carry_over_max_days: number
           leave_prorata_new_joiners: boolean
+          lunch_idle_threshold_minutes: number
+          lunch_window_end: string
+          lunch_window_start: string
           location_ping_interval_minutes: number
           max_location_accuracy_m: number
           primary_currency: Database["public"]["Enums"]["currency"]
@@ -70,6 +75,8 @@ export type Database = {
           daily_working_hours?: number | null
           default_annual_leave_days?: number
           default_sick_leave_days?: number
+          first_visit_deadline?: string
+          forgotten_visit_cap_minutes?: number
           flex_saturday_rate?: number
           flex_sunday_rate?: number
           id?: boolean
@@ -78,6 +85,9 @@ export type Database = {
           late_grace_minutes?: number
           leave_carry_over_max_days?: number
           leave_prorata_new_joiners?: boolean
+          lunch_idle_threshold_minutes?: number
+          lunch_window_end?: string
+          lunch_window_start?: string
           location_ping_interval_minutes?: number
           max_location_accuracy_m?: number
           primary_currency?: Database["public"]["Enums"]["currency"]
@@ -112,6 +122,8 @@ export type Database = {
           daily_working_hours?: number | null
           default_annual_leave_days?: number
           default_sick_leave_days?: number
+          first_visit_deadline?: string
+          forgotten_visit_cap_minutes?: number
           flex_saturday_rate?: number
           flex_sunday_rate?: number
           id?: boolean
@@ -120,6 +132,9 @@ export type Database = {
           late_grace_minutes?: number
           leave_carry_over_max_days?: number
           leave_prorata_new_joiners?: boolean
+          lunch_idle_threshold_minutes?: number
+          lunch_window_end?: string
+          lunch_window_start?: string
           location_ping_interval_minutes?: number
           max_location_accuracy_m?: number
           primary_currency?: Database["public"]["Enums"]["currency"]

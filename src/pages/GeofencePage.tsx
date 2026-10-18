@@ -80,6 +80,7 @@ function Geofence() {
   const points = active.map((l) => [l.latitude, l.longitude] as [number, number])
   const dirty = !!settings && JSON.stringify(settings) !== saved
   const windowInvalid = !!settings && settings.checkWindowEnd <= settings.checkWindowStart
+  const lunchInvalid = !!settings && settings.lunchWindowEnd <= settings.lunchWindowStart
   const patch = (p: Partial<EditableSettings>) => setSettings((s) => (s ? { ...s, ...p } : s))
 
   async function save() {
@@ -166,8 +167,8 @@ function Geofence() {
             />
             <AdminRow
               icon={PauseCircle}
-              label="Flag a gap after"
-              sub="Between visits during the shift, after the first visit"
+              label="Flag a gap longer than"
+              sub="After the first visit: between visits, and after the last check-out"
               control={<Stepper label="Idle threshold" value={settings.idleAlertThresholdMinutes} step={5} min={5} max={240} format={(v) => `${v} min`} onChange={(v) => patch({ idleAlertThresholdMinutes: v })} />}
             />
             <AdminRow
@@ -192,6 +193,40 @@ function Geofence() {
             />
           </AdminGroup>
           {windowInvalid && <p className="rounded-xl bg-status-danger/10 px-3 py-2 text-sm text-status-danger">Closing time must be after opening time.</p>}
+
+          <AdminGroup title="Flag rules">
+            <AdminRow
+              icon={Clock3}
+              label="First customer visit by"
+              sub="A first visit after this time is flagged, and so is none by then"
+              control={<input type="time" value={settings.firstVisitDeadline} onChange={(e) => patch({ firstVisitDeadline: e.target.value || '10:00' })} aria-label="First customer visit by" className="h-9 rounded-lg border-[1.5px] border-neutral-200 bg-white px-2 text-sm font-bold text-neutral-900 dark:border-neutral-700" />}
+            />
+            <AdminRow
+              icon={Clock3}
+              label="Possible lunch break"
+              sub="A gap overlapping this window needs the longer limit below"
+              control={
+                <span className="flex items-center gap-1.5">
+                  <input type="time" value={settings.lunchWindowStart} onChange={(e) => patch({ lunchWindowStart: e.target.value || '11:00' })} aria-label="Lunch window starts" className="h-9 rounded-lg border-[1.5px] border-neutral-200 bg-white px-2 text-sm font-bold text-neutral-900 dark:border-neutral-700" />
+                  <span className="text-neutral-400">–</span>
+                  <input type="time" value={settings.lunchWindowEnd} onChange={(e) => patch({ lunchWindowEnd: e.target.value || '14:00' })} aria-label="Lunch window ends" className="h-9 rounded-lg border-[1.5px] border-neutral-200 bg-white px-2 text-sm font-bold text-neutral-900 dark:border-neutral-700" />
+                </span>
+              }
+            />
+            <AdminRow
+              icon={PauseCircle}
+              label="Flag a lunch-time gap longer than"
+              sub="Instead of the limit above, for a gap overlapping lunch"
+              control={<Stepper label="Lunch gap limit" value={settings.lunchIdleThresholdMinutes} step={15} min={30} max={240} format={(v) => `${v} min`} onChange={(v) => patch({ lunchIdleThresholdMinutes: v })} />}
+            />
+            <AdminRow
+              icon={Timer}
+              label="A forgotten check-out counts at most"
+              sub="When a visit is closed at clock-out or end of day; the rest is a gap"
+              control={<Stepper label="Forgotten visit cap" value={settings.forgottenVisitCapMinutes} step={5} min={5} max={120} format={(v) => `${v} min`} onChange={(v) => patch({ forgottenVisitCapMinutes: v })} />}
+            />
+          </AdminGroup>
+          {lunchInvalid && <p className="rounded-xl bg-status-danger/10 px-3 py-2 text-sm text-status-danger">The lunch window must end after it starts.</p>}
           <section aria-label="Save location every">
             <div className="flex items-baseline justify-between">
               <h2 className="mb-0.5 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">
@@ -221,7 +256,7 @@ function Geofence() {
       {dirty && (
         <div className="fixed inset-x-0 bottom-[calc(84px+env(safe-area-inset-bottom))] z-20 px-4 md:bottom-6">
           <div className="mx-auto max-w-lg md:max-w-2xl">
-            <button type="button" onClick={save} disabled={saving || windowInvalid} className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-brand-500 text-[15px] font-bold text-white shadow-lg disabled:opacity-50">
+            <button type="button" onClick={save} disabled={saving || windowInvalid || lunchInvalid} className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-brand-500 text-[15px] font-bold text-white shadow-lg disabled:opacity-50">
               {saving && <Loader2 className="h-4 w-4 animate-spin" />} Save changes
             </button>
           </div>
