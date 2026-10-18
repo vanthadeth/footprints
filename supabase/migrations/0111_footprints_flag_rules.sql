@@ -8,7 +8,7 @@
 --     threshold (idle_alert_threshold_minutes, 45); a gap overlapping the lunch
 --     window (11:00-14:00) needs more than lunch_idle_threshold_minutes (90).
 --     app.idle_threshold_minutes is the one place the manager alert asks; the
---     app mirrors it (src/features/attendance/idleRule.ts).
+--     app mirrors it (src/features/attendance/flagRules.ts).
 --  3. A visit left open when the person clocks out, or at the end of the day,
 --     counts at most forgotten_visit_cap_minutes (30): it is closed at
 --     check-in + the cap and the rest is a gap, flagged under rule 2.
