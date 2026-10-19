@@ -1,3 +1,4 @@
+import type { OrderState } from '@/features/orders/orderReconcile'
 import type { AttendanceRow, VisitRow } from '@/features/attendance/types'
 import type { FleetMemberSnapshot } from '@/features/fleet/types'
 import { formatTime } from '@/lib/datetime'
@@ -153,7 +154,9 @@ export function computeUserReportRows(
   /** Per person, from the server's day feed (serverDayEffectiveness); absent when it can't be had. */
   scheduledByUser?: Record<string, { uniqueTarget: number }>,
   /** Per person, each day's score worked out with the server's paid time and hours; absent when the server's days can't be had. */
-  scoreByUser?: Record<string, number | null>
+  scoreByUser?: Record<string, number | null>,
+  /** Each visit's order state (useVisitOrders). */
+  orders?: Record<string, OrderState>
 ): UserReportRow[] {
   return members.map((member) => {
     const myAttendance = attendanceRows.filter((a) => a.user_id === member.id)
@@ -200,7 +203,7 @@ export function computeUserReportRows(
       lastClockOut: lastClockOuts[0] ? formatTime(lastClockOuts[0].clock_out_at) : null,
       totalWorkingMs,
       totalPaidMs: paidMsByUser?.[member.id] ?? totalWorkingMs,
-      score: scoreByUser ? (scoreByUser[member.id] ?? null) : meanScore([...workDayKeys].map((d) => scoreDay(myAttendance.filter((a) => localDateKey(a.clock_in_at) === d), myVisits.filter((v) => localDateKey(v.checked_in_at) === d), d, null, now, rules).score)),
+      score: scoreByUser ? (scoreByUser[member.id] ?? null) : meanScore([...workDayKeys].map((d) => scoreDay(myAttendance.filter((a) => localDateKey(a.clock_in_at) === d), myVisits.filter((v) => localDateKey(v.checked_in_at) === d), d, null, now, rules, undefined, orders).score)),
       uniqueCustomerDays,
       uniqueCustomerTarget: scheduledByUser?.[member.id]?.uniqueTarget ?? workDayKeys.size * rules.uniqueTarget,
       visitCount: myVisits.length,

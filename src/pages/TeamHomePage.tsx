@@ -110,7 +110,7 @@ export function TeamHomePage() {
         const sessions = week.attendance.filter((a) => a.user_id === r.userId && localDateKey(a.clock_in_at) === r.day)
         const visits = week.visits.filter((v) => v.user_id === r.userId && localDateKey(v.checked_in_at) === r.day)
         const rule = { breakMinutes: 0, breakPaid: true, start: r.scheduledStart ?? undefined, end: r.scheduledEnd ?? undefined }
-        return scoreDay(sessions.length ? sessions : [{ clock_in_at: r.firstIn!, clock_out_at: r.lastOut }], visits, r.day, rule, now, settings.flagRules, r.workedMinutes * 60_000).score
+        return scoreDay(sessions.length ? sessions : [{ clock_in_at: r.firstIn!, clock_out_at: r.lastOut }], visits, r.day, rule, now, settings.flagRules, r.workedMinutes * 60_000, weekOrderStates).score
       })
   )
 
@@ -223,7 +223,7 @@ export function TeamHomePage() {
           const lastOut = lastClockOut(s.sessions)
           const visitMs = done.reduce((n, v) => n + visitMsOf(v), 0)
           const own = shiftOf(s.member.id)
-          const score = scoreDay(s.sessions, done, today, workDays[s.member.id], now, settings.flagRules).score
+          const score = scoreDay(s.sessions, done, today, workDays[s.member.id], now, settings.flagRules, undefined, weekOrderStates).score
           const sub =
             st === 'visiting' && s.openVisit
               ? `On a visit · ${formatDuration(now - Date.parse(s.openVisit.checked_in_at), language)}`

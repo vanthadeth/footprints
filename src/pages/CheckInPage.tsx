@@ -1,3 +1,4 @@
+import { useVisitOrders } from '@/features/orders/useVisitOrders'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AlertTriangle, CalendarDays, CalendarPlus, Check, ChevronDown, ChevronRight, Clock, LogOut, MapPin, Moon, Store, X } from 'lucide-react'
@@ -53,6 +54,7 @@ export function CheckInPage() {
   // todaysAttendance fine, returning all-null.
   const { clockInTime, clockOutTime, clockInLocationId } = summarizeAttendanceTimes(journey.todaysAttendance, journey.openAttendance)
   const locationNames = useLocationNames([clockInLocationId])
+  const orderStates = useVisitOrders(journey.todaysVisits)
   const firstName = profile ? displayName(profile.full_name, profile.nickname).split(' ')[0] : undefined
 
   if (journey.loading) {
@@ -79,7 +81,7 @@ export function CheckInPage() {
   // break, a split shift) -- stats and the hero times below are summed
   // across every session today, not just whichever one is currently open.
   const today: DayJourney = { date: todayDateString(), attendance: journey.todaysAttendance, visits: journey.todaysVisits }
-  const stats = computeJourneyStats([today], undefined, { breakMinutes: settings.breakMinutes, breakPaid: settings.breakPaid, start: settings.workStartTime, end: settings.workEndTime }, settings.flagRules)
+  const stats = computeJourneyStats([today], undefined, { breakMinutes: settings.breakMinutes, breakPaid: settings.breakPaid, start: settings.workStartTime, end: settings.workEndTime }, settings.flagRules, orderStates)
 
   const minutesNow = (() => {
     const [h, m] = formatTime(new Date().toISOString()).split(':').map(Number)

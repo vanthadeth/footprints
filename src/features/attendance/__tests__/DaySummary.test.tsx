@@ -27,7 +27,7 @@ describe('DaySummary', () => {
     expect(html).toContain('vs target')
     expect(html).toContain('Active time')
     expect(html).toContain('vs working hours')
-    expect(html).toContain('Ordered')
+    expect(html).toContain('Orders')
     expect(html).toContain('vs visits')
     expect(html).toContain('<circle') // the rings
     expect(html).toContain('1 / 2')

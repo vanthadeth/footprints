@@ -87,8 +87,14 @@ export const TRAVEL_KM_PER_ACTIVE_HOUR = 50
 /** A first visit after the deadline, within this many km of where the person clocked in, costs the score 10%. */
 export const NEAR_FIRST_VISIT_KM = 10
 export const LATE_FIRST_VISIT_SCORE_FACTOR = 0.9
-/** The average of the two parts that earns the top score of 10. */
-export const FULL_SCORE_AT = 0.5
+/**
+ * What full marks looks like for each part of the effectiveness score: visits at
+ * 100% of the day's target, active time at 50% of working hours, orders at 25%
+ * of visits. Each part is scored against its own goal; the score is their average.
+ */
+export const SCORE_GOAL_VISITS = 1
+export const SCORE_GOAL_ACTIVE = 0.5
+export const SCORE_GOAL_ORDERS = 0.25
 
 /** Unique customers expected on a full working day; a shorter day scales it (app_settings.daily_unique_customer_target). */
 export const DEFAULT_DAILY_UNIQUE_CUSTOMER_TARGET = 5

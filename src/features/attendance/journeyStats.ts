@@ -94,7 +94,7 @@ export function computeJourneyStats(
       scheduledMs += dayEffectiveness(day.attendance, day.visits.filter((v) => !v.cancelled_at), day.date, rule, now, flags, paid).scheduledPaidMs
       uniqueTarget += uniqueCustomerTarget(rule, flags)
       const ctx = dayContext?.(day.date)
-      dayScores.push(scoreDay(day.attendance, day.visits, day.date, ctx?.rule ?? rule, now, flags, ctx?.paidMs))
+      dayScores.push(scoreDay(day.attendance, day.visits, day.date, ctx?.rule ?? rule, now, flags, ctx?.paidMs, orders))
       forgottenClockOuts += day.attendance.filter((s) => s.auto_clocked_out).length
       // A day can have more than one clock-in/clock-out session -- sum
       // working time across all of them, not just the first.
