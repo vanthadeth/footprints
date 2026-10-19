@@ -23,7 +23,7 @@ export function ApprovalsTab({
       {requests.length === 0 ? (
         <EmptyState icon={CheckCheck} title="No pending requests" body="Nothing needs your approval right now." />
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 lg:grid lg:grid-cols-2 lg:items-start lg:gap-3 lg:space-y-0">
           {requests.map((r) => (
             <ApprovalRow key={r.id} request={r} name={nameById[r.user_id] ?? 'Unknown'} onChanged={onChanged} />
           ))}

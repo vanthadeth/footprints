@@ -35,7 +35,7 @@ export function MemberFootprintsPage() {
 
   return (
     <>
-      <div className="mx-auto flex max-w-lg items-center gap-3 px-4 pb-2 pt-3 md:max-w-3xl md:px-8">
+      <div className="mx-auto flex max-w-lg items-center gap-3 px-4 pb-2 pt-3 md:max-w-3xl md:px-8 lg:max-w-[1440px] lg:pt-6">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-50 text-[15px] font-extrabold text-brand-700 dark:bg-brand-500/20 dark:text-brand-100">{initials}</span>
         <span className="min-w-0">
           <span className="block truncate text-[17px] font-bold text-neutral-900">{name ?? 'Team member'}</span>

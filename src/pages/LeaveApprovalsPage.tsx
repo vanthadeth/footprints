@@ -80,7 +80,8 @@ export function LeaveApprovalsPage() {
   const when = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '')
 
   return (
-    <div className="mx-auto max-w-lg space-y-3.5 px-4 pb-6 pt-3 md:max-w-3xl md:px-8">
+    <div className="mx-auto max-w-lg space-y-3.5 px-4 pb-6 pt-3 md:max-w-3xl md:px-8 lg:max-w-[1440px] lg:pt-6">
+      <div className="lg:max-w-md">
       <AdminTabs
         tabs={[
           ['leave', `Leave · ${pending.length}`],
@@ -89,6 +90,7 @@ export function LeaveApprovalsPage() {
         value={tab}
         onChange={setTab}
       />
+      </div>
       <div className="flex items-center justify-between px-0.5">
         <p className="text-[13px] text-neutral-600">{lead}</p>
         <Link to={isTrips ? '/trips/calendar' : '/calendar'} className="text-[13px] font-bold text-brand-500">
@@ -102,13 +104,14 @@ export function LeaveApprovalsPage() {
           <div className="h-24 animate-pulse rounded-xl2 bg-neutral-100" />
         </div>
       ) : (
-        <>
+        <div className="space-y-3.5 lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-8 lg:space-y-0">
+          <div className="space-y-3.5">
           <p className="px-0.5 text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">Waiting · {waitingCount}</p>
           {isTrips ? (
             waitingTrips.length === 0 ? (
               <p className="rounded-2xl border border-neutral-100 bg-white p-5 text-center text-[13.5px] text-neutral-500 shadow-card">No trip requests waiting.</p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-3 lg:grid lg:grid-cols-2 lg:items-start lg:gap-3 lg:space-y-0">
                 {waitingTrips.map((t) => (
                   <TripApprovalCard key={t.id} trip={t} rates={rates} onDecided={load} />
                 ))}
@@ -120,7 +123,10 @@ export function LeaveApprovalsPage() {
             <ApprovalsTab requests={pending} nameById={nameById} onChanged={load} />
           )}
 
-          <p className="px-0.5 pt-2 text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">Decided · last 30 days</p>
+          </div>
+
+          <div className="space-y-3.5 lg:sticky lg:top-20">
+          <p className="px-0.5 pt-2 text-xs font-bold uppercase tracking-[0.06em] text-neutral-500 lg:pt-0">Decided · last 30 days</p>
           <div className="overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-card">
             {(isTrips ? decidedTrips.length : decidedLeave.length) === 0 && <p className="p-4 text-center text-[13px] text-neutral-500">Nothing decided in the last 30 days.</p>}
             {isTrips
@@ -149,7 +155,8 @@ export function LeaveApprovalsPage() {
                   </div>
                 ))}
           </div>
-        </>
+          </div>
+        </div>
       )}
     </div>
   )
