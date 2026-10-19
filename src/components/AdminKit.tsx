@@ -149,9 +149,9 @@ export function AdminSwitch({ on, label, disabled, onToggle }: { on: boolean; la
 }
 
 /** Page frame for an admin screen: an optional subtitle, the tabs, then the content. */
-export function AdminFrame({ sub, tabs, children }: { sub?: string; tabs?: ReactNode; children: ReactNode }) {
+export function AdminFrame({ sub, tabs, children, wide = false }: { sub?: string; tabs?: ReactNode; children: ReactNode; wide?: boolean }) {
   return (
-    <div className="mx-auto flex max-w-lg flex-col gap-[18px] px-4 pb-28 pt-1.5 md:max-w-2xl md:px-8">
+    <div className={`mx-auto flex max-w-lg flex-col gap-[18px] px-4 pb-28 pt-1.5 md:max-w-2xl md:px-8 lg:pt-6 ${wide ? 'lg:max-w-[1440px]' : 'lg:max-w-4xl'}`}>
       {sub && <p className="-mb-2 text-[13px] text-neutral-500">{sub}</p>}
       {tabs}
       {children}

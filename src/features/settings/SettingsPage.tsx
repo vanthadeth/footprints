@@ -17,7 +17,7 @@ export function SettingsPage() {
   const { profile, loading: profileLoading } = useProfile()
 
   return (
-    <div className="mx-auto max-w-lg space-y-3 p-4 pb-28 md:max-w-2xl">
+    <div className="mx-auto max-w-lg space-y-3 p-4 pb-28 md:max-w-2xl lg:max-w-4xl lg:pt-6">
       {/* Appearance is everyone's, not just a super admin's -- the rest of
           this screen (below) is the global config only a super admin can
           see or edit. */}

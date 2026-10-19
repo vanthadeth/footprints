@@ -11,6 +11,8 @@ import { displayName } from '@/lib/displayName'
 import { useUsers } from '@/features/users/useUsers'
 import { UserFormSheet } from '@/features/users/UserFormSheet'
 import type { ManagedUser } from '@/features/users/usersService'
+import { DataTable, type Column } from '@/components/desktop/DataTable'
+import { useIsWide } from '@/hooks/useIsDesktop'
 
 const STATUS: Record<Exclude<ManagedUser['status'], 'active'>, { label: string; cls: string }> = {
   suspended: { label: 'Suspended', cls: 'bg-status-warn/10 text-status-warn' },
@@ -41,6 +43,7 @@ const NO_DEPARTMENT = 'No Department'
  * the edit sheet (who they report to, role, field sales, status).
  */
 export function UsersPage() {
+  const wide = useIsWide()
   const { users, roles, departments, loading, error, refresh } = useUsers()
   const [tab, setTab] = useTab(TABS, 'users')
   const [query, setQuery] = useState('')
@@ -129,6 +132,7 @@ export function UsersPage() {
 
   return (
     <AdminFrame
+      wide={tab === 'users'}
       sub={`${counts.active} active · ${departments.length} departments · ${roles.length} roles`}
       tabs={
         <AdminTabs
@@ -198,7 +202,7 @@ export function UsersPage() {
           <Switch checked={statusFilter === 'all'} onChange={(on) => setStatusFilter(on ? 'all' : 'active')} label="Show inactive users" />
         </div>
 
-        <div role="radiogroup" aria-label="Order" className="inline-flex gap-0.5 rounded-xl bg-neutral-100 p-[3px]">
+        <div role="radiogroup" aria-label="Order" className="inline-flex gap-0.5 rounded-xl bg-neutral-100 p-[3px] lg:hidden">
           {(
             [
               ['az', 'A–Z'],
@@ -242,6 +246,8 @@ export function UsersPage() {
                 : 'Try a different search, or create a new user.'
             }
           />
+        ) : wide ? (
+          <DataTable columns={userColumns} rows={filtered} rowKey={(u) => u.id} onRowClick={openEdit} initialSort={{ key: 'name', dir: 'asc' }} />
         ) : (
           <div className="relative">
             <div className={`space-y-5 ${grouping === 'az' && groups.length > 3 ? 'pr-5 md:pr-0' : ''}`}>
@@ -290,6 +296,51 @@ export function UsersPage() {
         onSaved={refresh}
       />
     </AdminFrame>
+  )
+}
+
+/** The desktop table: one row per person; click a row to edit. */
+const userColumns: Column<ManagedUser>[] = [
+  { key: 'name', header: 'Name', cell: (u) => <UserNameCell user={u} />, sortValue: (u) => displayName(u.fullName, u.nickname) },
+  { key: 'job', header: 'Position', cell: (u) => u.position || u.roleName || '—', sortValue: (u) => u.position || u.roleName },
+  { key: 'dept', header: 'Department', cell: (u) => u.departmentName ?? '—', sortValue: (u) => u.departmentName },
+  { key: 'boss', header: 'Reports to', cell: (u) => u.managerName ?? '—', sortValue: (u) => u.managerName },
+  {
+    key: 'status',
+    header: 'Status',
+    cell: (u) => {
+      const st = u.status === 'active' ? null : STATUS[u.status]
+      return st ? <span className={`inline-flex h-5 items-center rounded-full px-2 text-[11px] font-bold ${st.cls}`}>{st.label}</span> : <span className="text-[13px] text-status-working">Active</span>
+    },
+    sortValue: (u) => u.status,
+  },
+  { key: 'phone', header: 'Phone', cell: (u) => u.phonePrimary ?? '—', className: 'whitespace-nowrap' },
+  { key: 'email', header: 'Email', cell: (u) => <span className="text-neutral-600">{u.email ?? '—'}</span>, sortValue: (u) => u.email },
+]
+
+function UserNameCell({ user }: { user: ManagedUser }) {
+  const avatarUrl = useAvatarUrl(user.photoPath)
+  const name = displayName(user.fullName, user.nickname)
+  const initials = name
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+  const inactive = user.status !== 'active'
+  return (
+    <span className={`flex items-center gap-3 ${inactive ? 'opacity-70' : ''}`}>
+      <span className={`flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full text-[13px] font-bold text-white ${inactive ? 'bg-neutral-400' : toneOf(user.id)}`}>
+        {avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : initials || <UserIcon className="h-4 w-4" />}
+      </span>
+      <span className="min-w-0">
+        <span className="flex items-center gap-2">
+          <span className="truncate font-bold text-neutral-900">{name}</span>
+          {!inactive && user.isFieldSales && <span className="inline-flex h-5 shrink-0 items-center rounded-full bg-status-working/10 px-2 text-[11px] font-bold text-status-working">Field</span>}
+        </span>
+        {user.nickname && <span className="block truncate text-xs text-neutral-500">{user.fullName}</span>}
+      </span>
+    </span>
   )
 }
 
