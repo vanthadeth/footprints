@@ -15,7 +15,7 @@ import {
   type ReportPeriod,
 } from '@/features/reports/personalReport'
 import { getPresetRange, localDateKey, todayDateString } from '@/lib/dateRange'
-import { effectiveness, paidMsOverDays } from '@/features/attendance/efficiency'
+import { effectiveness, scheduledPaidMsOverDays, type ServerDay } from '@/features/attendance/efficiency'
 import { useAttendanceDays } from '@/features/attendanceSummary/useAttendanceDays'
 import { useAppSettings } from '@/hooks/useAppSettings'
 import { formatDuration } from '@/lib/datetime'
@@ -67,21 +67,21 @@ export function ReportPage() {
   const today = todayDateString()
   const curServer = useAttendanceDays(localDateKey(range.startIso), today, me)
   const prevServer = useAttendanceDays(localDateKey(prevRange.startIso), localDateKey(new Date(Date.parse(prevRange.endIso) - 1).toISOString()), me)
-  const paidByDay = (rows: { day: string; workedMinutes: number }[]) => {
-    const m: Record<string, number> = {}
-    for (const r of rows) m[r.day] = (m[r.day] ?? 0) + r.workedMinutes
+  const serverDays = (rows: { day: string; workedMinutes: number; scheduledStart: string | null; scheduledEnd: string | null }[]) => {
+    const m: Record<string, ServerDay> = {}
+    for (const r of rows) m[r.day] = { paidMinutes: (m[r.day]?.paidMinutes ?? 0) + r.workedMinutes, start: r.scheduledStart, end: r.scheduledEnd }
     return m
   }
-  const rule = { breakMinutes: settings.breakMinutes, breakPaid: settings.breakPaid }
+  const rule = { breakMinutes: settings.breakMinutes, breakPaid: settings.breakPaid, start: settings.workStartTime, end: settings.workEndTime }
   const paidMs = useMemo(
-    () => paidMsOverDays(current.days, paidByDay(curServer.rows), new Set([today]), Date.now(), rule),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- the rule's two fields are the real inputs
-    [current.days, curServer.rows, today, settings.breakMinutes, settings.breakPaid]
+    () => scheduledPaidMsOverDays(current.days, serverDays(curServer.rows), new Set([today]), Date.now(), rule, settings.flagRules),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the rule's fields are the real inputs
+    [current.days, curServer.rows, today, settings.breakMinutes, settings.breakPaid, settings.workStartTime, settings.workEndTime, settings.flagRules]
   )
   const prevPaidMs = useMemo(
-    () => paidMsOverDays(prevDays, paidByDay(prevServer.rows), new Set([localDateKey(cutoff)]), prevEndMs, rule),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- the rule's two fields are the real inputs
-    [prevDays, prevServer.rows, cutoff, prevEndMs, settings.breakMinutes, settings.breakPaid]
+    () => scheduledPaidMsOverDays(prevDays, serverDays(prevServer.rows), new Set([localDateKey(cutoff)]), prevEndMs, rule, settings.flagRules),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the rule's fields are the real inputs
+    [prevDays, prevServer.rows, cutoff, prevEndMs, settings.breakMinutes, settings.breakPaid, settings.workStartTime, settings.workEndTime, settings.flagRules]
   )
   const buckets = useMemo(() => visitBuckets(period, current.allVisits, new Date().toISOString()), [period, current.allVisits])
   const avg = bucketAverage(buckets)
@@ -89,8 +89,8 @@ export function ReportPage() {
   const top = useMemo(() => topCustomers(current.allVisits), [current.allVisits])
   const names = useCustomerNames(top.map((t) => t.customerId))
 
-  const eff = effectiveness(stats.totalVisitingMs, paidMs)
-  const prevEff = effectiveness(prevStats.totalVisitingMs, prevPaidMs)
+  const eff = effectiveness(stats.creditedVisitMs, paidMs)
+  const prevEff = effectiveness(prevStats.creditedVisitMs, prevPaidMs)
   const vsPrev = `vs ${previousLabel(period)}`
   const metrics = [
     {

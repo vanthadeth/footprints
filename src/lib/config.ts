@@ -73,6 +73,13 @@ export const DEFAULT_FIRST_VISIT_DEADLINE = '10:00:00'
 /** A visit nobody checked out of (closed by clock-out or at the end of the day) counts at most this long (app_settings.forgotten_visit_cap_minutes). */
 export const DEFAULT_FORGOTTEN_VISIT_CAP_MINUTES = 30
 
+/** A visit counts toward effectiveness for at most this many minutes (app_settings.visit_credit_cap_minutes). */
+export const DEFAULT_VISIT_CREDIT_CAP_MINUTES = 45
+/** Unique customers expected on a full working day; a shorter day scales it (app_settings.daily_unique_customer_target). */
+export const DEFAULT_DAILY_UNIQUE_CUSTOMER_TARGET = 5
+/** A full working day, in hours, when the setting isn't available (app_settings.daily_working_hours). */
+export const DEFAULT_FULL_DAY_HOURS = 8
+
 /** Standardised flags used across attendance, visits, fleet, and reports. */
 export const FLAGS = {
   UNASSIGNED_VISIT: 'UNASSIGNED_VISIT',

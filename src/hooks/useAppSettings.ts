@@ -9,7 +9,10 @@ import {
   DEFAULT_CHECK_WINDOW_END,
   DEFAULT_CHECK_WINDOW_START,
   DEFAULT_FIRST_VISIT_DEADLINE,
+  DEFAULT_DAILY_UNIQUE_CUSTOMER_TARGET,
   DEFAULT_FORGOTTEN_VISIT_CAP_MINUTES,
+  DEFAULT_FULL_DAY_HOURS,
+  DEFAULT_VISIT_CREDIT_CAP_MINUTES,
   DEFAULT_IDLE_ALERT_THRESHOLD_MINUTES,
   DEFAULT_LATE_GRACE_MINUTES,
   DEFAULT_LUNCH_IDLE_THRESHOLD_MINUTES,
@@ -45,6 +48,11 @@ export interface AppSettings {
   lunchIdleThresholdMinutes: number
   firstVisitDeadline: string
   forgottenVisitCapMinutes: number
+  /** A visit counts toward effectiveness for at most this many minutes; unique customers expected on a full day. */
+  visitCreditCapMinutes: number
+  dailyUniqueCustomerTarget: number
+  /** A full working day in hours (the unique-customer target scales by a day's hours against this). */
+  dailyWorkingHours: number
   /** Customer check-in / check-out is only allowed between these times ("HH:MM:SS", Asia/Phnom_Penh). */
   checkWindowStart: string
   checkWindowEnd: string
@@ -74,6 +82,9 @@ const FALLBACK: AppSettings = {
   lunchIdleThresholdMinutes: DEFAULT_LUNCH_IDLE_THRESHOLD_MINUTES,
   firstVisitDeadline: DEFAULT_FIRST_VISIT_DEADLINE,
   forgottenVisitCapMinutes: DEFAULT_FORGOTTEN_VISIT_CAP_MINUTES,
+  visitCreditCapMinutes: DEFAULT_VISIT_CREDIT_CAP_MINUTES,
+  dailyUniqueCustomerTarget: DEFAULT_DAILY_UNIQUE_CUSTOMER_TARGET,
+  dailyWorkingHours: DEFAULT_FULL_DAY_HOURS,
   checkWindowStart: DEFAULT_CHECK_WINDOW_START,
   checkWindowEnd: DEFAULT_CHECK_WINDOW_END,
   breakMinutes: 0,
@@ -141,6 +152,20 @@ export function useAppSettings(): AppSettings & { flagRules: FlagRules } {
           lunchWindowEnd: data.lunch_window_end,
           lunchIdleThresholdMinutes: data.lunch_idle_threshold_minutes,
           forgottenVisitCapMinutes: data.forgotten_visit_cap_minutes,
+        }))
+      })
+    // The effectiveness settings (migration 0112), read on their own for the same reason.
+    supabase
+      .from('app_settings')
+      .select('visit_credit_cap_minutes, daily_unique_customer_target, daily_working_hours')
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled || !data) return
+        setSettings((prev) => ({
+          ...prev,
+          visitCreditCapMinutes: data.visit_credit_cap_minutes,
+          dailyUniqueCustomerTarget: data.daily_unique_customer_target,
+          dailyWorkingHours: Number(data.daily_working_hours) || DEFAULT_FULL_DAY_HOURS,
         }))
       })
     // The signed-in person's own hours today (team schedule or company

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { BarChart3, CalendarRange, CheckSquare, ChevronRight, MapPin, UserX, type LucideIcon } from 'lucide-react'
-import { TeamPulseCard } from '@/features/fleet/TeamPulse'
+import { BarChart3, CalendarRange, CheckSquare, ChevronDown, ChevronRight, MapPin, UserX, type LucideIcon } from 'lucide-react'
 import { useNotificationsContext } from '@/features/notifications/NotificationsContext'
 import { NotificationRow } from '@/features/notifications/NotificationRow'
 import { DAY_BAR_LEGEND, daySegments } from '@/features/fleet/dayBar'
@@ -23,7 +22,7 @@ import { useLanguage } from '@/i18n/LanguageContext'
 import { getPresetRange, localDateKey, todayDateString } from '@/lib/dateRange'
 import { useAttendanceDays } from '@/features/attendanceSummary/useAttendanceDays'
 import { useTeamWorkDays } from '@/features/schedule/useTeamWorkDays'
-import { effectivenessPercent, paidWorkMs } from '@/features/attendance/efficiency'
+import { creditedVisitMs, dayEffectiveness, effectivenessPercent, GOOD_EFFECTIVENESS, serverDayEffectiveness } from '@/features/attendance/efficiency'
 import { visitSpan } from '@/features/attendance/flagRules'
 import { formatDuration, formatTime } from '@/lib/datetime'
 
@@ -95,6 +94,7 @@ export function TeamHomePage() {
     return ''
   }
   const [filter, setFilter] = useState<Filter>('all')
+  const [alertsOpen, setAlertsOpen] = useState(false)
   const now = Date.now()
 
   const statusOf = (s: (typeof field)[number]): Filter => (leave[s.member.id] && !s.attendance ? 'leave' : s.status === 'VISITING' ? 'visiting' : s.status === 'IDLING' ? 'idle' : 'notin')
@@ -107,11 +107,15 @@ export function TeamHomePage() {
     const [a, b] = visitSpan(v, now, settings.flagRules.forgottenCapMin)
     return b - a
   }
-  const weekVisitMs = week.visits.reduce((n, v) => n + visitMsOf(v), 0)
   // Paid working time (clocked in less the unpaid break) as the server counts it, per person per day.
   const weekDays = useAttendanceDays(localDateKey(weekRange.startIso), today, ids)
-  const weekPaidMs = weekDays.rows.reduce((n, r) => n + r.workedMinutes * 60_000, 0)
-  const weekEff = effectivenessPercent(weekVisitMs, weekPaidMs) ?? 0
+  // Paid time inside each person's own hours that day; the server rows give first in / last out and the hours.
+  const weekScheduledMs = weekDays.rows.reduce((n, r) => {
+    const visits = week.visits.filter((v) => v.user_id === r.userId && !v.cancelled_at && localDateKey(v.checked_in_at) === r.day)
+    return n + serverDayEffectiveness(r, visits, now, settings.flagRules).scheduledPaidMs
+  }, 0)
+  const weekCreditedMs = week.visits.filter((v) => !v.cancelled_at).reduce((n, v) => n + creditedVisitMs(v, now, settings.flagRules), 0)
+  const weekEff = effectivenessPercent(weekCreditedMs, weekScheduledMs) ?? 0
 
   const count = (k: Filter) => (k === 'all' ? field.length : field.filter((s) => statusOf(s) === k).length)
   const shown = field.filter((s) => filter === 'all' || statusOf(s) === filter)
@@ -140,8 +144,6 @@ export function TeamHomePage() {
         {field.length} {field.length === 1 ? 'person' : 'people'} · {worked.length} in the field{count('leave') ? ` · ${count('leave')} on leave` : ''}
       </p>
 
-      <TeamPulseCard snapshots={field} />
-
       <div className="rounded-2xl border border-neutral-100 bg-white px-3.5 pb-1 pt-3 shadow-card">
         <p className="mb-1 text-[12px] font-extrabold uppercase tracking-wide text-neutral-500">Needs you · {needs.length}</p>
         {needs.length === 0 && <p className="py-3 text-[13.5px] text-neutral-500">{loading ? 'Checking…' : 'All clear — nothing waiting on you.'}</p>}
@@ -161,13 +163,16 @@ export function TeamHomePage() {
 
       {recent.length > 0 && (
         <section aria-label="Recent alerts" className="rounded-2xl border border-neutral-100 bg-white px-3.5 pb-1 pt-3 shadow-card">
-          <div className="mb-1 flex items-center justify-between">
-            <p className="text-[12px] font-extrabold uppercase tracking-wide text-neutral-500">Recent alerts</p>
+          <div className={`flex items-center justify-between ${alertsOpen ? 'mb-1' : 'mb-2'}`}>
+            <button type="button" onClick={() => setAlertsOpen((o) => !o)} aria-expanded={alertsOpen} className="flex items-center gap-1 text-[12px] font-extrabold uppercase tracking-wide text-neutral-500">
+              <ChevronDown className={`h-4 w-4 transition-transform ${alertsOpen ? '' : '-rotate-90'}`} aria-hidden />
+              Recent alerts · {recent.length}
+            </button>
             <Link to="/notifications" className="text-[13px] font-bold text-brand-600">
               See all
             </Link>
           </div>
-          {recent.map((n, i) => (
+          {alertsOpen && recent.map((n, i) => (
             <Link key={n.id} to="/notifications" className={`block py-2.5 ${i ? 'border-t border-neutral-100 dark:border-neutral-800' : ''}`}>
               <NotificationRow notification={n} compact />
             </Link>
@@ -221,7 +226,8 @@ export function TeamHomePage() {
           const lastOut = lastClockOut(s.sessions)
           const visitMs = done.reduce((n, v) => n + visitMsOf(v), 0)
           const own = shiftOf(s.member.id)
-          const eff = effectivenessPercent(visitMs, paidWorkMs(s.sessions, now, workDays[s.member.id]))
+          const counted = dayEffectiveness(s.sessions, done, today, workDays[s.member.id], now, settings.flagRules)
+          const eff = effectivenessPercent(counted.creditedMs, counted.scheduledPaidMs)
           const sub =
             st === 'visiting' && s.openVisit
               ? `On a visit · ${formatDuration(now - Date.parse(s.openVisit.checked_in_at), language)}`
@@ -264,7 +270,7 @@ export function TeamHomePage() {
                 </span>
                 <span className="flex items-baseline justify-between gap-2">
                   <span className={`truncate text-xs ${st === 'notin' ? 'font-semibold text-status-danger' : 'text-neutral-500'}`}>{sub}</span>
-                  {eff != null && <span className={`shrink-0 text-xs font-bold ${eff >= 25 ? 'text-status-working' : 'text-status-warn'}`}>{eff}% effective</span>}
+                  {eff != null && <span className={`shrink-0 text-xs font-bold ${eff >= GOOD_EFFECTIVENESS * 100 ? 'text-status-working' : 'text-status-warn'}`}>{eff}% effective</span>}
                 </span>
                 {segs.length > 0 && <DayBar segs={segs} from={rangeFrom} to={rangeTo} label={barLabel} className="mt-2.5" />}
               </span>

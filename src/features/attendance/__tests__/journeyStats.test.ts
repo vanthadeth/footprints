@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { computeJourneyStats } from '../journeyStats'
+import { DEFAULT_FLAG_RULES } from '../flagRules'
 import type { DayJourney } from '../useJourneyHistory'
 import type { AttendanceRow, VisitRow } from '../types'
 
@@ -163,3 +164,56 @@ describe('computeJourneyStats flag rules', () => {
     expect(stats.flaggedGapMs).toBe(8 * 60 * 60_000) // 02:00 -> 10:00 UTC
   })
 })
+
+describe('computeJourneyStats effectiveness inputs', () => {
+  const shift = { breakMinutes: 0, breakPaid: true, start: '08:00', end: '17:00' } // 01:00-10:00Z
+  const MIN = 60_000
+
+  it('counts only visit time that counts, over paid time inside the hours', () => {
+    // Clocked in 05:00-19:00 local (22:00Z-12:00Z); 08:00-17:00 is the person's own day.
+    const days: DayJourney[] = [
+      {
+        date: '2026-01-01',
+        attendance: [attendance('2025-12-31T22:00:00Z', '2026-01-01T12:00:00Z')],
+        visits: [
+          visit({ checked_in_at: '2026-01-01T02:00:00Z', checked_out_at: '2026-01-01T02:03:00Z' }), // drive-by: 0
+          visit({ checked_in_at: '2026-01-01T03:00:00Z', checked_out_at: '2026-01-01T04:30:00Z' }), // 90 min: capped at 45
+          visit({ checked_in_at: '2026-01-01T05:00:00Z', checked_out_at: '2026-01-01T05:20:00Z' }), // 20 min
+        ],
+      },
+    ]
+    const stats = computeJourneyStats(days, new Date('2026-01-02T00:00:00Z').getTime(), shift, { ...DEFAULT_FLAG_RULES, shortVisitMin: 5 })
+    expect(stats.creditedVisitMs).toBe(65 * MIN)
+    expect(stats.totalPaidMs).toBe(14 * 3_600_000)
+    expect(stats.scheduledPaidMs).toBe(9 * 3_600_000)
+  })
+
+  it('counts unique customers per day and expects the day-scaled target', () => {
+    const days: DayJourney[] = [
+      {
+        date: '2026-01-01',
+        attendance: [attendance('2026-01-01T01:00:00Z', '2026-01-01T09:00:00Z')],
+        visits: [
+          visit({ customer_id: 'a', checked_in_at: '2026-01-01T02:00:00Z', checked_out_at: '2026-01-01T02:30:00Z' }),
+          visit({ customer_id: 'a', checked_in_at: '2026-01-01T03:00:00Z', checked_out_at: '2026-01-01T03:30:00Z' }),
+          visit({ customer_id: 'b', checked_in_at: '2026-01-01T04:00:00Z', checked_out_at: '2026-01-01T04:30:00Z' }),
+          visit({ customer_id: null, checked_in_at: '2026-01-01T05:00:00Z', checked_out_at: '2026-01-01T05:30:00Z' }),
+        ],
+      },
+      {
+        date: '2026-01-03', // a half-day Saturday: 08:30-12:00 is 3.5 h of an 8 h day
+        attendance: [attendance('2026-01-03T01:30:00Z', '2026-01-03T05:00:00Z')],
+        visits: [visit({ customer_id: 'a', checked_in_at: '2026-01-03T02:00:00Z', checked_out_at: '2026-01-03T02:30:00Z' })],
+      },
+    ]
+    const sat = { breakMinutes: 0, breakPaid: true, start: '08:30', end: '12:00' }
+    // Same rule for both days here, so check the weekday alone and the Saturday alone.
+    const weekday = computeJourneyStats([days[0]], 0, shift)
+    expect(weekday.uniqueCustomers).toBe(2)
+    expect(weekday.uniqueCustomerTarget).toBe(5)
+    const saturday = computeJourneyStats([days[1]], 0, sat)
+    expect(saturday.uniqueCustomers).toBe(1)
+    expect(saturday.uniqueCustomerTarget).toBe(2)
+  })
+})
+
