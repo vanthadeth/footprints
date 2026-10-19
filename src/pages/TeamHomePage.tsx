@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { BarChart3, CalendarRange, CheckSquare, ChevronRight, MapPin, UserX, type LucideIcon } from 'lucide-react'
-import { TeamPulseCard } from '@/features/fleet/TeamPulse'
+import { BarChart3, CalendarRange, CheckSquare, ChevronDown, ChevronRight, MapPin, UserX, type LucideIcon } from 'lucide-react'
 import { useNotificationsContext } from '@/features/notifications/NotificationsContext'
 import { NotificationRow } from '@/features/notifications/NotificationRow'
 import { DAY_BAR_LEGEND, daySegments } from '@/features/fleet/dayBar'
@@ -95,6 +94,7 @@ export function TeamHomePage() {
     return ''
   }
   const [filter, setFilter] = useState<Filter>('all')
+  const [alertsOpen, setAlertsOpen] = useState(false)
   const now = Date.now()
 
   const statusOf = (s: (typeof field)[number]): Filter => (leave[s.member.id] && !s.attendance ? 'leave' : s.status === 'VISITING' ? 'visiting' : s.status === 'IDLING' ? 'idle' : 'notin')
@@ -144,8 +144,6 @@ export function TeamHomePage() {
         {field.length} {field.length === 1 ? 'person' : 'people'} · {worked.length} in the field{count('leave') ? ` · ${count('leave')} on leave` : ''}
       </p>
 
-      <TeamPulseCard snapshots={field} />
-
       <div className="rounded-2xl border border-neutral-100 bg-white px-3.5 pb-1 pt-3 shadow-card">
         <p className="mb-1 text-[12px] font-extrabold uppercase tracking-wide text-neutral-500">Needs you · {needs.length}</p>
         {needs.length === 0 && <p className="py-3 text-[13.5px] text-neutral-500">{loading ? 'Checking…' : 'All clear — nothing waiting on you.'}</p>}
@@ -165,13 +163,16 @@ export function TeamHomePage() {
 
       {recent.length > 0 && (
         <section aria-label="Recent alerts" className="rounded-2xl border border-neutral-100 bg-white px-3.5 pb-1 pt-3 shadow-card">
-          <div className="mb-1 flex items-center justify-between">
-            <p className="text-[12px] font-extrabold uppercase tracking-wide text-neutral-500">Recent alerts</p>
+          <div className={`flex items-center justify-between ${alertsOpen ? 'mb-1' : 'mb-2'}`}>
+            <button type="button" onClick={() => setAlertsOpen((o) => !o)} aria-expanded={alertsOpen} className="flex items-center gap-1 text-[12px] font-extrabold uppercase tracking-wide text-neutral-500">
+              <ChevronDown className={`h-4 w-4 transition-transform ${alertsOpen ? '' : '-rotate-90'}`} aria-hidden />
+              Recent alerts · {recent.length}
+            </button>
             <Link to="/notifications" className="text-[13px] font-bold text-brand-600">
               See all
             </Link>
           </div>
-          {recent.map((n, i) => (
+          {alertsOpen && recent.map((n, i) => (
             <Link key={n.id} to="/notifications" className={`block py-2.5 ${i ? 'border-t border-neutral-100 dark:border-neutral-800' : ''}`}>
               <NotificationRow notification={n} compact />
             </Link>
