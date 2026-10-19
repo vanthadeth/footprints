@@ -408,6 +408,25 @@ export function resolveUser(raw: string | undefined, users: { id: string; full_n
   return hits.length === 1 ? hits[0].id : null
 }
 
+/** The IDs in a salesperson / ASSIGN_TO cell: comma separated ("pheakdey , seyha"), trimmed and lower-cased. */
+export function sheetIdsIn(raw: string | undefined | null): string[] {
+  if (!raw) return []
+  return raw.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean)
+}
+
+/**
+ * A salesperson / ASSIGN_TO cell -> a user id, by the IDs the Super Admin set for
+ * each user (sheetIds: lower-case ID -> user id). The first ID in the cell that
+ * belongs to a user wins; null when none does.
+ */
+export function resolveBySheetId(raw: string | undefined | null, sheetIds: ReadonlyMap<string, string>): string | null {
+  for (const id of sheetIdsIn(raw)) {
+    const user = sheetIds.get(id)
+    if (user) return user
+  }
+  return null
+}
+
 // ---------------------------------------------------------------- sale orders
 
 export type OrderKey =
@@ -470,7 +489,7 @@ export function parseDateTime(raw: string, order: DateOrder): string | null | un
   return `${d}T${p(h)}:${p(min)}:${p(sec)}+07:00`
 }
 
-/** One sale order row, parsed. assign_to is kept as the sheet's text ("pheakdey , seyha", "9587d41f"); people are linked later. */
+/** One sale order row, parsed. assign_to is kept as the sheet's text ("pheakdey , seyha", "9587d41f"); a Super Admin sets the IDs that link an order to a user. */
 export interface OrderRow {
   sheet_id: string
   order_no: string | null

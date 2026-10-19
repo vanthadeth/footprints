@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { gidForTab, mapTab, mergeRows, parseCsv, parseDate, parseLatLong, parseMoney, resolveProvince, resolveUser, sheetCsvUrl, suggestMapping } from '../../../../supabase/functions/sheet-sync/parse'
+import { gidForTab, mapTab, mergeRows, parseCsv, parseDate, parseLatLong, parseMoney, resolveBySheetId, resolveProvince, resolveUser, sheetIdsIn, sheetCsvUrl, suggestMapping } from '../../../../supabase/functions/sheet-sync/parse'
 
 describe('sheet csv', () => {
   it('reads quotes, commas and newlines in cells, and a BOM', () => {
@@ -187,3 +187,26 @@ describe('previous app setup (CUS tab)', () => {
     expect(merged[0]).toEqual({ key: 'A', matches: 'sheet_id', latitude: 11, longitude: 104, contacts: [{ slot: 1, name: 'Phone 1', phone: '1' }, { slot: 2, name: 'Phone 2', phone: '2' }] })
   })
 })
+
+describe('sheet IDs', () => {
+  it('splits an ASSIGN_TO cell into trimmed lower-case IDs', () => {
+    expect(sheetIdsIn('pheakdey , Seyha')).toEqual(['pheakdey', 'seyha'])
+    expect(sheetIdsIn('9AF927A9')).toEqual(['9af927a9'])
+    expect(sheetIdsIn(' , ')).toEqual([])
+    expect(sheetIdsIn(null)).toEqual([])
+  })
+
+  it('links a cell to the first ID that belongs to a user', () => {
+    const ids = new Map([
+      ['seyha', 'u-seyha'],
+      ['9af927a9', 'u-sok'],
+    ])
+    expect(resolveBySheetId('seyha', ids)).toBe('u-seyha')
+    expect(resolveBySheetId('SEYHA', ids)).toBe('u-seyha')
+    expect(resolveBySheetId('pheakdey , seyha', ids)).toBe('u-seyha') // the first ID with an owner
+    expect(resolveBySheetId('9af927a9 , seyha', ids)).toBe('u-sok') // the first listed wins
+    expect(resolveBySheetId('nobody', ids)).toBeNull()
+    expect(resolveBySheetId('', ids)).toBeNull()
+  })
+})
+

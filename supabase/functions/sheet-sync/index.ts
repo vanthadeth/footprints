@@ -17,7 +17,7 @@
 // against the Vault secret by sheet_sync_token_ok). Deployed with
 // verify_jwt = false because the cron call carries no user JWT.
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
-import { gidForTab, linkGid, mapOrders, mapTab, mergeRows, parseCsv, resolveProvince, resolveUser, sheetCsvUrl, sheetId, suggestMapping, type DateOrder, type MappedRow, type RowProblem, type TabConfig } from './parse.ts'
+import { gidForTab, linkGid, mapOrders, mapTab, mergeRows, parseCsv, resolveBySheetId, resolveProvince, resolveUser, sheetCsvUrl, sheetId, suggestMapping, type DateOrder, type MappedRow, type RowProblem, type TabConfig } from './parse.ts'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -86,12 +86,14 @@ function toPayload(
   rows: MappedRow[],
   provinces: { code: string; name: string; name_alt: string | null }[],
   users: { id: string; full_name: string | null; nickname: string | null; email: string | null }[],
+  sheetIds: ReadonlyMap<string, string>,
   warn: (reason: string) => void,
 ) {
   const unknownPeople = new Set<string>()
   const out = rows.map((r) => {
     const province_code = resolveProvince(r.province, provinces)
-    const owner_id = resolveUser(r.salesperson, users)
+    // The IDs a Super Admin set for each user come first; names, nicknames and emails still work.
+    const owner_id = resolveBySheetId(r.salesperson, sheetIds) ?? resolveUser(r.salesperson, users)
     if (r.salesperson && !owner_id) unknownPeople.add(r.salesperson)
     return {
       key: r.key,
@@ -167,12 +169,16 @@ Deno.serve(async (req) => {
     }
     const merged = mergeRows(mapped)
 
-    const [{ data: provinces }, { data: activeUsers }] = await Promise.all([
+    const [{ data: provinces }, { data: activeUsers }, { data: sheetIdRows }] = await Promise.all([
       admin.from('geo_provinces').select('code, name, name_alt'),
       admin.from('users').select('id, full_name, nickname, email').eq('status', 'active'),
+      admin.from('user_sheet_ids').select('sheet_id, user_id'),
     ])
     const users = activeUsers ?? []
-    const payload = toPayload(merged, provinces ?? [], users, (reason) => problems.push({ tab: 0, row: 0, reason }))
+    // Only active users can own anything: an ID of someone suspended or discharged is ignored.
+    const activeIds = new Set(users.map((u) => u.id))
+    const sheetIds = new Map((sheetIdRows ?? []).filter((r) => activeIds.has(r.user_id)).map((r) => [r.sheet_id as string, r.user_id as string]))
+    const payload = toPayload(merged, provinces ?? [], users, sheetIds, (reason) => problems.push({ tab: 0, row: 0, reason }))
 
     for (let i = 0; i < payload.length; i += BATCH) {
       const { data, error } = await admin.rpc('sheet_sync_apply', { p_run: runId, p_rows: payload.slice(i, i + BATCH), p_dry: action === 'preview' })
@@ -194,8 +200,8 @@ Deno.serve(async (req) => {
       if (out.missing.length) throw new SyncError(`The sale order tab has no column named ${out.missing.map((m) => `“${m}”`).join(', ')}. Check the sheet.`)
       for (const p of out.problems) problems.push({ tab: 0, row: 0, reason: `Sale orders, row ${p.row}: ${p.reason}` })
       counts.orders.read = out.rows.length
-      // ASSIGN_TO is kept as text; orders are linked to people later, so no salesperson is set here.
-      const rows = out.rows.map((r) => ({ ...r, user_id: null }))
+      // ASSIGN_TO stays as text, and the first ID in it that a Super Admin set for an active user also links the order to that user.
+      const rows = out.rows.map((r) => ({ ...r, user_id: resolveBySheetId(r.assign_to, sheetIds) }))
       for (let i = 0; i < rows.length; i += BATCH) {
         const { data, error } = await admin.rpc('sheet_orders_apply', { p_run: runId, p_rows: rows.slice(i, i + BATCH), p_dry: action === 'preview' })
         if (error) throw new SyncError(error.details || error.message)
