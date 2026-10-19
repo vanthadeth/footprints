@@ -124,9 +124,9 @@ function CustomerDetail() {
   const owes = customer.balance_usd ?? 0
 
   return (
-    <div className="mx-auto max-w-lg pb-6 md:max-w-2xl">
-      <div className="flex flex-col gap-3.5 px-4 pt-1.5 md:px-8">
-        <section aria-label={customer.shop_name ?? 'Customer'} className="rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card">
+    <div className="mx-auto max-w-lg pb-6 md:max-w-2xl lg:max-w-6xl">
+      <div className="flex flex-col gap-3.5 px-4 pt-1.5 md:px-8 lg:pt-6">
+        <section aria-label={customer.shop_name ?? 'Customer'} className="rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card lg:max-w-xl">
           <div className="flex items-start gap-3">
             <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-brand-500 text-white">
               <Store className="h-6 w-6" aria-hidden />
@@ -163,7 +163,7 @@ function CustomerDetail() {
           </div>
         </section>
 
-        <div role="tablist" aria-label="Customer" className="flex gap-0.5 rounded-xl bg-neutral-100 p-[3px]">
+        <div role="tablist" aria-label="Customer" className="flex gap-0.5 rounded-xl bg-neutral-100 p-[3px] lg:max-w-xl">
           {(
             [
               ['info', 'Information'],
@@ -185,7 +185,8 @@ function CustomerDetail() {
         </div>
 
         {tab === 'info' && (
-          <>
+          <div className="flex flex-col gap-3.5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
+            <div className="flex flex-col gap-3.5">
             <div className="overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-card">
               <InfoRow label="Owes" value={customer.balance_usd != null ? usd(customer.balance_usd) : '—'} note={customer.balance_usd != null && balanceAsOf ? `as of ${shortDate(balanceAsOf)}` : undefined} tone={owes > 0 ? 'text-status-danger' : undefined} />
               {customer.credit_limit_usd != null && <InfoRow label="Credit limit" value={usd(customer.credit_limit_usd)} />}
@@ -212,9 +213,12 @@ function CustomerDetail() {
               <ChevronRight className="h-5 w-5 shrink-0 text-neutral-400" aria-hidden />
             </Link>
             <TierCard customerId={customer.id!} />
+            </div>
+            <div className="flex flex-col gap-3.5">
             {activity.error && <p className="rounded-xl bg-status-danger/10 px-3 py-2 text-sm text-status-danger">{activity.error}</p>}
             <CustomerVisitActivity rows={activity.data} loading={activity.loading} />
-          </>
+            </div>
+          </div>
         )}
 
         {tab === 'cal' && <CustomerCalendar rows={activity.data} />}

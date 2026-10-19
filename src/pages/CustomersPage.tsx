@@ -88,9 +88,9 @@ function MyCustomers({ me, onView }: { me: string | null; onView: (v: 'all' | 'm
   const listTitle = pick ? `${{ b7: 'Visited within 7 days', b15: 'Visited 8 – 15 days ago', b30: 'Visited 16 – 30 days ago', green: 'Seen within 45 days', red: 'Not seen for 45+ days' }[pick]}${position ? ' · nearest first' : ''}` : position ? 'Nearby' : 'Longest since a visit'
 
   return (
-    <div className="mx-auto max-w-lg pb-6 md:max-w-2xl">
-      <div className="flex flex-col gap-3.5 px-4 pt-1.5 md:px-8">
-        <section aria-label="My customers" className="rounded-[22px] bg-brand-900 p-4 text-white">
+    <div className="mx-auto max-w-lg pb-6 md:max-w-2xl lg:max-w-[1440px]">
+      <div className="flex flex-col gap-3.5 px-4 pt-1.5 md:px-8 lg:grid lg:grid-cols-[420px_minmax(0,1fr)] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-x-6 lg:pt-6">
+        <section aria-label="My customers" className="rounded-[22px] bg-brand-900 p-4 text-white lg:col-start-1 lg:row-start-1">
           <div className="flex items-end justify-between gap-3">
             <div>
               <p className="text-[13px] font-semibold text-white/60">My customers</p>
@@ -128,7 +128,7 @@ function MyCustomers({ me, onView }: { me: string | null; onView: (v: 'all' | 'm
           </div>
         </section>
 
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-2 lg:col-start-1 lg:row-start-2">
           <button type="button" onClick={() => onView('mine')} className="flex h-11 items-center justify-center gap-1.5 rounded-xl bg-brand-500 text-sm font-bold text-white">
             <UserRound className="h-4 w-4" aria-hidden /> Mine
           </button>
@@ -144,7 +144,7 @@ function MyCustomers({ me, onView }: { me: string | null; onView: (v: 'all' | 'm
           </button>
         </div>
 
-        <section aria-label="Nearby customers">
+        <section aria-label="Nearby customers" className="lg:col-start-2 lg:row-span-2 lg:row-start-1">
           <div className="mx-0.5 mb-2 flex items-baseline justify-between">
             <p className="text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">{listTitle}</p>
             {pick && (
@@ -269,8 +269,8 @@ function CustomersList({ owner = null, onHome }: { owner?: string | null; onHome
   const showEmpty = tab === 'nearby' ? !!position && !nearby.loading && nearby.data.length === 0 && (!!search || filtering) : !summaryRes.loading && groups.length === 0
 
   return (
-    <div className="mx-auto max-w-lg pb-6 md:max-w-2xl">
-      <div className="flex flex-col gap-2.5 border-b border-neutral-100 px-4 pb-2.5 pt-3 md:px-8 dark:border-neutral-800">
+    <div className="mx-auto max-w-lg pb-6 md:max-w-2xl lg:max-w-[1440px]">
+      <div className="flex flex-col gap-2.5 border-b border-neutral-100 px-4 pb-2.5 pt-3 md:px-8 lg:max-w-3xl lg:border-0 lg:pt-6 dark:border-neutral-800">
         {onHome && (
           <button type="button" onClick={onHome} className="inline-flex items-center gap-1 self-start text-sm font-bold text-brand-500">
             <ChevronLeft className="h-4 w-4" aria-hidden /> My customers
@@ -307,8 +307,8 @@ function CustomersList({ owner = null, onHome }: { owner?: string | null; onHome
         </p>
       </div>
 
-      <div className="flex flex-col gap-2.5 px-4 pt-2.5 md:px-8">
-        {summaryRes.error && <p className="rounded-lg bg-status-danger/10 px-3 py-2 text-sm text-status-danger">{summaryRes.error}</p>}
+      <div className="flex flex-col gap-2.5 px-4 pt-2.5 md:px-8 lg:grid lg:grid-cols-2 lg:items-start lg:gap-3">
+        {summaryRes.error && <p className="rounded-lg bg-status-danger/10 px-3 py-2 text-sm text-status-danger lg:col-span-2">{summaryRes.error}</p>}
 
         {tab !== 'nearby' &&
           (summaryRes.loading ? (
@@ -337,8 +337,8 @@ function CustomersList({ owner = null, onHome }: { owner?: string | null; onHome
 
         {tab === 'nearby' && position && nearby.data.length > 0 && (
           <>
-            <p className="mx-0.5 text-xs text-neutral-500">Closest first, across all provinces.</p>
-            <div className="overflow-hidden rounded-2xl bg-white shadow-card">
+            <p className="mx-0.5 text-xs text-neutral-500 lg:col-span-2">Closest first, across all provinces.</p>
+            <div className="overflow-hidden rounded-2xl bg-white shadow-card lg:col-span-2 lg:max-w-3xl">
               {nearby.data.map((c, i) => (
                 <CustomerLine key={c.customer_id} row={c} first={i === 0} extra={c.distance_m != null ? `${formatDistance(c.distance_m)}` : undefined} onVisit={setPreset} />
               ))}
@@ -347,7 +347,7 @@ function CustomersList({ owner = null, onHome }: { owner?: string | null; onHome
         )}
 
         {showEmpty && (
-          <div className="rounded-2xl border-[1.5px] border-dashed border-neutral-200 px-4 py-7 text-center">
+          <div className="rounded-2xl border-[1.5px] border-dashed border-neutral-200 px-4 py-7 text-center lg:col-span-2">
             <p className="text-[15px] font-bold text-neutral-900">{search ? `No customers match “${search}”` : 'No customers match these filters'}</p>
             <p className="mt-1 text-[13px] text-neutral-500">Try fewer filters, part of the shop name, the customer code or a phone number.</p>
           </div>
