@@ -55,5 +55,16 @@ describe('DaySummary', () => {
     expect(html).toContain('1 confirmed · 1 pending')
     expect(html).toContain('Order not found')
   })
+
+  it('shows the counted visits behind the visits ring: 3 effective + 5 not credited of 8 is 4.25 / 8, 53%', () => {
+    const attendance = [{ clock_in_at: '2026-01-01T01:00:00Z', clock_out_at: '2026-01-01T10:00:00Z' }] as AttendanceRow[]
+    const long = [0, 1, 2].map((i) => visit({ id: `l${i}`, customer_id: `l${i}`, checked_in_at: `2026-01-01T0${2 + i}:00:00Z`, checked_out_at: `2026-01-01T0${2 + i}:30:00Z` }))
+    const short = [0, 1, 2, 3, 4].map((i) => visit({ id: `s${i}`, customer_id: `s${i}`, checked_in_at: `2026-01-01T0${5 + (i % 4)}:${i < 4 ? '00' : '40'}:00Z`, checked_out_at: `2026-01-01T0${5 + (i % 4)}:${i < 4 ? '02' : '42'}:00Z` }))
+    const stats = computeJourneyStats([{ date: '2026-01-01', attendance, visits: [...long, ...short] }], 0, null, { ...rules, visitTarget: 8 })
+    const html = renderToStaticMarkup(<DaySummary stats={stats} rules={{ ...rules, visitTarget: 8 }} firstVisit={{ kind: 'ok' }} paidVisits={0} appointments={0} language="en" />)
+    expect(html).toContain('4.25 / 8')
+    expect(html).toContain('53%')
+    expect(html).toContain('3 effective + 5 × ¼')
+  })
 })
 
