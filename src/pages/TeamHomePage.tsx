@@ -18,6 +18,8 @@ import { useApprovedLeaveOnDate } from '@/features/leave/useApprovedLeaveOnDate'
 import { useFleetHistory } from '@/features/reports/useFleetHistory'
 import { useAppSettings } from '@/hooks/useAppSettings'
 import { useLanguage } from '@/i18n/LanguageContext'
+import { DesktopPage } from '@/components/desktop/DesktopPage'
+import { useIsWide } from '@/hooks/useIsDesktop'
 import { getPresetRange, localDateKey, todayDateString } from '@/lib/dateRange'
 import { useAttendanceDays } from '@/features/attendanceSummary/useAttendanceDays'
 import { useTeamWorkDays } from '@/features/schedule/useTeamWorkDays'
@@ -53,6 +55,7 @@ export function TeamHomePage() {
   const { notifications } = useNotificationsContext()
   const recent = notifications.slice(0, 4)
   const { language } = useLanguage()
+  const wide = useIsWide()
 
   useEffect(() => {
     let cancelled = false
@@ -135,12 +138,13 @@ export function TeamHomePage() {
     { at: shiftEnd, label: formatTime(new Date(shiftEnd).toISOString()) },
   ]
 
-  return (
-    <div className="mx-auto max-w-lg space-y-3 px-4 pb-8 pt-1 md:max-w-3xl md:px-8">
+  const summaryLine = (
       <p className="text-[14px] text-neutral-600">
         {field.length} {field.length === 1 ? 'person' : 'people'} · {worked.length} in the field{count('leave') ? ` · ${count('leave')} on leave` : ''}
       </p>
+  )
 
+  const needsCard = (
       <div className="rounded-2xl border border-neutral-100 bg-white px-3.5 pb-1 pt-3 shadow-card">
         <p className="mb-1 text-[12px] font-extrabold uppercase tracking-wide text-neutral-500">Needs you · {needs.length}</p>
         {needs.length === 0 && <p className="py-3 text-[13.5px] text-neutral-500">{loading ? 'Checking…' : 'All clear — nothing waiting on you.'}</p>}
@@ -157,8 +161,10 @@ export function TeamHomePage() {
           </Link>
         ))}
       </div>
+  )
 
-      {recent.length > 0 && (
+  const alertsCard =
+    recent.length > 0 ? (
         <section aria-label="Recent alerts" className="rounded-2xl border border-neutral-100 bg-white px-3.5 pb-1 pt-3 shadow-card">
           <div className={`flex items-center justify-between ${alertsOpen ? 'mb-1' : 'mb-2'}`}>
             <button type="button" onClick={() => setAlertsOpen((o) => !o)} aria-expanded={alertsOpen} className="flex items-center gap-1 text-[12px] font-extrabold uppercase tracking-wide text-neutral-500">
@@ -175,8 +181,9 @@ export function TeamHomePage() {
             </Link>
           ))}
         </section>
-      )}
+    ) : null
 
+  const peopleCard = (
       <section aria-label="People" className="rounded-2xl border border-neutral-100 bg-white px-3.5 pb-3 pt-3 shadow-card">
         <div className="flex items-center justify-between">
           <p className="text-[12px] font-extrabold uppercase tracking-wide text-neutral-500">People</p>
@@ -206,7 +213,7 @@ export function TeamHomePage() {
           })}
         </div>
         {shown.some((s) => statusOf(s) !== 'leave') && (
-          <div aria-hidden className="relative ml-12 mt-3 h-3.5 text-[10px] font-semibold text-neutral-500">
+          <div aria-hidden className="relative ml-12 mt-3 h-3.5 text-[10px] font-semibold text-neutral-500 lg:ml-[calc(3rem+18rem+1.5rem)]">
             {ticks.map((k, i) => (
               <span key={k.label} className="absolute whitespace-nowrap" style={{ left: `${tickAt(k.at).toFixed(2)}%`, transform: `translateX(${i === ticks.length - 1 && tickAt(k.at) > 90 ? '-100%' : '-50%'})` }}>
                 {k.label}
@@ -259,7 +266,8 @@ export function TeamHomePage() {
                 {name.slice(0, 2).toUpperCase()}
                 <span className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white dark:border-[#232323] ${DOT[st]}`} />
               </span>
-              <span className="min-w-0 flex-1">
+              <span className="min-w-0 flex-1 lg:flex lg:items-center lg:gap-6">
+                <span className="block min-w-0 lg:w-72 lg:shrink-0">
                 <span className="flex items-baseline justify-between gap-2">
                   <span className="truncate text-[14px] font-bold text-neutral-900">{name}</span>
                   <span className="shrink-0 text-xs font-bold text-neutral-900">{s.attendance ? `${done.length} ${done.length === 1 ? 'visit' : 'visits'}` : '—'}</span>
@@ -268,7 +276,8 @@ export function TeamHomePage() {
                   <span className={`truncate text-xs ${st === 'notin' ? 'font-semibold text-status-danger' : 'text-neutral-500'}`}>{sub}</span>
                   {score != null && <span className={`shrink-0 text-xs font-bold ${scoreTextClass(score)}`}>Score {formatScore(score)}</span>}
                 </span>
-                {segs.length > 0 && <DayBar segs={segs} from={rangeFrom} to={rangeTo} label={barLabel} className="mt-2.5" />}
+                </span>
+                {segs.length > 0 && <DayBar segs={segs} from={rangeFrom} to={rangeTo} label={barLabel} className="mt-2.5 lg:mt-0 lg:min-w-0 lg:flex-1" />}
               </span>
             </Link>
           )
@@ -282,7 +291,9 @@ export function TeamHomePage() {
           ))}
         </div>
       </section>
+  )
 
+  const reportCard = (
       <Link to="/fleet" aria-label={`Open team report: this week, ${weekVisits} visits, ${weekOrdered} ordered, score ${formatScore(weekScore)}`} className="flex items-center gap-3 rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-500">
           <BarChart3 className="h-5 w-5" aria-hidden />
@@ -305,7 +316,9 @@ export function TeamHomePage() {
         </span>
         <ChevronRight className="h-4 w-4 shrink-0 text-neutral-400" aria-hidden />
       </Link>
+  )
 
+  const linksRow = (
       <div className="flex flex-wrap gap-2">
         {[
           { label: 'Attendance', to: '/fleet?tab=attendance', show: true },
@@ -321,9 +334,54 @@ export function TeamHomePage() {
             </Link>
           ))}
       </div>
+  )
+
+  if (wide) {
+    // Desktop: the people with their day bars take the wide column; what needs a decision sits beside them.
+    return (
+      <DesktopPage
+        aside={
+          <>
+            {needsCard}
+            {alertsCard}
+            {reportCard}
+            {linksRow}
+          </>
+        }
+      >
+        <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+          <SummaryTile label="In the field" value={`${worked.length} / ${field.length}`} sub={count('leave') ? `${count('leave')} on leave` : undefined} />
+          <SummaryTile label="Visiting now" value={String(count('visiting'))} sub={`${count('idle')} between visits`} />
+          <SummaryTile label="Not clocked in" value={String(count('notin'))} tone={count('notin') ? 'text-status-danger' : undefined} />
+          <SummaryTile label="This week" value={formatScore(weekScore)} sub={`${weekVisits} visits · ${weekOrdered} ordered`} />
+        </div>
+        {peopleCard}
+      </DesktopPage>
+    )
+  }
+
+  return (
+    <div className="mx-auto max-w-lg space-y-3 px-4 pb-8 pt-1 md:max-w-3xl md:px-8">
+      {summaryLine}
+      {needsCard}
+      {alertsCard}
+      {peopleCard}
+      {reportCard}
+      {linksRow}
     </div>
   )
 }
+
+function SummaryTile({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: string }) {
+  return (
+    <div className="rounded-2xl border border-neutral-100 bg-white px-4 py-3 shadow-card">
+      <p className="text-[12px] font-semibold text-neutral-500">{label}</p>
+      <p className={`mt-0.5 text-[26px] font-extrabold leading-8 ${tone ?? 'text-neutral-900'}`}>{value}</p>
+      {sub && <p className="text-xs text-neutral-500">{sub}</p>}
+    </div>
+  )
+}
+
 
 type Filter = 'all' | 'visiting' | 'idle' | 'notin' | 'leave'
 const FILTERS: [Filter, string, string][] = [

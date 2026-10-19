@@ -61,9 +61,11 @@ export function FleetPage() {
   const snapshots = useMemo(() => allSnapshots.filter((s) => s.member.isFieldSales), [allSnapshots])
 
   return (
-    <div className="mx-auto max-w-lg pb-6 md:max-w-5xl">
-      <div className="space-y-3.5 px-4 pt-3 md:px-8 md:pt-4">
-        <AdminTabs tabs={MAIN} value={MAIN.some(([k]) => k === tab) ? tab : 'dashboard'} onChange={(k) => setParams(k === 'dashboard' ? {} : { tab: k }, { replace: true })} />
+    <div className="mx-auto max-w-lg pb-6 md:max-w-5xl lg:max-w-[1440px]">
+      <div className="space-y-3.5 px-4 pt-3 md:px-8 md:pt-4 lg:pt-6">
+        <div className="lg:max-w-md">
+          <AdminTabs tabs={MAIN} value={MAIN.some(([k]) => k === tab) ? tab : 'dashboard'} onChange={(k) => setParams(k === 'dashboard' ? {} : { tab: k }, { replace: true })} />
+        </div>
         {!MAIN.some(([k]) => k === tab) && (
           <Link to="/fleet" className="-mt-1 inline-flex items-center gap-1 text-[13px] font-bold text-brand-500">
             ‹ Dashboard
@@ -97,9 +99,14 @@ export function FleetPage() {
                     </span>
                   )}
                 </div>
-                <TeamPulseCard snapshots={snapshots} />
-                <TeamTodayList snapshots={snapshots} />
-                <div className="overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-card">
+                <div className="space-y-3.5 xl:grid xl:grid-cols-[minmax(0,1fr)_380px] xl:grid-rows-[auto_1fr] xl:gap-x-6 xl:gap-y-3.5 xl:space-y-0">
+                <div className="xl:col-start-2 xl:row-start-1">
+                  <TeamPulseCard snapshots={snapshots} />
+                </div>
+                <div className="xl:col-start-1 xl:row-span-2 xl:row-start-1">
+                  <TeamTodayList snapshots={snapshots} />
+                </div>
+                <div className="overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-card xl:col-start-2 xl:row-start-2 xl:self-start">
                   {MORE.map((m, i) => (
                     <Link key={m.key} to={`/fleet?tab=${m.key}`} className={`flex items-center gap-3 px-3.5 py-3 ${i ? 'border-t border-neutral-100 dark:border-neutral-800' : ''}`}>
                       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] border-[1.5px] border-neutral-200 text-neutral-900">
@@ -112,6 +119,7 @@ export function FleetPage() {
                       <ChevronRight className="h-4 w-4 shrink-0 text-neutral-500" aria-hidden />
                     </Link>
                   ))}
+                </div>
                 </div>
               </>
             )}

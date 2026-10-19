@@ -9,6 +9,8 @@ import type { FleetMemberSnapshot, FleetStatus } from '../types'
 import { personIcon } from './mapIcons'
 import { ageLabel, isStale, minutesSince } from './lastKnown'
 import { useAppSettings } from '@/hooks/useAppSettings'
+import { useMapHeight } from '@/features/maps/useMapHeight'
+
 
 const COLOR: Record<FleetStatus, string> = { VISITING: '#6552c9', IDLING: '#96703f', OFF: '#8a8f98' }
 type Filter = 'all' | FleetStatus
@@ -24,6 +26,7 @@ function initials(name: string): string {
 
 /** Everyone's last known location (from their latest clock or visit point), coloured by status, with how long ago it was. */
 export function PeopleMap({ snapshots, onShowRoute }: { snapshots: FleetMemberSnapshot[]; onShowRoute: (userId: string) => void }) {
+  const mapHeight = useMapHeight(380)
   const [filter, setFilter] = useState<Filter>('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const customerNames = useCustomerNames(snapshots.map((s) => s.openVisit?.customer_id ?? null))
@@ -62,7 +65,7 @@ export function PeopleMap({ snapshots, onShowRoute }: { snapshots: FleetMemberSn
   return (
     <div className="space-y-3">
       {located.length > 0 ? (
-        <MapView points={located.map((r) => [r.s.lastLocation!.latitude, r.s.lastLocation!.longitude])} height={380}>
+        <MapView points={located.map((r) => [r.s.lastLocation!.latitude, r.s.lastLocation!.longitude])} height={mapHeight}>
           {located.map(({ s, minutes, stale }) => {
             const name = displayName(s.member.fullName, s.member.nickname)
             return (
