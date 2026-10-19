@@ -12,6 +12,8 @@ import type { FleetMemberSnapshot } from '../types'
 import { buildTeamRoute, type RouteEvent } from './teamRoute'
 import { useAppSettings } from '@/hooks/useAppSettings'
 import { stopIcon } from './mapIcons'
+import { useMapHeight } from '@/features/maps/useMapHeight'
+
 
 const KIND = {
   'clock-in': { color: '#0f6e4f', square: true, label: 'IN' },
@@ -30,6 +32,7 @@ function minuteOfDay(iso: string): number {
 
 /** One person's day on the map: the path between their stops, numbered visits, idle stretches, and a tappable timeline. */
 export function RoutesMap({ snapshots, userId, onUserChange }: { snapshots: FleetMemberSnapshot[]; userId: string | null; onUserChange: (id: string) => void }) {
+  const mapHeight = useMapHeight(340)
   const [date, setDate] = useState(() => todayDateString())
   const [selected, setSelected] = useState<number | null>(null)
   const range = useMemo(() => getCustomRange(date, date), [date])
@@ -105,7 +108,7 @@ export function RoutesMap({ snapshots, userId, onUserChange }: { snapshots: Flee
       </div>
 
       {route.path.length > 0 ? (
-        <MapView points={route.path} height={340}>
+        <MapView points={route.path} height={mapHeight}>
           <Polyline positions={route.path} pathOptions={{ color: '#ffffff', weight: 8, opacity: 0.9 }} />
           <Polyline positions={route.path} pathOptions={{ color: '#006ACC', weight: 4 }} />
           {route.events.map((e, i) =>

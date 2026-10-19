@@ -11,6 +11,8 @@ import { CUSTOMER_DUE_AFTER_DAYS, APP_TIMEZONE } from '@/lib/config'
 import { getPresetRange, todayDateString } from '@/lib/dateRange'
 import type { TeamMember } from '../types'
 import { classifyCoverage, type CoverageStatus } from './customerCoverage'
+import { useMapHeight } from '@/features/maps/useMapHeight'
+
 
 type Period = 'today' | 'this_week' | 'this_month'
 
@@ -28,6 +30,7 @@ function dateInZone(iso: string): string {
 
 /** Which customers the team has visited in the period, which not yet, and which are overdue -- as pins plus a "needs a visit" list. */
 export function CustomersMap({ team }: { team: TeamMember[] }) {
+  const mapHeight = useMapHeight(340)
   const [period, setPeriod] = useState<Period>('this_week')
   const [show, setShow] = useState<Record<CoverageStatus, boolean>>({ visited: true, unvisited: true, overdue: true })
   const [bubbles, setBubbles] = useState(0)
@@ -89,7 +92,7 @@ export function CustomersMap({ team }: { team: TeamMember[] }) {
 
       {pins.length > 0 ? (
         <div className="space-y-1.5">
-          <MapView points={fitPoints} height={340}>
+          <MapView points={fitPoints} height={mapHeight}>
             <ClusterLayer
               items={pins}
               position={(c) => [c.latitude!, c.longitude!]}
