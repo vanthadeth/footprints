@@ -215,5 +215,26 @@ describe('computeJourneyStats effectiveness inputs', () => {
     expect(saturday.uniqueCustomers).toBe(1)
     expect(saturday.uniqueCustomerTarget).toBe(2)
   })
+
+  it('counts visits that count, ordered visits, and what was forgotten', () => {
+    const days: DayJourney[] = [
+      {
+        date: '2026-01-01',
+        attendance: [{ ...attendance('2026-01-01T01:00:00Z', '2026-01-01T10:00:00Z'), auto_clocked_out: true } as AttendanceRow, attendance('2026-01-01T11:00:00Z', '2026-01-01T12:00:00Z')],
+        visits: [
+          visit({ checked_in_at: '2026-01-01T02:00:00Z', checked_out_at: '2026-01-01T02:03:00Z' }), // under 5 min: not credited
+          visit({ checked_in_at: '2026-01-01T03:00:00Z', checked_out_at: '2026-01-01T03:30:00Z', order_amount_usd: 120 }),
+          visit({ checked_in_at: '2026-01-01T04:00:00Z', checked_out_at: '2026-01-01T08:00:00Z', flags: ['AUTO_CHECKOUT_CLOCK_OUT'], auto_closed: true }),
+          visit({ checked_in_at: '2026-01-01T09:00:00Z', checked_out_at: '2026-01-01T09:20:00Z', cancelled_at: '2026-01-01T09:30:00Z' }), // voided: ignored
+        ],
+      },
+    ]
+    const stats = computeJourneyStats(days, 0, null, { ...DEFAULT_FLAG_RULES, shortVisitMin: 5 })
+    expect(stats.totalVisits).toBe(3)
+    expect(stats.creditedVisits).toBe(2)
+    expect(stats.orderedVisits).toBe(1)
+    expect(stats.forgottenCheckouts).toBe(1)
+    expect(stats.forgottenClockOuts).toBe(1)
+  })
 })
 
