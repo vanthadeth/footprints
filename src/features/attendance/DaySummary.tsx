@@ -3,7 +3,7 @@ import { AlertTriangle, CheckCircle2 } from 'lucide-react'
 import type { JourneyStats } from '@/features/attendance/journeyStats'
 import { BAND_LABEL, formatScore } from '@/features/attendance/effectivenessScore'
 import type { FirstVisit, FlagRules } from '@/features/attendance/flagRules'
-import { NEAR_FIRST_VISIT_KM, ORDER_RECONCILE_DAYS } from '@/lib/config'
+import { INEFFECTIVE_VISIT_WEIGHT, NEAR_FIRST_VISIT_KM, ORDER_RECONCILE_DAYS } from '@/lib/config'
 import { formatDuration, formatTime } from '@/lib/datetime'
 
 type Tone = 'good' | 'warn' | 'danger' | 'neutral'
@@ -81,6 +81,8 @@ export function DaySummary({
 }) {
   const fmt = (ms: number) => formatDuration(ms, language as Parameters<typeof formatDuration>[1])
   const day = stats.dayScores[0]
+  // What the visits part counts: each effective visit in full, each ineffective one a quarter (so 3 + 5 × ¼ = 4.25 of 8 is 53%).
+  const countedVisits = day ? Number((day.effectiveVisits + INEFFECTIVE_VISIT_WEIGHT * day.ineffectiveVisits).toFixed(2)) : 0
   const score = stats.score
   const band = day?.band ?? null
   const scoreTone: Tone = band === 'low' ? 'danger' : band === 'average' ? 'warn' : band ? 'good' : 'neutral'
@@ -134,10 +136,10 @@ export function DaySummary({
           <Part
             label="Visits"
             vs="vs target"
-            value={`${day?.effectiveVisits ?? 0} / ${day?.visitTarget ?? rules.visitTarget}`}
+            value={`${countedVisits} / ${day?.visitTarget ?? rules.visitTarget}`}
             pct={day ? day.visitShare * 100 : null}
             tone={day && day.visitShare >= 1 ? 'good' : 'warn'}
-            extra={day && day.ineffectiveVisits > 0 ? `+${day.ineffectiveVisits} not credited at ¼` : undefined}
+            extra={day ? `${day.effectiveVisits} effective${day.ineffectiveVisits > 0 ? ` + ${day.ineffectiveVisits} × ¼` : ''}` : undefined}
           />
           <Part
             label="Active time"
