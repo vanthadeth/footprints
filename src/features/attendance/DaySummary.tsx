@@ -1,7 +1,8 @@
-import type { ReactNode } from 'react'
-import { AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
+import { AlertTriangle, CheckCircle2, Info } from 'lucide-react'
+import { InfoSheet } from '@/components/InfoSheet'
 import type { JourneyStats } from '@/features/attendance/journeyStats'
-import { BAND_LABEL, formatScore, scoreFocus, type ScoreBand } from '@/features/attendance/effectivenessScore'
+import { BAND_LABEL, BAND_STYLE, formatScore, type ScoreBand } from '@/features/attendance/effectivenessScore'
 import type { FirstVisit, FlagRules } from '@/features/attendance/flagRules'
 import { INEFFECTIVE_VISIT_WEIGHT, NEAR_FIRST_VISIT_KM, ORDER_RECONCILE_DAYS, SCORE_GOAL_ACTIVE, SCORE_GOAL_ORDERS, SCORE_GOAL_VISITS } from '@/lib/config'
 import { formatDuration, formatTime } from '@/lib/datetime'
@@ -16,12 +17,12 @@ const card = 'rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card'
 /** How close a part is to its goal: full is green, at least half amber, under half red. */
 const toneOf = (share: number): Tone => (share >= 1 ? 'good' : share >= 0.5 ? 'warn' : 'danger')
 
-/** The bands as a scale from 0 to 10, with a marker at the score: low 0-5, average 5-8, good 8-9, excellent 9-10. */
-const SCALE: { band: ScoreBand; from: number; to: number; fill: string }[] = [
-  { band: 'low', from: 0, to: 5, fill: 'bg-status-danger' },
-  { band: 'average', from: 5, to: 8, fill: 'bg-status-warn' },
-  { band: 'good', from: 8, to: 9, fill: 'bg-status-working' },
-  { band: 'excellent', from: 9, to: 10, fill: 'bg-brand-500' },
+/** The bands as a scale from 0 to 10, with a marker at the score: poor 0-5, average 5-7, good 7-9, excellent 9-10. */
+const SCALE: { band: ScoreBand; from: number; to: number }[] = [
+  { band: 'poor', from: 0, to: 5 },
+  { band: 'average', from: 5, to: 7 },
+  { band: 'good', from: 7, to: 9 },
+  { band: 'excellent', from: 9, to: 10 },
 ]
 
 function ScoreScale({ score, band }: { score: number | null; band: ScoreBand | null }) {
@@ -30,7 +31,7 @@ function ScoreScale({ score, band }: { score: number | null; band: ScoreBand | n
       <div className="relative">
         <div className="flex gap-[3px]">
           {SCALE.map((seg) => (
-            <div key={seg.band} className={`h-2 rounded-full ${seg.fill} ${seg.band === band ? '' : 'opacity-25'}`} style={{ width: `${(seg.to - seg.from) * 10}%` }} />
+            <div key={seg.band} className={`h-2 rounded-full ${BAND_STYLE[seg.band].fill} ${seg.band === band ? '' : 'opacity-25'}`} style={{ width: `${(seg.to - seg.from) * 10}%` }} />
           ))}
         </div>
         {score != null && (
@@ -42,7 +43,7 @@ function ScoreScale({ score, band }: { score: number | null; band: ScoreBand | n
         )}
       </div>
       <div className="relative mt-1.5 h-3 text-[10px] font-semibold text-neutral-500">
-        {[0, 5, 8, 9, 10].map((n) => (
+        {[0, 5, 7, 9, 10].map((n) => (
           <span key={n} className="absolute -translate-x-1/2" style={{ left: `${n * 10}%` }}>
             {n}
           </span>
@@ -112,8 +113,7 @@ export function DaySummary({
   const countedVisits = day ? Number((day.effectiveVisits + INEFFECTIVE_VISIT_WEIGHT * day.ineffectiveVisits).toFixed(2)) : 0
   const score = stats.score
   const band = day?.band ?? null
-  const scoreTone: Tone = band === 'low' ? 'danger' : band === 'average' ? 'warn' : 'good'
-  const focus = day ? scoreFocus(day) : null
+  const [infoOpen, setInfoOpen] = useState(false)
   const visitTarget = day?.visitTarget ?? rules.visitTarget
   const pct = (n: number) => `${Math.round(n * 100)}%`
   const notCredited = stats.totalVisits - stats.creditedVisits
@@ -151,32 +151,25 @@ export function DaySummary({
       </div>
 
       <div className={card}>
-        <p className="text-[13px] font-semibold text-neutral-500">Effectiveness</p>
+        <div className="flex items-center justify-between">
+          <p className="text-[13px] font-semibold text-neutral-500">Effectiveness</p>
+          <button
+            type="button"
+            onClick={() => setInfoOpen(true)}
+            aria-label="How the effectiveness score works"
+            className="-mr-1.5 flex h-8 w-8 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 tap-target"
+          >
+            <Info className="h-[18px] w-[18px]" aria-hidden />
+          </button>
+        </div>
         <div className="mt-0.5 flex items-end justify-between gap-3">
           <p className="flex items-baseline gap-1.5">
             <span className="text-[44px] font-extrabold leading-none tracking-tight text-neutral-900">{formatScore(score)}</span>
             <span className="text-[15px] font-semibold text-neutral-500">/ 10</span>
           </p>
-          {band && <span className={`mb-1 rounded-full px-3 py-1 text-[12px] font-extrabold ${TEXT[scoreTone]} ${scoreTone === 'good' ? 'bg-status-working/10' : scoreTone === 'warn' ? 'bg-status-warn/10' : 'bg-status-danger/10'}`}>{BAND_LABEL[band]}</span>}
+          {band && <span className={`mb-1 rounded-full px-3 py-1 text-[12px] font-extrabold ${BAND_STYLE[band].text} ${BAND_STYLE[band].soft}`}>{BAND_LABEL[band]}</span>}
         </div>
         <ScoreScale score={score} band={band} />
-
-        {focus && day && (
-          <div className="mt-4 rounded-xl bg-brand-50 p-3">
-            <p className="text-[11px] font-extrabold uppercase tracking-[0.06em] text-brand-700">Biggest gap</p>
-            <p className="mt-0.5 text-[13.5px] font-bold text-neutral-900">
-              {focus.part === 'visits' && `${focus.need} more ${focus.need === 1 ? 'visit' : 'visits'} reaches the target`}
-              {focus.part === 'hours' && `${fmt(focus.need)} more time with customers reaches the goal`}
-              {focus.part === 'orders' && `${focus.need} more ordered ${focus.need === 1 ? 'visit' : 'visits'} reaches the goal`}
-            </p>
-            <p className="text-xs text-neutral-600">
-              {focus.part === 'visits' && `Visits are at ${pct(day.visitShare)} of the target of ${visitTarget}.`}
-              {focus.part === 'hours' && `Active time is ${pct(day.activeRatio)} of working hours; the goal is ${pct(SCORE_GOAL_ACTIVE)}.`}
-              {focus.part === 'orders' && `${pct(day.orderRatio)} of visits ordered; the goal is ${pct(SCORE_GOAL_ORDERS)}.`}
-            </p>
-          </div>
-        )}
-        {!focus && day && score != null && <p className="mt-4 rounded-xl bg-status-working/10 p-3 text-[13px] font-bold text-status-working">All three goals reached.</p>}
 
         <p className="mb-3 mt-5 text-[11px] font-extrabold uppercase tracking-[0.06em] text-neutral-500">What makes up the score</p>
         <div className="space-y-4">
@@ -200,24 +193,41 @@ export function DaySummary({
           />
         </div>
 
-        <details className="group mt-4 border-t border-neutral-100 pt-3">
-          <summary className="flex cursor-pointer list-none items-center justify-between text-[12.5px] font-bold text-neutral-700">
-            How the score works
-            <span className="text-neutral-400 transition-transform group-open:rotate-180" aria-hidden>
-              ▾
-            </span>
-          </summary>
-          <ul className="mt-2 space-y-1.5 text-[12px] leading-relaxed text-neutral-500">
-            <li>
-              The score is the average of the three parts, times 10. Each part is measured against its own goal and stops counting at 100% of it: visits {pct(SCORE_GOAL_VISITS)} of the target, active time {pct(SCORE_GOAL_ACTIVE)} of working hours, orders {pct(SCORE_GOAL_ORDERS)} of visits.
-            </li>
-            <li>A visit under {rules.shortVisitMin} min is not credited and earns a quarter of an effective visit.</li>
-            <li>Every full 50 km travelled adds an hour of active time. Clocked in {fmt(stats.totalWorkingMs)}{outsideMs > 0 ? `; ${fmt(outsideMs)} outside your hours isn't counted` : ''}.</li>
-            <li>A visit marked ordered counts until the sale order syncs, up to {ORDER_RECONCILE_DAYS} days after the visit.</li>
-            <li>Under 5 is low, 5 to 8 average, 8 to 9 good, above 9 excellent.</li>
-          </ul>
-        </details>
       </div>
+
+      <InfoSheet open={infoOpen} onClose={() => setInfoOpen(false)} title="How the score works">
+        <p>
+          The score is the average of three parts, times 10. Each part is measured against its own goal and stops counting at 100% of it: visits {pct(SCORE_GOAL_VISITS)} of the target, active time {pct(SCORE_GOAL_ACTIVE)} of working hours,
+          orders {pct(SCORE_GOAL_ORDERS)} of visits.
+        </p>
+        <ul className="list-disc space-y-1.5 pl-5">
+          <li>A visit under {rules.shortVisitMin} min is not credited and earns a quarter of an effective visit.</li>
+          <li>
+            Every full 50 km travelled adds an hour of active time. Clocked in {fmt(stats.totalWorkingMs)}
+            {outsideMs > 0 ? `; ${fmt(outsideMs)} outside your hours isn't counted` : ''}.
+          </li>
+          <li>A visit marked ordered counts until the sale order syncs, up to {ORDER_RECONCILE_DAYS} days after the visit.</li>
+          <li>A first visit after {deadline} within {NEAR_FIRST_VISIT_KM} km of where you clocked in takes 10% off.</li>
+        </ul>
+        <div className="space-y-1.5 border-t border-neutral-100 pt-3">
+          {(
+            [
+              ['poor', 'Under 5'],
+              ['average', '5 to 7'],
+              ['good', '7 to 9'],
+              ['excellent', 'Above 9'],
+            ] as [ScoreBand, string][]
+          ).map(([b, range]) => (
+            <div key={b} className="flex items-center justify-between gap-3">
+              <span className="flex items-center gap-2 font-semibold text-neutral-900">
+                <span className={`h-2.5 w-2.5 rounded-full ${BAND_STYLE[b].fill}`} aria-hidden />
+                {BAND_LABEL[b]}
+              </span>
+              <span className="text-neutral-500">{range}</span>
+            </div>
+          ))}
+        </div>
+      </InfoSheet>
 
       <div className={card}>
         <p className="mb-2 text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">Warnings</p>

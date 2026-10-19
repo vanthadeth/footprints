@@ -12,7 +12,7 @@ import { getPresetRange, localDateKey } from '@/lib/dateRange'
 import { useAttendanceDays } from '@/features/attendanceSummary/useAttendanceDays'
 import { useAppSettings } from '@/hooks/useAppSettings'
 import { uniqueCustomerTarget } from '@/features/attendance/efficiency'
-import { BAND_LABEL, formatScore, meanScore, scoreBand, scoreDay } from '@/features/attendance/effectivenessScore'
+import { BAND_LABEL, BAND_STYLE, formatScore, meanScore, scoreBand, scoreDay } from '@/features/attendance/effectivenessScore'
 import { displayName } from '@/lib/displayName'
 import { groupBy, sortGroupKeys } from '@/lib/groupBy'
 import type { TeamMember } from '@/features/fleet/types'
@@ -109,7 +109,7 @@ export function ReportsTab({ team }: { team: TeamMember[] }) {
             <Kpi label="Avg visits / person" value={kpis.avgVisitsPerUser.toFixed(1)} />
             <Kpi label="Short visits" value={String(kpis.shortVisits)} />
             <Kpi label="Unique customers" value={totalUniqueTarget > 0 ? `${totalUniqueDays} / ${totalUniqueTarget}` : String(totalUniqueDays)} />
-            <Kpi label="Effectiveness" value={teamScore != null ? `${formatScore(teamScore)} / 10` : '—'} good={teamScore != null ? teamScore >= 8 : undefined} />
+            <Kpi label="Effectiveness" value={teamScore != null ? `${formatScore(teamScore)} / 10` : '—'} good={teamScore != null ? teamScore >= 7 : undefined} />
           </div>
           <div className="space-y-2.5 md:grid md:grid-cols-2 md:gap-3 md:space-y-0">
             {deptKeys.map((key) => {
@@ -127,7 +127,7 @@ export function ReportsTab({ team }: { team: TeamMember[] }) {
                     <EffChip value={eff} />
                   </div>
                   <div className="h-1.5 overflow-hidden rounded-full bg-neutral-100">
-                    <div className={`h-full rounded-full ${eff != null && eff >= 8 ? 'bg-status-working' : 'bg-status-warn'}`} style={{ width: `${Math.min(100, (eff ?? 0) * 10)}%` }} />
+                    <div className={`h-full rounded-full ${eff != null ? BAND_STYLE[scoreBand(eff)].fill : 'bg-neutral-200'}`} style={{ width: `${Math.min(100, (eff ?? 0) * 10)}%` }} />
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     <Mini label="Visits" value={String(list.reduce((a, r) => a + r.visitCount, 0))} />
@@ -245,9 +245,9 @@ function Mini({ label, value }: { label: string; value: string }) {
 function EffChip({ value }: { value: number | null }) {
   if (value == null) return null
   const band = scoreBand(value)
-  const tone = band === 'low' ? 'bg-status-danger/10 text-status-danger' : band === 'average' ? 'bg-status-warn/10 text-status-warn' : 'bg-status-working/10 text-status-working'
+  const style = BAND_STYLE[band]
   return (
-    <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${tone}`}>
+    <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${style.soft} ${style.text}`}>
       {formatScore(value)} · {BAND_LABEL[band]}
     </span>
   )

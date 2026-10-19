@@ -24,8 +24,10 @@ describe('DaySummary', () => {
     expect(html).toContain('1 not credited')
     expect(html).toContain('Visits')
     expect(html).toContain('/ 10') // the score
-    expect(html).toContain('Biggest gap')
     expect(html).toContain('What makes up the score')
+    expect(html).not.toContain('Biggest gap') // no information box under the score
+    expect(html).toContain('aria-label="How the effectiveness score works"') // the info button
+    expect(html).not.toContain('How the score works') // the explanation lives in the popup, closed until asked for
     expect(html).toContain('Active time')
     expect(html).toContain('Orders')
     expect(html).toContain('1 of 2 visits')
