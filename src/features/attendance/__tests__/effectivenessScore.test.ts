@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { BAND_LABEL, computeScore, scoreFocus, formatScore, lateNearFirstVisit, meanScore, scoreBand, scoreDay, travelMeters } from '../effectivenessScore'
+import { BAND_LABEL, BAND_STYLE, computeScore, formatScore, lateNearFirstVisit, meanScore, scoreBand, scoreDay, scoreTextClass, travelMeters } from '../effectivenessScore'
 import { DEFAULT_FLAG_RULES } from '../flagRules'
 
 const HOUR = 3_600_000
@@ -61,15 +61,31 @@ describe('computeScore', () => {
 })
 
 describe('scoreBand', () => {
-  it('is low under 5, average 5 up to 8, good 8 to 9, excellent above 9', () => {
-    expect(scoreBand(4.9)).toBe('low')
+  it('is poor under 5, average 5 up to 7, good 7 to 9, excellent above 9', () => {
+    expect(scoreBand(4.9)).toBe('poor')
     expect(scoreBand(5)).toBe('average')
-    expect(scoreBand(7.9)).toBe('average')
-    expect(scoreBand(8)).toBe('good')
+    expect(scoreBand(6.9)).toBe('average')
+    expect(scoreBand(7)).toBe('good')
     expect(scoreBand(9)).toBe('good')
     expect(scoreBand(9.1)).toBe('excellent')
     expect(scoreBand(10)).toBe('excellent')
+    expect(BAND_LABEL.poor).toBe('Poor')
     expect(BAND_LABEL.excellent).toBe('Excellent')
+  })
+
+  it('colours poor red, average amber, good blue, excellent green', () => {
+    expect(BAND_STYLE.poor.text).toBe('text-status-danger')
+    expect(BAND_STYLE.average.text).toBe('text-status-warn')
+    expect(BAND_STYLE.good.text).toBe('text-brand-500')
+    expect(BAND_STYLE.excellent.text).toBe('text-status-working')
+  })
+
+  it('picks the text colour for a score from its band', () => {
+    expect(scoreTextClass(3)).toBe('text-status-danger')
+    expect(scoreTextClass(6)).toBe('text-status-warn')
+    expect(scoreTextClass(8)).toBe('text-brand-500')
+    expect(scoreTextClass(9.5)).toBe('text-status-working')
+    expect(scoreTextClass(null)).toBe('text-neutral-900')
   })
 })
 
@@ -144,36 +160,3 @@ describe('scoreDay', () => {
     expect(byAmount.orderedVisits).toBe(1)
   })
 })
-
-describe('scoreFocus', () => {
-  const day = (over: object) => computeScore({ ...base, effectiveVisits: 10, totalVisits: 10, orderedVisits: 3, activeMs: 4.5 * HOUR, ...over })
-
-  it('is null when every goal is reached', () => {
-    expect(scoreFocus(day({}))).toBeNull()
-  })
-
-  it('points at visits, with how many more it takes', () => {
-    // 3 effective + 4 ineffective = 4 of 10 -> 6 more
-    const f = scoreFocus(day({ effectiveVisits: 3, ineffectiveVisits: 4, totalVisits: 7, orderedVisits: 2 }))
-    expect(f).toEqual({ part: 'visits', need: 6 })
-  })
-
-  it('points at active time, with how much more is needed to reach 50%', () => {
-    // 1 h of 9 h; the goal is 4.5 h -> 3.5 h more
-    const f = scoreFocus(day({ activeMs: HOUR }))
-    expect(f?.part).toBe('hours')
-    expect(f?.need).toBe(3.5 * HOUR)
-  })
-
-  it('points at orders, with how many more ordered visits reach 25%', () => {
-    // 1 of 8 ordered; 25% of 8 is 2 -> 1 more
-    const f = scoreFocus(day({ effectiveVisits: 8, totalVisits: 8, orderedVisits: 1, visitTarget: 8 }))
-    expect(f).toEqual({ part: 'orders', need: 1 })
-  })
-
-  it('counts the travel bonus toward active time', () => {
-    const withTravel = scoreFocus(day({ activeMs: HOUR, travelMeters: 100_000 }))
-    expect(withTravel?.need).toBe(1.5 * HOUR) // 4.5 h goal - (1 h + 2 h travel)
-  })
-})
-

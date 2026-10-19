@@ -18,23 +18,29 @@ import type { FlagRules } from './flagRules'
  * clocked in, so distance doesn't explain it, takes 10% off the score.
  */
 
-export type ScoreBand = 'low' | 'average' | 'good' | 'excellent'
+export type ScoreBand = 'poor' | 'average' | 'good' | 'excellent'
 
-/** Under 5 is low, 5 up to 8 average, 8 to 9 good, above 9 excellent. */
+/** Under 5 is poor, 5 up to 7 average, 7 to 9 good, above 9 excellent. */
 export function scoreBand(score: number): ScoreBand {
-  if (score < 5) return 'low'
-  if (score < 8) return 'average'
+  if (score < 5) return 'poor'
+  if (score < 7) return 'average'
   if (score <= 9) return 'good'
   return 'excellent'
 }
 
-export const BAND_LABEL: Record<ScoreBand, string> = { low: 'Low', average: 'Average', good: 'Good', excellent: 'Excellent' }
+export const BAND_LABEL: Record<ScoreBand, string> = { poor: 'Poor', average: 'Average', good: 'Good', excellent: 'Excellent' }
 
-/** Text colour for a score: red when low, amber average, green good or excellent. */
+/** Each band's colour: poor red, average amber, good blue, excellent green. Text colours have dark-theme overrides. */
+export const BAND_STYLE: Record<ScoreBand, { text: string; fill: string; soft: string }> = {
+  poor: { text: 'text-status-danger', fill: 'bg-status-danger', soft: 'bg-status-danger/10' },
+  average: { text: 'text-status-warn', fill: 'bg-status-warn', soft: 'bg-status-warn/10' },
+  good: { text: 'text-brand-500', fill: 'bg-brand-500', soft: 'bg-brand-50' },
+  excellent: { text: 'text-status-working', fill: 'bg-status-working', soft: 'bg-status-working/10' },
+}
+
+/** Text colour for a score by its band. */
 export function scoreTextClass(score: number | null | undefined): string {
-  if (score == null) return 'text-neutral-900'
-  const band = scoreBand(score)
-  return band === 'low' ? 'text-status-danger' : band === 'average' ? 'text-status-warn' : 'text-status-working'
+  return score == null ? 'text-neutral-900' : BAND_STYLE[scoreBand(score)].text
 }
 
 /** One decimal, like "7.8"; "—" without a score. */
@@ -207,34 +213,4 @@ export function scoreDay(
     workingMs: eff.scheduledPaidMs,
     lateNearFirstVisit: lateNearFirstVisit(sessions, live, day, rules.firstVisitDeadline),
   })
-}
-
-export type ScorePart = 'visits' | 'hours' | 'orders'
-
-/** The part furthest from its goal, and what closing the gap takes. */
-export interface ScoreFocus {
-  part: ScorePart
-  /** visits: more effective visits; hours: more active time in ms; orders: more ordered visits. */
-  need: number
-}
-
-/**
- * What to work on next: the part of the day's score with the biggest gap to its
- * goal (ties go to visits, then hours, then orders), and how much it would take
- * to reach that goal. Null when every part has reached its goal.
- */
-export function scoreFocus(d: DayScore): ScoreFocus | null {
-  const parts: { part: ScorePart; share: number }[] = [
-    { part: 'visits', share: d.visitShare },
-    { part: 'hours', share: d.hoursShare },
-    { part: 'orders', share: d.orderShare },
-  ]
-  const worst = parts.reduce((a, b) => (b.share < a.share ? b : a))
-  if (worst.share >= 1) return null
-  if (worst.part === 'visits') {
-    const counted = d.effectiveVisits + INEFFECTIVE_VISIT_WEIGHT * d.ineffectiveVisits
-    return { part: 'visits', need: Math.max(1, Math.ceil(d.visitTarget * SCORE_GOAL_VISITS - counted)) }
-  }
-  if (worst.part === 'hours') return { part: 'hours', need: Math.max(0, SCORE_GOAL_ACTIVE * d.workingMs - (d.activeMs + d.travelBonusMs)) }
-  return { part: 'orders', need: Math.max(1, Math.ceil(SCORE_GOAL_ORDERS * d.totalVisits - d.orderedVisits)) }
 }
