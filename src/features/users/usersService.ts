@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { callRpc } from '@/lib/rpc'
 
 export type UserStatus = 'active' | 'suspended' | 'discharged'
 
@@ -212,6 +213,20 @@ export const usersService = {
       p_telegram_id: telegramId as string,
     })
     if (error) throw error
+  },
+
+  /**
+   * The IDs a user goes by in the Google Sheet (the ASSIGN_TO / salesperson
+   * cells), which the sheet sync uses to link customers and orders to them.
+   * Super admin only, enforced by app.user_sheet_ids / app.set_user_sheet_ids.
+   */
+  async sheetIds(userId: string): Promise<string[]> {
+    return (await callRpc<string[] | null>('user_sheet_ids', { p_user: userId })) ?? []
+  },
+
+  /** Replaces a user's sheet IDs; the server trims, lower-cases and refuses an ID another user already has. */
+  async setSheetIds(userId: string, ids: string[]): Promise<void> {
+    await callRpc<null>('set_user_sheet_ids', { p_user: userId, p_ids: ids })
   },
 
   /**

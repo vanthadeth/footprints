@@ -1,12 +1,13 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { SegmentedControl } from '@/components/SegmentedControl'
-import { KeyRound, Send, X } from 'lucide-react'
+import { KeyRound, Send, Sheet, X } from 'lucide-react'
 import { BottomSheet } from '@/components/BottomSheet'
 import { useProfile } from '@/features/auth/useProfile'
 import { displayName } from '@/lib/displayName'
 import { haptic } from '@/lib/haptic'
 import { generateSuggestedPassword, PasswordBox } from './PasswordBox'
 import { usersService, type ManagedUser, type Option, type UserStatus } from './usersService'
+import { formatSheetIds, parseSheetIds } from './sheetIds'
 import { flexService, type DayOffMode, type DayOffModeInfo } from '@/features/flex/flexService'
 import { dayDate, rate, shortDate } from '@/features/flex/flex'
 import { scheduleService, type UserClockWindow } from '@/features/schedule/scheduleService'
@@ -30,6 +31,7 @@ interface Props {
 export function UserFormSheet({ open, mode, user, users, roles, departments, onClose, onSaved }: Props) {
   const { profile } = useProfile()
   const isSuperAdmin = profile?.is_super_admin === true
+  const userId = user?.id
   const [fullName, setFullName] = useState('')
   const [nickname, setNickname] = useState('')
   const [email, setEmail] = useState('')
@@ -74,6 +76,15 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
   const [telegramIdSet, setTelegramIdSet] = useState(false)
   const [telegramError, setTelegramError] = useState<string | null>(null)
 
+  // Google Sheet IDs: super-admin-only like the Telegram ID, and likewise its own
+  // immediately-effective action. They are what the sheet sync uses to link this
+  // person's customers and orders to them (see sheet_ids in the sync function).
+  const [sheetIdsText, setSheetIdsText] = useState('')
+  const [sheetIdsLoading, setSheetIdsLoading] = useState(false)
+  const [savingSheetIds, setSavingSheetIds] = useState(false)
+  const [sheetIdsSaved, setSheetIdsSaved] = useState(false)
+  const [sheetIdsError, setSheetIdsError] = useState<string | null>(null)
+
   useEffect(() => {
     if (!open) return
     setError(null)
@@ -97,6 +108,9 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
     setTelegramId((mode === 'edit' && user?.telegramId) || '')
     setTelegramIdSet(false)
     setTelegramError(null)
+    setSheetIdsText('')
+    setSheetIdsSaved(false)
+    setSheetIdsError(null)
     setModeInfo(null)
     setDayOffMode('company')
     setThisCycle(false)
@@ -209,6 +223,44 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
       setError(e instanceof Error ? e.message : 'Failed to set the new password.')
     } finally {
       setSettingPassword(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!open || mode !== 'edit' || !userId || !isSuperAdmin) return
+    let cancelled = false
+    setSheetIdsLoading(true)
+    usersService
+      .sheetIds(userId)
+      .then((ids) => {
+        if (!cancelled) setSheetIdsText(formatSheetIds(ids))
+      })
+      .catch((e) => {
+        if (!cancelled) setSheetIdsError(e instanceof Error ? e.message : 'Couldn’t load the Google Sheet IDs.')
+      })
+      .finally(() => {
+        if (!cancelled) setSheetIdsLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [open, mode, userId, isSuperAdmin])
+
+  async function handleSetSheetIds() {
+    if (!user || savingSheetIds) return
+    setSavingSheetIds(true)
+    setSheetIdsError(null)
+    try {
+      const ids = parseSheetIds(sheetIdsText)
+      await usersService.setSheetIds(user.id, ids)
+      setSheetIdsText(formatSheetIds(ids))
+      haptic('success')
+      setSheetIdsSaved(true)
+    } catch (e) {
+      haptic('error')
+      setSheetIdsError(e instanceof Error ? e.message : 'Failed to save the Google Sheet IDs.')
+    } finally {
+      setSavingSheetIds(false)
     }
   }
 
@@ -470,6 +522,40 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
               Generate New Password
             </button>
           ))}
+
+        {mode === 'edit' && isSuperAdmin && (
+          <div className="rounded-xl2 border border-neutral-200 p-3.5 dark:border-neutral-700">
+            <p className="mb-1.5 text-sm font-medium text-neutral-800">Google Sheet IDs</p>
+            <p className="mb-2 text-xs text-neutral-400">
+              What this person is called in the Google Sheet: the names or IDs in its ASSIGN_TO and salesperson cells, for example seyha or 9af927a9.
+              Separate several with commas. The sync uses them to link their customers and orders to them. Super admin only.
+            </p>
+            {sheetIdsError && <p className="mb-2 rounded-lg bg-status-danger/10 px-3 py-2 text-xs text-status-danger">{sheetIdsError}</p>}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={sheetIdsText}
+                disabled={sheetIdsLoading}
+                onChange={(e) => {
+                  setSheetIdsText(e.target.value)
+                  setSheetIdsSaved(false)
+                }}
+                placeholder={sheetIdsLoading ? 'Loading…' : 'e.g. seyha, 9af927a9'}
+                aria-label="Google Sheet IDs"
+                className="w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400"
+              />
+              <button
+                onClick={handleSetSheetIds}
+                disabled={savingSheetIds || sheetIdsLoading}
+                className="flex shrink-0 items-center gap-1.5 rounded-xl bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white tap-target disabled:opacity-40"
+              >
+                <Sheet className="h-4 w-4" />
+                {savingSheetIds ? 'Saving…' : 'Set'}
+              </button>
+            </div>
+            {sheetIdsSaved && <p className="mt-2 text-xs font-medium text-status-working">Saved. The next sync links their customers and orders.</p>}
+          </div>
+        )}
 
         {mode === 'edit' && isSuperAdmin && (
           <div className="rounded-xl2 border border-neutral-200 p-3.5 dark:border-neutral-700">
