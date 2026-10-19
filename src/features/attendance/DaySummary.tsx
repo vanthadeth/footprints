@@ -6,22 +6,39 @@ import type { FirstVisit, FlagRules } from '@/features/attendance/flagRules'
 import { formatDuration, formatTime } from '@/lib/datetime'
 
 type Tone = 'good' | 'warn' | 'neutral'
-const BAR: Record<Tone, string> = { good: 'bg-status-working', warn: 'bg-status-warn', neutral: 'bg-brand-500' }
+/** Text colours, drawn with currentColor: these have dark-theme overrides, a plain stroke colour wouldn't. */
+const TONE: Record<Tone, string> = { good: 'text-status-working', warn: 'text-status-warn', neutral: 'text-brand-500' }
 
 const card = 'rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card'
 
-/** One line of the effectiveness breakdown: what it is, the figures, and a bar. */
-function Meter({ label, value, pct, tone, note }: { label: string; value: string; pct: number | null; tone: Tone; note?: string }) {
+/** A circular progress ring with `children` (the figure) in the middle. `pct` is clamped to 0-100. */
+function Ring({ pct, tone, size, stroke, children }: { pct: number | null; tone: Tone; size: number; stroke: number; children: ReactNode }) {
+  const r = (size - stroke) / 2
+  const c = 2 * Math.PI * r
+  const filled = (Math.min(100, Math.max(0, pct ?? 0)) / 100) * c
   return (
-    <div>
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="text-[13px] font-semibold text-neutral-900">{label}</span>
-        <span className="text-[13px] font-bold text-neutral-900">{value}</span>
-      </div>
-      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-neutral-100">
-        <div className={`h-full rounded-full ${BAR[tone]}`} style={{ width: `${Math.min(100, Math.max(0, pct ?? 0))}%` }} />
-      </div>
-      {note && <p className="mt-1 text-[11px] text-neutral-500">{note}</p>}
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90" aria-hidden>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={stroke} className="stroke-neutral-100 dark:stroke-neutral-600" />
+        {filled > 0 && (
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={stroke} stroke="currentColor" strokeLinecap="round" strokeDasharray={`${filled} ${c}`} className={TONE[tone]} />
+        )}
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">{children}</div>
+    </div>
+  )
+}
+
+/** One part of the effectiveness score: a ring with its percentage, what it measures, and the figures. */
+function Part({ label, vs, value, pct, tone }: { label: string; vs: string; value: string; pct: number | null; tone: Tone }) {
+  return (
+    <div className="flex min-w-0 flex-col items-center text-center">
+      <Ring pct={pct} tone={tone} size={64} stroke={6}>
+        <span className="text-[14px] font-extrabold text-neutral-900">{pct != null ? `${Math.round(pct)}%` : '—'}</span>
+      </Ring>
+      <p className="mt-2 text-[13px] font-bold text-neutral-900">{label}</p>
+      <p className="text-[11px] text-neutral-500">{vs}</p>
+      <p className="mt-0.5 max-w-full text-[12px] font-semibold text-neutral-900">{value}</p>
     </div>
   )
 }
@@ -96,28 +113,30 @@ export function DaySummary({
       </div>
 
       <div className={card}>
-        <div className="flex items-baseline justify-between">
-          <p className="text-[13px] font-semibold text-neutral-500">Effectiveness</p>
-          <p className="text-[30px] font-extrabold leading-9 text-neutral-900">{score != null ? `${score}%` : '—'}</p>
+        <div className="flex items-center gap-4">
+          <Ring pct={score} tone={score != null && score >= GOOD_EFFECTIVENESS * 100 ? 'good' : 'warn'} size={96} stroke={9}>
+            <span className="text-[24px] font-extrabold text-neutral-900">{score != null ? `${score}%` : '—'}</span>
+          </Ring>
+          <div className="min-w-0">
+            <p className="text-[15px] font-bold text-neutral-900">Effectiveness</p>
+            <p className="text-xs text-neutral-500">Counted visit time ÷ working time in your hours</p>
+          </div>
         </div>
-        <p className="text-[11px] text-neutral-500">Counted visit time ÷ working time in your hours</p>
-        <div className="mt-3 space-y-3.5 border-t border-neutral-100 pt-3">
-          <Meter
-            label="Customers vs target"
+        <div className="mt-4 grid grid-cols-3 gap-2 border-t border-neutral-100 pt-4">
+          <Part
+            label="Customers"
+            vs="vs target"
             value={`${stats.uniqueCustomers} / ${stats.uniqueCustomerTarget}`}
             pct={customerPct}
             tone={stats.uniqueCustomers >= stats.uniqueCustomerTarget ? 'good' : 'warn'}
-            note="Different customers visited; a repeat visit counts once."
           />
-          <Meter
-            label="Active time vs working hours"
-            value={`${fmt(stats.creditedVisitMs)} / ${fmt(stats.scheduledPaidMs)}`}
-            pct={score}
-            tone={score != null && score >= GOOD_EFFECTIVENESS * 100 ? 'good' : 'warn'}
-            note={`Clocked in ${fmt(stats.totalWorkingMs)}${outsideMs > 0 ? ` · ${fmt(outsideMs)} outside your hours isn't counted` : ''}`}
-          />
-          <Meter label="Ordered vs visits" value={`${stats.orderedVisits} / ${stats.totalVisits}`} pct={orderPct} tone="neutral" />
+          <Part label="Active time" vs="vs working hours" value={`${fmt(stats.creditedVisitMs)} / ${fmt(stats.scheduledPaidMs)}`} pct={score} tone={score != null && score >= GOOD_EFFECTIVENESS * 100 ? 'good' : 'warn'} />
+          <Part label="Ordered" vs="vs visits" value={`${stats.orderedVisits} / ${stats.totalVisits}`} pct={orderPct} tone="neutral" />
         </div>
+        <p className="mt-3 text-[11px] text-neutral-500">
+          Clocked in {fmt(stats.totalWorkingMs)}
+          {outsideMs > 0 ? ` · ${fmt(outsideMs)} outside your hours isn't counted` : ''}. A repeat visit to the same customer counts once.
+        </p>
       </div>
 
       <div className={card}>

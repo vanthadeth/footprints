@@ -22,9 +22,13 @@ describe('DaySummary', () => {
     ])
     expect(html).toContain('1 effective')
     expect(html).toContain('1 not credited')
-    expect(html).toContain('Customers vs target')
-    expect(html).toContain('Active time vs working hours')
-    expect(html).toContain('Ordered vs visits')
+    expect(html).toContain('Customers')
+    expect(html).toContain('vs target')
+    expect(html).toContain('Active time')
+    expect(html).toContain('vs working hours')
+    expect(html).toContain('Ordered')
+    expect(html).toContain('vs visits')
+    expect(html).toContain('<circle') // the rings
     expect(html).toContain('1 / 2')
     expect(html).toContain('Long idle gaps') // 57 min between the visits, and 6 h after the last
   })
