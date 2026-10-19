@@ -7,6 +7,7 @@ import { useMyQuota } from '@/features/attendance/useMyQuota'
 import { SelfieCaptureSheet } from '@/features/attendance/SelfieCaptureSheet'
 import { computeJourneyStats } from '@/features/attendance/journeyStats'
 import { effectivenessPercent } from '@/features/attendance/efficiency'
+import { todayDateString } from '@/lib/dateRange'
 import type { DayJourney } from '@/features/attendance/useJourneyHistory'
 import { VisitFlow, type PresetCustomer } from '@/features/visits/VisitFlow'
 import { visitsService, type NearbyCustomer } from '@/features/visits/visitsService'
@@ -47,9 +48,9 @@ export function HomePage() {
   const isVisiting = journey.visit === 'VISITING'
   const firstName = profile ? displayName(profile.full_name, profile.nickname).split(' ')[0] : undefined
 
-  const today: DayJourney = { date: '', attendance: journey.todaysAttendance, visits: journey.todaysVisits }
-  const stats = computeJourneyStats([today], undefined, { breakMinutes: settings.breakMinutes, breakPaid: settings.breakPaid }, settings.flagRules)
-  const effectivenessRatio = effectivenessPercent(stats.totalVisitingMs, stats.totalPaidMs) ?? 0
+  const today: DayJourney = { date: todayDateString(), attendance: journey.todaysAttendance, visits: journey.todaysVisits }
+  const stats = computeJourneyStats([today], undefined, { breakMinutes: settings.breakMinutes, breakPaid: settings.breakPaid, start: settings.workStartTime, end: settings.workEndTime }, settings.flagRules)
+  const effectivenessRatio = effectivenessPercent(stats.creditedVisitMs, stats.scheduledPaidMs) ?? 0
 
   const completedVisits = [...journey.todaysVisits]
     .filter((v) => v.checked_out_at && !v.cancelled_at)

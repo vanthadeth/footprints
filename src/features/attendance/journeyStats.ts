@@ -1,4 +1,4 @@
-import { paidWorkMs, type BreakRule } from './efficiency'
+import { creditedVisitMs, dayEffectiveness, paidWorkMs, uniqueCustomerTarget, type BreakRule } from './efficiency'
 import { DEFAULT_FLAG_RULES, isFlaggedGap, visitSpan, type FlagRules } from './flagRules'
 import type { DayJourney } from './useJourneyHistory'
 
@@ -8,8 +8,16 @@ export interface JourneyStats {
   totalWorkingMs: number
   /** Paid working time: clocked in less the unpaid break (the efficiency denominator). Equals totalWorkingMs when no break rule is given. */
   totalPaidMs: number
+  /** Paid time inside the person's own hours: the efficiency denominator. */
+  scheduledPaidMs: number
   totalVisits: number
   totalVisitingMs: number
+  /** Visit time that counts toward effectiveness: short visits count nothing, long ones are capped. The efficiency numerator. */
+  creditedVisitMs: number
+  /** Unique customers visited, summed over days (a customer seen on two days counts on each). */
+  uniqueCustomers: number
+  /** Unique customers expected over the same days, each day scaled by its scheduled hours. */
+  uniqueCustomerTarget: number
   averageVisitMs: number
   /** Time between consecutive visits. */
   totalGapMs: number
@@ -30,6 +38,10 @@ export interface JourneyStats {
 export function computeJourneyStats(days: DayJourney[], now: number = Date.now(), rule?: BreakRule | null, flags: FlagRules = DEFAULT_FLAG_RULES): JourneyStats {
   let totalWorkingMs = 0
   let totalPaidMs = 0
+  let scheduledMs = 0
+  let creditedMs = 0
+  let uniqueCustomers = 0
+  let uniqueTarget = 0
   let totalVisits = 0
   let totalVisitingMs = 0
   let totalGapMs = 0
@@ -43,7 +55,10 @@ export function computeJourneyStats(days: DayJourney[], now: number = Date.now()
   for (const day of days) {
     if (day.attendance.length > 0) {
       workingDays += 1
-      totalPaidMs += paidWorkMs(day.attendance, now, rule)
+      const paid = paidWorkMs(day.attendance, now, rule)
+      totalPaidMs += paid
+      scheduledMs += dayEffectiveness(day.attendance, day.visits.filter((v) => !v.cancelled_at), day.date, rule, now, flags, paid).scheduledPaidMs
+      uniqueTarget += uniqueCustomerTarget(rule, flags)
       // A day can have more than one clock-in/clock-out session -- sum
       // working time across all of them, not just the first.
       for (const session of day.attendance) {
@@ -57,6 +72,8 @@ export function computeJourneyStats(days: DayJourney[], now: number = Date.now()
     // gap below, same as a still-open visit that gets cancelled outright
     // (cancelVisit) already never appears here at all.
     const sorted = [...day.visits].filter((v) => !v.cancelled_at).sort((a, b) => a.checked_in_at.localeCompare(b.checked_in_at))
+    creditedMs += sorted.reduce((n, v) => n + creditedVisitMs(v, now, flags), 0)
+    uniqueCustomers += new Set(sorted.map((v) => v.customer_id).filter((id): id is string => !!id)).size
     const noteFlaggedGap = (from: number, to: number) => {
       if (isFlaggedGap(from, to, flags.idle)) {
         flaggedGapMs += to - from
@@ -97,8 +114,12 @@ export function computeJourneyStats(days: DayJourney[], now: number = Date.now()
     workingDays,
     totalWorkingMs,
     totalPaidMs,
+    scheduledPaidMs: scheduledMs,
     totalVisits,
     totalVisitingMs,
+    creditedVisitMs: creditedMs,
+    uniqueCustomers,
+    uniqueCustomerTarget: uniqueTarget,
     averageVisitMs: totalVisits > 0 ? totalVisitingMs / totalVisits : 0,
     totalGapMs,
     flaggedGapMs,

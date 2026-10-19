@@ -14,7 +14,7 @@ import { formatDuration, formatTime } from '@/lib/datetime'
 import { getCustomRange, todayDateString } from '@/lib/dateRange'
 import { useTeamDayJourneys } from './useTeamDayJourneys'
 import { useTeamWorkDays } from '@/features/schedule/useTeamWorkDays'
-import { effectivenessPercent } from '@/features/attendance/efficiency'
+import { effectivenessPercent, type BreakRule } from '@/features/attendance/efficiency'
 import { firstVisitStatus, type FlagRules } from '@/features/attendance/flagRules'
 import { useAppSettings } from '@/hooks/useAppSettings'
 import { FleetStatusBadge } from './FleetStatusBadge'
@@ -149,7 +149,7 @@ function MemberCheckInOutCard({
   /** The local day being shown ("YYYY-MM-DD"). */
   date: string
   /** This person's own work day that date (their unpaid break), when loaded. */
-  workDay: { breakMinutes: number; breakPaid: boolean } | undefined
+  workDay: BreakRule | undefined
   /** Minutes late against the person's own schedule (0 = on time), or null while unknown. */
   serverLateMinutes: number | null
 }) {
@@ -158,8 +158,8 @@ function MemberCheckInOutCard({
   const sessions = day?.attendance ?? []
   const firstSession = sessions[0] ?? null
   const lastSession = sessions[sessions.length - 1] ?? null
-  const stats = computeJourneyStats(day ? [day] : [], undefined, workDay ? { breakMinutes: workDay.breakMinutes, breakPaid: workDay.breakPaid } : null, flagRules)
-  const effectivenessRatio = effectivenessPercent(stats.totalVisitingMs, stats.totalPaidMs) ?? 0
+  const stats = computeJourneyStats(day ? [day] : [], undefined, workDay ?? null, flagRules)
+  const effectivenessRatio = effectivenessPercent(stats.creditedVisitMs, stats.scheduledPaidMs) ?? 0
   // Only overrides the placeholder when there's no attendance at all that
   // day -- an actual clock-in/out session is ground truth and always wins.
   const onLeaveLabel = !day && leaveType ? leaveType === 'flex' ? 'On a day off' : `On ${LEAVE_TYPE_LABEL[leaveType]} Leave` : null
@@ -218,11 +218,12 @@ function MemberCheckInOutCard({
       </div>
 
       {day && (
-        <div className="mt-3 grid grid-cols-4 gap-2 border-t border-neutral-100 pt-3">
+        <div className="mt-3 grid grid-cols-5 gap-2 border-t border-neutral-100 pt-3">
           <SummaryStat label="Working" value={formatDuration(stats.totalWorkingMs)} />
           <SummaryStat label="Active" value={formatDuration(stats.totalVisitingMs)} />
           <SummaryStat label="Idle" value={formatDuration(stats.totalGapMs)} />
           <SummaryStat label="Effective" value={`${effectivenessRatio}%`} />
+          <SummaryStat label="Customers" value={`${stats.uniqueCustomers}/${stats.uniqueCustomerTarget}`} />
         </div>
       )}
 

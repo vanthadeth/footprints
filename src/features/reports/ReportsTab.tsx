@@ -10,7 +10,7 @@ import { formatDuration } from '@/lib/datetime'
 import { getPresetRange, localDateKey } from '@/lib/dateRange'
 import { useAttendanceDays } from '@/features/attendanceSummary/useAttendanceDays'
 import { useAppSettings } from '@/hooks/useAppSettings'
-import { effectiveness, GOOD_EFFECTIVENESS } from '@/features/attendance/efficiency'
+import { effectiveness, GOOD_EFFECTIVENESS, serverDayEffectiveness } from '@/features/attendance/efficiency'
 import { displayName } from '@/lib/displayName'
 import { groupBy, sortGroupKeys } from '@/lib/groupBy'
 import type { TeamMember } from '@/features/fleet/types'
@@ -38,19 +38,34 @@ export function ReportsTab({ team }: { team: TeamMember[] }) {
   const paidMsByUser: Record<string, number> | undefined = withinServerWindow && dayRows.length ? {} : undefined
   if (paidMsByUser) for (const r of dayRows) paidMsByUser[r.userId] = (paidMsByUser[r.userId] ?? 0) + r.workedMinutes * 60_000
 
+  // Paid time inside each person's own hours, and the unique customers expected, from the same day feed.
+  const scheduledByUser: Record<string, { scheduledPaidMs: number; uniqueTarget: number }> | undefined = withinServerWindow && dayRows.length ? {} : undefined
+  if (scheduledByUser) {
+    const now = Date.now()
+    for (const r of dayRows) {
+      const dayVisits = visits.filter((v) => v.user_id === r.userId && !v.cancelled_at && localDateKey(v.checked_in_at) === r.day)
+      const e = serverDayEffectiveness(r, dayVisits, now, flagRules)
+      const acc = scheduledByUser[r.userId] ?? { scheduledPaidMs: 0, uniqueTarget: 0 }
+      scheduledByUser[r.userId] = { scheduledPaidMs: acc.scheduledPaidMs + e.scheduledPaidMs, uniqueTarget: acc.uniqueTarget + e.uniqueTarget }
+    }
+  }
+
   const rows = computeUserReportRows(
     team.map((m) => ({ id: m.id, fullName: m.fullName, nickname: m.nickname, departmentId: m.departmentId, departmentName: m.departmentName })),
     attendance,
     visits,
     undefined,
     paidMsByUser,
-    flagRules.forgottenCapMin
+    flagRules,
+    scheduledByUser
   )
   const kpis = computeVisitKpis(visits, team.length, undefined, shortVisitThresholdMinutes, flagRules.forgottenCapMin)
   const groups = groupBy(rows, (r) => r.departmentName ?? NO_DEPARTMENT)
   const deptKeys = sortGroupKeys(groups.keys(), NO_DEPARTMENT)
-  const totalPaid = rows.reduce((a, r) => a + r.totalPaidMs, 0)
-  const totalVisit = rows.reduce((a, r) => a + r.totalVisitMs, 0)
+  const totalScheduled = rows.reduce((a, r) => a + r.scheduledPaidMs, 0)
+  const totalCredited = rows.reduce((a, r) => a + r.creditedVisitMs, 0)
+  const totalUniqueDays = rows.reduce((a, r) => a + r.uniqueCustomerDays, 0)
+  const totalUniqueTarget = rows.reduce((a, r) => a + r.uniqueCustomerTarget, 0)
   const historyRow = rows.find((r) => r.userId === historyUserId) ?? null
 
   return (
@@ -77,19 +92,20 @@ export function ReportsTab({ team }: { team: TeamMember[] }) {
         </div>
       ) : view === 'team' ? (
         <>
-          <div className="grid grid-cols-2 gap-2.5 md:grid-cols-5">
+          <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3">
             <Kpi label="Working days" value={String(rows.reduce((s, r) => s + r.workingDays, 0))} />
             <Kpi label="Total visits" value={String(kpis.totalVisits)} />
             <Kpi label="Avg visits / person" value={kpis.avgVisitsPerUser.toFixed(1)} />
             <Kpi label="Short visits" value={String(kpis.shortVisits)} />
-            <Kpi label="Effectiveness" value={`${Math.round(effectiveness(totalVisit, totalPaid) * 100)}%`} good={effectiveness(totalVisit, totalPaid) >= GOOD_EFFECTIVENESS} />
+            <Kpi label="Unique customers" value={totalUniqueTarget > 0 ? `${totalUniqueDays} / ${totalUniqueTarget}` : String(totalUniqueDays)} />
+            <Kpi label="Effectiveness" value={`${Math.round(effectiveness(totalCredited, totalScheduled) * 100)}%`} good={effectiveness(totalCredited, totalScheduled) >= GOOD_EFFECTIVENESS} />
           </div>
           <div className="space-y-2.5 md:grid md:grid-cols-2 md:gap-3 md:space-y-0">
             {deptKeys.map((key) => {
               const list = groups.get(key)!
               const work = list.reduce((a, r) => a + r.totalWorkingMs, 0)
               const visit = list.reduce((a, r) => a + r.totalVisitMs, 0)
-              const eff = effectiveness(visit, list.reduce((a, r) => a + r.totalPaidMs, 0))
+              const eff = effectiveness(list.reduce((a, r) => a + r.creditedVisitMs, 0), list.reduce((a, r) => a + r.scheduledPaidMs, 0))
               return (
                 <div key={key} className="space-y-3 rounded-2xl bg-white p-3.5 shadow-card">
                   <div className="flex items-center gap-2">
@@ -117,8 +133,8 @@ export function ReportsTab({ team }: { team: TeamMember[] }) {
           {deptKeys.map((key) => {
             const list = groups.get(key)!
             const eff = effectiveness(
-              list.reduce((a, r) => a + r.totalVisitMs, 0),
-              list.reduce((a, r) => a + r.totalPaidMs, 0)
+              list.reduce((a, r) => a + r.creditedVisitMs, 0),
+              list.reduce((a, r) => a + r.scheduledPaidMs, 0)
             )
             return (
               <section key={key} className="space-y-2">
@@ -156,7 +172,7 @@ export function ReportsTab({ team }: { team: TeamMember[] }) {
 
 function UserCard({ row, onFootprints }: { row: UserReportRow; onFootprints: () => void }) {
   const name = displayName(row.fullName, row.nickname)
-  const eff = effectiveness(row.totalVisitMs, row.totalPaidMs)
+  const eff = effectiveness(row.creditedVisitMs, row.scheduledPaidMs)
   const initials = row.fullName
     .split(' ')
     .map((w) => w[0])
@@ -180,6 +196,9 @@ function UserCard({ row, onFootprints }: { row: UserReportRow; onFootprints: () 
         <Mini label="Visit time" value={formatDuration(row.totalVisitMs)} />
         <Mini label="Avg visit" value={row.visitCount ? formatDuration(row.avgVisitMs) : '—'} />
         <Mini label="Idle" value={formatDuration(row.totalGapMs)} />
+      </div>
+      <div className="grid grid-cols-4 gap-1.5">
+        <Mini label="Customers" value={row.uniqueCustomerTarget > 0 ? `${row.uniqueCustomerDays} / ${row.uniqueCustomerTarget}` : String(row.uniqueCustomerDays)} />
       </div>
       <button
         onClick={onFootprints}

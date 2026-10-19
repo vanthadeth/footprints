@@ -487,7 +487,7 @@ export const km: TranslationKey = {
     summaryTab: 'សង្ខេប',
     footprintsTab: 'ដានជើង',
     effective: 'ប្រសិទ្ធភាព',
-    effectiveSub: 'ពេលសកម្ម ÷ ពេលចូលម៉ោង',
+    effectiveSub: 'ពេលទស្សនកិច្ចដែលរាប់ ÷ ពេលក្នុងម៉ោងការងារ',
     clockedInFor: 'ចូលម៉ោង',
     gaps: 'ចន្លោះ',
     visitsSub: 'ក្នុងថ្ងៃនេះ',

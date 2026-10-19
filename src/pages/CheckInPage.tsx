@@ -78,9 +78,9 @@ export function CheckInPage() {
   // Multiple clock-in/clock-out sessions are allowed in one day (a lunch
   // break, a split shift) -- stats and the hero times below are summed
   // across every session today, not just whichever one is currently open.
-  const today: DayJourney = { date: '', attendance: journey.todaysAttendance, visits: journey.todaysVisits }
-  const stats = computeJourneyStats([today], undefined, { breakMinutes: settings.breakMinutes, breakPaid: settings.breakPaid }, settings.flagRules)
-  const effectivenessRatio = effectivenessPercent(stats.totalVisitingMs, stats.totalPaidMs) ?? 0
+  const today: DayJourney = { date: todayDateString(), attendance: journey.todaysAttendance, visits: journey.todaysVisits }
+  const stats = computeJourneyStats([today], undefined, { breakMinutes: settings.breakMinutes, breakPaid: settings.breakPaid, start: settings.workStartTime, end: settings.workEndTime }, settings.flagRules)
+  const effectivenessRatio = effectivenessPercent(stats.creditedVisitMs, stats.scheduledPaidMs) ?? 0
 
   const minutesNow = (() => {
     const [h, m] = formatTime(new Date().toISOString()).split(':').map(Number)

@@ -479,7 +479,7 @@ export const en = {
     summaryTab: 'Summary',
     footprintsTab: 'Footprints',
     effective: 'Effective',
-    effectiveSub: 'Active ÷ clocked-in time',
+    effectiveSub: 'Counted visit time ÷ time in your hours',
     clockedInFor: 'Clocked in',
     gaps: 'Gaps',
     visitsSub: 'On this day',

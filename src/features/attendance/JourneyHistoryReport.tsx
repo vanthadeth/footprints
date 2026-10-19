@@ -64,8 +64,8 @@ export function JourneyHistoryReport({ userId, interactive, subtitle }: { userId
   const appSettings = useAppSettings()
   // This person's own shift and break on this date (not the signed-in person's, and not today's).
   const workDay = useTeamWorkDays(selectedDate)[userId ?? '']
-  const stats = computeJourneyStats(day ? [day] : [], undefined, workDay ? { breakMinutes: workDay.breakMinutes, breakPaid: workDay.breakPaid } : null, appSettings.flagRules)
-  const effectiveness = effectivenessPercent(stats.totalVisitingMs, stats.totalPaidMs) ?? 0
+  const stats = computeJourneyStats(day ? [day] : [], undefined, workDay ?? null, appSettings.flagRules)
+  const effectiveness = effectivenessPercent(stats.creditedVisitMs, stats.scheduledPaidMs) ?? 0
   const firstVisit = firstVisitStatus(day?.visits ?? [], !!day?.attendance.length, selectedDate, appSettings.flagRules.firstVisitDeadline, Date.now())
   const flags = [...new Set((day?.visits ?? []).flatMap((v) => v.flags ?? []))]
   const liveVisits = (day?.visits ?? []).filter((v) => !v.cancelled_at)
@@ -141,6 +141,7 @@ export function JourneyHistoryReport({ userId, interactive, subtitle }: { userId
                   <Line label={t('footprints.clockedInFor')} value={formatDuration(stats.totalWorkingMs, language)} />
                   <Line label={t('checkIn.statActive')} value={formatDuration(stats.totalVisitingMs, language)} tone="text-brand-500" />
                   <Line label={t('footprints.gaps')} value={formatDuration(stats.totalGapMs, language)} />
+                  {stats.uniqueCustomers > 0 && <Line label="Customers" value={`${stats.uniqueCustomers} / ${stats.uniqueCustomerTarget}`} tone={stats.uniqueCustomers >= stats.uniqueCustomerTarget ? 'text-status-working' : undefined} />}
                   {stats.flaggedGapMs > 0 && <Line label="Flagged idle" value={`${formatDuration(stats.flaggedGapMs, language)} · ${stats.flaggedGaps}×`} tone="text-status-warn" />}
                   {firstVisit.kind === 'late' && <Line label="First visit" value={formatTime(new Date(firstVisit.at).toISOString())} tone="text-status-warn" />}
                   {firstVisit.kind === 'none' && <Line label="First visit" value={`None by ${appSettings.flagRules.firstVisitDeadline.slice(0, 5)}`} tone="text-status-warn" />}

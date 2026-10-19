@@ -1,10 +1,24 @@
-import { APP_TIMEZONE, DEFAULT_FIRST_VISIT_DEADLINE, DEFAULT_FORGOTTEN_VISIT_CAP_MINUTES, DEFAULT_IDLE_ALERT_THRESHOLD_MINUTES, DEFAULT_LUNCH_IDLE_THRESHOLD_MINUTES, DEFAULT_LUNCH_WINDOW_END, DEFAULT_LUNCH_WINDOW_START } from '@/lib/config'
+import {
+  APP_TIMEZONE,
+  DEFAULT_DAILY_UNIQUE_CUSTOMER_TARGET,
+  DEFAULT_FIRST_VISIT_DEADLINE,
+  DEFAULT_FORGOTTEN_VISIT_CAP_MINUTES,
+  DEFAULT_FULL_DAY_HOURS,
+  DEFAULT_IDLE_ALERT_THRESHOLD_MINUTES,
+  DEFAULT_LUNCH_IDLE_THRESHOLD_MINUTES,
+  DEFAULT_LUNCH_WINDOW_END,
+  DEFAULT_LUNCH_WINDOW_START,
+  DEFAULT_SHORT_VISIT_THRESHOLD_MINUTES,
+  DEFAULT_VISIT_CREDIT_CAP_MINUTES,
+} from '@/lib/config'
 import { localDateKey } from '@/lib/dateRange'
 
 /**
  * The flag rules, in one place. The manager alert (app.attendance_alerts via
  * app.idle_threshold_minutes), app.check_in and app._auto_close_session apply
- * the same rules on the server; every screen reads them from here.
+ * the same rules on the server; every screen reads them from here. The
+ * effectiveness numbers (what a visit is worth, the daily customer target) ride
+ * along because every screen that needs the flag rules needs them too.
  */
 
 /** How long a gap must be to be flagged idle, and the lunch window that makes it longer. Times are "HH:MM[:SS]" Asia/Phnom_Penh. */
@@ -21,6 +35,13 @@ export interface FlagRules {
   forgottenCapMin: number
   /** A first customer visit of the day after this time is flagged. */
   firstVisitDeadline: string
+  /** A completed visit shorter than this counts nothing toward effectiveness. */
+  shortVisitMin: number
+  /** A visit counts toward effectiveness for at most this many minutes. */
+  visitCreditCapMin: number
+  /** Unique customers expected on a full day of `fullDayHours`. */
+  uniqueTarget: number
+  fullDayHours: number
 }
 
 export const DEFAULT_FLAG_RULES: FlagRules = {
@@ -32,6 +53,10 @@ export const DEFAULT_FLAG_RULES: FlagRules = {
   },
   forgottenCapMin: DEFAULT_FORGOTTEN_VISIT_CAP_MINUTES,
   firstVisitDeadline: DEFAULT_FIRST_VISIT_DEADLINE,
+  shortVisitMin: DEFAULT_SHORT_VISIT_THRESHOLD_MINUTES,
+  visitCreditCapMin: DEFAULT_VISIT_CREDIT_CAP_MINUTES,
+  uniqueTarget: DEFAULT_DAILY_UNIQUE_CUSTOMER_TARGET,
+  fullDayHours: DEFAULT_FULL_DAY_HOURS,
 }
 
 const minutesOf = (hms: string) => {
@@ -109,6 +134,10 @@ export interface FlagRuleSettings {
   lunchIdleThresholdMinutes: number
   forgottenVisitCapMinutes: number
   firstVisitDeadline: string
+  shortVisitThresholdMinutes: number
+  visitCreditCapMinutes: number
+  dailyUniqueCustomerTarget: number
+  dailyWorkingHours: number
 }
 
 /** The rules from the live settings (useAppSettings). */
@@ -117,5 +146,9 @@ export function flagRulesOf(s: FlagRuleSettings): FlagRules {
     idle: { idleMin: s.idleAlertThresholdMinutes, lunchStart: s.lunchWindowStart, lunchEnd: s.lunchWindowEnd, lunchMin: s.lunchIdleThresholdMinutes },
     forgottenCapMin: s.forgottenVisitCapMinutes,
     firstVisitDeadline: s.firstVisitDeadline,
+    shortVisitMin: s.shortVisitThresholdMinutes,
+    visitCreditCapMin: s.visitCreditCapMinutes,
+    uniqueTarget: s.dailyUniqueCustomerTarget,
+    fullDayHours: s.dailyWorkingHours,
   }
 }

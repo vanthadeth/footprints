@@ -2,8 +2,8 @@ import type { AttendanceRow, VisitRow } from '@/features/attendance/types'
 import type { FleetMemberSnapshot } from '@/features/fleet/types'
 import { formatTime } from '@/lib/datetime'
 import { localDateKey } from '@/lib/dateRange'
-import { DEFAULT_FORGOTTEN_VISIT_CAP_MINUTES } from '@/lib/config'
-import { visitSpan } from '@/features/attendance/flagRules'
+import { creditedVisitMs } from '@/features/attendance/efficiency'
+import { DEFAULT_FLAG_RULES, visitSpan, type FlagRules } from '@/features/attendance/flagRules'
 import { firstClockIn, workedMs } from '@/features/attendance/sessions'
 
 export interface LiveFleetKpis {
@@ -82,7 +82,7 @@ export interface VisitKpis {
 }
 
 /** The date-filterable half of the Dashboard (Visits + Customer Coverage sections). */
-export function computeVisitKpis(visits: VisitRow[], userCount: number, now: number = Date.now(), shortUnderMinutes: number = 0, capMin: number = DEFAULT_FORGOTTEN_VISIT_CAP_MINUTES): VisitKpis {
+export function computeVisitKpis(visits: VisitRow[], userCount: number, now: number = Date.now(), shortUnderMinutes: number = 0, capMin: number = DEFAULT_FLAG_RULES.forgottenCapMin): VisitKpis {
   let totalVisitingMs = 0
   let unassignedVisits = 0
   let autoCheckouts = 0
@@ -125,8 +125,15 @@ export interface UserReportRow {
   lastClockOut: string | null
   /** Time clocked in. */
   totalWorkingMs: number
-  /** Paid working time (clocked in less the unpaid break) -- the efficiency denominator; falls back to totalWorkingMs when the server's figure isn't available. */
+  /** Paid working time (clocked in less the unpaid break); falls back to totalWorkingMs when the server's figure isn't available. */
   totalPaidMs: number
+  /** Paid time inside the person's own hours -- the efficiency denominator; falls back to totalPaidMs when the server's days aren't available. */
+  scheduledPaidMs: number
+  /** Visit time that counts toward effectiveness (short visits nothing, long ones capped) -- the numerator. */
+  creditedVisitMs: number
+  /** Unique customers per day, summed over days (a customer seen on two days counts on each), and the number expected over the same days. */
+  uniqueCustomerDays: number
+  uniqueCustomerTarget: number
   visitCount: number
   totalVisitMs: number
   avgVisitMs: number
@@ -144,7 +151,9 @@ export function computeUserReportRows(
   visitRows: VisitRow[],
   now: number = Date.now(),
   paidMsByUser?: Record<string, number>,
-  capMin: number = DEFAULT_FORGOTTEN_VISIT_CAP_MINUTES
+  rules: FlagRules = DEFAULT_FLAG_RULES,
+  /** Per person, from the server's day feed (serverDayEffectiveness); absent when it can't be had. */
+  scheduledByUser?: Record<string, { scheduledPaidMs: number; uniqueTarget: number }>
 ): UserReportRow[] {
   return members.map((member) => {
     const myAttendance = attendanceRows.filter((a) => a.user_id === member.id)
@@ -166,16 +175,18 @@ export function computeUserReportRows(
       const sorted = [...dayVisits].sort((a, b) => a.checked_in_at.localeCompare(b.checked_in_at))
       for (let i = 1; i < sorted.length; i++) {
         if (!sorted[i - 1].checked_out_at) continue
-        const gap = new Date(sorted[i].checked_in_at).getTime() - visitSpan(sorted[i - 1], now, capMin)[1]
+        const gap = new Date(sorted[i].checked_in_at).getTime() - visitSpan(sorted[i - 1], now, rules.forgottenCapMin)[1]
         if (gap > 0) totalGapMs += gap
       }
     }
 
     const totalVisitMs = myVisits.reduce((sum, v) => {
-      const [a, b] = visitSpan(v, now, capMin)
+      const [a, b] = visitSpan(v, now, rules.forgottenCapMin)
       return sum + (b - a)
     }, 0)
 
+    const creditedMs = myVisits.reduce((sum, v) => sum + creditedVisitMs(v, now, rules), 0)
+    const uniqueCustomerDays = [...byDay.values()].reduce((n, dayVisits) => n + new Set(dayVisits.map((v) => v.customer_id).filter((id): id is string => !!id)).size, 0)
     const sortedAttendance = [...myAttendance].sort((a, b) => a.clock_in_at.localeCompare(b.clock_in_at))
     const lastClockOuts = myAttendance.filter((a) => a.clock_out_at).sort((a, b) => b.clock_out_at!.localeCompare(a.clock_out_at!))
 
@@ -190,6 +201,10 @@ export function computeUserReportRows(
       lastClockOut: lastClockOuts[0] ? formatTime(lastClockOuts[0].clock_out_at) : null,
       totalWorkingMs,
       totalPaidMs: paidMsByUser?.[member.id] ?? totalWorkingMs,
+      scheduledPaidMs: scheduledByUser?.[member.id]?.scheduledPaidMs ?? paidMsByUser?.[member.id] ?? totalWorkingMs,
+      creditedVisitMs: creditedMs,
+      uniqueCustomerDays,
+      uniqueCustomerTarget: scheduledByUser?.[member.id]?.uniqueTarget ?? workDayKeys.size * rules.uniqueTarget,
       visitCount: myVisits.length,
       totalVisitMs,
       avgVisitMs: myVisits.length > 0 ? totalVisitMs / myVisits.length : 0,

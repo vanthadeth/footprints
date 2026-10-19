@@ -23,7 +23,7 @@ import { useLanguage } from '@/i18n/LanguageContext'
 import { getPresetRange, localDateKey, todayDateString } from '@/lib/dateRange'
 import { useAttendanceDays } from '@/features/attendanceSummary/useAttendanceDays'
 import { useTeamWorkDays } from '@/features/schedule/useTeamWorkDays'
-import { effectivenessPercent, paidWorkMs } from '@/features/attendance/efficiency'
+import { creditedVisitMs, dayEffectiveness, effectivenessPercent, GOOD_EFFECTIVENESS, serverDayEffectiveness } from '@/features/attendance/efficiency'
 import { visitSpan } from '@/features/attendance/flagRules'
 import { formatDuration, formatTime } from '@/lib/datetime'
 
@@ -107,11 +107,15 @@ export function TeamHomePage() {
     const [a, b] = visitSpan(v, now, settings.flagRules.forgottenCapMin)
     return b - a
   }
-  const weekVisitMs = week.visits.reduce((n, v) => n + visitMsOf(v), 0)
   // Paid working time (clocked in less the unpaid break) as the server counts it, per person per day.
   const weekDays = useAttendanceDays(localDateKey(weekRange.startIso), today, ids)
-  const weekPaidMs = weekDays.rows.reduce((n, r) => n + r.workedMinutes * 60_000, 0)
-  const weekEff = effectivenessPercent(weekVisitMs, weekPaidMs) ?? 0
+  // Paid time inside each person's own hours that day; the server rows give first in / last out and the hours.
+  const weekScheduledMs = weekDays.rows.reduce((n, r) => {
+    const visits = week.visits.filter((v) => v.user_id === r.userId && !v.cancelled_at && localDateKey(v.checked_in_at) === r.day)
+    return n + serverDayEffectiveness(r, visits, now, settings.flagRules).scheduledPaidMs
+  }, 0)
+  const weekCreditedMs = week.visits.filter((v) => !v.cancelled_at).reduce((n, v) => n + creditedVisitMs(v, now, settings.flagRules), 0)
+  const weekEff = effectivenessPercent(weekCreditedMs, weekScheduledMs) ?? 0
 
   const count = (k: Filter) => (k === 'all' ? field.length : field.filter((s) => statusOf(s) === k).length)
   const shown = field.filter((s) => filter === 'all' || statusOf(s) === filter)
@@ -221,7 +225,8 @@ export function TeamHomePage() {
           const lastOut = lastClockOut(s.sessions)
           const visitMs = done.reduce((n, v) => n + visitMsOf(v), 0)
           const own = shiftOf(s.member.id)
-          const eff = effectivenessPercent(visitMs, paidWorkMs(s.sessions, now, workDays[s.member.id]))
+          const counted = dayEffectiveness(s.sessions, done, today, workDays[s.member.id], now, settings.flagRules)
+          const eff = effectivenessPercent(counted.creditedMs, counted.scheduledPaidMs)
           const sub =
             st === 'visiting' && s.openVisit
               ? `On a visit · ${formatDuration(now - Date.parse(s.openVisit.checked_in_at), language)}`
@@ -264,7 +269,7 @@ export function TeamHomePage() {
                 </span>
                 <span className="flex items-baseline justify-between gap-2">
                   <span className={`truncate text-xs ${st === 'notin' ? 'font-semibold text-status-danger' : 'text-neutral-500'}`}>{sub}</span>
-                  {eff != null && <span className={`shrink-0 text-xs font-bold ${eff >= 25 ? 'text-status-working' : 'text-status-warn'}`}>{eff}% effective</span>}
+                  {eff != null && <span className={`shrink-0 text-xs font-bold ${eff >= GOOD_EFFECTIVENESS * 100 ? 'text-status-working' : 'text-status-warn'}`}>{eff}% effective</span>}
                 </span>
                 {segs.length > 0 && <DayBar segs={segs} from={rangeFrom} to={rangeTo} label={barLabel} className="mt-2.5" />}
               </span>

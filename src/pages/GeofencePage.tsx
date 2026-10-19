@@ -225,6 +225,18 @@ function Geofence() {
               sub="When a visit is closed at clock-out or end of day; the rest is a gap"
               control={<Stepper label="Forgotten visit cap" value={settings.forgottenVisitCapMinutes} step={5} min={5} max={120} format={(v) => `${v} min`} onChange={(v) => patch({ forgottenVisitCapMinutes: v })} />}
             />
+            <AdminRow
+              icon={Timer}
+              label="A visit counts toward effectiveness for at most"
+              sub="Visits shorter than the short-visit limit count nothing; longer time isn't credited"
+              control={<Stepper label="Visit credit cap" value={settings.visitCreditCapMinutes} step={5} min={10} max={240} format={(v) => `${v} min`} onChange={(v) => patch({ visitCreditCapMinutes: v })} />}
+            />
+            <AdminRow
+              icon={Store}
+              label="Unique customers expected per full day"
+              sub="A shorter day, such as a half-day Saturday, is scaled by its hours"
+              control={<Stepper label="Daily unique customers" value={settings.dailyUniqueCustomerTarget} step={1} min={1} max={50} format={(v) => `${v}`} onChange={(v) => patch({ dailyUniqueCustomerTarget: v })} />}
+            />
           </AdminGroup>
           {lunchInvalid && <p className="rounded-xl bg-status-danger/10 px-3 py-2 text-sm text-status-danger">The lunch window must end after it starts.</p>}
           <section aria-label="Save location every">

@@ -12,8 +12,7 @@ import { useAppSettings } from '@/hooks/useAppSettings'
 import { todayDateString } from '@/lib/dateRange'
 import type { FleetMemberSnapshot } from './types'
 import { firstClockIn, lastClockOut, workedMs } from '@/features/attendance/sessions'
-import { effectivenessPercent, paidWorkMs } from '@/features/attendance/efficiency'
-import { visitSpan } from '@/features/attendance/flagRules'
+import { dayEffectiveness, effectivenessPercent, GOOD_EFFECTIVENESS } from '@/features/attendance/efficiency'
 import { useTeamWorkDays } from '@/features/schedule/useTeamWorkDays'
 
 const DOT: Record<FleetMemberSnapshot['status'], string> = { VISITING: 'bg-status-visiting', IDLING: 'bg-earth-500', OFF: 'bg-neutral-400' }
@@ -61,11 +60,8 @@ export function TeamTodayList({ snapshots }: { snapshots: FleetMemberSnapshot[] 
         const shiftEnd = atLocal(day, workDay?.end ?? settings.workEndTime)
         const firstIn = firstClockIn(s.sessions)
         const lastOut = lastClockOut(s.sessions)
-        const visitMs = done.reduce((n, v) => {
-          const [a, b] = visitSpan(v, now, settings.flagRules.forgottenCapMin)
-          return n + (b - a)
-        }, 0)
-        const eff = effectivenessPercent(visitMs, paidWorkMs(s.sessions, now, workDay))
+        const counted = dayEffectiveness(s.sessions, done, day, workDay, now, settings.flagRules)
+        const eff = effectivenessPercent(counted.creditedMs, counted.scheduledPaidMs)
         const last = done[done.length - 1]
         const nowTitle =
           s.status === 'VISITING' && s.openVisit
@@ -116,7 +112,7 @@ export function TeamTodayList({ snapshots }: { snapshots: FleetMemberSnapshot[] 
                     ].map(([l, v]) => (
                       <span key={l}>
                         <span className="block text-[11px] text-neutral-500">{l}</span>
-                        <span className={`block text-sm font-extrabold ${l === 'Effective' && eff != null ? (eff >= 25 ? 'text-status-working' : 'text-status-warn') : 'text-neutral-900'}`}>{v}</span>
+                        <span className={`block text-sm font-extrabold ${l === 'Effective' && eff != null ? (eff >= GOOD_EFFECTIVENESS * 100 ? 'text-status-working' : 'text-status-warn') : 'text-neutral-900'}`}>{v}</span>
                       </span>
                     ))}
                   </div>

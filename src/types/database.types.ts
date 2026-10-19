@@ -30,6 +30,8 @@ export type Database = {
           default_sick_leave_days: number
           first_visit_deadline: string
           forgotten_visit_cap_minutes: number
+          visit_credit_cap_minutes: number
+          daily_unique_customer_target: number
           flex_saturday_rate: number
           flex_sunday_rate: number
           id: boolean
@@ -77,6 +79,8 @@ export type Database = {
           default_sick_leave_days?: number
           first_visit_deadline?: string
           forgotten_visit_cap_minutes?: number
+          visit_credit_cap_minutes?: number
+          daily_unique_customer_target?: number
           flex_saturday_rate?: number
           flex_sunday_rate?: number
           id?: boolean
@@ -124,6 +128,8 @@ export type Database = {
           default_sick_leave_days?: number
           first_visit_deadline?: string
           forgotten_visit_cap_minutes?: number
+          visit_credit_cap_minutes?: number
+          daily_unique_customer_target?: number
           flex_saturday_rate?: number
           flex_sunday_rate?: number
           id?: boolean
