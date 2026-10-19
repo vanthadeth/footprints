@@ -12,7 +12,7 @@ import { useAppSettings } from '@/hooks/useAppSettings'
 import { todayDateString } from '@/lib/dateRange'
 import type { FleetMemberSnapshot } from './types'
 import { firstClockIn, lastClockOut, workedMs } from '@/features/attendance/sessions'
-import { dayEffectiveness, effectivenessPercent, GOOD_EFFECTIVENESS } from '@/features/attendance/efficiency'
+import { formatScore, scoreDay, scoreTextClass } from '@/features/attendance/effectivenessScore'
 import { useTeamWorkDays } from '@/features/schedule/useTeamWorkDays'
 
 const DOT: Record<FleetMemberSnapshot['status'], string> = { VISITING: 'bg-status-visiting', IDLING: 'bg-earth-500', OFF: 'bg-neutral-400' }
@@ -60,8 +60,7 @@ export function TeamTodayList({ snapshots }: { snapshots: FleetMemberSnapshot[] 
         const shiftEnd = atLocal(day, workDay?.end ?? settings.workEndTime)
         const firstIn = firstClockIn(s.sessions)
         const lastOut = lastClockOut(s.sessions)
-        const counted = dayEffectiveness(s.sessions, done, day, workDay, now, settings.flagRules)
-        const eff = effectivenessPercent(counted.creditedMs, counted.scheduledPaidMs)
+        const score = scoreDay(s.sessions, done, day, workDay, now, settings.flagRules).score
         const last = done[done.length - 1]
         const nowTitle =
           s.status === 'VISITING' && s.openVisit
@@ -107,12 +106,12 @@ export function TeamTodayList({ snapshots }: { snapshots: FleetMemberSnapshot[] 
                   <div className="mt-2.5 grid grid-cols-3 rounded-xl bg-neutral-50 px-1 py-2 text-center">
                     {[
                       ['On clock', formatDuration(workMs, language)],
-                      ['Effective', eff != null ? `${eff}%` : '—'],
+                      ['Score', formatScore(score)],
                       ['Visits', String(done.length)],
                     ].map(([l, v]) => (
                       <span key={l}>
                         <span className="block text-[11px] text-neutral-500">{l}</span>
-                        <span className={`block text-sm font-extrabold ${l === 'Effective' && eff != null ? (eff >= GOOD_EFFECTIVENESS * 100 ? 'text-status-working' : 'text-status-warn') : 'text-neutral-900'}`}>{v}</span>
+                        <span className={`block text-sm font-extrabold ${l === 'Score' ? scoreTextClass(score) : 'text-neutral-900'}`}>{v}</span>
                       </span>
                     ))}
                   </div>

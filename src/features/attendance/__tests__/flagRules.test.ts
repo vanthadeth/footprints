@@ -98,10 +98,10 @@ describe('firstVisitStatus', () => {
 
 describe('flagRulesOf', () => {
   it('maps the live settings', () => {
-    const r = flagRulesOf({ idleAlertThresholdMinutes: 30, lunchWindowStart: '12:00:00', lunchWindowEnd: '13:00:00', lunchIdleThresholdMinutes: 60, forgottenVisitCapMinutes: 20, firstVisitDeadline: '09:30:00', shortVisitThresholdMinutes: 3, visitCreditCapMinutes: 50, dailyUniqueCustomerTarget: 6, dailyWorkingHours: 7.5 })
+    const r = flagRulesOf({ idleAlertThresholdMinutes: 30, lunchWindowStart: '12:00:00', lunchWindowEnd: '13:00:00', lunchIdleThresholdMinutes: 60, forgottenVisitCapMinutes: 20, firstVisitDeadline: '09:30:00', shortVisitThresholdMinutes: 3, visitCreditCapMinutes: 50, dailyVisitTarget: 10, dailyUniqueCustomerTarget: 6, dailyWorkingHours: 7.5 })
     expect(r.idle).toEqual({ idleMin: 30, lunchStart: '12:00:00', lunchEnd: '13:00:00', lunchMin: 60 })
     expect(r.forgottenCapMin).toBe(20)
     expect(r.firstVisitDeadline).toBe('09:30:00')
-    expect(r).toMatchObject({ shortVisitMin: 3, visitCreditCapMin: 50, uniqueTarget: 6, fullDayHours: 7.5 })
+    expect(r).toMatchObject({ shortVisitMin: 3, visitCreditCapMin: 50, visitTarget: 10, uniqueTarget: 6, fullDayHours: 7.5 })
   })
 })

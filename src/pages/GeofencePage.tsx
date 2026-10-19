@@ -233,6 +233,12 @@ function Geofence() {
             />
             <AdminRow
               icon={Store}
+              label="Visits expected per full day"
+              sub="The effectiveness score's visit target; a shorter day is scaled by its hours"
+              control={<Stepper label="Daily visit target" value={settings.dailyVisitTarget} step={1} min={1} max={100} format={(v) => `${v}`} onChange={(v) => patch({ dailyVisitTarget: v })} />}
+            />
+            <AdminRow
+              icon={Store}
               label="Unique customers expected per full day"
               sub="A shorter day, such as a half-day Saturday, is scaled by its hours"
               control={<Stepper label="Daily unique customers" value={settings.dailyUniqueCustomerTarget} step={1} min={1} max={50} format={(v) => `${v}`} onChange={(v) => patch({ dailyUniqueCustomerTarget: v })} />}

@@ -1,14 +1,14 @@
 import type { ReactNode } from 'react'
 import { AlertTriangle, CheckCircle2 } from 'lucide-react'
 import type { JourneyStats } from '@/features/attendance/journeyStats'
-import { GOOD_EFFECTIVENESS, effectivenessPercent } from '@/features/attendance/efficiency'
+import { BAND_LABEL, formatScore } from '@/features/attendance/effectivenessScore'
 import type { FirstVisit, FlagRules } from '@/features/attendance/flagRules'
-import { ORDER_RECONCILE_DAYS } from '@/lib/config'
+import { NEAR_FIRST_VISIT_KM, ORDER_RECONCILE_DAYS } from '@/lib/config'
 import { formatDuration, formatTime } from '@/lib/datetime'
 
-type Tone = 'good' | 'warn' | 'neutral'
+type Tone = 'good' | 'warn' | 'danger' | 'neutral'
 /** Text colours, drawn with currentColor: these have dark-theme overrides, a plain stroke colour wouldn't. */
-const TONE: Record<Tone, string> = { good: 'text-status-working', warn: 'text-status-warn', neutral: 'text-brand-500' }
+const TONE: Record<Tone, string> = { good: 'text-status-working', warn: 'text-status-warn', danger: 'text-status-danger', neutral: 'text-brand-500' }
 
 const card = 'rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card'
 
@@ -80,16 +80,18 @@ export function DaySummary({
   language: string
 }) {
   const fmt = (ms: number) => formatDuration(ms, language as Parameters<typeof formatDuration>[1])
-  const score = effectivenessPercent(stats.creditedVisitMs, stats.scheduledPaidMs)
+  const day = stats.dayScores[0]
+  const score = stats.score
+  const band = day?.band ?? null
+  const scoreTone: Tone = band === 'low' ? 'danger' : band === 'average' ? 'warn' : band ? 'good' : 'neutral'
   const notCredited = stats.totalVisits - stats.creditedVisits
   const outsideMs = Math.max(0, stats.totalPaidMs - stats.scheduledPaidMs)
-  const customerPct = stats.uniqueCustomerTarget > 0 ? (stats.uniqueCustomers / stats.uniqueCustomerTarget) * 100 : null
   const orderPct = stats.totalVisits > 0 ? (stats.orderedVisits / stats.totalVisits) * 100 : null
   const deadline = rules.firstVisitDeadline.slice(0, 5)
   // An order the person marked counts for now; it is confirmed when the sale order shows up in the sync.
   const orderExtra = [stats.ordersSynced > 0 ? `${stats.ordersSynced} confirmed` : '', stats.ordersPending > 0 ? `${stats.ordersPending} pending` : ''].filter(Boolean).join(' · ') || undefined
   const hasWarnings =
-    stats.forgottenCheckouts > 0 || stats.forgottenClockOuts > 0 || stats.ordersUnmatched > 0 || stats.flaggedGapMs > 0 || firstVisit.kind === 'late' || firstVisit.kind === 'none'
+    day?.lateDeduction || stats.forgottenCheckouts > 0 || stats.forgottenClockOuts > 0 || stats.ordersUnmatched > 0 || stats.flaggedGapMs > 0 || firstVisit.kind === 'late' || firstVisit.kind === 'none'
 
   return (
     <section aria-label="Day summary" className="flex flex-col gap-3">
@@ -101,7 +103,8 @@ export function DaySummary({
           {' · '}
           <b className={notCredited > 0 ? 'text-status-warn' : 'text-neutral-900'}>{notCredited} not credited</b>
         </p>
-        {notCredited > 0 && <p className="mt-1 text-[11px] text-neutral-500">A visit under {rules.shortVisitMin} min counts nothing.</p>}
+        {notCredited > 0 && <p className="mt-1 text-[11px] text-neutral-500">A visit under {rules.shortVisitMin} min is not credited: it earns a quarter of an effective visit.</p>}
+        {stats.uniqueCustomers > 0 && <p className="mt-1 text-[11px] text-neutral-500">{stats.uniqueCustomers} different customers (expected {stats.uniqueCustomerTarget}).</p>}
         {(paidVisits > 0 || appointments > 0) && (
           <div className="mt-2.5 space-y-1 border-t border-neutral-100 pt-2.5 text-xs">
             <div className="flex justify-between gap-2">
@@ -118,28 +121,37 @@ export function DaySummary({
 
       <div className={card}>
         <div className="flex items-center gap-4">
-          <Ring pct={score} tone={score != null && score >= GOOD_EFFECTIVENESS * 100 ? 'good' : 'warn'} size={96} stroke={9}>
-            <span className="text-[24px] font-extrabold text-neutral-900">{score != null ? `${score}%` : '—'}</span>
+          <Ring pct={score != null ? score * 10 : null} tone={scoreTone} size={96} stroke={9}>
+            <span className="text-[26px] font-extrabold text-neutral-900">{formatScore(score)}</span>
           </Ring>
           <div className="min-w-0">
             <p className="text-[15px] font-bold text-neutral-900">Effectiveness</p>
-            <p className="text-xs text-neutral-500">Counted visit time ÷ working time in your hours</p>
+            {band && <p className={`text-[13px] font-bold ${TONE[scoreTone]}`}>{BAND_LABEL[band]} · out of 10</p>}
+            <p className="mt-0.5 text-xs text-neutral-500">The average of visits vs target and active hours vs working hours.</p>
           </div>
         </div>
         <div className="mt-4 grid grid-cols-3 gap-2 border-t border-neutral-100 pt-4">
           <Part
-            label="Customers"
+            label="Visits"
             vs="vs target"
-            value={`${stats.uniqueCustomers} / ${stats.uniqueCustomerTarget}`}
-            pct={customerPct}
-            tone={stats.uniqueCustomers >= stats.uniqueCustomerTarget ? 'good' : 'warn'}
+            value={`${day?.effectiveVisits ?? 0} / ${day?.visitTarget ?? rules.visitTarget}`}
+            pct={day ? day.visitShare * 100 : null}
+            tone={day && day.visitShare >= 1 ? 'good' : 'warn'}
+            extra={day && day.ineffectiveVisits > 0 ? `+${day.ineffectiveVisits} not credited at ¼` : undefined}
           />
-          <Part label="Active time" vs="vs working hours" value={`${fmt(stats.creditedVisitMs)} / ${fmt(stats.scheduledPaidMs)}`} pct={score} tone={score != null && score >= GOOD_EFFECTIVENESS * 100 ? 'good' : 'warn'} />
-          <Part label="Ordered" vs="vs visits" value={`${stats.orderedVisits} / ${stats.totalVisits}`} pct={orderPct} tone="neutral" extra={orderExtra} />
+          <Part
+            label="Active time"
+            vs="vs working hours"
+            value={`${fmt((day?.activeMs ?? 0) + (day?.travelBonusMs ?? 0))} / ${fmt(day?.workingMs ?? 0)}`}
+            pct={day ? day.hoursShare * 100 : null}
+            tone={day && day.hoursShare >= 0.5 ? 'good' : 'warn'}
+            extra={day && day.travelBonusMs > 0 ? `includes ${fmt(day.travelBonusMs)} for ${Math.round(day.travelMeters / 1000)} km` : undefined}
+          />
+          <Part label="Ordered" vs="vs visits (not scored)" value={`${stats.orderedVisits} / ${stats.totalVisits}`} pct={orderPct} tone="neutral" extra={orderExtra} />
         </div>
         <p className="mt-3 text-[11px] text-neutral-500">
           Clocked in {fmt(stats.totalWorkingMs)}
-          {outsideMs > 0 ? ` · ${fmt(outsideMs)} outside your hours isn't counted` : ''}. A repeat visit to the same customer counts once. A visit marked ordered counts until the sale order syncs, up to {ORDER_RECONCILE_DAYS} days after the visit.
+          {outsideMs > 0 ? ` · ${fmt(outsideMs)} outside your hours isn't counted` : ''}. A visit marked ordered counts until the sale order syncs, up to {ORDER_RECONCILE_DAYS} days after the visit.
         </p>
       </div>
 
@@ -147,6 +159,7 @@ export function DaySummary({
         <p className="mb-2 text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">Warnings</p>
         {hasWarnings ? (
           <div className="space-y-2.5">
+            {day?.lateDeduction && <Warning title="Late first visit, close by">First visit after {deadline} within {NEAR_FIRST_VISIT_KM} km of where you clocked in: score reduced by 10%.</Warning>}
             {stats.forgottenCheckouts > 0 && (
               <Warning title="Forgot to check out">
                 {stats.forgottenCheckouts} {stats.forgottenCheckouts === 1 ? 'visit' : 'visits'} closed automatically, counted as {rules.forgottenCapMin} min.

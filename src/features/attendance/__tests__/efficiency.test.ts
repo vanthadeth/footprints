@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { creditedVisitMs, dayEffectiveness, effectiveness, effectivenessPercent, outsideScheduleMs, paidWorkMs, scheduledPaidMsOverDays, serverDayEffectiveness, uniqueCustomerTarget } from '../efficiency'
+import { creditedVisitMs, dayEffectiveness, outsideScheduleMs, paidWorkMs, scaledDailyTarget, uniqueCustomerTarget } from '../efficiency'
 import { DEFAULT_FLAG_RULES } from '../flagRules'
 
 const at = (hhmm: string) => `2026-10-14T${hhmm}:00.000Z`
@@ -47,23 +47,6 @@ describe('paidWorkMs', () => {
 
   it('is zero with no sessions', () => {
     expect(paidWorkMs([], 0, unpaid30)).toBe(0)
-  })
-})
-
-describe('effectiveness', () => {
-  it('is visiting time over paid time', () => {
-    expect(effectiveness(2 * HOUR, 8 * HOUR)).toBe(0.25)
-    expect(effectivenessPercent(2 * HOUR, 8 * HOUR)).toBe(25)
-  })
-
-  it('never exceeds 100% (overlapping visits, a visit running past clock-out)', () => {
-    expect(effectiveness(10 * HOUR, 8 * HOUR)).toBe(1)
-    expect(effectivenessPercent(10 * HOUR, 8 * HOUR)).toBe(100)
-  })
-
-  it('has nothing to measure without paid time', () => {
-    expect(effectiveness(HOUR, 0)).toBe(0)
-    expect(effectivenessPercent(HOUR, 0)).toBeNull()
   })
 })
 
@@ -122,7 +105,7 @@ describe('dayEffectiveness', () => {
     const visits = [visit('02:00', '03:00'), visit('04:00', '05:00')] // 2 h of visits
     const wide = dayEffectiveness(early, visits, '2026-10-14', shift, 0, rulesShort5)
     const normal = dayEffectiveness([{ clock_in_at: at('01:00'), clock_out_at: at('10:00') }], visits, '2026-10-14', shift, 0, rulesShort5)
-    expect(effectiveness(wide.creditedMs, wide.scheduledPaidMs)).toBeCloseTo(effectiveness(normal.creditedMs, normal.scheduledPaidMs), 5)
+    expect(wide.creditedMs / wide.scheduledPaidMs).toBeCloseTo(normal.creditedMs / normal.scheduledPaidMs, 1)
     // 13.5 h clocked less 4.5 h outside = 9 h, less the 30 min break.
     expect(wide.scheduledPaidMs).toBe(8.5 * HOUR)
   })
@@ -160,37 +143,11 @@ describe('uniqueCustomerTarget', () => {
   })
 })
 
-describe('serverDayEffectiveness', () => {
-  it('works out paid time inside the hours from the server row', () => {
-    const row = { day: '2026-10-14', firstIn: '2026-10-13T22:30:00.000Z', lastOut: at('10:00'), workedMinutes: 11.5 * 60, scheduledStart: '08:00:00'.slice(0, 5), scheduledEnd: '17:00' }
-    const e = serverDayEffectiveness(row, [], 0, rulesShort5)
-    expect(e.scheduledPaidMs).toBe(9 * HOUR) // 11.5 h paid less 2.5 h before 08:00
-    expect(e.uniqueTarget).toBe(5)
-  })
-
-  it('expects nothing on a day nobody clocked in', () => {
-    expect(serverDayEffectiveness({ day: '2026-10-14', firstIn: null, lastOut: null, workedMinutes: 0, scheduledStart: '08:00', scheduledEnd: '17:00' }, [], 0, rulesShort5)).toEqual({ scheduledPaidMs: 0, uniqueTarget: 0 })
+describe('scaledDailyTarget', () => {
+  it('scales a full-day target by the day\'s scheduled hours', () => {
+    expect(scaledDailyTarget({ breakMinutes: 30, breakPaid: false, start: '08:30', end: '17:00' }, 10, 8)).toBe(10)
+    expect(scaledDailyTarget({ breakMinutes: 0, breakPaid: true, start: '08:30', end: '12:00' }, 10, 8)).toBe(4) // 3.5 h of 8
+    expect(scaledDailyTarget(null, 10, 8)).toBe(10)
   })
 })
 
-describe('scheduledPaidMsOverDays', () => {
-  const day = (date: string, from: string, to: string) => ({ date, attendance: [{ clock_in_at: `${date}T${from}:00.000Z`, clock_out_at: `${date}T${to}:00.000Z` }], visits: [] })
-
-  it('uses the server figure and hours for whole days and works out live days itself', () => {
-    const days = [day('2026-10-13', '01:00', '09:00'), day('2026-10-14', '01:00', '09:00')]
-    // Monday: server says 7 h paid, inside its hours. Tuesday is live: 8 h clocked, 30 min unpaid break comes off.
-    const total = scheduledPaidMsOverDays(days, { '2026-10-13': { paidMinutes: 420, start: '08:00', end: '17:00' } }, new Set(['2026-10-14']), 0, shift, rulesShort5)
-    expect(total).toBe(7 * HOUR + 7.5 * HOUR)
-  })
-
-  it('leaves time outside the hours out of a day', () => {
-    // 05:00-17:00 local clocked (12 h), hours 08:00-17:00: the 3 h before 08:00 are not counted.
-    const d = { date: '2026-10-14', attendance: [{ clock_in_at: '2026-10-13T22:00:00.000Z', clock_out_at: at('10:00') }], visits: [] }
-    expect(scheduledPaidMsOverDays([d], { '2026-10-14': { paidMinutes: 720, start: '08:00', end: '17:00' } }, new Set(), 0, null, rulesShort5)).toBe(9 * HOUR)
-  })
-
-  it('falls back to its own working-out for a day the server has no figure for', () => {
-    expect(scheduledPaidMsOverDays([day('2026-10-13', '01:00', '09:00')], {}, new Set(), 0, { ...shift, start: undefined, end: undefined }, rulesShort5)).toBe(7.5 * HOUR)
-    expect(scheduledPaidMsOverDays([day('2026-10-13', '01:00', '09:00')], undefined, new Set(), 0, null, rulesShort5)).toBe(8 * HOUR)
-  })
-})

@@ -2,7 +2,7 @@ import type { AttendanceRow, VisitRow } from '@/features/attendance/types'
 import type { FleetMemberSnapshot } from '@/features/fleet/types'
 import { formatTime } from '@/lib/datetime'
 import { localDateKey } from '@/lib/dateRange'
-import { creditedVisitMs } from '@/features/attendance/efficiency'
+import { meanScore, scoreDay } from '@/features/attendance/effectivenessScore'
 import { DEFAULT_FLAG_RULES, visitSpan, type FlagRules } from '@/features/attendance/flagRules'
 import { firstClockIn, workedMs } from '@/features/attendance/sessions'
 
@@ -127,10 +127,8 @@ export interface UserReportRow {
   totalWorkingMs: number
   /** Paid working time (clocked in less the unpaid break); falls back to totalWorkingMs when the server's figure isn't available. */
   totalPaidMs: number
-  /** Paid time inside the person's own hours -- the efficiency denominator; falls back to totalPaidMs when the server's days aren't available. */
-  scheduledPaidMs: number
-  /** Visit time that counts toward effectiveness (short visits nothing, long ones capped) -- the numerator. */
-  creditedVisitMs: number
+  /** The effectiveness score, 0-10: the average of the person's daily scores; null when no day has working time. */
+  score: number | null
   /** Unique customers per day, summed over days (a customer seen on two days counts on each), and the number expected over the same days. */
   uniqueCustomerDays: number
   uniqueCustomerTarget: number
@@ -153,7 +151,9 @@ export function computeUserReportRows(
   paidMsByUser?: Record<string, number>,
   rules: FlagRules = DEFAULT_FLAG_RULES,
   /** Per person, from the server's day feed (serverDayEffectiveness); absent when it can't be had. */
-  scheduledByUser?: Record<string, { scheduledPaidMs: number; uniqueTarget: number }>
+  scheduledByUser?: Record<string, { uniqueTarget: number }>,
+  /** Per person, each day's score worked out with the server's paid time and hours; absent when the server's days can't be had. */
+  scoreByUser?: Record<string, number | null>
 ): UserReportRow[] {
   return members.map((member) => {
     const myAttendance = attendanceRows.filter((a) => a.user_id === member.id)
@@ -185,7 +185,6 @@ export function computeUserReportRows(
       return sum + (b - a)
     }, 0)
 
-    const creditedMs = myVisits.reduce((sum, v) => sum + creditedVisitMs(v, now, rules), 0)
     const uniqueCustomerDays = [...byDay.values()].reduce((n, dayVisits) => n + new Set(dayVisits.map((v) => v.customer_id).filter((id): id is string => !!id)).size, 0)
     const sortedAttendance = [...myAttendance].sort((a, b) => a.clock_in_at.localeCompare(b.clock_in_at))
     const lastClockOuts = myAttendance.filter((a) => a.clock_out_at).sort((a, b) => b.clock_out_at!.localeCompare(a.clock_out_at!))
@@ -201,8 +200,7 @@ export function computeUserReportRows(
       lastClockOut: lastClockOuts[0] ? formatTime(lastClockOuts[0].clock_out_at) : null,
       totalWorkingMs,
       totalPaidMs: paidMsByUser?.[member.id] ?? totalWorkingMs,
-      scheduledPaidMs: scheduledByUser?.[member.id]?.scheduledPaidMs ?? paidMsByUser?.[member.id] ?? totalWorkingMs,
-      creditedVisitMs: creditedMs,
+      score: scoreByUser ? (scoreByUser[member.id] ?? null) : meanScore([...workDayKeys].map((d) => scoreDay(myAttendance.filter((a) => localDateKey(a.clock_in_at) === d), myVisits.filter((v) => localDateKey(v.checked_in_at) === d), d, null, now, rules).score)),
       uniqueCustomerDays,
       uniqueCustomerTarget: scheduledByUser?.[member.id]?.uniqueTarget ?? workDayKeys.size * rules.uniqueTarget,
       visitCount: myVisits.length,

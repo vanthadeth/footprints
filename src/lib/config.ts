@@ -78,6 +78,18 @@ export const ORDER_RECONCILE_DAYS = 2
 
 /** A visit counts toward effectiveness for at most this many minutes (app_settings.visit_credit_cap_minutes). */
 export const DEFAULT_VISIT_CREDIT_CAP_MINUTES = 45
+/** Visits expected on a full working day, for the effectiveness score (app_settings.daily_visit_target). */
+export const DEFAULT_DAILY_VISIT_TARGET = 8
+/** The effectiveness score: a visit that doesn't count (under the short-visit limit) earns this share of a counted one. */
+export const INEFFECTIVE_VISIT_WEIGHT = 0.25
+/** Every full this many km travelled in a day adds an hour to active time. */
+export const TRAVEL_KM_PER_ACTIVE_HOUR = 50
+/** A first visit after the deadline, within this many km of where the person clocked in, costs the score 10%. */
+export const NEAR_FIRST_VISIT_KM = 10
+export const LATE_FIRST_VISIT_SCORE_FACTOR = 0.9
+/** The average of the two parts that earns the top score of 10. */
+export const FULL_SCORE_AT = 0.5
+
 /** Unique customers expected on a full working day; a shorter day scales it (app_settings.daily_unique_customer_target). */
 export const DEFAULT_DAILY_UNIQUE_CUSTOMER_TARGET = 5
 /** A full working day, in hours, when the setting isn't available (app_settings.daily_working_hours). */

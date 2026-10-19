@@ -10,7 +10,8 @@ import { formatDuration } from '@/lib/datetime'
 import { getPresetRange, localDateKey } from '@/lib/dateRange'
 import { useAttendanceDays } from '@/features/attendanceSummary/useAttendanceDays'
 import { useAppSettings } from '@/hooks/useAppSettings'
-import { effectiveness, GOOD_EFFECTIVENESS, serverDayEffectiveness } from '@/features/attendance/efficiency'
+import { uniqueCustomerTarget } from '@/features/attendance/efficiency'
+import { BAND_LABEL, formatScore, meanScore, scoreBand, scoreDay } from '@/features/attendance/effectivenessScore'
 import { displayName } from '@/lib/displayName'
 import { groupBy, sortGroupKeys } from '@/lib/groupBy'
 import type { TeamMember } from '@/features/fleet/types'
@@ -38,16 +39,23 @@ export function ReportsTab({ team }: { team: TeamMember[] }) {
   const paidMsByUser: Record<string, number> | undefined = withinServerWindow && dayRows.length ? {} : undefined
   if (paidMsByUser) for (const r of dayRows) paidMsByUser[r.userId] = (paidMsByUser[r.userId] ?? 0) + r.workedMinutes * 60_000
 
-  // Paid time inside each person's own hours, and the unique customers expected, from the same day feed.
-  const scheduledByUser: Record<string, { scheduledPaidMs: number; uniqueTarget: number }> | undefined = withinServerWindow && dayRows.length ? {} : undefined
-  if (scheduledByUser) {
+  // The unique customers expected, and each person's score, from the server's day feed: its paid time and each day's own hours.
+  const scheduledByUser: Record<string, { uniqueTarget: number }> | undefined = withinServerWindow && dayRows.length ? {} : undefined
+  const scoreByUser: Record<string, number | null> | undefined = scheduledByUser ? {} : undefined
+  if (scheduledByUser && scoreByUser) {
     const now = Date.now()
+    const dailyScores: Record<string, (number | null)[]> = {}
     for (const r of dayRows) {
       const dayVisits = visits.filter((v) => v.user_id === r.userId && !v.cancelled_at && localDateKey(v.checked_in_at) === r.day)
-      const e = serverDayEffectiveness(r, dayVisits, now, flagRules)
-      const acc = scheduledByUser[r.userId] ?? { scheduledPaidMs: 0, uniqueTarget: 0 }
-      scheduledByUser[r.userId] = { scheduledPaidMs: acc.scheduledPaidMs + e.scheduledPaidMs, uniqueTarget: acc.uniqueTarget + e.uniqueTarget }
+      const sessions = attendance.filter((a) => a.user_id === r.userId && localDateKey(a.clock_in_at) === r.day)
+      const rule = { breakMinutes: 0, breakPaid: true, start: r.scheduledStart ?? undefined, end: r.scheduledEnd ?? undefined }
+      if (r.firstIn) {
+        const sc = scoreDay(sessions.length ? sessions : [{ clock_in_at: r.firstIn, clock_out_at: r.lastOut }], dayVisits, r.day, rule, now, flagRules, r.workedMinutes * 60_000)
+        ;(dailyScores[r.userId] ??= []).push(sc.score)
+        scheduledByUser[r.userId] = { uniqueTarget: (scheduledByUser[r.userId]?.uniqueTarget ?? 0) + uniqueCustomerTarget(rule, flagRules) }
+      }
     }
+    for (const [id, list] of Object.entries(dailyScores)) scoreByUser[id] = meanScore(list)
   }
 
   const rows = computeUserReportRows(
@@ -57,13 +65,13 @@ export function ReportsTab({ team }: { team: TeamMember[] }) {
     undefined,
     paidMsByUser,
     flagRules,
-    scheduledByUser
+    scheduledByUser,
+    scoreByUser
   )
   const kpis = computeVisitKpis(visits, team.length, undefined, shortVisitThresholdMinutes, flagRules.forgottenCapMin)
   const groups = groupBy(rows, (r) => r.departmentName ?? NO_DEPARTMENT)
   const deptKeys = sortGroupKeys(groups.keys(), NO_DEPARTMENT)
-  const totalScheduled = rows.reduce((a, r) => a + r.scheduledPaidMs, 0)
-  const totalCredited = rows.reduce((a, r) => a + r.creditedVisitMs, 0)
+  const teamScore = meanScore(rows.map((r) => r.score))
   const totalUniqueDays = rows.reduce((a, r) => a + r.uniqueCustomerDays, 0)
   const totalUniqueTarget = rows.reduce((a, r) => a + r.uniqueCustomerTarget, 0)
   const historyRow = rows.find((r) => r.userId === historyUserId) ?? null
@@ -98,14 +106,14 @@ export function ReportsTab({ team }: { team: TeamMember[] }) {
             <Kpi label="Avg visits / person" value={kpis.avgVisitsPerUser.toFixed(1)} />
             <Kpi label="Short visits" value={String(kpis.shortVisits)} />
             <Kpi label="Unique customers" value={totalUniqueTarget > 0 ? `${totalUniqueDays} / ${totalUniqueTarget}` : String(totalUniqueDays)} />
-            <Kpi label="Effectiveness" value={`${Math.round(effectiveness(totalCredited, totalScheduled) * 100)}%`} good={effectiveness(totalCredited, totalScheduled) >= GOOD_EFFECTIVENESS} />
+            <Kpi label="Effectiveness" value={teamScore != null ? `${formatScore(teamScore)} / 10` : '—'} good={teamScore != null ? teamScore >= 8 : undefined} />
           </div>
           <div className="space-y-2.5 md:grid md:grid-cols-2 md:gap-3 md:space-y-0">
             {deptKeys.map((key) => {
               const list = groups.get(key)!
               const work = list.reduce((a, r) => a + r.totalWorkingMs, 0)
               const visit = list.reduce((a, r) => a + r.totalVisitMs, 0)
-              const eff = effectiveness(list.reduce((a, r) => a + r.creditedVisitMs, 0), list.reduce((a, r) => a + r.scheduledPaidMs, 0))
+              const eff = meanScore(list.map((r) => r.score))
               return (
                 <div key={key} className="space-y-3 rounded-2xl bg-white p-3.5 shadow-card">
                   <div className="flex items-center gap-2">
@@ -116,7 +124,7 @@ export function ReportsTab({ team }: { team: TeamMember[] }) {
                     <EffChip value={eff} />
                   </div>
                   <div className="h-1.5 overflow-hidden rounded-full bg-neutral-100">
-                    <div className={`h-full rounded-full ${eff >= GOOD_EFFECTIVENESS ? 'bg-status-working' : 'bg-status-warn'}`} style={{ width: `${Math.min(100, eff * 100)}%` }} />
+                    <div className={`h-full rounded-full ${eff != null && eff >= 8 ? 'bg-status-working' : 'bg-status-warn'}`} style={{ width: `${Math.min(100, (eff ?? 0) * 10)}%` }} />
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     <Mini label="Visits" value={String(list.reduce((a, r) => a + r.visitCount, 0))} />
@@ -132,15 +140,12 @@ export function ReportsTab({ team }: { team: TeamMember[] }) {
         <div className="space-y-4">
           {deptKeys.map((key) => {
             const list = groups.get(key)!
-            const eff = effectiveness(
-              list.reduce((a, r) => a + r.creditedVisitMs, 0),
-              list.reduce((a, r) => a + r.scheduledPaidMs, 0)
-            )
+            const eff = meanScore(list.map((r) => r.score))
             return (
               <section key={key} className="space-y-2">
                 <div className="flex items-baseline justify-between px-0.5">
                   <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">{key}</h3>
-                  <span className="text-xs text-neutral-500">{Math.round(eff * 100)}% effective</span>
+                  <span className="text-xs text-neutral-500">{eff != null ? `Score ${formatScore(eff)}` : '—'}</span>
                 </div>
                 <div className="space-y-2 md:grid md:grid-cols-2 md:gap-3 md:space-y-0">
                   {list.map((r) => (
@@ -172,7 +177,7 @@ export function ReportsTab({ team }: { team: TeamMember[] }) {
 
 function UserCard({ row, onFootprints }: { row: UserReportRow; onFootprints: () => void }) {
   const name = displayName(row.fullName, row.nickname)
-  const eff = effectiveness(row.creditedVisitMs, row.scheduledPaidMs)
+  const eff = row.score
   const initials = row.fullName
     .split(' ')
     .map((w) => w[0])
@@ -234,15 +239,13 @@ function Mini({ label, value }: { label: string; value: string }) {
   )
 }
 
-function EffChip({ value }: { value: number }) {
-  const good = value >= GOOD_EFFECTIVENESS
+function EffChip({ value }: { value: number | null }) {
+  if (value == null) return null
+  const band = scoreBand(value)
+  const tone = band === 'low' ? 'bg-status-danger/10 text-status-danger' : band === 'average' ? 'bg-status-warn/10 text-status-warn' : 'bg-status-working/10 text-status-working'
   return (
-    <span
-      className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${
-        good ? 'bg-status-working/10 text-status-working' : 'bg-status-warn/10 text-status-warn'
-      }`}
-    >
-      {Math.round(value * 100)}% effective
+    <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${tone}`}>
+      {formatScore(value)} · {BAND_LABEL[band]}
     </span>
   )
 }

@@ -14,7 +14,8 @@ import { formatDuration, formatTime } from '@/lib/datetime'
 import { getCustomRange, todayDateString } from '@/lib/dateRange'
 import { useTeamDayJourneys } from './useTeamDayJourneys'
 import { useTeamWorkDays } from '@/features/schedule/useTeamWorkDays'
-import { effectivenessPercent, type BreakRule } from '@/features/attendance/efficiency'
+import type { BreakRule } from '@/features/attendance/efficiency'
+import { formatScore } from '@/features/attendance/effectivenessScore'
 import { firstVisitStatus, type FlagRules } from '@/features/attendance/flagRules'
 import { useAppSettings } from '@/hooks/useAppSettings'
 import { FleetStatusBadge } from './FleetStatusBadge'
@@ -159,7 +160,6 @@ function MemberCheckInOutCard({
   const firstSession = sessions[0] ?? null
   const lastSession = sessions[sessions.length - 1] ?? null
   const stats = computeJourneyStats(day ? [day] : [], undefined, workDay ?? null, flagRules)
-  const effectivenessRatio = effectivenessPercent(stats.creditedVisitMs, stats.scheduledPaidMs) ?? 0
   // Only overrides the placeholder when there's no attendance at all that
   // day -- an actual clock-in/out session is ground truth and always wins.
   const onLeaveLabel = !day && leaveType ? leaveType === 'flex' ? 'On a day off' : `On ${LEAVE_TYPE_LABEL[leaveType]} Leave` : null
@@ -222,7 +222,7 @@ function MemberCheckInOutCard({
           <SummaryStat label="Working" value={formatDuration(stats.totalWorkingMs)} />
           <SummaryStat label="Active" value={formatDuration(stats.totalVisitingMs)} />
           <SummaryStat label="Idle" value={formatDuration(stats.totalGapMs)} />
-          <SummaryStat label="Effective" value={`${effectivenessRatio}%`} />
+          <SummaryStat label="Score" value={formatScore(stats.score)} />
           <SummaryStat label="Customers" value={`${stats.uniqueCustomers}/${stats.uniqueCustomerTarget}`} />
         </div>
       )}

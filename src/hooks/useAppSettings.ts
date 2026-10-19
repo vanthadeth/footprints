@@ -10,6 +10,7 @@ import {
   DEFAULT_CHECK_WINDOW_START,
   DEFAULT_FIRST_VISIT_DEADLINE,
   DEFAULT_DAILY_UNIQUE_CUSTOMER_TARGET,
+  DEFAULT_DAILY_VISIT_TARGET,
   DEFAULT_FORGOTTEN_VISIT_CAP_MINUTES,
   DEFAULT_FULL_DAY_HOURS,
   DEFAULT_VISIT_CREDIT_CAP_MINUTES,
@@ -51,6 +52,8 @@ export interface AppSettings {
   /** A visit counts toward effectiveness for at most this many minutes; unique customers expected on a full day. */
   visitCreditCapMinutes: number
   dailyUniqueCustomerTarget: number
+  /** Visits expected on a full day (the effectiveness score). */
+  dailyVisitTarget: number
   /** A full working day in hours (the unique-customer target scales by a day's hours against this). */
   dailyWorkingHours: number
   /** Customer check-in / check-out is only allowed between these times ("HH:MM:SS", Asia/Phnom_Penh). */
@@ -84,6 +87,7 @@ const FALLBACK: AppSettings = {
   forgottenVisitCapMinutes: DEFAULT_FORGOTTEN_VISIT_CAP_MINUTES,
   visitCreditCapMinutes: DEFAULT_VISIT_CREDIT_CAP_MINUTES,
   dailyUniqueCustomerTarget: DEFAULT_DAILY_UNIQUE_CUSTOMER_TARGET,
+  dailyVisitTarget: DEFAULT_DAILY_VISIT_TARGET,
   dailyWorkingHours: DEFAULT_FULL_DAY_HOURS,
   checkWindowStart: DEFAULT_CHECK_WINDOW_START,
   checkWindowEnd: DEFAULT_CHECK_WINDOW_END,
@@ -157,7 +161,7 @@ export function useAppSettings(): AppSettings & { flagRules: FlagRules } {
     // The effectiveness settings (migration 0112), read on their own for the same reason.
     supabase
       .from('app_settings')
-      .select('visit_credit_cap_minutes, daily_unique_customer_target, daily_working_hours')
+      .select('visit_credit_cap_minutes, daily_unique_customer_target, daily_working_hours, daily_visit_target')
       .maybeSingle()
       .then(({ data }) => {
         if (cancelled || !data) return
@@ -165,6 +169,7 @@ export function useAppSettings(): AppSettings & { flagRules: FlagRules } {
           ...prev,
           visitCreditCapMinutes: data.visit_credit_cap_minutes,
           dailyUniqueCustomerTarget: data.daily_unique_customer_target,
+          dailyVisitTarget: data.daily_visit_target ?? DEFAULT_DAILY_VISIT_TARGET,
           dailyWorkingHours: Number(data.daily_working_hours) || DEFAULT_FULL_DAY_HOURS,
         }))
       })

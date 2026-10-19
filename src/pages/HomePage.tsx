@@ -6,7 +6,7 @@ import { useProfile } from '@/features/auth/useProfile'
 import { useMyQuota } from '@/features/attendance/useMyQuota'
 import { SelfieCaptureSheet } from '@/features/attendance/SelfieCaptureSheet'
 import { computeJourneyStats } from '@/features/attendance/journeyStats'
-import { effectivenessPercent } from '@/features/attendance/efficiency'
+import { formatScore } from '@/features/attendance/effectivenessScore'
 import { todayDateString } from '@/lib/dateRange'
 import type { DayJourney } from '@/features/attendance/useJourneyHistory'
 import { VisitFlow, type PresetCustomer } from '@/features/visits/VisitFlow'
@@ -50,7 +50,6 @@ export function HomePage() {
 
   const today: DayJourney = { date: todayDateString(), attendance: journey.todaysAttendance, visits: journey.todaysVisits }
   const stats = computeJourneyStats([today], undefined, { breakMinutes: settings.breakMinutes, breakPaid: settings.breakPaid, start: settings.workStartTime, end: settings.workEndTime }, settings.flagRules)
-  const effectivenessRatio = effectivenessPercent(stats.creditedVisitMs, stats.scheduledPaidMs) ?? 0
 
   const completedVisits = [...journey.todaysVisits]
     .filter((v) => v.checked_out_at && !v.cancelled_at)
@@ -196,7 +195,7 @@ export function HomePage() {
                   <p className="text-xs text-neutral-400">{t('home.activeTime')}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-neutral-900">{effectivenessRatio}%</p>
+                  <p className="text-sm font-semibold text-neutral-900">{formatScore(stats.score)}</p>
                   <p className="text-xs text-neutral-400">{t('home.effectiveness')}</p>
                 </div>
               </div>

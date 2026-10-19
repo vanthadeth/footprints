@@ -1,6 +1,7 @@
 import {
   APP_TIMEZONE,
   DEFAULT_DAILY_UNIQUE_CUSTOMER_TARGET,
+  DEFAULT_DAILY_VISIT_TARGET,
   DEFAULT_FIRST_VISIT_DEADLINE,
   DEFAULT_FORGOTTEN_VISIT_CAP_MINUTES,
   DEFAULT_FULL_DAY_HOURS,
@@ -39,7 +40,8 @@ export interface FlagRules {
   shortVisitMin: number
   /** A visit counts toward effectiveness for at most this many minutes. */
   visitCreditCapMin: number
-  /** Unique customers expected on a full day of `fullDayHours`. */
+  /** Visits expected on a full day of `fullDayHours` (the effectiveness score), and unique customers. */
+  visitTarget: number
   uniqueTarget: number
   fullDayHours: number
 }
@@ -55,6 +57,7 @@ export const DEFAULT_FLAG_RULES: FlagRules = {
   firstVisitDeadline: DEFAULT_FIRST_VISIT_DEADLINE,
   shortVisitMin: DEFAULT_SHORT_VISIT_THRESHOLD_MINUTES,
   visitCreditCapMin: DEFAULT_VISIT_CREDIT_CAP_MINUTES,
+  visitTarget: DEFAULT_DAILY_VISIT_TARGET,
   uniqueTarget: DEFAULT_DAILY_UNIQUE_CUSTOMER_TARGET,
   fullDayHours: DEFAULT_FULL_DAY_HOURS,
 }
@@ -136,6 +139,7 @@ export interface FlagRuleSettings {
   firstVisitDeadline: string
   shortVisitThresholdMinutes: number
   visitCreditCapMinutes: number
+  dailyVisitTarget: number
   dailyUniqueCustomerTarget: number
   dailyWorkingHours: number
 }
@@ -148,6 +152,7 @@ export function flagRulesOf(s: FlagRuleSettings): FlagRules {
     firstVisitDeadline: s.firstVisitDeadline,
     shortVisitMin: s.shortVisitThresholdMinutes,
     visitCreditCapMin: s.visitCreditCapMinutes,
+    visitTarget: s.dailyVisitTarget,
     uniqueTarget: s.dailyUniqueCustomerTarget,
     fullDayHours: s.dailyWorkingHours,
   }
