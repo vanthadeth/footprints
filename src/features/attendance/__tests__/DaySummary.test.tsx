@@ -44,4 +44,15 @@ describe('DaySummary', () => {
     expect(html).toContain('Forgot to clock out')
     expect(html).not.toContain('Nothing forgotten')
   })
+
+  it('shows pending and confirmed orders under Ordered, and warns about a mark no order matched', () => {
+    const attendance = [{ clock_in_at: '2026-01-01T01:00:00Z', clock_out_at: '2026-01-01T10:00:00Z' }] as AttendanceRow[]
+    const visits = ['a', 'b', 'c'].map((id, i) => visit({ id, customer_id: id, checked_in_at: `2026-01-01T0${2 + i}:00:00Z`, checked_out_at: `2026-01-01T0${2 + i}:30:00Z` }))
+    const stats = computeJourneyStats([{ date: '2026-01-01', attendance, visits }], 0, null, rules, { a: 'confirmed', b: 'pending', c: 'unmatched' })
+    const html = renderToStaticMarkup(<DaySummary stats={stats} rules={rules} firstVisit={{ kind: 'ok' }} paidVisits={0} appointments={0} language="en" />)
+    expect(html).toContain('2 / 3')
+    expect(html).toContain('1 confirmed · 1 pending')
+    expect(html).toContain('Order not found')
+  })
 })
+

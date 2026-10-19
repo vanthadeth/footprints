@@ -73,6 +73,9 @@ export const DEFAULT_FIRST_VISIT_DEADLINE = '10:00:00'
 /** A visit nobody checked out of (closed by clock-out or at the end of the day) counts at most this long (app_settings.forgotten_visit_cap_minutes). */
 export const DEFAULT_FORGOTTEN_VISIT_CAP_MINUTES = 30
 
+/** A visit marked "ordered" is provisional until a synced sale order confirms it: from the visit's day to this many days after (public.visit_orders). */
+export const ORDER_RECONCILE_DAYS = 2
+
 /** A visit counts toward effectiveness for at most this many minutes (app_settings.visit_credit_cap_minutes). */
 export const DEFAULT_VISIT_CREDIT_CAP_MINUTES = 45
 /** Unique customers expected on a full working day; a shorter day scales it (app_settings.daily_unique_customer_target). */

@@ -1,5 +1,6 @@
 import { creditedVisitMs, dayEffectiveness, paidWorkMs, uniqueCustomerTarget, type BreakRule } from './efficiency'
 import { DEFAULT_FLAG_RULES, FORGOTTEN_VISIT_FLAGS, isFlaggedGap, visitSpan, type FlagRules } from './flagRules'
+import { countsAsOrdered, type OrderState } from '@/features/orders/orderReconcile'
 import type { DayJourney } from './useJourneyHistory'
 
 export interface JourneyStats {
@@ -16,8 +17,12 @@ export interface JourneyStats {
   creditedVisitMs: number
   /** Visits that count toward effectiveness; the rest (under the short-visit limit) are not credited. */
   creditedVisits: number
-  /** Visits with an order on them. */
+  /** Visits that count as ordered: confirmed by a synced sale order, found in one, or marked and still waiting for one. */
   orderedVisits: number
+  /** Of those, confirmed or found by a synced sale order, and still waiting. Plus marks that no order matched once the window closed (not counted). */
+  ordersSynced: number
+  ordersPending: number
+  ordersUnmatched: number
   /** Visits nobody checked out of (closed at clock-out or end of day), and sessions nobody clocked out of (closed automatically). */
   forgottenCheckouts: number
   forgottenClockOuts: number
@@ -42,7 +47,14 @@ export interface JourneyStats {
  * without a database. `rule` is the person's unpaid break, for paid time;
  * `flags` are the flag rules (idle limit, forgotten-visit cap).
  */
-export function computeJourneyStats(days: DayJourney[], now: number = Date.now(), rule?: BreakRule | null, flags: FlagRules = DEFAULT_FLAG_RULES): JourneyStats {
+export function computeJourneyStats(
+  days: DayJourney[],
+  now: number = Date.now(),
+  rule?: BreakRule | null,
+  flags: FlagRules = DEFAULT_FLAG_RULES,
+  /** Each visit's order state (useVisitOrders). Without it, a visit with an order amount counts as ordered. */
+  orders?: Record<string, OrderState>
+): JourneyStats {
   let totalWorkingMs = 0
   let totalPaidMs = 0
   let scheduledMs = 0
@@ -50,6 +62,9 @@ export function computeJourneyStats(days: DayJourney[], now: number = Date.now()
   let uniqueCustomers = 0
   let creditedVisits = 0
   let orderedVisits = 0
+  let ordersSynced = 0
+  let ordersPending = 0
+  let ordersUnmatched = 0
   let forgottenCheckouts = 0
   let forgottenClockOuts = 0
   let uniqueTarget = 0
@@ -86,7 +101,13 @@ export function computeJourneyStats(days: DayJourney[], now: number = Date.now()
     const sorted = [...day.visits].filter((v) => !v.cancelled_at).sort((a, b) => a.checked_in_at.localeCompare(b.checked_in_at))
     creditedMs += sorted.reduce((n, v) => n + creditedVisitMs(v, now, flags), 0)
     creditedVisits += sorted.filter((v) => creditedVisitMs(v, now, flags) > 0).length
-    orderedVisits += sorted.filter((v) => (v.order_amount_usd ?? 0) > 0).length
+    for (const v of sorted) {
+      const state = orders ? (orders[v.id] ?? 'none') : (v.order_amount_usd ?? 0) > 0 ? 'pending' : 'none'
+      if (countsAsOrdered(state)) orderedVisits += 1
+      if (state === 'confirmed' || state === 'synced') ordersSynced += 1
+      if (state === 'pending') ordersPending += 1
+      if (state === 'unmatched') ordersUnmatched += 1
+    }
     forgottenCheckouts += sorted.filter((v) => v.flags?.some((f) => FORGOTTEN_VISIT_FLAGS.includes(f))).length
     uniqueCustomers += new Set(sorted.map((v) => v.customer_id).filter((id): id is string => !!id)).size
     const noteFlaggedGap = (from: number, to: number) => {
@@ -135,6 +156,9 @@ export function computeJourneyStats(days: DayJourney[], now: number = Date.now()
     creditedVisitMs: creditedMs,
     creditedVisits,
     orderedVisits,
+    ordersSynced,
+    ordersPending,
+    ordersUnmatched,
     forgottenCheckouts,
     forgottenClockOuts,
     uniqueCustomers,
