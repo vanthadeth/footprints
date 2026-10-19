@@ -21,6 +21,7 @@ import { useLanguage } from '@/i18n/LanguageContext'
 import { formatLongDate, formatTime } from '@/lib/datetime'
 import { getCustomRange, todayDateString } from '@/lib/dateRange'
 import { distanceInMeters, formatDistance } from '@/lib/geo'
+import { useIsWide } from '@/hooks/useIsDesktop'
 
 const LEAVE_TYPE_LABEL: Record<string, string> = { annual: 'Annual', sick: 'Sick', unpaid: 'Unpaid', flex: 'Day Off' }
 
@@ -52,6 +53,7 @@ function routeMeters(day: DayJourney): number {
  */
 export function JourneyHistoryReport({ userId, interactive, subtitle }: { userId: string | null; interactive: boolean; subtitle?: string }) {
   const { t, language } = useLanguage()
+  const wide = useIsWide()
   const [selectedDate, setSelectedDate] = useState(() => todayDateString())
   const [tab, setTab] = useState<'summary' | 'footprints'>('footprints')
   const [mapOpen, setMapOpen] = useState(false)
@@ -75,9 +77,9 @@ export function JourneyHistoryReport({ userId, interactive, subtitle }: { userId
   const dayLabel = selectedDate === today ? t('common.today') : selectedDate === shiftDate(today, -1) ? t('common.yesterday') : null
 
   return (
-    <div className="mx-auto max-w-lg pb-6 md:max-w-3xl">
-      <div className="flex flex-col gap-3.5 px-4 pt-1.5 md:px-8">
-        <div className="flex items-center gap-2">
+    <div className="mx-auto max-w-lg pb-6 md:max-w-3xl lg:max-w-[1440px]">
+      <div className="flex flex-col gap-3.5 px-4 pt-1.5 md:px-8 lg:pt-6">
+        <div className="flex items-center gap-2 lg:max-w-xl">
           <button
             type="button"
             onClick={() => setSelectedDate((d) => shiftDate(d, -1))}
@@ -102,7 +104,7 @@ export function JourneyHistoryReport({ userId, interactive, subtitle }: { userId
           <DatePickerButton selected={selectedDate} onChange={setSelectedDate} />
         </div>
 
-        <div role="tablist" aria-label="Journey view" className="flex gap-0.5 rounded-xl bg-neutral-100 p-[3px]">
+        <div role="tablist" aria-label="Journey view" className="flex gap-0.5 rounded-xl bg-neutral-100 p-[3px] lg:max-w-sm">
           {(['summary', 'footprints'] as const).map((k) => (
             <button
               key={k}
@@ -131,7 +133,7 @@ export function JourneyHistoryReport({ userId, interactive, subtitle }: { userId
             <EmptyState icon={FootprintsIcon} title={t('footprints.emptyTitle')} body={t('footprints.emptyBody')} />
           )
         ) : tab === 'summary' ? (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
             <DaySummary stats={stats} rules={appSettings.flagRules} firstVisit={firstVisit} paidVisits={paid} appointments={appts} language={language} />
 
             <div className="rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card">
@@ -147,6 +149,22 @@ export function JourneyHistoryReport({ userId, interactive, subtitle }: { userId
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        ) : wide ? (
+          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] items-start gap-6">
+            <section aria-label={t('footprints.timeline')} className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-card">
+              <div className="mb-4 flex items-baseline justify-between">
+                <p className="text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">{t('footprints.timeline')}</p>
+                <p className="text-xs text-neutral-500">
+                  {formatTime(day.attendance[0]?.clock_in_at ?? null)} – {day.attendance.every((a) => a.clock_out_at) ? formatTime(day.attendance[day.attendance.length - 1].clock_out_at) : t('journey.now')}
+                </p>
+              </div>
+              <JourneyTimeline attendance={day.attendance} visits={day.visits} customerNames={customerNames} interactive={interactive} onVisitChanged={refresh} />
+            </section>
+            <div className="sticky top-20 overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-card">
+              <JourneyMap visits={day.visits} attendance={day.attendance} customerNames={customerNames} height="max(480px, calc(100dvh - 12rem))" rounded={false} />
+              <p className="px-4 py-3 text-xs text-neutral-500">{t('footprints.routeLine', { km: formatDistance(routeMeters(day)), n: stats.totalVisits })}</p>
             </div>
           </div>
         ) : (
