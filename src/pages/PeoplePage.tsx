@@ -9,6 +9,8 @@ import { usersService, type ManagedUser } from '@/features/users/usersService'
 import { localDay } from '@/features/customers/book'
 import { displayName } from '@/lib/displayName'
 import { days as flexDays, shortDate } from '@/features/flex/flex'
+import { DesktopPage } from '@/components/desktop/DesktopPage'
+import { useIsWide } from '@/hooks/useIsDesktop'
 
 const TODAY_TILES: { key: AttendanceDay['status'] | 'lateAll'; label: string; tone: string }[] = [
   { key: 'present', label: 'Present', tone: 'bg-status-working/10 text-status-working' },
@@ -25,6 +27,7 @@ const TODAY_TILES: { key: AttendanceDay['status'] | 'lateAll'; label: string; to
  * HR tools one tap away.
  */
 export function PeoplePage() {
+  const wide = useIsWide()
   const today = localDay(new Date().toISOString())
   const [todayRows, setTodayRows] = useState<AttendanceDay[] | null>(null)
   const [cycleRows, setCycleRows] = useState<AttendanceDay[]>([])
@@ -85,10 +88,11 @@ export function PeoplePage() {
     { label: 'Team map', to: '/fleet', icon: UsersIcon },
   ]
 
-  return (
-    <div className="mx-auto max-w-lg space-y-3 px-4 pb-8 pt-1 md:max-w-3xl md:px-8">
+  const summaryLine = (
       <p className="text-[14px] text-neutral-600">Everyone · {people.filter((p) => p.status === 'active').length || '…'} active people</p>
+  )
 
+  const attendanceCard = (
       <Link to="/fleet?tab=attendance" className="block rounded-2xl bg-white p-3.5 shadow-card">
         <div className="flex items-center justify-between">
           <p className="text-[12px] font-extrabold uppercase tracking-wide text-neutral-500">Attendance today</p>
@@ -107,7 +111,9 @@ export function PeoplePage() {
           </div>
         )}
       </Link>
+  )
 
+  const needsCard = (
       <div className="rounded-2xl bg-white px-3.5 pb-1 pt-3 shadow-card">
         <p className="mb-1 text-[12px] font-extrabold uppercase tracking-wide text-neutral-500">Needs a look · {lookRows.length}</p>
         {lookRows.length === 0 && <p className="py-3 text-[13.5px] text-neutral-500">Nothing needs a look right now.</p>}
@@ -122,7 +128,9 @@ export function PeoplePage() {
           </Link>
         ))}
       </div>
+  )
 
+  const cycleCard = (
       <Link to="/fleet?tab=attendance&view=monthly" className="block rounded-2xl bg-white p-3.5 shadow-card">
         <div className="flex items-center justify-between">
           <p className="text-[12px] font-extrabold uppercase tracking-wide text-neutral-500">This cycle{cycle ? ` · ${shortDate(cycle.start)} – ${shortDate(cycle.end)}` : ''}</p>
@@ -135,7 +143,9 @@ export function PeoplePage() {
           <Stat label="Leave & days off" value={formatDays(kpis.leaveDays)} tone="text-status-visiting" />
         </div>
       </Link>
+  )
 
+  const outCard = (
       <div className="rounded-2xl bg-white px-3.5 pb-1 pt-2.5 shadow-card">
         <div className="mb-0.5 flex items-center justify-between">
           <p className="text-[12px] font-extrabold uppercase tracking-wide text-neutral-500">Out today · {out.length}</p>
@@ -153,7 +163,9 @@ export function PeoplePage() {
           </div>
         ))}
       </div>
+  )
 
+  const linksGrid = (
       <div className="grid grid-cols-3 gap-2">
         {links.map((l) => (
           <Link key={l.label} to={l.to} className="flex flex-col items-center gap-1.5 rounded-2xl bg-white px-1 py-3 text-status-visiting shadow-card">
@@ -162,11 +174,48 @@ export function PeoplePage() {
           </Link>
         ))}
       </div>
+  )
 
+  const hubLink = (
       <Link to="/menu" className="flex items-center justify-between rounded-2xl bg-white p-3.5 text-[14px] font-bold text-neutral-900 shadow-card">
         More in Hub
         <ChevronRight className="h-4 w-4 text-neutral-400" aria-hidden />
       </Link>
+  )
+
+  if (wide) {
+    // Desktop: today's attendance across the top, what needs a look beside this cycle's numbers, and who's out with the HR shortcuts on the right.
+    return (
+      <DesktopPage
+        heading={`Everyone · ${people.filter((p) => p.status === 'active').length || '…'} active people`}
+        aside={
+          <>
+            {outCard}
+            {linksGrid}
+            {hubLink}
+          </>
+        }
+      >
+        <div className="space-y-4">
+          {attendanceCard}
+          <div className="grid grid-cols-2 items-start gap-4">
+            {needsCard}
+            {cycleCard}
+          </div>
+        </div>
+      </DesktopPage>
+    )
+  }
+
+  return (
+    <div className="mx-auto max-w-lg space-y-3 px-4 pb-8 pt-1 md:max-w-3xl md:px-8">
+      {summaryLine}
+      {attendanceCard}
+      {needsCard}
+      {cycleCard}
+      {outCard}
+      {linksGrid}
+      {hubLink}
     </div>
   )
 }
