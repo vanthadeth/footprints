@@ -1,46 +1,73 @@
 import type { ReactNode } from 'react'
 import { AlertTriangle, CheckCircle2 } from 'lucide-react'
 import type { JourneyStats } from '@/features/attendance/journeyStats'
-import { BAND_LABEL, formatScore } from '@/features/attendance/effectivenessScore'
+import { BAND_LABEL, formatScore, scoreFocus, type ScoreBand } from '@/features/attendance/effectivenessScore'
 import type { FirstVisit, FlagRules } from '@/features/attendance/flagRules'
 import { INEFFECTIVE_VISIT_WEIGHT, NEAR_FIRST_VISIT_KM, ORDER_RECONCILE_DAYS, SCORE_GOAL_ACTIVE, SCORE_GOAL_ORDERS, SCORE_GOAL_VISITS } from '@/lib/config'
 import { formatDuration, formatTime } from '@/lib/datetime'
 
-type Tone = 'good' | 'warn' | 'danger' | 'neutral'
-/** Text colours, drawn with currentColor: these have dark-theme overrides, a plain stroke colour wouldn't. */
-const TONE: Record<Tone, string> = { good: 'text-status-working', warn: 'text-status-warn', danger: 'text-status-danger', neutral: 'text-brand-500' }
+type Tone = 'good' | 'warn' | 'danger'
+/** Text and fill colours; these have dark-theme overrides. */
+const TEXT: Record<Tone, string> = { good: 'text-status-working', warn: 'text-status-warn', danger: 'text-status-danger' }
+const FILL: Record<Tone, string> = { good: 'bg-status-working', warn: 'bg-status-warn', danger: 'bg-status-danger' }
 
 const card = 'rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card'
 
-/** A circular progress ring with `children` (the figure) in the middle. `pct` is clamped to 0-100. */
-function Ring({ pct, tone, size, stroke, children }: { pct: number | null; tone: Tone; size: number; stroke: number; children: ReactNode }) {
-  const r = (size - stroke) / 2
-  const c = 2 * Math.PI * r
-  const filled = (Math.min(100, Math.max(0, pct ?? 0)) / 100) * c
+/** How close a part is to its goal: full is green, at least half amber, under half red. */
+const toneOf = (share: number): Tone => (share >= 1 ? 'good' : share >= 0.5 ? 'warn' : 'danger')
+
+/** The bands as a scale from 0 to 10, with a marker at the score: low 0-5, average 5-8, good 8-9, excellent 9-10. */
+const SCALE: { band: ScoreBand; from: number; to: number; fill: string }[] = [
+  { band: 'low', from: 0, to: 5, fill: 'bg-status-danger' },
+  { band: 'average', from: 5, to: 8, fill: 'bg-status-warn' },
+  { band: 'good', from: 8, to: 9, fill: 'bg-status-working' },
+  { band: 'excellent', from: 9, to: 10, fill: 'bg-brand-500' },
+]
+
+function ScoreScale({ score, band }: { score: number | null; band: ScoreBand | null }) {
   return (
-    <div className="relative shrink-0" style={{ width: size, height: size }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90" aria-hidden>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={stroke} className="stroke-neutral-100 dark:stroke-neutral-600" />
-        {filled > 0 && (
-          <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={stroke} stroke="currentColor" strokeLinecap="round" strokeDasharray={`${filled} ${c}`} className={TONE[tone]} />
+    <div className="mt-4">
+      <div className="relative">
+        <div className="flex gap-[3px]">
+          {SCALE.map((seg) => (
+            <div key={seg.band} className={`h-2 rounded-full ${seg.fill} ${seg.band === band ? '' : 'opacity-25'}`} style={{ width: `${(seg.to - seg.from) * 10}%` }} />
+          ))}
+        </div>
+        {score != null && (
+          <span
+            aria-hidden
+            className="absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-white bg-neutral-900 shadow"
+            style={{ left: `${Math.min(100, Math.max(0, score * 10))}%` }}
+          />
         )}
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center">{children}</div>
+      </div>
+      <div className="relative mt-1.5 h-3 text-[10px] font-semibold text-neutral-500">
+        {[0, 5, 8, 9, 10].map((n) => (
+          <span key={n} className="absolute -translate-x-1/2" style={{ left: `${n * 10}%` }}>
+            {n}
+          </span>
+        ))}
+      </div>
     </div>
   )
 }
 
-/** One part of the effectiveness score: a ring with its percentage, what it measures, and the figures. */
-function Part({ label, vs, value, pct, tone, extra }: { label: string; vs: string; value: string; pct: number | null; tone: Tone; extra?: string }) {
+/** One contributor to the score: what it is, how far to its goal as a bar, and the figures behind it. */
+function Contributor({ label, share, figure, detail }: { label: string; share: number | null; figure: string; detail: string }) {
+  const tone = toneOf(share ?? 0)
   return (
-    <div className="flex min-w-0 flex-col items-center text-center">
-      <Ring pct={pct} tone={tone} size={64} stroke={6}>
-        <span className="text-[14px] font-extrabold text-neutral-900">{pct != null ? `${Math.round(pct)}%` : '—'}</span>
-      </Ring>
-      <p className="mt-2 text-[13px] font-bold text-neutral-900">{label}</p>
-      <p className="text-[11px] text-neutral-500">{vs}</p>
-      <p className="mt-0.5 max-w-full text-[12px] font-semibold text-neutral-900">{value}</p>
-      {extra && <p className="max-w-full text-[11px] text-neutral-500">{extra}</p>}
+    <div>
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-[13.5px] font-bold text-neutral-900">{label}</span>
+        <span className={`text-[13px] font-extrabold ${TEXT[tone]}`}>{share != null ? `${Math.round(share * 100)}%` : '—'}</span>
+      </div>
+      <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-neutral-100">
+        <div className={`h-full rounded-full ${FILL[tone]}`} style={{ width: `${Math.min(100, Math.max(0, (share ?? 0) * 100))}%` }} />
+      </div>
+      <div className="mt-1.5 flex items-baseline justify-between gap-3 text-[12px]">
+        <span className="font-semibold text-neutral-900">{figure}</span>
+        <span className="text-right text-neutral-500">{detail}</span>
+      </div>
     </div>
   )
 }
@@ -85,7 +112,10 @@ export function DaySummary({
   const countedVisits = day ? Number((day.effectiveVisits + INEFFECTIVE_VISIT_WEIGHT * day.ineffectiveVisits).toFixed(2)) : 0
   const score = stats.score
   const band = day?.band ?? null
-  const scoreTone: Tone = band === 'low' ? 'danger' : band === 'average' ? 'warn' : band ? 'good' : 'neutral'
+  const scoreTone: Tone = band === 'low' ? 'danger' : band === 'average' ? 'warn' : 'good'
+  const focus = day ? scoreFocus(day) : null
+  const visitTarget = day?.visitTarget ?? rules.visitTarget
+  const pct = (n: number) => `${Math.round(n * 100)}%`
   const notCredited = stats.totalVisits - stats.creditedVisits
   const outsideMs = Math.max(0, stats.totalPaidMs - stats.scheduledPaidMs)
   const deadline = rules.firstVisitDeadline.slice(0, 5)
@@ -121,46 +151,72 @@ export function DaySummary({
       </div>
 
       <div className={card}>
-        <div className="flex items-center gap-4">
-          <Ring pct={score != null ? score * 10 : null} tone={scoreTone} size={96} stroke={9}>
-            <span className="text-[26px] font-extrabold text-neutral-900">{formatScore(score)}</span>
-          </Ring>
-          <div className="min-w-0">
-            <p className="text-[15px] font-bold text-neutral-900">Effectiveness</p>
-            {band && <p className={`text-[13px] font-bold ${TONE[scoreTone]}`}>{BAND_LABEL[band]} · out of 10</p>}
-            <p className="mt-0.5 text-xs text-neutral-500">The average of visits, active time and orders, each against its goal.</p>
+        <p className="text-[13px] font-semibold text-neutral-500">Effectiveness</p>
+        <div className="mt-0.5 flex items-end justify-between gap-3">
+          <p className="flex items-baseline gap-1.5">
+            <span className="text-[44px] font-extrabold leading-none tracking-tight text-neutral-900">{formatScore(score)}</span>
+            <span className="text-[15px] font-semibold text-neutral-500">/ 10</span>
+          </p>
+          {band && <span className={`mb-1 rounded-full px-3 py-1 text-[12px] font-extrabold ${TEXT[scoreTone]} ${scoreTone === 'good' ? 'bg-status-working/10' : scoreTone === 'warn' ? 'bg-status-warn/10' : 'bg-status-danger/10'}`}>{BAND_LABEL[band]}</span>}
+        </div>
+        <ScoreScale score={score} band={band} />
+
+        {focus && day && (
+          <div className="mt-4 rounded-xl bg-brand-50 p-3">
+            <p className="text-[11px] font-extrabold uppercase tracking-[0.06em] text-brand-700">Biggest gap</p>
+            <p className="mt-0.5 text-[13.5px] font-bold text-neutral-900">
+              {focus.part === 'visits' && `${focus.need} more ${focus.need === 1 ? 'visit' : 'visits'} reaches the target`}
+              {focus.part === 'hours' && `${fmt(focus.need)} more time with customers reaches the goal`}
+              {focus.part === 'orders' && `${focus.need} more ordered ${focus.need === 1 ? 'visit' : 'visits'} reaches the goal`}
+            </p>
+            <p className="text-xs text-neutral-600">
+              {focus.part === 'visits' && `Visits are at ${pct(day.visitShare)} of the target of ${visitTarget}.`}
+              {focus.part === 'hours' && `Active time is ${pct(day.activeRatio)} of working hours; the goal is ${pct(SCORE_GOAL_ACTIVE)}.`}
+              {focus.part === 'orders' && `${pct(day.orderRatio)} of visits ordered; the goal is ${pct(SCORE_GOAL_ORDERS)}.`}
+            </p>
           </div>
-        </div>
-        <div className="mt-4 grid grid-cols-3 gap-2 border-t border-neutral-100 pt-4">
-          <Part
+        )}
+        {!focus && day && score != null && <p className="mt-4 rounded-xl bg-status-working/10 p-3 text-[13px] font-bold text-status-working">All three goals reached.</p>}
+
+        <p className="mb-3 mt-5 text-[11px] font-extrabold uppercase tracking-[0.06em] text-neutral-500">What makes up the score</p>
+        <div className="space-y-4">
+          <Contributor
             label="Visits"
-            vs="vs target"
-            value={`${countedVisits} / ${day?.visitTarget ?? rules.visitTarget}`}
-            pct={day ? day.visitShare * 100 : null}
-            tone={day && day.visitShare >= 1 ? 'good' : 'warn'}
-            extra={day ? `${day.effectiveVisits} effective${day.ineffectiveVisits > 0 ? ` + ${day.ineffectiveVisits} × ¼` : ''}` : undefined}
+            share={day ? day.visitShare : null}
+            figure={`${countedVisits} of ${visitTarget} visits`}
+            detail={day ? `${day.effectiveVisits} effective${day.ineffectiveVisits > 0 ? ` + ${day.ineffectiveVisits} × ¼` : ''}` : ''}
           />
-          <Part
+          <Contributor
             label="Active time"
-            vs="vs working hours"
-            value={`${fmt((day?.activeMs ?? 0) + (day?.travelBonusMs ?? 0))} / ${fmt(day?.workingMs ?? 0)}`}
-            pct={day ? day.hoursShare * 100 : null}
-            tone={day && day.hoursShare >= 1 ? 'good' : 'warn'}
-            extra={day ? `${Math.round(day.activeRatio * 100)}% of ${Math.round(SCORE_GOAL_ACTIVE * 100)}% goal${day.travelBonusMs > 0 ? ` · +${fmt(day.travelBonusMs)} for ${Math.round(day.travelMeters / 1000)} km` : ''}` : undefined}
+            share={day ? day.hoursShare : null}
+            figure={`${fmt((day?.activeMs ?? 0) + (day?.travelBonusMs ?? 0))} of ${fmt(day?.workingMs ?? 0)}`}
+            detail={day ? `${pct(day.activeRatio)} · goal ${pct(SCORE_GOAL_ACTIVE)}${day.travelBonusMs > 0 ? ` · +${fmt(day.travelBonusMs)} travel` : ''}` : ''}
           />
-          <Part
+          <Contributor
             label="Orders"
-            vs="vs visits"
-            value={`${stats.orderedVisits} / ${stats.totalVisits}`}
-            pct={day ? day.orderShare * 100 : null}
-            tone={day && day.orderShare >= 1 ? 'good' : 'warn'}
-            extra={[`${Math.round((day?.orderRatio ?? 0) * 100)}% of ${Math.round(SCORE_GOAL_ORDERS * 100)}% goal`, orderExtra].filter(Boolean).join(' · ')}
+            share={day ? day.orderShare : null}
+            figure={`${stats.orderedVisits} of ${stats.totalVisits} visits`}
+            detail={day ? [`${pct(day.orderRatio)} · goal ${pct(SCORE_GOAL_ORDERS)}`, orderExtra].filter(Boolean).join(' · ') : ''}
           />
         </div>
-        <p className="mt-3 text-[11px] text-neutral-500">
-          Each part is scored against its goal: visits {Math.round(SCORE_GOAL_VISITS * 100)}% of target, active time {Math.round(SCORE_GOAL_ACTIVE * 100)}% of working hours, orders {Math.round(SCORE_GOAL_ORDERS * 100)}% of visits. Clocked in {fmt(stats.totalWorkingMs)}
-          {outsideMs > 0 ? ` · ${fmt(outsideMs)} outside your hours isn't counted` : ''}. A visit marked ordered counts until the sale order syncs, up to {ORDER_RECONCILE_DAYS} days after the visit.
-        </p>
+
+        <details className="group mt-4 border-t border-neutral-100 pt-3">
+          <summary className="flex cursor-pointer list-none items-center justify-between text-[12.5px] font-bold text-neutral-700">
+            How the score works
+            <span className="text-neutral-400 transition-transform group-open:rotate-180" aria-hidden>
+              ▾
+            </span>
+          </summary>
+          <ul className="mt-2 space-y-1.5 text-[12px] leading-relaxed text-neutral-500">
+            <li>
+              The score is the average of the three parts, times 10. Each part is measured against its own goal and stops counting at 100% of it: visits {pct(SCORE_GOAL_VISITS)} of the target, active time {pct(SCORE_GOAL_ACTIVE)} of working hours, orders {pct(SCORE_GOAL_ORDERS)} of visits.
+            </li>
+            <li>A visit under {rules.shortVisitMin} min is not credited and earns a quarter of an effective visit.</li>
+            <li>Every full 50 km travelled adds an hour of active time. Clocked in {fmt(stats.totalWorkingMs)}{outsideMs > 0 ? `; ${fmt(outsideMs)} outside your hours isn't counted` : ''}.</li>
+            <li>A visit marked ordered counts until the sale order syncs, up to {ORDER_RECONCILE_DAYS} days after the visit.</li>
+            <li>Under 5 is low, 5 to 8 average, 8 to 9 good, above 9 excellent.</li>
+          </ul>
+        </details>
       </div>
 
       <div className={card}>

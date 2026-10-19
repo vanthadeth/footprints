@@ -23,14 +23,12 @@ describe('DaySummary', () => {
     expect(html).toContain('1 effective')
     expect(html).toContain('1 not credited')
     expect(html).toContain('Visits')
-    expect(html).toContain('out of 10') // the score and its band
-    expect(html).toContain('vs target')
+    expect(html).toContain('/ 10') // the score
+    expect(html).toContain('Biggest gap')
+    expect(html).toContain('What makes up the score')
     expect(html).toContain('Active time')
-    expect(html).toContain('vs working hours')
     expect(html).toContain('Orders')
-    expect(html).toContain('vs visits')
-    expect(html).toContain('<circle') // the rings
-    expect(html).toContain('1 / 2')
+    expect(html).toContain('1 of 2 visits')
     expect(html).toContain('Long idle gaps') // 57 min between the visits, and 6 h after the last
   })
 
@@ -51,7 +49,7 @@ describe('DaySummary', () => {
     const visits = ['a', 'b', 'c'].map((id, i) => visit({ id, customer_id: id, checked_in_at: `2026-01-01T0${2 + i}:00:00Z`, checked_out_at: `2026-01-01T0${2 + i}:30:00Z` }))
     const stats = computeJourneyStats([{ date: '2026-01-01', attendance, visits }], 0, null, rules, { a: 'confirmed', b: 'pending', c: 'unmatched' })
     const html = renderToStaticMarkup(<DaySummary stats={stats} rules={rules} firstVisit={{ kind: 'ok' }} paidVisits={0} appointments={0} language="en" />)
-    expect(html).toContain('2 / 3')
+    expect(html).toContain('2 of 3 visits')
     expect(html).toContain('1 confirmed · 1 pending')
     expect(html).toContain('Order not found')
   })
@@ -62,7 +60,7 @@ describe('DaySummary', () => {
     const short = [0, 1, 2, 3, 4].map((i) => visit({ id: `s${i}`, customer_id: `s${i}`, checked_in_at: `2026-01-01T0${5 + (i % 4)}:${i < 4 ? '00' : '40'}:00Z`, checked_out_at: `2026-01-01T0${5 + (i % 4)}:${i < 4 ? '02' : '42'}:00Z` }))
     const stats = computeJourneyStats([{ date: '2026-01-01', attendance, visits: [...long, ...short] }], 0, null, { ...rules, visitTarget: 8 })
     const html = renderToStaticMarkup(<DaySummary stats={stats} rules={{ ...rules, visitTarget: 8 }} firstVisit={{ kind: 'ok' }} paidVisits={0} appointments={0} language="en" />)
-    expect(html).toContain('4.25 / 8')
+    expect(html).toContain('4.25 of 8 visits')
     expect(html).toContain('53%')
     expect(html).toContain('3 effective + 5 × ¼')
   })

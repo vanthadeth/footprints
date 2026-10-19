@@ -208,3 +208,33 @@ export function scoreDay(
     lateNearFirstVisit: lateNearFirstVisit(sessions, live, day, rules.firstVisitDeadline),
   })
 }
+
+export type ScorePart = 'visits' | 'hours' | 'orders'
+
+/** The part furthest from its goal, and what closing the gap takes. */
+export interface ScoreFocus {
+  part: ScorePart
+  /** visits: more effective visits; hours: more active time in ms; orders: more ordered visits. */
+  need: number
+}
+
+/**
+ * What to work on next: the part of the day's score with the biggest gap to its
+ * goal (ties go to visits, then hours, then orders), and how much it would take
+ * to reach that goal. Null when every part has reached its goal.
+ */
+export function scoreFocus(d: DayScore): ScoreFocus | null {
+  const parts: { part: ScorePart; share: number }[] = [
+    { part: 'visits', share: d.visitShare },
+    { part: 'hours', share: d.hoursShare },
+    { part: 'orders', share: d.orderShare },
+  ]
+  const worst = parts.reduce((a, b) => (b.share < a.share ? b : a))
+  if (worst.share >= 1) return null
+  if (worst.part === 'visits') {
+    const counted = d.effectiveVisits + INEFFECTIVE_VISIT_WEIGHT * d.ineffectiveVisits
+    return { part: 'visits', need: Math.max(1, Math.ceil(d.visitTarget * SCORE_GOAL_VISITS - counted)) }
+  }
+  if (worst.part === 'hours') return { part: 'hours', need: Math.max(0, SCORE_GOAL_ACTIVE * d.workingMs - (d.activeMs + d.travelBonusMs)) }
+  return { part: 'orders', need: Math.max(1, Math.ceil(SCORE_GOAL_ORDERS * d.totalVisits - d.orderedVisits)) }
+}
