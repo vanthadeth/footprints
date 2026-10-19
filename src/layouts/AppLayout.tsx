@@ -4,6 +4,9 @@ import { MapPin, Clock, LayoutGrid, ChevronRight, Settings, type LucideIcon } fr
 import { haptic } from '@/lib/haptic'
 import { OfflineBanner } from '@/components/OfflineBanner'
 import { TitleBar } from '@/components/TitleBar'
+import { DesktopTopBar } from '@/components/desktop/DesktopTopBar'
+import { LogoIcon } from '@/components/Logo'
+import { useIsWide } from '@/hooks/useIsDesktop'
 import { JourneyProvider, useJourneyContext } from '@/features/attendance/JourneyContext'
 import { NotificationsProvider } from '@/features/notifications/NotificationsContext'
 import { MessagesProvider, useMessages } from '@/features/conversations/MessagesContext'
@@ -25,6 +28,7 @@ import { useLanguage } from '@/i18n/LanguageContext'
  */
 export function AppLayout() {
   const location = useLocation()
+  const wide = useIsWide()
   // Signed in and on screen: warm every other screen's code in the background.
   useEffect(() => prefetchPages(), [])
 
@@ -39,7 +43,7 @@ export function AppLayout() {
               <DesktopSidebar />
 
               <div className="flex min-w-0 flex-1 flex-col">
-                <TitleBar />
+                {wide ? <DesktopTopBar /> : <TitleBar />}
 
                 <main className="flex-1 pb-[calc(4.75rem+env(safe-area-inset-bottom))] md:pb-0">
                   {/* Keying by path remounts this div on every tab switch, which
@@ -88,8 +92,12 @@ function DesktopSidebar() {
   }, [here])
 
   return (
-    <nav className="hidden shrink-0 flex-col gap-1 overflow-y-auto border-r border-neutral-200 bg-white p-3 pt-4 md:flex md:w-60" aria-label="Primary">
-      {/* No logo/brand block here -- TitleBar (to the right) already shows it, alongside the current page's title. */}
+    <nav className="hidden shrink-0 flex-col gap-1 overflow-y-auto border-r border-neutral-200 bg-white p-3 pt-4 md:flex md:w-60 lg:w-64" aria-label="Primary">
+      {/* From lg up the top bar carries the page title, so the brand sits here. */}
+      <div className="mb-3 hidden h-10 items-center gap-2.5 px-3 lg:flex">
+        <LogoIcon className="h-7 w-7" />
+        <span className="text-[15px] font-extrabold tracking-[-0.01em] text-neutral-900">Footprints</span>
+      </div>
       {tabs.map((tab) => (
         <NavLink
           key={tab.to}

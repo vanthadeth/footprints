@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { AlertTriangle, CheckCircle2, Info } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, ChevronDown, Info } from 'lucide-react'
 import { InfoSheet } from '@/components/InfoSheet'
 import type { JourneyStats } from '@/features/attendance/journeyStats'
 import { BAND_LABEL, BAND_STYLE, formatScore, type ScoreBand } from '@/features/attendance/effectivenessScore'
@@ -171,27 +171,50 @@ export function DaySummary({
         </div>
         <ScoreScale score={score} band={band} />
 
-        <p className="mb-3 mt-5 text-[11px] font-extrabold uppercase tracking-[0.06em] text-neutral-500">What makes up the score</p>
-        <div className="space-y-4">
-          <Contributor
-            label="Visits"
-            share={day ? day.visitShare : null}
-            figure={`${countedVisits} of ${visitTarget} visits`}
-            detail={day ? `${day.effectiveVisits} effective${day.ineffectiveVisits > 0 ? ` + ${day.ineffectiveVisits} × ¼` : ''}` : ''}
-          />
-          <Contributor
-            label="Active time"
-            share={day ? day.hoursShare : null}
-            figure={`${fmt((day?.activeMs ?? 0) + (day?.travelBonusMs ?? 0))} of ${fmt(day?.workingMs ?? 0)}`}
-            detail={day ? `${pct(day.activeRatio)} · goal ${pct(SCORE_GOAL_ACTIVE)}${day.travelBonusMs > 0 ? ` · +${fmt(day.travelBonusMs)} travel` : ''}` : ''}
-          />
-          <Contributor
-            label="Orders"
-            share={day ? day.orderShare : null}
-            figure={`${stats.orderedVisits} of ${stats.totalVisits} visits`}
-            detail={day ? [`${pct(day.orderRatio)} · goal ${pct(SCORE_GOAL_ORDERS)}`, orderExtra].filter(Boolean).join(' · ') : ''}
-          />
-        </div>
+        <details className="group mt-5 border-t border-neutral-100 pt-4">
+          <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+            <span className="flex items-center justify-between gap-3">
+              <span className="text-[11px] font-extrabold uppercase tracking-[0.06em] text-neutral-500">What makes up the score</span>
+              <span className="text-neutral-400 transition-transform group-open:rotate-180" aria-hidden>
+                <ChevronDown className="h-4 w-4" />
+              </span>
+            </span>
+            {day && (
+              <span className="mt-2 block text-[12px] text-neutral-500 group-open:hidden">
+                {[
+                  ['Visits', day.visitShare],
+                  ['Active time', day.hoursShare],
+                  ['Orders', day.orderShare],
+                ].map(([label, share], i) => (
+                  <span key={label as string}>
+                    {i > 0 && ' · '}
+                    {label as string} <b className={TEXT[toneOf(share as number)]}>{Math.round((share as number) * 100)}%</b>
+                  </span>
+                ))}
+              </span>
+            )}
+          </summary>
+          <div className="mt-4 space-y-4">
+            <Contributor
+              label="Visits"
+              share={day ? day.visitShare : null}
+              figure={`${countedVisits} of ${visitTarget} visits`}
+              detail={day ? `${day.effectiveVisits} effective${day.ineffectiveVisits > 0 ? ` + ${day.ineffectiveVisits} × ¼` : ''}` : ''}
+            />
+            <Contributor
+              label="Active time"
+              share={day ? day.hoursShare : null}
+              figure={`${fmt((day?.activeMs ?? 0) + (day?.travelBonusMs ?? 0))} of ${fmt(day?.workingMs ?? 0)}`}
+              detail={day ? `${pct(day.activeRatio)} · goal ${pct(SCORE_GOAL_ACTIVE)}${day.travelBonusMs > 0 ? ` · +${fmt(day.travelBonusMs)} travel` : ''}` : ''}
+            />
+            <Contributor
+              label="Orders"
+              share={day ? day.orderShare : null}
+              figure={`${stats.orderedVisits} of ${stats.totalVisits} visits`}
+              detail={day ? [`${pct(day.orderRatio)} · goal ${pct(SCORE_GOAL_ORDERS)}`, orderExtra].filter(Boolean).join(' · ') : ''}
+            />
+          </div>
+        </details>
 
       </div>
 

@@ -54,17 +54,12 @@ const TITLE_KEYS: Record<string, string> = {
 }
 
 
-/**
- * The one top bar for every authenticated screen (rendered once from
- * AppLayout, like the bottom nav/sidebar). Tab roots get an Apple-style
- * large title under a small date line; sub-pages get a compact bar with a
- * back link.
- */
-export function TitleBar() {
-  const { pathname, search } = useLocation()
+/** The current screen's title, for the phone title bar and the desktop top bar. */
+export function useScreenTitle(): string {
+  const { pathname } = useLocation()
   const { attendance } = useJourneyContext()
-  const { t, language } = useLanguage()
-  const title =
+  const { t } = useLanguage()
+  return (
     pathname === '/check-in'
       ? attendance === 'CLOCKED_IN'
         ? t('nav.checkIn')
@@ -82,6 +77,19 @@ export function TitleBar() {
           : pathname.startsWith('/trips/') && !TITLE_KEYS[pathname]
             ? t(pathname.endsWith('/edit') ? 'nav.editTrip' : 'nav.trip')
           : t(TITLE_KEYS[pathname] ?? 'nav.footprints')
+  )
+}
+
+/**
+ * The one top bar for every authenticated screen (rendered once from
+ * AppLayout, like the bottom nav/sidebar). Tab roots get an Apple-style
+ * large title under a small date line; sub-pages get a compact bar with a
+ * back link.
+ */
+export function TitleBar() {
+  const { pathname, search } = useLocation()
+  const { t, language } = useLanguage()
+  const title = useScreenTitle()
   // The person's tabs get the large title; everything else is a sub-page with a back link.
   const { group, ctx } = useRoleGroup()
   const isRoot = tabsFor(group, ctx).some((tab) => tab.to === pathname)

@@ -25,6 +25,9 @@ describe('DaySummary', () => {
     expect(html).toContain('Visits')
     expect(html).toContain('/ 10') // the score
     expect(html).toContain('What makes up the score')
+    expect(html).toMatch(/<details class="group[^>]*>/) // the parts are in a collapsible section...
+    expect(html).not.toMatch(/<details[^>]* open/) // ...closed until opened
+    expect(html).toContain('Visits <b') // with a one-line preview of the three shares while closed
     expect(html).not.toContain('Biggest gap') // no information box under the score
     expect(html).toContain('aria-label="How the effectiveness score works"') // the info button
     expect(html).not.toContain('How the score works') // the explanation lives in the popup, closed until asked for
