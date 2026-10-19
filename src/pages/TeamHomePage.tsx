@@ -16,12 +16,13 @@ import { displayName } from '@/lib/displayName'
 import { days } from '@/features/flex/flex'
 import { useApprovedLeaveOnDate } from '@/features/leave/useApprovedLeaveOnDate'
 import { useFleetHistory } from '@/features/reports/useFleetHistory'
-import { useVisitOptions } from '@/features/visits/useVisitOptions'
 import { useAppSettings } from '@/hooks/useAppSettings'
 import { useLanguage } from '@/i18n/LanguageContext'
 import { getPresetRange, localDateKey, todayDateString } from '@/lib/dateRange'
 import { useAttendanceDays } from '@/features/attendanceSummary/useAttendanceDays'
 import { useTeamWorkDays } from '@/features/schedule/useTeamWorkDays'
+import { countsAsOrdered } from '@/features/orders/orderReconcile'
+import { useVisitOrders } from '@/features/orders/useVisitOrders'
 import { creditedVisitMs, dayEffectiveness, effectivenessPercent, GOOD_EFFECTIVENESS, serverDayEffectiveness } from '@/features/attendance/efficiency'
 import { visitSpan } from '@/features/attendance/flagRules'
 import { formatDuration, formatTime } from '@/lib/datetime'
@@ -84,15 +85,6 @@ export function TeamHomePage() {
   const workDays = useTeamWorkDays(today)
   const weekRange = useMemo(() => getPresetRange('this_week'), [])
   const week = useFleetHistory(ids, weekRange)
-  const { byKind } = useVisitOptions()
-  const label = (id: string | null) => {
-    if (!id) return ''
-    for (const list of Object.values(byKind)) {
-      const o = list.find((x) => x.id === id)
-      if (o) return o.label.trim().toLowerCase()
-    }
-    return ''
-  }
   const [filter, setFilter] = useState<Filter>('all')
   const [alertsOpen, setAlertsOpen] = useState(false)
   const now = Date.now()
@@ -101,7 +93,8 @@ export function TeamHomePage() {
   const worked = field.filter((s) => s.attendance)
 
   const weekVisits = week.visits.length
-  const weekOrdered = week.visits.filter((v) => label(v.order_status_id) === 'ordered').length
+  const weekOrderStates = useVisitOrders(week.visits)
+  const weekOrdered = week.visits.filter((v) => countsAsOrdered(weekOrderStates[v.id])).length
   // A visit nobody checked out of counts at most the cap.
   const visitMsOf = (v: { checked_in_at: string; checked_out_at: string | null; flags?: string[] | null }) => {
     const [a, b] = visitSpan(v, now, settings.flagRules.forgottenCapMin)

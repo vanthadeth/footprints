@@ -1,3 +1,5 @@
+import { countsAsOrdered } from '@/features/orders/orderReconcile'
+import { useVisitOrders } from '@/features/orders/useVisitOrders'
 import { useState } from 'react'
 import { Banknote, Check, ChevronDown, Clock, XCircle, Calendar as CalendarIcon, type LucideIcon } from 'lucide-react'
 import { useApprovedLeaveOnDate } from '@/features/leave/useApprovedLeaveOnDate'
@@ -59,7 +61,8 @@ export function TeamPulseCard({ snapshots }: { snapshots: FleetMemberSnapshot[] 
   const due = snapshots.length - excused.size
   const late = dayRows.filter((r) => r.status === 'late').length
   const visits = snapshots.flatMap((s) => s.visitsToday.filter((v) => !v.cancelled_at))
-  const ordered = visits.filter((v) => label(v.order_status_id) === 'ordered').length
+  const orderStates = useVisitOrders(visits)
+  const ordered = visits.filter((v) => countsAsOrdered(orderStates[v.id])).length
   const paid = visits.filter((v) => /full|part/.test(label(v.payment_status_id))).length
   const part = visits.filter((v) => /part/.test(label(v.payment_status_id))).length
   const appts = visits.filter((v) => v.next_appointment).length

@@ -236,5 +236,16 @@ describe('computeJourneyStats effectiveness inputs', () => {
     expect(stats.forgottenCheckouts).toBe(1)
     expect(stats.forgottenClockOuts).toBe(1)
   })
+
+  it('counts marked orders as ordered while pending or confirmed, but not once unmatched', () => {
+    const at = (h: number) => `2026-01-01T0${h}:00:00Z`
+    const v = (id: string, h: number) => visit({ id, checked_in_at: at(h), checked_out_at: `2026-01-01T0${h}:30:00Z` })
+    const days: DayJourney[] = [{ date: '2026-01-01', attendance: [attendance('2026-01-01T01:00:00Z', '2026-01-01T09:00:00Z')], visits: [v('a', 2), v('b', 3), v('c', 4), v('d', 5), v('e', 6)] }]
+    const stats = computeJourneyStats(days, 0, null, DEFAULT_FLAG_RULES, { a: 'confirmed', b: 'synced', c: 'pending', d: 'unmatched', e: 'none' })
+    expect(stats.orderedVisits).toBe(3)
+    expect(stats.ordersSynced).toBe(2)
+    expect(stats.ordersPending).toBe(1)
+    expect(stats.ordersUnmatched).toBe(1)
+  })
 })
 

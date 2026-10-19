@@ -3,6 +3,7 @@ import { AlertTriangle, CheckCircle2 } from 'lucide-react'
 import type { JourneyStats } from '@/features/attendance/journeyStats'
 import { GOOD_EFFECTIVENESS, effectivenessPercent } from '@/features/attendance/efficiency'
 import type { FirstVisit, FlagRules } from '@/features/attendance/flagRules'
+import { ORDER_RECONCILE_DAYS } from '@/lib/config'
 import { formatDuration, formatTime } from '@/lib/datetime'
 
 type Tone = 'good' | 'warn' | 'neutral'
@@ -30,7 +31,7 @@ function Ring({ pct, tone, size, stroke, children }: { pct: number | null; tone:
 }
 
 /** One part of the effectiveness score: a ring with its percentage, what it measures, and the figures. */
-function Part({ label, vs, value, pct, tone }: { label: string; vs: string; value: string; pct: number | null; tone: Tone }) {
+function Part({ label, vs, value, pct, tone, extra }: { label: string; vs: string; value: string; pct: number | null; tone: Tone; extra?: string }) {
   return (
     <div className="flex min-w-0 flex-col items-center text-center">
       <Ring pct={pct} tone={tone} size={64} stroke={6}>
@@ -39,6 +40,7 @@ function Part({ label, vs, value, pct, tone }: { label: string; vs: string; valu
       <p className="mt-2 text-[13px] font-bold text-neutral-900">{label}</p>
       <p className="text-[11px] text-neutral-500">{vs}</p>
       <p className="mt-0.5 max-w-full text-[12px] font-semibold text-neutral-900">{value}</p>
+      {extra && <p className="max-w-full text-[11px] text-neutral-500">{extra}</p>}
     </div>
   )
 }
@@ -84,8 +86,10 @@ export function DaySummary({
   const customerPct = stats.uniqueCustomerTarget > 0 ? (stats.uniqueCustomers / stats.uniqueCustomerTarget) * 100 : null
   const orderPct = stats.totalVisits > 0 ? (stats.orderedVisits / stats.totalVisits) * 100 : null
   const deadline = rules.firstVisitDeadline.slice(0, 5)
+  // An order the person marked counts for now; it is confirmed when the sale order shows up in the sync.
+  const orderExtra = [stats.ordersSynced > 0 ? `${stats.ordersSynced} confirmed` : '', stats.ordersPending > 0 ? `${stats.ordersPending} pending` : ''].filter(Boolean).join(' · ') || undefined
   const hasWarnings =
-    stats.forgottenCheckouts > 0 || stats.forgottenClockOuts > 0 || stats.flaggedGapMs > 0 || firstVisit.kind === 'late' || firstVisit.kind === 'none'
+    stats.forgottenCheckouts > 0 || stats.forgottenClockOuts > 0 || stats.ordersUnmatched > 0 || stats.flaggedGapMs > 0 || firstVisit.kind === 'late' || firstVisit.kind === 'none'
 
   return (
     <section aria-label="Day summary" className="flex flex-col gap-3">
@@ -131,11 +135,11 @@ export function DaySummary({
             tone={stats.uniqueCustomers >= stats.uniqueCustomerTarget ? 'good' : 'warn'}
           />
           <Part label="Active time" vs="vs working hours" value={`${fmt(stats.creditedVisitMs)} / ${fmt(stats.scheduledPaidMs)}`} pct={score} tone={score != null && score >= GOOD_EFFECTIVENESS * 100 ? 'good' : 'warn'} />
-          <Part label="Ordered" vs="vs visits" value={`${stats.orderedVisits} / ${stats.totalVisits}`} pct={orderPct} tone="neutral" />
+          <Part label="Ordered" vs="vs visits" value={`${stats.orderedVisits} / ${stats.totalVisits}`} pct={orderPct} tone="neutral" extra={orderExtra} />
         </div>
         <p className="mt-3 text-[11px] text-neutral-500">
           Clocked in {fmt(stats.totalWorkingMs)}
-          {outsideMs > 0 ? ` · ${fmt(outsideMs)} outside your hours isn't counted` : ''}. A repeat visit to the same customer counts once.
+          {outsideMs > 0 ? ` · ${fmt(outsideMs)} outside your hours isn't counted` : ''}. A repeat visit to the same customer counts once. A visit marked ordered counts until the sale order syncs, up to {ORDER_RECONCILE_DAYS} days after the visit.
         </p>
       </div>
 
@@ -149,6 +153,11 @@ export function DaySummary({
               </Warning>
             )}
             {stats.forgottenClockOuts > 0 && <Warning title="Forgot to clock out">Clocked out automatically at the end of the day.</Warning>}
+            {stats.ordersUnmatched > 0 && (
+              <Warning title="Order not found">
+                {stats.ordersUnmatched} {stats.ordersUnmatched === 1 ? 'visit' : 'visits'} marked ordered with no sale order after {ORDER_RECONCILE_DAYS} days, not counted.
+              </Warning>
+            )}
             {stats.flaggedGapMs > 0 && (
               <Warning title="Long idle gaps">
                 {fmt(stats.flaggedGapMs)} over {stats.flaggedGaps} {stats.flaggedGaps === 1 ? 'gap' : 'gaps'}.
