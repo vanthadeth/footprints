@@ -4,6 +4,8 @@ import { ReceiptText, Store } from 'lucide-react'
 import { customersService } from '@/features/customers/customersService'
 import { PAGE, orderBadges, orderValue, ordersService, type CustomerOrder } from '@/features/orders/ordersService'
 import { formatTime } from '@/lib/datetime'
+import { DataTable, type Column } from '@/components/desktop/DataTable'
+import { useIsWide } from '@/hooks/useIsDesktop'
 
 const day = (iso: string | null) => (iso ? new Date(`${iso.slice(0, 10)}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : '—')
 const stamp = (iso: string | null) => (iso ? `${new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Phnom_Penh' })}, ${formatTime(iso)}` : null)
@@ -19,6 +21,7 @@ const TONE = {
  * it. Orders come from the sale order sheet; a page of 30 at a time.
  */
 export function CustomerOrdersPage() {
+  const wide = useIsWide()
   const { id } = useParams<{ id: string }>()
   const passed = (useLocation().state as { name?: string } | null) ?? null
   const [name, setName] = useState<string | null>(passed?.name ?? null)
@@ -67,7 +70,7 @@ export function CustomerOrdersPage() {
   }
 
   return (
-    <div className="mx-auto max-w-lg space-y-3 px-4 pb-8 pt-1.5 md:max-w-2xl md:px-8">
+    <div className="mx-auto max-w-lg space-y-3 px-4 pb-8 pt-1.5 md:max-w-2xl md:px-8 lg:max-w-6xl lg:pt-6">
       <div className="flex items-center gap-3">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] bg-brand-500 text-white">
           <Store className="h-5 w-5" aria-hidden />
@@ -94,11 +97,15 @@ export function CustomerOrdersPage() {
         </div>
       )}
 
-      <ul className="space-y-2">
-        {rows.map((o) => (
-          <OrderCard key={o.id} order={o} />
-        ))}
-      </ul>
+      {wide ? (
+        !loading && rows.length > 0 && <DataTable columns={ORDER_COLUMNS} rows={rows} rowKey={(o) => o.id} />
+      ) : (
+        <ul className="space-y-2">
+          {rows.map((o) => (
+            <OrderCard key={o.id} order={o} />
+          ))}
+        </ul>
+      )}
 
       {!loading && rows.length < total && (
         <button type="button" onClick={loadMore} disabled={more} className="h-11 w-full rounded-xl border border-neutral-200 bg-white text-sm font-bold text-neutral-900 disabled:opacity-50">
@@ -108,6 +115,48 @@ export function CustomerOrdersPage() {
     </div>
   )
 }
+
+/** The desktop table: one row per order, sortable within what's loaded. */
+const ORDER_COLUMNS: Column<CustomerOrder>[] = [
+  { key: 'date', header: 'Order date', cell: (o) => <span className="font-semibold">{day(o.order_date)}</span>, sortValue: (o) => o.order_date, className: 'whitespace-nowrap' },
+  { key: 'no', header: 'Order', cell: (o) => <span className="font-mono text-[12px] text-neutral-500">{o.order_no}</span>, sortValue: (o) => o.order_no, className: 'whitespace-nowrap' },
+  {
+    key: 'value',
+    header: 'Value',
+    align: 'right',
+    cell: (o) => <span className={`font-extrabold ${o.status === 'cancelled' ? 'text-neutral-500 line-through' : ''}`}>{orderValue(o)}</span>,
+    sortValue: (o) => (o.is_khr ? o.total_khr : o.total_usd),
+  },
+  {
+    key: 'status',
+    header: 'Status',
+    cell: (o) => {
+      const { status, approval } = orderBadges(o)
+      return (
+        <span className="flex flex-wrap gap-1.5">
+          <span className={`rounded-full px-2 py-0.5 text-[11.5px] font-extrabold ${TONE[status.tone]}`}>{status.label}</span>
+          <span className={`rounded-full px-2 py-0.5 text-[11.5px] font-extrabold ${TONE[approval.tone]}`}>{approval.label}</span>
+        </span>
+      )
+    },
+  },
+  {
+    key: 'approved',
+    header: 'Approved',
+    cell: (o) => {
+      const at = stamp(o.approved_at)
+      return o.approved && (o.approved_by || at) ? <span className="text-[12.5px] text-neutral-600">{[o.approved_by ? `by ${o.approved_by}` : null, at].filter(Boolean).join(' · ')}</span> : <span className="text-neutral-400">—</span>
+    },
+  },
+  {
+    key: 'details',
+    header: 'Details',
+    cell: (o) => {
+      const facts = [o.delivery_date ? `Delivery ${day(o.delivery_date)}` : null, o.payment_term, o.so_type, o.stock_checked ? 'Stock checked' : null, o.assign_to ? `Assigned: ${o.assign_to}` : null].filter(Boolean)
+      return <span className="text-[12.5px] text-neutral-600">{facts.join(' · ') || '—'}</span>
+    },
+  },
+]
 
 function OrderCard({ order: o }: { order: CustomerOrder }) {
   const { status, approval } = orderBadges(o)
