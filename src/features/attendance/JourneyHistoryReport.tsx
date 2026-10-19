@@ -5,9 +5,9 @@ import { EmptyState } from '@/components/EmptyState'
 import { FlagBadge } from '@/components/FlagBadge'
 import { useJourneyHistory, type DayJourney } from '@/features/attendance/useJourneyHistory'
 import { computeJourneyStats } from '@/features/attendance/journeyStats'
-import { effectivenessPercent } from '@/features/attendance/efficiency'
 import { firstVisitStatus } from '@/features/attendance/flagRules'
 import { useTeamWorkDays } from '@/features/schedule/useTeamWorkDays'
+import { DaySummary } from '@/features/attendance/DaySummary'
 import { JourneyTimeline } from '@/features/attendance/JourneyTimeline'
 import { JourneyMap } from '@/features/attendance/JourneyMap'
 import { DatePickerButton } from '@/features/attendance/DatePickerButton'
@@ -17,7 +17,7 @@ import { SEG_LABEL, atLocal, dayBreakdown, minutesText, segText, segmentsFor, ty
 import { useAppSettings } from '@/hooks/useAppSettings'
 import { useApprovedLeaveOnDate } from '@/features/leave/useApprovedLeaveOnDate'
 import { useLanguage } from '@/i18n/LanguageContext'
-import { formatDuration, formatLongDate, formatTime } from '@/lib/datetime'
+import { formatLongDate, formatTime } from '@/lib/datetime'
 import { getCustomRange, todayDateString } from '@/lib/dateRange'
 import { distanceInMeters, formatDistance } from '@/lib/geo'
 
@@ -65,11 +65,9 @@ export function JourneyHistoryReport({ userId, interactive, subtitle }: { userId
   // This person's own shift and break on this date (not the signed-in person's, and not today's).
   const workDay = useTeamWorkDays(selectedDate)[userId ?? '']
   const stats = computeJourneyStats(day ? [day] : [], undefined, workDay ?? null, appSettings.flagRules)
-  const effectiveness = effectivenessPercent(stats.creditedVisitMs, stats.scheduledPaidMs) ?? 0
   const firstVisit = firstVisitStatus(day?.visits ?? [], !!day?.attendance.length, selectedDate, appSettings.flagRules.firstVisitDeadline, Date.now())
   const flags = [...new Set((day?.visits ?? []).flatMap((v) => v.flags ?? []))]
   const liveVisits = (day?.visits ?? []).filter((v) => !v.cancelled_at)
-  const ordered = liveVisits.filter((v) => (v.order_amount_usd ?? 0) > 0).length
   const paid = liveVisits.filter((v) => (v.collected_usd ?? 0) > 0).length
   const appts = liveVisits.filter((v) => v.next_appointment).length
   const dayLabel = selectedDate === today ? t('common.today') : selectedDate === shiftDate(today, -1) ? t('common.yesterday') : null
@@ -131,35 +129,8 @@ export function JourneyHistoryReport({ userId, interactive, subtitle }: { userId
             <EmptyState icon={FootprintsIcon} title={t('footprints.emptyTitle')} body={t('footprints.emptyBody')} />
           )
         ) : tab === 'summary' ? (
-          <section aria-label="Day summary" className="flex flex-col gap-3">
-            <div className="grid grid-cols-2 gap-2.5">
-              <div className="rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card">
-                <p className="text-[13px] font-semibold text-neutral-500">{t('footprints.effective')}</p>
-                <p className="text-[30px] font-extrabold leading-9 text-neutral-900">{stats.totalPaidMs > 0 ? `${effectiveness}%` : '—'}</p>
-                <p className="text-[11px] text-neutral-500">{t('footprints.effectiveSub')}</p>
-                <div className="mt-2.5 space-y-1 border-t border-neutral-100 pt-2.5 text-xs">
-                  <Line label={t('footprints.clockedInFor')} value={formatDuration(stats.totalWorkingMs, language)} />
-                  <Line label={t('checkIn.statActive')} value={formatDuration(stats.totalVisitingMs, language)} tone="text-brand-500" />
-                  <Line label={t('footprints.gaps')} value={formatDuration(stats.totalGapMs, language)} />
-                  {stats.uniqueCustomers > 0 && <Line label="Customers" value={`${stats.uniqueCustomers} / ${stats.uniqueCustomerTarget}`} tone={stats.uniqueCustomers >= stats.uniqueCustomerTarget ? 'text-status-working' : undefined} />}
-                  {stats.flaggedGapMs > 0 && <Line label="Flagged idle" value={`${formatDuration(stats.flaggedGapMs, language)} · ${stats.flaggedGaps}×`} tone="text-status-warn" />}
-                  {firstVisit.kind === 'late' && <Line label="First visit" value={formatTime(new Date(firstVisit.at).toISOString())} tone="text-status-warn" />}
-                  {firstVisit.kind === 'none' && <Line label="First visit" value={`None by ${appSettings.flagRules.firstVisitDeadline.slice(0, 5)}`} tone="text-status-warn" />}
-                </div>
-              </div>
-              <div className="rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card">
-                <p className="text-[13px] font-semibold text-neutral-500">{t('nav.visits')}</p>
-                <p className="text-[30px] font-extrabold leading-9 text-neutral-900">{stats.totalVisits}</p>
-                <p className="text-[11px] text-neutral-500">
-                  {stats.unassignedVisits ? t('footprints.unassignedSub', { n: String(stats.unassignedVisits) }) : t('footprints.visitsSub')}
-                </p>
-                <div className="mt-2.5 space-y-1 border-t border-neutral-100 pt-2.5 text-xs">
-                  <Line label={t('footprints.ordered')} value={String(ordered)} />
-                  <Line label={t('footprints.payment')} value={String(paid)} />
-                  <Line label={t('footprints.appt')} value={String(appts)} />
-                </div>
-              </div>
-            </div>
+          <div className="flex flex-col gap-3">
+            <DaySummary stats={stats} rules={appSettings.flagRules} firstVisit={firstVisit} paidVisits={paid} appointments={appts} language={language} />
 
             <div className="rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card">
               <div className="flex items-baseline justify-between">
@@ -175,7 +146,7 @@ export function JourneyHistoryReport({ userId, interactive, subtitle }: { userId
                 </div>
               )}
             </div>
-          </section>
+          </div>
         ) : (
           <>
             <button type="button" onClick={() => setMapOpen(true)} className="flex items-center gap-3 rounded-2xl border border-neutral-100 bg-white p-3.5 text-left shadow-card">
@@ -205,15 +176,6 @@ export function JourneyHistoryReport({ userId, interactive, subtitle }: { userId
       <FullScreenSheet open={mapOpen} onClose={() => setMapOpen(false)} label={t('footprints.journeyMapLabel')}>
         {day && <JourneyMap visits={day.visits} attendance={day.attendance} customerNames={customerNames} height="100dvh" rounded={false} />}
       </FullScreenSheet>
-    </div>
-  )
-}
-
-function Line({ label, value, tone = 'text-neutral-900' }: { label: string; value: string; tone?: string }) {
-  return (
-    <div className="flex justify-between gap-2">
-      <span className="text-neutral-500">{label}</span>
-      <span className={`font-bold ${tone}`}>{value}</span>
     </div>
   )
 }
