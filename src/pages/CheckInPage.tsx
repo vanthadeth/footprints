@@ -5,7 +5,7 @@ import { useJourneyContext } from '@/features/attendance/JourneyContext'
 import type { AttendanceRow, VisitRow } from '@/features/attendance/types'
 import { ClockSheet } from '@/features/attendance/ClockSheet'
 import { computeJourneyStats } from '@/features/attendance/journeyStats'
-import { effectivenessPercent } from '@/features/attendance/efficiency'
+import { formatScore } from '@/features/attendance/effectivenessScore'
 import type { FlagRules } from '@/features/attendance/flagRules'
 import type { DayJourney } from '@/features/attendance/useJourneyHistory'
 import { VisitFlow, type PresetCustomer } from '@/features/visits/VisitFlow'
@@ -80,7 +80,6 @@ export function CheckInPage() {
   // across every session today, not just whichever one is currently open.
   const today: DayJourney = { date: todayDateString(), attendance: journey.todaysAttendance, visits: journey.todaysVisits }
   const stats = computeJourneyStats([today], undefined, { breakMinutes: settings.breakMinutes, breakPaid: settings.breakPaid, start: settings.workStartTime, end: settings.workEndTime }, settings.flagRules)
-  const effectivenessRatio = effectivenessPercent(stats.creditedVisitMs, stats.scheduledPaidMs) ?? 0
 
   const minutesNow = (() => {
     const [h, m] = formatTime(new Date().toISOString()).split(':').map(Number)
@@ -205,7 +204,7 @@ export function CheckInPage() {
                 <div className="grid grid-cols-3">
                   <HeroFact label={t('nav.visits')} value={String(stats.totalVisits)} />
                   <HeroFact label={t('checkIn.statActive')} value={formatDuration(stats.totalVisitingMs, language)} />
-                  <HeroFact label={t('checkIn.effectiveness')} value={stats.totalPaidMs > 0 ? `${effectivenessRatio}%` : '—'} />
+                  <HeroFact label={t('checkIn.effectiveness')} value={formatScore(stats.score)} />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="rounded-xl bg-white/[.06] px-3 py-2.5">

@@ -23,7 +23,7 @@ import { useAttendanceDays } from '@/features/attendanceSummary/useAttendanceDay
 import { useTeamWorkDays } from '@/features/schedule/useTeamWorkDays'
 import { countsAsOrdered } from '@/features/orders/orderReconcile'
 import { useVisitOrders } from '@/features/orders/useVisitOrders'
-import { creditedVisitMs, dayEffectiveness, effectivenessPercent, GOOD_EFFECTIVENESS, serverDayEffectiveness } from '@/features/attendance/efficiency'
+import { formatScore, meanScore, scoreDay, scoreTextClass } from '@/features/attendance/effectivenessScore'
 import { visitSpan } from '@/features/attendance/flagRules'
 import { formatDuration, formatTime } from '@/lib/datetime'
 
@@ -102,13 +102,17 @@ export function TeamHomePage() {
   }
   // Paid working time (clocked in less the unpaid break) as the server counts it, per person per day.
   const weekDays = useAttendanceDays(localDateKey(weekRange.startIso), today, ids)
-  // Paid time inside each person's own hours that day; the server rows give first in / last out and the hours.
-  const weekScheduledMs = weekDays.rows.reduce((n, r) => {
-    const visits = week.visits.filter((v) => v.user_id === r.userId && !v.cancelled_at && localDateKey(v.checked_in_at) === r.day)
-    return n + serverDayEffectiveness(r, visits, now, settings.flagRules).scheduledPaidMs
-  }, 0)
-  const weekCreditedMs = week.visits.filter((v) => !v.cancelled_at).reduce((n, v) => n + creditedVisitMs(v, now, settings.flagRules), 0)
-  const weekEff = effectivenessPercent(weekCreditedMs, weekScheduledMs) ?? 0
+  // The week's score: the average of each person-day's score. The server rows give each day's paid time and the person's hours.
+  const weekScore = meanScore(
+    weekDays.rows
+      .filter((r) => r.firstIn)
+      .map((r) => {
+        const sessions = week.attendance.filter((a) => a.user_id === r.userId && localDateKey(a.clock_in_at) === r.day)
+        const visits = week.visits.filter((v) => v.user_id === r.userId && localDateKey(v.checked_in_at) === r.day)
+        const rule = { breakMinutes: 0, breakPaid: true, start: r.scheduledStart ?? undefined, end: r.scheduledEnd ?? undefined }
+        return scoreDay(sessions.length ? sessions : [{ clock_in_at: r.firstIn!, clock_out_at: r.lastOut }], visits, r.day, rule, now, settings.flagRules, r.workedMinutes * 60_000).score
+      })
+  )
 
   const count = (k: Filter) => (k === 'all' ? field.length : field.filter((s) => statusOf(s) === k).length)
   const shown = field.filter((s) => filter === 'all' || statusOf(s) === filter)
@@ -219,8 +223,7 @@ export function TeamHomePage() {
           const lastOut = lastClockOut(s.sessions)
           const visitMs = done.reduce((n, v) => n + visitMsOf(v), 0)
           const own = shiftOf(s.member.id)
-          const counted = dayEffectiveness(s.sessions, done, today, workDays[s.member.id], now, settings.flagRules)
-          const eff = effectivenessPercent(counted.creditedMs, counted.scheduledPaidMs)
+          const score = scoreDay(s.sessions, done, today, workDays[s.member.id], now, settings.flagRules).score
           const sub =
             st === 'visiting' && s.openVisit
               ? `On a visit · ${formatDuration(now - Date.parse(s.openVisit.checked_in_at), language)}`
@@ -263,7 +266,7 @@ export function TeamHomePage() {
                 </span>
                 <span className="flex items-baseline justify-between gap-2">
                   <span className={`truncate text-xs ${st === 'notin' ? 'font-semibold text-status-danger' : 'text-neutral-500'}`}>{sub}</span>
-                  {eff != null && <span className={`shrink-0 text-xs font-bold ${eff >= GOOD_EFFECTIVENESS * 100 ? 'text-status-working' : 'text-status-warn'}`}>{eff}% effective</span>}
+                  {score != null && <span className={`shrink-0 text-xs font-bold ${scoreTextClass(score)}`}>Score {formatScore(score)}</span>}
                 </span>
                 {segs.length > 0 && <DayBar segs={segs} from={rangeFrom} to={rangeTo} label={barLabel} className="mt-2.5" />}
               </span>
@@ -280,14 +283,14 @@ export function TeamHomePage() {
         </div>
       </section>
 
-      <Link to="/fleet" aria-label={`Open team report: this week, ${weekVisits} visits, ${weekOrdered} ordered, ${weekEff}% effective`} className="flex items-center gap-3 rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card">
+      <Link to="/fleet" aria-label={`Open team report: this week, ${weekVisits} visits, ${weekOrdered} ordered, score ${formatScore(weekScore)}`} className="flex items-center gap-3 rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-500">
           <BarChart3 className="h-5 w-5" aria-hidden />
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-[11px] font-bold uppercase tracking-wide text-neutral-500">This week</span>
           <span className="block text-[15px] font-bold text-neutral-900">Team report</span>
-          <span className="block truncate text-xs text-neutral-500">Visits, orders, effective time and attendance, by person</span>
+          <span className="block truncate text-xs text-neutral-500">Visits, orders, score and attendance, by person</span>
           <span className="mt-1 flex gap-3 text-xs text-neutral-600">
             <span>
               <b className="text-neutral-900">{weekVisits}</b> visits
@@ -296,7 +299,7 @@ export function TeamHomePage() {
               <b className="text-neutral-900">{weekOrdered}</b> ordered
             </span>
             <span>
-              <b className="text-neutral-900">{weekEff}%</b> eff.
+              <b className="text-neutral-900">{formatScore(weekScore)}</b> score
             </span>
           </span>
         </span>

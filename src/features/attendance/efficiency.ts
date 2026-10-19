@@ -60,18 +60,6 @@ export function paidWorkMs(sessions: SessionLike[], now: number, rule?: BreakRul
   return grossMs - Math.max(0, breakMs - offClockMs)
 }
 
-/** Visit time over paid working time, 0-1 (never above 100%, even when visits overlap or run past clock-out). */
-export function effectiveness(visitingMs: number, paidMs: number): number {
-  return paidMs > 0 ? Math.min(1, Math.max(0, visitingMs / paidMs)) : 0
-}
-
-/** Whole percent for display, or null when there is no paid time to measure against. */
-export function effectivenessPercent(visitingMs: number, paidMs: number): number | null {
-  return paidMs > 0 ? Math.round(effectiveness(visitingMs, paidMs) * 100) : null
-}
-
-/** Visiting ÷ paid time at or above this reads as healthy (green); below it, as needing attention. */
-export const GOOD_EFFECTIVENESS = 0.3
 
 type EffectivenessRules = Pick<FlagRules, 'forgottenCapMin' | 'shortVisitMin' | 'visitCreditCapMin'>
 
@@ -140,14 +128,19 @@ export function scheduledHours(rule: BreakRule | null | undefined): number {
 }
 
 /**
- * Unique customers expected on a day: the full-day target scaled by the day's
- * scheduled hours (a half-day Saturday expects about half), at least 1. Without
- * the person's hours, the full-day target.
+ * A full-day target scaled by the day's scheduled hours (a half-day Saturday
+ * expects about half), at least 1. Without the person's hours, the full-day
+ * target.
  */
-export function uniqueCustomerTarget(rule: BreakRule | null | undefined, rules: Pick<FlagRules, 'uniqueTarget' | 'fullDayHours'>): number {
+export function scaledDailyTarget(rule: BreakRule | null | undefined, base: number, fullDayHours: number): number {
   const hours = scheduledHours(rule)
-  if (hours <= 0 || rules.fullDayHours <= 0) return rules.uniqueTarget
-  return Math.max(1, Math.round((rules.uniqueTarget * Math.min(hours, rules.fullDayHours)) / rules.fullDayHours))
+  if (hours <= 0 || fullDayHours <= 0) return base
+  return Math.max(1, Math.round((base * Math.min(hours, fullDayHours)) / fullDayHours))
+}
+
+/** Unique customers expected on a day: the full-day target scaled by the day's scheduled hours. */
+export function uniqueCustomerTarget(rule: BreakRule | null | undefined, rules: Pick<FlagRules, 'uniqueTarget' | 'fullDayHours'>): number {
+  return scaledDailyTarget(rule, rules.uniqueTarget, rules.fullDayHours)
 }
 
 /**
@@ -176,50 +169,4 @@ export interface ServerDay {
   paidMinutes: number
   start?: string | null
   end?: string | null
-}
-
-/**
- * Paid time inside the person's hours, over several days. Whole days that have a
- * server figure use it, with that day's own hours (whatever day of the week it
- * was); days in `liveDates` (today, or a partly counted comparison day) and days
- * without a figure are worked out here with `rule`.
- */
-export function scheduledPaidMsOverDays(
-  days: { date: string; attendance: SessionLike[]; visits: VisitLike[] }[],
-  server: Record<string, ServerDay> | undefined,
-  liveDates: ReadonlySet<string>,
-  now: number,
-  rule: BreakRule | null | undefined,
-  rules: EffectivenessRules
-): number {
-  let total = 0
-  for (const d of days) {
-    const srv = server?.[d.date]
-    const useServer = srv !== undefined && !liveDates.has(d.date)
-    const dayRule: BreakRule = { breakMinutes: rule?.breakMinutes ?? 0, breakPaid: rule?.breakPaid ?? true, start: (useServer ? srv.start : null) ?? rule?.start, end: (useServer ? srv.end : null) ?? rule?.end }
-    total += dayEffectiveness(d.attendance, d.visits.filter((v) => !(v as { cancelled_at?: string | null }).cancelled_at), d.date, dayRule, now, rules, useServer ? srv.paidMinutes * 60_000 : undefined).scheduledPaidMs
-  }
-  return total
-}
-
-/** One person-day as the server reports it (app.attendance_days). */
-export interface ServerAttendanceDay {
-  day: string
-  firstIn: string | null
-  lastOut: string | null
-  workedMinutes: number
-  scheduledStart: string | null
-  scheduledEnd: string | null
-}
-
-/**
- * A finished (or running) day from the server feed: paid time inside the
- * person's hours, and the unique customers expected that day. `visits` are
- * that person's visits that day. A day nobody clocked in on expects nothing.
- */
-export function serverDayEffectiveness(row: ServerAttendanceDay, visits: VisitLike[], now: number, rules: FlagRules): { scheduledPaidMs: number; uniqueTarget: number } {
-  if (!row.firstIn) return { scheduledPaidMs: 0, uniqueTarget: 0 }
-  const rule: BreakRule = { breakMinutes: 0, breakPaid: true, start: row.scheduledStart ?? undefined, end: row.scheduledEnd ?? undefined }
-  const { scheduledPaidMs: paid } = dayEffectiveness([{ clock_in_at: row.firstIn, clock_out_at: row.lastOut }], visits, row.day, rule, now, rules, row.workedMinutes * 60_000)
-  return { scheduledPaidMs: paid, uniqueTarget: uniqueCustomerTarget(rule, rules) }
 }

@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { DEFAULT_DAILY_VISIT_TARGET } from '@/lib/config'
 
 /** The global settings a super admin can edit here. Working hours, clock-in
  * rules and leave defaults live on their own screens (Working hours & days,
@@ -30,6 +31,8 @@ export interface EditableSettings {
   visitCreditCapMinutes: number
   /** Unique customers expected on a full working day. */
   dailyUniqueCustomerTarget: number
+  /** Visits expected on a full working day (the effectiveness score). */
+  dailyVisitTarget: number
 }
 
 /**
@@ -43,7 +46,7 @@ export const settingsService = {
     const { data, error } = await supabase
       .from('app_settings')
       .select(
-        'checkin_radius_m, location_ping_interval_minutes, auto_checkout_enabled, idle_alert_threshold_minutes, short_visit_threshold_minutes, max_location_accuracy_m, check_window_start, check_window_end, first_visit_deadline, lunch_window_start, lunch_window_end, lunch_idle_threshold_minutes, forgotten_visit_cap_minutes, visit_credit_cap_minutes, daily_unique_customer_target'
+        'checkin_radius_m, location_ping_interval_minutes, auto_checkout_enabled, idle_alert_threshold_minutes, short_visit_threshold_minutes, max_location_accuracy_m, check_window_start, check_window_end, first_visit_deadline, lunch_window_start, lunch_window_end, lunch_idle_threshold_minutes, forgotten_visit_cap_minutes, visit_credit_cap_minutes, daily_unique_customer_target, daily_visit_target'
       )
       .single()
     if (error) throw error
@@ -63,6 +66,7 @@ export const settingsService = {
       forgottenVisitCapMinutes: data.forgotten_visit_cap_minutes,
       visitCreditCapMinutes: data.visit_credit_cap_minutes,
       dailyUniqueCustomerTarget: data.daily_unique_customer_target,
+      dailyVisitTarget: data.daily_visit_target ?? DEFAULT_DAILY_VISIT_TARGET,
     }
   },
 
@@ -85,6 +89,7 @@ export const settingsService = {
         forgotten_visit_cap_minutes: settings.forgottenVisitCapMinutes,
         visit_credit_cap_minutes: settings.visitCreditCapMinutes,
         daily_unique_customer_target: settings.dailyUniqueCustomerTarget,
+        daily_visit_target: settings.dailyVisitTarget,
       })
       .eq('id', true)
     if (error) throw error

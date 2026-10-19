@@ -15,7 +15,8 @@ import {
   type ReportPeriod,
 } from '@/features/reports/personalReport'
 import { getPresetRange, localDateKey, todayDateString } from '@/lib/dateRange'
-import { effectiveness, scheduledPaidMsOverDays, type ServerDay } from '@/features/attendance/efficiency'
+import { formatScore } from '@/features/attendance/effectivenessScore'
+import type { ServerDay } from '@/features/attendance/efficiency'
 import { useAttendanceDays } from '@/features/attendanceSummary/useAttendanceDays'
 import { useAppSettings } from '@/hooks/useAppSettings'
 import { formatDuration } from '@/lib/datetime'
@@ -48,7 +49,6 @@ export function ReportPage() {
   const previous = useJourneyHistory(profile?.id ?? null, prevRange)
 
   const settings = useAppSettings()
-  const stats = useMemo(() => computeJourneyStats(current.days, undefined, null, settings.flagRules), [current.days, settings.flagRules])
   // Compare against the same stretch of the previous period (Mon–Thu vs Mon–Thu), not all of it.
   const { cutoff, prevDays, prevEndMs } = useMemo(() => {
     const cut = comparableCutoff(range.startIso, prevRange.startIso, new Date().toISOString(), prevRange.endIso)
@@ -59,7 +59,6 @@ export function ReportPage() {
     }))
     return { cutoff: cut, prevDays: trimmed, prevEndMs: new Date(cut).getTime() }
   }, [previous.days, range.startIso, prevRange.startIso, prevRange.endIso])
-  const prevStats = useMemo(() => computeJourneyStats(prevDays, prevEndMs, null, settings.flagRules), [prevDays, prevEndMs, settings.flagRules])
 
   // Paid working time (clocked in less the unpaid break): whole days as the server counts them, today and
   // the partly counted comparison day worked out here with today's break rule.
@@ -73,13 +72,22 @@ export function ReportPage() {
     return m
   }
   const rule = { breakMinutes: settings.breakMinutes, breakPaid: settings.breakPaid, start: settings.workStartTime, end: settings.workEndTime }
-  const paidMs = useMemo(
-    () => scheduledPaidMsOverDays(current.days, serverDays(curServer.rows), new Set([today]), Date.now(), rule, settings.flagRules),
+  // Each day's own hours and paid time come from the server; today and the partly counted comparison day are worked out here.
+  const dayContextFor = (rows: typeof curServer.rows, liveDay: string) => {
+    const byDay = serverDays(rows)
+    return (date: string) => {
+      const srv = byDay[date]
+      if (!srv || date === liveDay) return undefined
+      return { rule: { breakMinutes: 0, breakPaid: true, start: srv.start ?? undefined, end: srv.end ?? undefined }, paidMs: srv.paidMinutes * 60_000 }
+    }
+  }
+  const stats = useMemo(
+    () => computeJourneyStats(current.days, undefined, rule, settings.flagRules, undefined, dayContextFor(curServer.rows, today)),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the rule's fields are the real inputs
     [current.days, curServer.rows, today, settings.breakMinutes, settings.breakPaid, settings.workStartTime, settings.workEndTime, settings.flagRules]
   )
-  const prevPaidMs = useMemo(
-    () => scheduledPaidMsOverDays(prevDays, serverDays(prevServer.rows), new Set([localDateKey(cutoff)]), prevEndMs, rule, settings.flagRules),
+  const prevStats = useMemo(
+    () => computeJourneyStats(prevDays, prevEndMs, rule, settings.flagRules, undefined, dayContextFor(prevServer.rows, localDateKey(cutoff))),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the rule's fields are the real inputs
     [prevDays, prevServer.rows, cutoff, prevEndMs, settings.breakMinutes, settings.breakPaid, settings.workStartTime, settings.workEndTime, settings.flagRules]
   )
@@ -89,9 +97,8 @@ export function ReportPage() {
   const top = useMemo(() => topCustomers(current.allVisits), [current.allVisits])
   const names = useCustomerNames(top.map((t) => t.customerId))
 
-  const eff = effectiveness(stats.creditedVisitMs, paidMs)
-  const prevEff = effectiveness(prevStats.creditedVisitMs, prevPaidMs)
   const vsPrev = `vs ${previousLabel(period)}`
+  const scoreDelta = Math.round(((stats.score ?? 0) - (prevStats.score ?? 0)) * 10) / 10
   const metrics = [
     {
       label: 'Visits',
@@ -114,9 +121,9 @@ export function ReportPage() {
     },
     {
       label: 'Effectiveness',
-      value: `${Math.round(eff * 100)}%`,
-      delta: Math.round((eff - prevEff) * 100),
-      deltaText: `${signed(Math.round((eff - prevEff) * 100))} pts ${vsPrev}`,
+      value: stats.score != null ? `${formatScore(stats.score)} / 10` : '—',
+      delta: scoreDelta,
+      deltaText: `${scoreDelta > 0 ? '+' : ''}${scoreDelta.toFixed(1)} ${vsPrev}`,
       accent: true,
     },
   ]

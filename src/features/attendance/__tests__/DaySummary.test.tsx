@@ -22,7 +22,8 @@ describe('DaySummary', () => {
     ])
     expect(html).toContain('1 effective')
     expect(html).toContain('1 not credited')
-    expect(html).toContain('Customers')
+    expect(html).toContain('Visits')
+    expect(html).toContain('out of 10') // the score and its band
     expect(html).toContain('vs target')
     expect(html).toContain('Active time')
     expect(html).toContain('vs working hours')

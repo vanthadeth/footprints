@@ -1,5 +1,6 @@
 import { creditedVisitMs, dayEffectiveness, paidWorkMs, uniqueCustomerTarget, type BreakRule } from './efficiency'
 import { DEFAULT_FLAG_RULES, FORGOTTEN_VISIT_FLAGS, isFlaggedGap, visitSpan, type FlagRules } from './flagRules'
+import { meanScore, scoreDay, type DayScore } from './effectivenessScore'
 import { countsAsOrdered, type OrderState } from '@/features/orders/orderReconcile'
 import type { DayJourney } from './useJourneyHistory'
 
@@ -26,6 +27,10 @@ export interface JourneyStats {
   /** Visits nobody checked out of (closed at clock-out or end of day), and sessions nobody clocked out of (closed automatically). */
   forgottenCheckouts: number
   forgottenClockOuts: number
+  /** The effectiveness score, 0-10: the average over days with working time. */
+  score: number | null
+  /** Each day's score and its parts, in day order (days with attendance only). */
+  dayScores: DayScore[]
   /** Unique customers visited, summed over days (a customer seen on two days counts on each). */
   uniqueCustomers: number
   /** Unique customers expected over the same days, each day scaled by its scheduled hours. */
@@ -53,13 +58,16 @@ export function computeJourneyStats(
   rule?: BreakRule | null,
   flags: FlagRules = DEFAULT_FLAG_RULES,
   /** Each visit's order state (useVisitOrders). Without it, a visit with an order amount counts as ordered. */
-  orders?: Record<string, OrderState>
+  orders?: Record<string, OrderState>,
+  /** A day's own hours and the server's paid time for it, when they differ from `rule` (a report over several days). */
+  dayContext?: (date: string) => { rule?: BreakRule | null; paidMs?: number } | undefined
 ): JourneyStats {
   let totalWorkingMs = 0
   let totalPaidMs = 0
   let scheduledMs = 0
   let creditedMs = 0
   let uniqueCustomers = 0
+  const dayScores: DayScore[] = []
   let creditedVisits = 0
   let orderedVisits = 0
   let ordersSynced = 0
@@ -85,6 +93,8 @@ export function computeJourneyStats(
       totalPaidMs += paid
       scheduledMs += dayEffectiveness(day.attendance, day.visits.filter((v) => !v.cancelled_at), day.date, rule, now, flags, paid).scheduledPaidMs
       uniqueTarget += uniqueCustomerTarget(rule, flags)
+      const ctx = dayContext?.(day.date)
+      dayScores.push(scoreDay(day.attendance, day.visits, day.date, ctx?.rule ?? rule, now, flags, ctx?.paidMs))
       forgottenClockOuts += day.attendance.filter((s) => s.auto_clocked_out).length
       // A day can have more than one clock-in/clock-out session -- sum
       // working time across all of them, not just the first.
@@ -154,6 +164,8 @@ export function computeJourneyStats(
     totalVisits,
     totalVisitingMs,
     creditedVisitMs: creditedMs,
+    score: meanScore(dayScores.map((d) => d.score)),
+    dayScores,
     creditedVisits,
     orderedVisits,
     ordersSynced,
