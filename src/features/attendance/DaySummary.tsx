@@ -3,7 +3,7 @@ import { AlertTriangle, CheckCircle2 } from 'lucide-react'
 import type { JourneyStats } from '@/features/attendance/journeyStats'
 import { BAND_LABEL, formatScore } from '@/features/attendance/effectivenessScore'
 import type { FirstVisit, FlagRules } from '@/features/attendance/flagRules'
-import { INEFFECTIVE_VISIT_WEIGHT, NEAR_FIRST_VISIT_KM, ORDER_RECONCILE_DAYS } from '@/lib/config'
+import { INEFFECTIVE_VISIT_WEIGHT, NEAR_FIRST_VISIT_KM, ORDER_RECONCILE_DAYS, SCORE_GOAL_ACTIVE, SCORE_GOAL_ORDERS, SCORE_GOAL_VISITS } from '@/lib/config'
 import { formatDuration, formatTime } from '@/lib/datetime'
 
 type Tone = 'good' | 'warn' | 'danger' | 'neutral'
@@ -88,7 +88,6 @@ export function DaySummary({
   const scoreTone: Tone = band === 'low' ? 'danger' : band === 'average' ? 'warn' : band ? 'good' : 'neutral'
   const notCredited = stats.totalVisits - stats.creditedVisits
   const outsideMs = Math.max(0, stats.totalPaidMs - stats.scheduledPaidMs)
-  const orderPct = stats.totalVisits > 0 ? (stats.orderedVisits / stats.totalVisits) * 100 : null
   const deadline = rules.firstVisitDeadline.slice(0, 5)
   // An order the person marked counts for now; it is confirmed when the sale order shows up in the sync.
   const orderExtra = [stats.ordersSynced > 0 ? `${stats.ordersSynced} confirmed` : '', stats.ordersPending > 0 ? `${stats.ordersPending} pending` : ''].filter(Boolean).join(' · ') || undefined
@@ -129,7 +128,7 @@ export function DaySummary({
           <div className="min-w-0">
             <p className="text-[15px] font-bold text-neutral-900">Effectiveness</p>
             {band && <p className={`text-[13px] font-bold ${TONE[scoreTone]}`}>{BAND_LABEL[band]} · out of 10</p>}
-            <p className="mt-0.5 text-xs text-neutral-500">The average of visits vs target and active hours vs working hours.</p>
+            <p className="mt-0.5 text-xs text-neutral-500">The average of visits, active time and orders, each against its goal.</p>
           </div>
         </div>
         <div className="mt-4 grid grid-cols-3 gap-2 border-t border-neutral-100 pt-4">
@@ -146,13 +145,20 @@ export function DaySummary({
             vs="vs working hours"
             value={`${fmt((day?.activeMs ?? 0) + (day?.travelBonusMs ?? 0))} / ${fmt(day?.workingMs ?? 0)}`}
             pct={day ? day.hoursShare * 100 : null}
-            tone={day && day.hoursShare >= 0.5 ? 'good' : 'warn'}
-            extra={day && day.travelBonusMs > 0 ? `includes ${fmt(day.travelBonusMs)} for ${Math.round(day.travelMeters / 1000)} km` : undefined}
+            tone={day && day.hoursShare >= 1 ? 'good' : 'warn'}
+            extra={day ? `${Math.round(day.activeRatio * 100)}% of ${Math.round(SCORE_GOAL_ACTIVE * 100)}% goal${day.travelBonusMs > 0 ? ` · +${fmt(day.travelBonusMs)} for ${Math.round(day.travelMeters / 1000)} km` : ''}` : undefined}
           />
-          <Part label="Ordered" vs="vs visits (not scored)" value={`${stats.orderedVisits} / ${stats.totalVisits}`} pct={orderPct} tone="neutral" extra={orderExtra} />
+          <Part
+            label="Orders"
+            vs="vs visits"
+            value={`${stats.orderedVisits} / ${stats.totalVisits}`}
+            pct={day ? day.orderShare * 100 : null}
+            tone={day && day.orderShare >= 1 ? 'good' : 'warn'}
+            extra={[`${Math.round((day?.orderRatio ?? 0) * 100)}% of ${Math.round(SCORE_GOAL_ORDERS * 100)}% goal`, orderExtra].filter(Boolean).join(' · ')}
+          />
         </div>
         <p className="mt-3 text-[11px] text-neutral-500">
-          Clocked in {fmt(stats.totalWorkingMs)}
+          Each part is scored against its goal: visits {Math.round(SCORE_GOAL_VISITS * 100)}% of target, active time {Math.round(SCORE_GOAL_ACTIVE * 100)}% of working hours, orders {Math.round(SCORE_GOAL_ORDERS * 100)}% of visits. Clocked in {fmt(stats.totalWorkingMs)}
           {outsideMs > 0 ? ` · ${fmt(outsideMs)} outside your hours isn't counted` : ''}. A visit marked ordered counts until the sale order syncs, up to {ORDER_RECONCILE_DAYS} days after the visit.
         </p>
       </div>

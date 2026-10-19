@@ -1,3 +1,4 @@
+import { useVisitOrders } from '@/features/orders/useVisitOrders'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Camera, Loader2, MapPin, Navigation, Store, Users as UsersIcon } from 'lucide-react'
@@ -49,7 +50,8 @@ export function HomePage() {
   const firstName = profile ? displayName(profile.full_name, profile.nickname).split(' ')[0] : undefined
 
   const today: DayJourney = { date: todayDateString(), attendance: journey.todaysAttendance, visits: journey.todaysVisits }
-  const stats = computeJourneyStats([today], undefined, { breakMinutes: settings.breakMinutes, breakPaid: settings.breakPaid, start: settings.workStartTime, end: settings.workEndTime }, settings.flagRules)
+  const orderStates = useVisitOrders(journey.todaysVisits)
+  const stats = computeJourneyStats([today], undefined, { breakMinutes: settings.breakMinutes, breakPaid: settings.breakPaid, start: settings.workStartTime, end: settings.workEndTime }, settings.flagRules, orderStates)
 
   const completedVisits = [...journey.todaysVisits]
     .filter((v) => v.checked_out_at && !v.cancelled_at)

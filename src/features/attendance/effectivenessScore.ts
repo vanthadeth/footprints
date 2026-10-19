@@ -1,19 +1,21 @@
-import { FULL_SCORE_AT, INEFFECTIVE_VISIT_WEIGHT, LATE_FIRST_VISIT_SCORE_FACTOR, NEAR_FIRST_VISIT_KM, TRAVEL_KM_PER_ACTIVE_HOUR } from '@/lib/config'
+import { INEFFECTIVE_VISIT_WEIGHT, LATE_FIRST_VISIT_SCORE_FACTOR, NEAR_FIRST_VISIT_KM, SCORE_GOAL_ACTIVE, SCORE_GOAL_ORDERS, SCORE_GOAL_VISITS, TRAVEL_KM_PER_ACTIVE_HOUR } from '@/lib/config'
+import { countsAsOrdered, type OrderState } from '@/features/orders/orderReconcile'
 import { distanceInMeters } from '@/lib/geo'
 import { creditedVisitMs, dayEffectiveness, scaledDailyTarget, type BreakRule } from './efficiency'
 import type { FlagRules } from './flagRules'
 
 /**
- * The effectiveness score, 0 to 10, for one person-day: the average of two parts.
+ * The effectiveness score, 0 to 10, for one person-day: the average of three
+ * parts, each scored against its own goal and capped at 100% of it.
  *
  * - Visits: effective visits (completed and long enough to count) plus a quarter
- *   of the ineffective ones, over the day's visit target. Capped at 100%.
- * - Hours: active time over working time in the person's hours, where every full
- *   50 km travelled adds an hour to active time. Capped at 100%.
+ *   of the ineffective ones, over the day's visit target. Goal: 100% of target.
+ * - Active hours: active time over working time in the person's hours, where every
+ *   full 50 km travelled adds an hour to active time. Goal: 50% of working time.
+ * - Orders: visits that ordered over all visits. Goal: 25% of visits.
  *
- * An average of 50% earns the full 10.0 (scaled linearly below it). A first visit
- * after the deadline that is within 10 km of where the person clocked in, so
- * distance doesn't explain it, takes 10% off the score.
+ * A first visit after the deadline that is within 10 km of where the person
+ * clocked in, so distance doesn't explain it, takes 10% off the score.
  */
 
 export type ScoreBand = 'low' | 'average' | 'good' | 'excellent'
@@ -47,6 +49,9 @@ export interface ScoreInputs {
   effectiveVisits: number
   ineffectiveVisits: number
   visitTarget: number
+  /** Visits that count as ordered (confirmed, found in the sync, or marked and still pending), and all visits. */
+  orderedVisits: number
+  totalVisits: number
   /** Time in counted visits. */
   activeMs: number
   /** Whole kilometres travelled in the day, for the active-time bonus. */
@@ -61,9 +66,15 @@ export interface DayScore {
   /** 0-10 with one decimal; null when there is no working time to judge (not clocked in). */
   score: number | null
   band: ScoreBand | null
-  /** Each part as a 0-1 share. */
+  /** Each part as a 0-1 share of its own goal: what it contributes to the score. */
   visitShare: number
   hoursShare: number
+  orderShare: number
+  /** Each part as measured: active time over working time, orders over visits. */
+  activeRatio: number
+  orderRatio: number
+  orderedVisits: number
+  totalVisits: number
   effectiveVisits: number
   ineffectiveVisits: number
   visitTarget: number
@@ -77,10 +88,14 @@ export interface DayScore {
 }
 
 export function computeScore(i: ScoreInputs): DayScore {
-  const visitShare = i.visitTarget > 0 ? Math.min(1, (i.effectiveVisits + INEFFECTIVE_VISIT_WEIGHT * i.ineffectiveVisits) / i.visitTarget) : 0
+  const visitRatio = i.visitTarget > 0 ? (i.effectiveVisits + INEFFECTIVE_VISIT_WEIGHT * i.ineffectiveVisits) / i.visitTarget : 0
   const travelBonusMs = Math.floor(i.travelMeters / 1000 / TRAVEL_KM_PER_ACTIVE_HOUR) * HOUR_MS
-  const hoursShare = i.workingMs > 0 ? Math.min(1, (i.activeMs + travelBonusMs) / i.workingMs) : 0
-  let raw = ((visitShare + hoursShare) / 2 / FULL_SCORE_AT) * 10
+  const activeRatio = i.workingMs > 0 ? (i.activeMs + travelBonusMs) / i.workingMs : 0
+  const orderRatio = i.totalVisits > 0 ? i.orderedVisits / i.totalVisits : 0
+  const visitShare = Math.min(1, visitRatio / SCORE_GOAL_VISITS)
+  const hoursShare = Math.min(1, activeRatio / SCORE_GOAL_ACTIVE)
+  const orderShare = Math.min(1, orderRatio / SCORE_GOAL_ORDERS)
+  let raw = ((visitShare + hoursShare + orderShare) / 3) * 10
   if (i.lateNearFirstVisit) raw *= LATE_FIRST_VISIT_SCORE_FACTOR
   const score = i.workingMs > 0 ? round1(Math.min(10, raw)) : null
   return {
@@ -88,6 +103,11 @@ export function computeScore(i: ScoreInputs): DayScore {
     band: score == null ? null : scoreBand(score),
     visitShare,
     hoursShare,
+    orderShare,
+    activeRatio: Math.min(1, activeRatio),
+    orderRatio: Math.min(1, orderRatio),
+    orderedVisits: i.orderedVisits,
+    totalVisits: i.totalVisits,
     effectiveVisits: i.effectiveVisits,
     ineffectiveVisits: i.ineffectiveVisits,
     visitTarget: i.visitTarget,
@@ -115,6 +135,8 @@ interface SessionLike {
 }
 
 interface VisitLike {
+  id?: string
+  order_amount_usd?: number | null
   checked_in_at: string
   checked_out_at: string | null
   cancelled_at?: string | null
@@ -155,7 +177,17 @@ export function lateNearFirstVisit(sessions: SessionLike[], visits: VisitLike[],
  * One person-day's score from its sessions and visits. `paidMs` is the server's
  * paid time for a finished day; without it, paid time is worked out from the sessions.
  */
-export function scoreDay(sessions: SessionLike[], visits: VisitLike[], day: string, rule: BreakRule | null | undefined, now: number, rules: FlagRules, paidMs?: number): DayScore {
+export function scoreDay(
+  sessions: SessionLike[],
+  visits: VisitLike[],
+  day: string,
+  rule: BreakRule | null | undefined,
+  now: number,
+  rules: FlagRules,
+  paidMs?: number,
+  /** Each visit's order state (useVisitOrders). Without it, a visit with an order amount counts as ordered. */
+  orders?: Record<string, OrderState>
+): DayScore {
   const live = visits.filter((v) => !v.cancelled_at)
   const eff = dayEffectiveness(sessions, live, day, rule, now, rules, paidMs)
   let effective = 0
@@ -168,6 +200,8 @@ export function scoreDay(sessions: SessionLike[], visits: VisitLike[], day: stri
     effectiveVisits: effective,
     ineffectiveVisits: ineffective,
     visitTarget: scaledDailyTarget(rule, rules.visitTarget, rules.fullDayHours),
+    orderedVisits: live.filter((v) => countsAsOrdered(orders ? (v.id ? orders[v.id] : undefined) : (v.order_amount_usd ?? 0) > 0 ? 'pending' : 'none')).length,
+    totalVisits: live.length,
     activeMs: eff.creditedMs,
     travelMeters: travelMeters(sessions, live),
     workingMs: eff.scheduledPaidMs,

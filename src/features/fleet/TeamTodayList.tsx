@@ -1,3 +1,4 @@
+import { useVisitOrders } from '@/features/orders/useVisitOrders'
 import { useState } from 'react'
 import { ChevronDown, Footprints } from 'lucide-react'
 import { useCustomerNames } from '@/features/customers/useCustomerNames'
@@ -31,6 +32,7 @@ export function TeamTodayList({ snapshots }: { snapshots: FleetMemberSnapshot[] 
   const { t, tValue, language } = useLanguage()
   const settings = useAppSettings()
   const day = todayDateString()
+  const orderStates = useVisitOrders(snapshots.flatMap((s) => s.visitsToday))
   // Each person's own shift and unpaid break today (not the signed-in person's).
   const workDays = useTeamWorkDays(day)
   const optionLabel = (id: string | null) => {
@@ -60,7 +62,7 @@ export function TeamTodayList({ snapshots }: { snapshots: FleetMemberSnapshot[] 
         const shiftEnd = atLocal(day, workDay?.end ?? settings.workEndTime)
         const firstIn = firstClockIn(s.sessions)
         const lastOut = lastClockOut(s.sessions)
-        const score = scoreDay(s.sessions, done, day, workDay, now, settings.flagRules).score
+        const score = scoreDay(s.sessions, done, day, workDay, now, settings.flagRules, undefined, orderStates).score
         const last = done[done.length - 1]
         const nowTitle =
           s.status === 'VISITING' && s.openVisit

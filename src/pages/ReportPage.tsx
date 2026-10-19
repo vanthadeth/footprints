@@ -1,3 +1,4 @@
+import { useVisitOrders } from '@/features/orders/useVisitOrders'
 import { useMemo, useState } from 'react'
 import { Sparkles, TrendingDown, TrendingUp, Minus } from 'lucide-react'
 import { SegmentedControl } from '@/components/SegmentedControl'
@@ -49,6 +50,8 @@ export function ReportPage() {
   const previous = useJourneyHistory(profile?.id ?? null, prevRange)
 
   const settings = useAppSettings()
+  const bothPeriods = useMemo(() => [...current.allVisits, ...previous.allVisits], [current.allVisits, previous.allVisits])
+  const orderStates = useVisitOrders(bothPeriods)
   // Compare against the same stretch of the previous period (Mon–Thu vs Mon–Thu), not all of it.
   const { cutoff, prevDays, prevEndMs } = useMemo(() => {
     const cut = comparableCutoff(range.startIso, prevRange.startIso, new Date().toISOString(), prevRange.endIso)
@@ -82,12 +85,12 @@ export function ReportPage() {
     }
   }
   const stats = useMemo(
-    () => computeJourneyStats(current.days, undefined, rule, settings.flagRules, undefined, dayContextFor(curServer.rows, today)),
+    () => computeJourneyStats(current.days, undefined, rule, settings.flagRules, orderStates, dayContextFor(curServer.rows, today)),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the rule's fields are the real inputs
     [current.days, curServer.rows, today, settings.breakMinutes, settings.breakPaid, settings.workStartTime, settings.workEndTime, settings.flagRules]
   )
   const prevStats = useMemo(
-    () => computeJourneyStats(prevDays, prevEndMs, rule, settings.flagRules, undefined, dayContextFor(prevServer.rows, localDateKey(cutoff))),
+    () => computeJourneyStats(prevDays, prevEndMs, rule, settings.flagRules, orderStates, dayContextFor(prevServer.rows, localDateKey(cutoff))),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the rule's fields are the real inputs
     [prevDays, prevServer.rows, cutoff, prevEndMs, settings.breakMinutes, settings.breakPaid, settings.workStartTime, settings.workEndTime, settings.flagRules]
   )
