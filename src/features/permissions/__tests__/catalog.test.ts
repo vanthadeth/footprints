@@ -76,8 +76,28 @@ describe('deriveState', () => {
     expect(deriveState(rows('footprints:view:deny')).footprints).toBeNull()
   })
 
-  it('has a label for all 19 functions', () => {
-    expect(FNS).toHaveLength(19)
+  it('has a label for all 20 functions', () => {
+    expect(FNS).toHaveLength(20)
+  })
+})
+
+describe('trip_transfer', () => {
+  const ACCOUNTING = rows(`sales_trip:view:any sales_trip_transfer:edit:any leave:view:own`)
+
+  it('is derived from the transfer permission', () => {
+    expect(deriveState(ACCOUNTING).trip_transfer).toEqual({ scope: null })
+    expect(deriveState(SALES).trip_transfer).toBeNull()
+  })
+
+  it('writes the transfer permission and view-all trips when turned on', () => {
+    expect(roleChanges(SALES, edit(SALES, { trip_transfer: { scope: null } }))).toEqual([
+      { module_key: 'sales_trip', action: 'view', scope: 'any' },
+      { module_key: 'sales_trip_transfer', action: 'edit', scope: 'any' },
+    ])
+  })
+
+  it('writes nothing for the accounting rows as they are', () => {
+    expect(roleChanges(ACCOUNTING, deriveState(ACCOUNTING))).toEqual([])
   })
 })
 

@@ -5,6 +5,7 @@ import { useProfile } from '@/features/auth/useProfile'
 import { DEFAULT_RATES, costOf, planTrip, ppToday, type TripRates } from '@/features/trips/trip'
 import { tripErrorMessage, tripRates, tripService, toDays, type TripRow } from '@/features/trips/tripService'
 import { TripApprovalCard } from '@/features/trips/TripApprovalCard'
+import { TripTransferCard } from '@/features/trips/TripTransferCard'
 import { AvatarStack, CostCard, DayList, RoomsCard, RouteStrip, StatusPill } from '@/features/trips/TripParts'
 import { card } from '@/features/trips/tripStyles'
 
@@ -110,6 +111,8 @@ export function TripDetailPage() {
           <span className="block truncate text-[12.5px] text-neutral-500">{trip.people.map((p) => p.name).join(', ')}</span>
         </span>
       </div>
+
+      <TripTransferCard trip={trip} onDone={() => load()} />
 
       <DayList plan={plan} people={n} perRoom={rates.perRoom} />
       <RoomsCard plan={plan} people={n} perRoom={rates.perRoom} roomNights={trip.room_nights} />

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useProfile } from '@/features/auth/useProfile'
+import { usePermissions } from '@/features/permissions/PermissionsContext'
 import { usersService, type ManagedUser } from '@/features/users/usersService'
 import { leaveService } from '@/features/leave/leaveService'
 import { ApprovalsTab } from '@/features/leave/ApprovalsTab'
@@ -12,6 +13,7 @@ import { todayDateString } from '@/lib/dateRange'
 import { leaveDateRangeLabel } from '@/features/leave/leaveDate'
 import { tripService, type TripRow } from '@/features/trips/tripService'
 import { TripApprovalCard } from '@/features/trips/TripApprovalCard'
+import { TripTransfersPanel } from '@/features/trips/TripTransfersPanel'
 import { DEFAULT_RATES, dayLabel, type TripRates } from '@/features/trips/trip'
 
 /**
@@ -23,27 +25,31 @@ import { DEFAULT_RATES, dayLabel, type TripRates } from '@/features/trips/trip'
  */
 export function LeaveApprovalsPage() {
   const { profile } = useProfile()
+  const { ready, can } = usePermissions()
+  const canTransfer = ready && can('sales_trip_transfer', 'edit')
   const [requests, setRequests] = useState<LeaveRequest[]>([])
   const [people, setPeople] = useState<ManagedUser[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [tab, setTab] = useTab(['leave', 'trips'] as const, 'leave')
+  const [tab, setTab] = useTab(['leave', 'trips', 'transfers'] as const, 'leave')
   const [trips, setTrips] = useState<TripRow[]>([])
+  const [ledger, setLedger] = useState<TripRow[]>([])
   const [rates, setRates] = useState<TripRates>(DEFAULT_RATES)
 
   const load = useCallback(() => {
     setLoading(true)
     setError(null)
-    Promise.all([leaveService.listRequests(), usersService.list().catch(() => [] as ManagedUser[]), tripService.team().catch(() => [] as TripRow[]), tripService.rates().catch(() => DEFAULT_RATES)])
-      .then(([r, p, t, tr]) => {
+    Promise.all([leaveService.listRequests(), usersService.list().catch(() => [] as ManagedUser[]), tripService.team().catch(() => [] as TripRow[]), tripService.rates().catch(() => DEFAULT_RATES), canTransfer ? tripService.ledger() : Promise.resolve([] as TripRow[])])
+      .then(([r, p, t, tr, l]) => {
         setRequests(r)
         setPeople(p)
         setTrips(t)
         setRates(tr)
+        setLedger(l)
       })
       .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load leave requests.'))
       .finally(() => setLoading(false))
-  }, [])
+  }, [canTransfer])
 
   useEffect(() => {
     load()
@@ -68,10 +74,16 @@ export function LeaveApprovalsPage() {
   )
   const decidedLeave = decided.filter((r) => (r.decided_at ?? '') >= monthAgo)
   const isTrips = tab === 'trips'
-  const waitingCount = isTrips ? waitingTrips.length : pending.length
+  const isTransfers = tab === 'transfers' && canTransfer
+  const toTransfer = ledger.filter((t) => t.can_transfer).length
+  const waitingCount = isTransfers ? toTransfer : isTrips ? waitingTrips.length : pending.length
   const firstStart = isTrips ? waitingTrips[0]?.start_date : [...pending].sort((a, b) => a.start_date.localeCompare(b.start_date))[0]?.start_date
   const days = firstStart ? Math.round((Date.parse(`${firstStart}T00:00:00Z`) - Date.parse(`${todayDateString()}T00:00:00Z`)) / 86_400_000) : null
-  const lead = waitingCount
+  const lead = isTransfers
+    ? toTransfer
+      ? `${toTransfer} approved ${toTransfer === 1 ? 'trip' : 'trips'} to transfer`
+      : 'All caught up on transfers'
+    : waitingCount
     ? `${waitingCount} waiting for you${days != null ? ` · ${days <= 0 ? 'starts today' : days === 1 ? 'starts tomorrow' : `next starts in ${days} days`}` : ''}`
     : `All caught up on ${isTrips ? 'trips' : 'leave'}`
   const ini = (n: string) => n.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
@@ -86,6 +98,7 @@ export function LeaveApprovalsPage() {
         tabs={[
           ['leave', `Leave · ${pending.length}`],
           ['trips', `Trips · ${waitingTrips.length}`],
+          ...(canTransfer ? ([['transfers', `Transfers · ${toTransfer}`]] as [typeof tab, string][]) : []),
         ]}
         value={tab}
         onChange={setTab}
@@ -103,6 +116,8 @@ export function LeaveApprovalsPage() {
           <div className="h-24 animate-pulse rounded-xl2 bg-neutral-100" />
           <div className="h-24 animate-pulse rounded-xl2 bg-neutral-100" />
         </div>
+      ) : isTransfers ? (
+        <TripTransfersPanel trips={ledger} onChanged={load} />
       ) : (
         <div className="space-y-3.5 lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-8 lg:space-y-0">
           <div className="space-y-3.5">

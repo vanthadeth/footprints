@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { adminRows, fnForPath, forYou, homeFor, hubFunctions, hubSearch, roleGroup, tabsFor, type NavContext } from '../navConfig'
+import { adminRows, canApprove, fnForPath, forYou, homeFor, hubFunctions, hubSearch, roleGroup, tabsFor, type NavContext } from '../navConfig'
 import type { Scope } from '@/features/permissions/catalog'
 
 /** A context from "module.action=scope" strings, like the role_permissions rows. */
@@ -11,7 +11,7 @@ function ctx(perms: string[], isSuperAdmin = false, flexible = false): NavContex
 const SALES = ['plan.view=own', 'footprints.view=own', 'visit.add=own', 'customer.view=any', 'customer_conversation.view=any', 'leave.view=own', 'leave.edit=own']
 const MANAGER = ['team_map.view=sub', 'leave.edit=sub', 'leave.view=sub', 'leave_balance.view=sub', 'customer_briefing.view=any', 'plan.view=own', 'footprints.view=own']
 const HR = ['team_map.view=any', 'leave.view=any', 'leave.edit=any', 'leave_balance.view=any', 'leave_balance.edit=any', 'attendance.view=any']
-const ACCOUNTING = ['team_map.view=any', 'attendance.view=any', 'customer.view=any', 'leave.view=own', 'leave.edit=own']
+const ACCOUNTING = ['team_map.view=any', 'attendance.view=any', 'customer.view=any', 'leave.view=own', 'leave.edit=own', 'sales_trip.view=any', 'sales_trip_transfer.edit=any']
 const WAREHOUSE = ['plan.view=own', 'footprints.view=own', 'customer.view=any', 'leave.view=own']
 
 describe('roleGroup', () => {
@@ -85,5 +85,12 @@ describe('hub', () => {
     expect(forYou('admin', ctx([], true)).map((r) => r.key)).toEqual(['users', 'permissions', 'hours', 'notifications', 'locations', 'sheetsync'])
     expect(adminRows(ctx([], true))).toHaveLength(10)
     expect(adminRows(ctx(MANAGER))).toHaveLength(0)
+  })
+})
+
+describe('canApprove', () => {
+  it('lets the accountant into Approvals to transfer trip allowances', () => {
+    expect(canApprove(ctx(ACCOUNTING))).toBe(true)
+    expect(canApprove(ctx(SALES))).toBe(false)
   })
 })

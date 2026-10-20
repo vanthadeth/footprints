@@ -45,6 +45,11 @@ export interface TripRow {
   decision_note: string | null
   created_at: string
   can_decide: boolean
+  /** Accountant marked the allowance transferred (0115); null until then. */
+  transferred_at: string | null
+  transferred_by: string | null
+  transfer_ref: string | null
+  can_transfer: boolean
   days: TripDayRow[]
   people: TripPerson[]
   specials: { reason: string; note: string | null; amount: number }[]
@@ -106,6 +111,16 @@ export const tripService = {
   /** Trips I can view as an approver (mine excluded). */
   async team(): Promise<TripRow[]> {
     return ((await callRpc<TripRow[]>('sales_trips', { p_mode: 'team' })) ?? []).map(normalize)
+  },
+
+  /** Pending and approved trips I can view -- the accountant's list (0115). */
+  async ledger(): Promise<TripRow[]> {
+    return ((await callRpc<TripRow[]>('sales_trips', { p_mode: 'ledger' })) ?? []).map(normalize)
+  },
+
+  /** Accountant: the allowance of an approved trip has been transferred. */
+  async markTransferred(id: string, ref?: string): Promise<void> {
+    await callRpc('mark_sales_trip_transferred', { p_id: id, p_ref: ref?.trim() || null })
   },
 
   /** Send a new trip, or re-send one of mine (pending or changes asked). km per day comes from the editor's estimate. */
