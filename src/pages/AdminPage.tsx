@@ -15,8 +15,9 @@ export function AdminPage() {
   const placed = new Set(SECTIONS.flatMap(([, keys]) => keys))
   const groups = [...SECTIONS.map(([title, keys]) => [title, rows.filter((r) => keys.includes(r.key))] as const), ['System', rows.filter((r) => !placed.has(r.key))] as const].filter(([, list]) => list.length > 0)
   return (
-    <div className="mx-auto flex max-w-lg flex-col gap-[18px] px-4 pb-8 pt-1 md:max-w-2xl md:px-8">
+    <div className="mx-auto flex max-w-lg flex-col gap-[18px] px-4 pb-8 pt-1 md:max-w-2xl md:px-8 lg:max-w-6xl lg:pt-6">
       <p className="-mb-2 text-[14px] text-neutral-500">People, access and company settings</p>
+      <div className="flex flex-col gap-[18px] lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-10 lg:gap-y-6">
       {groups.map(([title, list]) => (
         <AdminGroup key={title} title={title}>
           {list.map((r) => (
@@ -24,6 +25,7 @@ export function AdminPage() {
           ))}
         </AdminGroup>
       ))}
+      </div>
     </div>
   )
 }

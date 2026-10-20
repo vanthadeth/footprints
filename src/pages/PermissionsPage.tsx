@@ -46,7 +46,7 @@ export function PermissionsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-lg space-y-3.5 px-4 pb-40 pt-3 md:max-w-2xl md:px-8 md:pt-5">
+    <div className="mx-auto max-w-lg space-y-3.5 px-4 pb-40 pt-3 md:max-w-2xl md:px-8 md:pt-5 lg:max-w-4xl">
       <SegmentedControl<Tab>
         ariaLabel="Permissions view"
         value={tab}

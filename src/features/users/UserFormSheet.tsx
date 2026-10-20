@@ -284,7 +284,7 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
   const managerOptions = users.filter((u) => u.id !== user?.id)
 
   return (
-    <BottomSheet open={open} onClose={onClose} title={mode === 'create' ? 'New User' : 'Edit User'}>
+    <BottomSheet side open={open} onClose={onClose} title={mode === 'create' ? 'New User' : 'Edit User'}>
       <div className="space-y-5 p-4">
         {error && <p className="rounded-lg bg-status-danger/10 px-3 py-2 text-sm text-status-danger">{error}</p>}
 

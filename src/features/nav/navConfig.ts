@@ -56,11 +56,11 @@ export function roleGroup(ctx: NavContext): RoleGroup {
   return 'office'
 }
 
-/** Can the person approve other people's leave or sales trips (edit at Team or All)? */
+/** Can the person approve other people's leave or sales trips (edit at Team or All), or transfer approved trip allowances? */
 export function canApprove(ctx: NavContext): boolean {
   const e = ctx.scope('leave', 'edit')
   const trip = ctx.scope('sales_trip', 'edit')
-  return ctx.isSuperAdmin || e === 'sub' || e === 'any' || trip === 'sub' || trip === 'any'
+  return ctx.isSuperAdmin || e === 'sub' || e === 'any' || trip === 'sub' || trip === 'any' || ctx.scope('sales_trip_transfer', 'edit') !== null
 }
 
 type Need = (ctx: NavContext) => boolean

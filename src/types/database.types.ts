@@ -2731,6 +2731,9 @@ export type Database = {
           start_date: string
           status: Database["public"]["Enums"]["sales_trip_status"]
           total_km: number
+          transfer_ref: string | null
+          transferred_at: string | null
+          transferred_by: string | null
           updated_at: string
           user_id: string
         }
@@ -2753,6 +2756,9 @@ export type Database = {
           start_date: string
           status?: Database["public"]["Enums"]["sales_trip_status"]
           total_km?: number
+          transfer_ref?: string | null
+          transferred_at?: string | null
+          transferred_by?: string | null
           updated_at?: string
           user_id: string
         }
@@ -2775,6 +2781,9 @@ export type Database = {
           start_date?: string
           status?: Database["public"]["Enums"]["sales_trip_status"]
           total_km?: number
+          transfer_ref?: string | null
+          transferred_at?: string | null
+          transferred_by?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -5403,6 +5412,43 @@ export type Database = {
           start_date: string
           status: Database["public"]["Enums"]["sales_trip_status"]
           total_km: number
+          transfer_ref: string | null
+          transferred_at: string | null
+          transferred_by: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "sales_trips"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      mark_sales_trip_transferred: {
+        Args: { p_id: string; p_ref?: string }
+        Returns: {
+          created_at: string
+          day_rate: number
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          end_date: string
+          est_total: number
+          fuel_amount: number
+          id: string
+          km_rate: number
+          night_rate: number
+          note: string | null
+          people_count: number
+          room_nights: number
+          special_total: number
+          start_date: string
+          status: Database["public"]["Enums"]["sales_trip_status"]
+          total_km: number
+          transfer_ref: string | null
+          transferred_at: string | null
+          transferred_by: string | null
           updated_at: string
           user_id: string
         }

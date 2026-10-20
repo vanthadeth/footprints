@@ -455,7 +455,7 @@ export function SheetSyncPage() {
   }
 
   return (
-    <div className="mx-auto max-w-lg space-y-3 px-4 pb-8 pt-2 md:max-w-2xl md:px-8">
+    <div className="mx-auto max-w-lg space-y-3 px-4 pb-8 pt-2 md:max-w-2xl md:px-8 lg:max-w-4xl lg:pt-6">
       <p className="px-1 text-[13px] leading-snug text-neutral-500">
         Keep customers, their contacts, last purchase date and balance — and sale orders — in step with a Google Sheet. Rows match customers by the key column; new rows become new customers, and customers missing from the sheet are left alone. Empty cells never erase customer info in the app.
       </p>

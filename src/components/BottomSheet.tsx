@@ -2,19 +2,26 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { useBackHandler } from '@/hooks/useBackHandler'
+import { useIsWide } from '@/hooks/useIsDesktop'
+import { SidePanel } from '@/components/desktop/SidePanel'
 
-/** Shared bottom-sheet shell for selection/confirmation flows (spec: "Bottom sheets for selection where useful"). */
-export function BottomSheet({
-  open,
-  onClose,
-  title,
-  children,
-}: {
+interface SheetProps {
   open: boolean
   onClose: () => void
   title: string
   children: ReactNode
-}) {
+  /** On desktop (1024px and up) show this as a right-hand side panel instead of a centred dialog -- for forms. */
+  side?: boolean
+}
+
+/** Shared bottom-sheet shell for selection/confirmation flows (spec: "Bottom sheets for selection where useful"). */
+export function BottomSheet({ side, ...props }: SheetProps) {
+  const wide = useIsWide()
+  if (side && wide) return <SidePanel open={props.open} onClose={props.onClose} title={props.title}>{props.children}</SidePanel>
+  return <BottomSheetInner {...props} />
+}
+
+function BottomSheetInner({ open, onClose, title, children }: SheetProps) {
   // Stays mounted slightly past `open` going false, so the close animation
   // (translate/opacity back to their starting values) has time to play
   // before the sheet actually leaves the DOM -- otherwise it would just
