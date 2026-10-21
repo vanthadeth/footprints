@@ -136,7 +136,7 @@ export function HomePage() {
   const clockInOpensAt = shiftTimeOfDay(settings.workStartTime, -settings.allowEarlyClockinMinutes)
 
   return (
-    <div className="mx-auto max-w-lg pb-6 md:max-w-2xl">
+    <div className="mx-auto max-w-lg pb-6 md:max-w-2xl lg:max-w-4xl">
       <div className="px-4 pt-4 md:px-8">
         <p className="text-lg font-semibold text-neutral-900">
           {greeting(undefined, language)}

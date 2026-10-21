@@ -59,8 +59,8 @@ export function LeavePage() {
   }, [people, profile?.manager_id])
 
   return (
-    <div className="mx-auto max-w-lg pb-6 md:max-w-3xl">
-      <div className="space-y-4 px-4 pt-1 md:px-8 md:pt-4">
+    <div className="mx-auto max-w-lg pb-6 md:max-w-3xl lg:max-w-6xl">
+      <div className="space-y-4 px-4 pt-1 md:px-8 md:pt-4 lg:pt-6">
         <SegmentedControl
           ariaLabel="Leave sections"
           value={tab}

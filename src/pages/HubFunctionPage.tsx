@@ -33,7 +33,7 @@ export function HubFunctionPage() {
   if (!f) return ready ? <Navigate to="/menu" replace /> : null
 
   return (
-    <div className="mx-auto max-w-lg space-y-5 px-4 pb-6 pt-3 md:max-w-2xl md:px-8">
+    <div className="mx-auto max-w-lg space-y-5 px-4 pb-6 pt-3 md:max-w-2xl lg:max-w-4xl md:px-8">
       <div className="flex items-center gap-3">
         <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white ${f.tone}`}>
           <f.icon className="h-6 w-6" aria-hidden />
@@ -46,6 +46,7 @@ export function HubFunctionPage() {
           </span>
         </span>
       </div>
+      <div className="space-y-5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-5 lg:space-y-0">
       {f.parts.map((p) => (
         <GroupedList key={p.key} title={f.parts.length > 1 ? p.title : undefined}>
           {p.rows.map((r) => (
@@ -53,6 +54,7 @@ export function HubFunctionPage() {
           ))}
         </GroupedList>
       ))}
+      </div>
       <p className="px-1 text-[12px] leading-relaxed text-neutral-500">{NOTES[f.key]}</p>
     </div>
   )

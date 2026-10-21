@@ -34,7 +34,7 @@ export function MessagesPage() {
   const summary = unreadSummary(threads)
 
   return (
-    <div className="mx-auto max-w-lg space-y-3 px-4 pb-6 pt-1 md:max-w-2xl md:px-8 md:pt-4">
+    <div className="mx-auto max-w-lg space-y-3 px-4 pb-6 pt-1 md:max-w-2xl lg:max-w-4xl md:px-8 md:pt-4">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-neutral-500">{loading && threads.length === 0 ? 'Loading…' : summary.text}</p>
         <button

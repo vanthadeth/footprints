@@ -55,13 +55,13 @@ export function TodayPage() {
   }
 
   return (
-    <div className="mx-auto max-w-lg space-y-3 px-4 pb-8 pt-1 md:max-w-3xl md:px-8">
-      <p className="text-[14px] text-neutral-600">
+    <div className="mx-auto max-w-lg space-y-3 px-4 pb-8 pt-1 md:max-w-3xl md:px-8 lg:grid lg:max-w-6xl lg:grid-cols-[minmax(0,1fr)_380px] lg:grid-rows-[auto_auto_auto_auto_1fr] lg:items-start lg:gap-x-6 lg:gap-y-3 lg:space-y-0 lg:pt-6">
+      <p className="text-[14px] text-neutral-600 lg:col-span-2">
         {greeting()}
         {name ? `, ${name}` : ''} — {agenda.length ? `${agenda.length} on your agenda today` : 'nothing on your agenda yet'}
       </p>
 
-      <Link to="/check-in" className={`flex items-center gap-3 rounded-2xl p-3.5 text-white ${clockedIn ? 'bg-brand-900' : 'bg-brand-500'}`}>
+      <Link to="/check-in" className={`flex items-center gap-3 rounded-2xl p-3.5 text-white lg:col-start-2 lg:row-start-2 ${clockedIn ? 'bg-brand-900' : 'bg-brand-500'}`}>
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/15">
           <Clock className="h-5 w-5" aria-hidden />
         </span>
@@ -72,7 +72,7 @@ export function TodayPage() {
         <span className="rounded-full bg-white px-3 py-1.5 text-[13px] font-extrabold text-brand-700">{clockedIn ? 'Open' : 'Clock in'}</span>
       </Link>
 
-      <div className="rounded-2xl bg-white px-3.5 pb-1 pt-3 shadow-card">
+      <div className="rounded-2xl bg-white px-3.5 pb-1 pt-3 shadow-card lg:col-start-1 lg:row-span-4 lg:row-start-2">
         <div className="mb-1 flex items-center justify-between">
           <p className="text-[12px] font-extrabold uppercase tracking-wide text-neutral-500">
             Agenda · {agenda.length} today{late.length ? ` · ${late.length} overdue` : ''}
@@ -98,7 +98,7 @@ export function TodayPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 lg:col-start-2 lg:row-start-3">
         <Link to="/calendar" className="rounded-2xl bg-white p-3.5 shadow-card">
           <p className="text-[11.5px] font-bold text-neutral-500">To collect · 7 days</p>
           <p className="mt-0.5 text-[22px] font-extrabold text-status-danger">{owed ? money(owed) : collections.length}</p>
@@ -114,7 +114,7 @@ export function TodayPage() {
       </div>
 
       {shortcuts.length > 0 && (
-        <div className="grid grid-cols-4 gap-2 pt-1">
+        <div className="grid grid-cols-4 gap-2 pt-1 lg:col-start-2 lg:row-start-4">
           {shortcuts.map((r) => (
             <Link key={r.key} to={r.to} className="flex flex-col items-center gap-1.5">
               <span className={`flex h-[52px] w-[52px] items-center justify-center rounded-2xl text-white ${r.tone}`}>
@@ -126,7 +126,7 @@ export function TodayPage() {
         </div>
       )}
 
-      <Link to="/report" className="flex items-center justify-between rounded-2xl bg-white p-3.5 shadow-card">
+      <Link to="/report" className="flex items-center justify-between rounded-2xl bg-white p-3.5 shadow-card lg:col-start-2 lg:row-start-5">
         <span className="text-[14px] font-bold text-neutral-900">My numbers</span>
         <ChevronRight className="h-4 w-4 text-neutral-400" aria-hidden />
       </Link>

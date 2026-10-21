@@ -135,7 +135,7 @@ export function ReportPage() {
   const loading = current.loading || previous.loading
 
   return (
-    <div className="mx-auto max-w-lg space-y-3.5 px-4 pb-6 pt-1 md:max-w-3xl md:px-8 md:pt-4">
+    <div className="mx-auto max-w-lg space-y-3.5 px-4 pb-6 pt-1 md:max-w-3xl md:px-8 md:pt-4 lg:max-w-6xl lg:pt-6">
       <SegmentedControl
         ariaLabel="Period"
         value={period}
@@ -149,8 +149,8 @@ export function ReportPage() {
 
       {current.error && <p className="text-sm text-status-danger">{current.error}</p>}
 
-      <div className={`space-y-3.5 transition-opacity ${loading ? 'opacity-60' : ''}`}>
-        <section className="space-y-3 rounded-2xl bg-white p-4 shadow-card">
+      <div className={`space-y-3.5 transition-opacity lg:grid lg:grid-cols-2 lg:grid-rows-[auto_auto_1fr] lg:items-start lg:gap-x-6 lg:gap-y-3.5 lg:space-y-0 ${loading ? 'opacity-60' : ''}`}>
+        <section className="space-y-3 rounded-2xl bg-white p-4 shadow-card lg:col-start-1 lg:row-start-2">
           <span className="flex items-center gap-1.5 text-xs font-bold text-status-visiting">
             <Sparkles className="h-4 w-4" aria-hidden />
             Highlight
@@ -162,7 +162,7 @@ export function ReportPage() {
           </div>
         </section>
 
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-2 gap-2.5 lg:col-span-2 lg:row-start-1 lg:grid-cols-4">
           {metrics.map((m) => (
             <div key={m.label} className="space-y-1 rounded-2xl bg-white p-3.5 shadow-card">
               <p className="text-xs font-semibold text-neutral-500">{m.label}</p>
@@ -175,7 +175,7 @@ export function ReportPage() {
           ))}
         </div>
 
-        <section className="rounded-2xl bg-white p-4 shadow-card">
+        <section className="rounded-2xl bg-white p-4 shadow-card lg:col-start-1 lg:row-start-3">
           <div className="flex items-baseline justify-between">
             <h2 className="text-[15px] font-bold text-neutral-900">{cfg.chart}</h2>
             <span className="text-xs text-neutral-500">
@@ -207,7 +207,7 @@ export function ReportPage() {
           </div>
         </section>
 
-        <section className="space-y-2">
+        <section className="space-y-2 lg:col-start-2 lg:row-span-2 lg:row-start-2">
           <h2 className="px-0.5 text-[17px] font-bold text-neutral-900">Top customers</h2>
           {top.length === 0 ? (
             <p className="rounded-2xl bg-white px-4 py-5 text-center text-sm text-neutral-500 shadow-card">No customer visits in this period yet.</p>

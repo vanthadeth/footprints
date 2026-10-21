@@ -41,7 +41,7 @@ export function TripsPage() {
   const draftReady = draft && draft.days.some((d) => d.provinces.length)
 
   return (
-    <div className="mx-auto max-w-lg space-y-3 px-4 pb-8 pt-2 md:max-w-2xl md:px-8">
+    <div className="mx-auto max-w-lg space-y-3 px-4 pb-8 pt-2 md:max-w-2xl lg:max-w-4xl md:px-8">
       {current && <OnTrip trip={current} today={today} />}
 
       {canRequest && (

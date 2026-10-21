@@ -49,76 +49,80 @@ export function MyLeaveTab({
   const history = requests.filter((r) => !upcoming.includes(r))
 
   return (
-    <div className="space-y-4">
-      <BalanceCards
-        balances={balances}
-        requests={requests}
-        linkTo="/leave?tab=balance"
-        flex={flex.cycle?.isFlexible ? { left: flex.cycle.left, allowance: flex.cycle.allowance } : null}
-      />
-      {flex.cycle?.isFlexible && <FlexCard cycle={flex.cycle} />}
+    <div className="space-y-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6 lg:space-y-0">
+      <div className="space-y-4">
+        <BalanceCards
+          balances={balances}
+          requests={requests}
+          linkTo="/leave?tab=balance"
+          flex={flex.cycle?.isFlexible ? { left: flex.cycle.left, allowance: flex.cycle.allowance } : null}
+        />
+        {flex.cycle?.isFlexible && <FlexCard cycle={flex.cycle} />}
 
-      <button
-        onClick={() => setRequestOpen(true)}
-        className="flex h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-brand-500 text-[15px] font-bold text-white tap-target"
-      >
-        <Plus className="h-[18px] w-[18px]" strokeWidth={2.4} /> Request leave
-      </button>
+        <button
+          onClick={() => setRequestOpen(true)}
+          className="flex h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-brand-500 text-[15px] font-bold text-white tap-target"
+        >
+          <Plus className="h-[18px] w-[18px]" strokeWidth={2.4} /> Request leave
+        </button>
 
-      {error && <p className="rounded-lg bg-status-danger/10 px-3 py-2 text-sm text-status-danger">{error}</p>}
+        {error && <p className="rounded-lg bg-status-danger/10 px-3 py-2 text-sm text-status-danger">{error}</p>}
+      </div>
 
-      {upcoming.length > 0 && (
-        <section className="space-y-2">
-          <h2 className="px-0.5 text-[17px] font-bold text-neutral-900">Upcoming</h2>
-          {upcoming.map((r) => (
-            <div key={r.id} className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card">
-              <div className="flex items-center gap-3">
-                <DateTile date={r.start_date} accent />
-                <div className="min-w-0 flex-1">
-                  <p className="text-[15px] font-bold text-neutral-900">{leaveTitle(r.leave_type)}</p>
-                  <p className="mt-0.5 text-[12.5px] text-neutral-500">{leaveDateRangeLabel(r.start_date, r.end_date, r.start_period, r.end_period)}</p>
+      <div className="space-y-4">
+        {upcoming.length > 0 && (
+          <section className="space-y-2">
+            <h2 className="px-0.5 text-[17px] font-bold text-neutral-900">Upcoming</h2>
+            {upcoming.map((r) => (
+              <div key={r.id} className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card">
+                <div className="flex items-center gap-3">
+                  <DateTile date={r.start_date} accent />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[15px] font-bold text-neutral-900">{leaveTitle(r.leave_type)}</p>
+                    <p className="mt-0.5 text-[12.5px] text-neutral-500">{leaveDateRangeLabel(r.start_date, r.end_date, r.start_period, r.end_period)}</p>
+                  </div>
+                  <LeaveStatusBadge status={r.status} />
                 </div>
-                <LeaveStatusBadge status={r.status} />
-              </div>
-              <ApprovalSteps status={r.status} approverName={approverName} />
-              {r.status === 'pending' && (
-                <button
-                  onClick={() => cancel(r.id)}
-                  disabled={busyId === r.id}
-                  className="rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-semibold text-neutral-600 tap-target disabled:opacity-40"
-                >
-                  {busyId === r.id ? 'Cancelling…' : 'Cancel request'}
-                </button>
-              )}
-            </div>
-          ))}
-        </section>
-      )}
-
-      <section className="space-y-2">
-        <h2 className="px-0.5 text-[17px] font-bold text-neutral-900">History</h2>
-        {history.length === 0 ? (
-          upcoming.length === 0 ? (
-            <EmptyState icon={CalendarDays} title="No leave requests yet" body="Tap Request leave to submit your first one." />
-          ) : (
-            <p className="px-0.5 text-sm text-neutral-500">Nothing in the past yet.</p>
-          )
-        ) : (
-          <div className="divide-y divide-neutral-100 overflow-hidden rounded-2xl bg-white shadow-card dark:divide-neutral-800">
-            {history.map((r) => (
-              <div key={r.id} className="flex items-center gap-3 px-3.5 py-3">
-                <DateTile date={r.start_date} />
-                <div className="min-w-0 flex-1">
-                  <p className="text-[14.5px] font-semibold text-neutral-900">{leaveTitle(r.leave_type)}</p>
-                  <p className="mt-0.5 text-xs text-neutral-500">{leaveDateRangeLabel(r.start_date, r.end_date, r.start_period, r.end_period)}</p>
-                  {r.status !== 'pending' && r.decision_note && <p className="mt-0.5 text-xs text-neutral-400">Note: {r.decision_note}</p>}
-                </div>
-                <LeaveStatusBadge status={r.status} />
+                <ApprovalSteps status={r.status} approverName={approverName} />
+                {r.status === 'pending' && (
+                  <button
+                    onClick={() => cancel(r.id)}
+                    disabled={busyId === r.id}
+                    className="rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-semibold text-neutral-600 tap-target disabled:opacity-40"
+                  >
+                    {busyId === r.id ? 'Cancelling…' : 'Cancel request'}
+                  </button>
+                )}
               </div>
             ))}
-          </div>
+          </section>
         )}
-      </section>
+
+        <section className="space-y-2">
+          <h2 className="px-0.5 text-[17px] font-bold text-neutral-900">History</h2>
+          {history.length === 0 ? (
+            upcoming.length === 0 ? (
+              <EmptyState icon={CalendarDays} title="No leave requests yet" body="Tap Request leave to submit your first one." />
+            ) : (
+              <p className="px-0.5 text-sm text-neutral-500">Nothing in the past yet.</p>
+            )
+          ) : (
+            <div className="divide-y divide-neutral-100 overflow-hidden rounded-2xl bg-white shadow-card dark:divide-neutral-800">
+              {history.map((r) => (
+                <div key={r.id} className="flex items-center gap-3 px-3.5 py-3">
+                  <DateTile date={r.start_date} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[14.5px] font-semibold text-neutral-900">{leaveTitle(r.leave_type)}</p>
+                    <p className="mt-0.5 text-xs text-neutral-500">{leaveDateRangeLabel(r.start_date, r.end_date, r.start_period, r.end_period)}</p>
+                    {r.status !== 'pending' && r.decision_note && <p className="mt-0.5 text-xs text-neutral-400">Note: {r.decision_note}</p>}
+                  </div>
+                  <LeaveStatusBadge status={r.status} />
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
 
       <RequestLeaveSheet
         open={requestOpen}

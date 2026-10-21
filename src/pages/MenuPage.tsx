@@ -55,7 +55,7 @@ export function MenuPage() {
   ]
 
   return (
-    <div className="mx-auto max-w-lg md:max-w-2xl">
+    <div className="mx-auto max-w-lg md:max-w-2xl lg:max-w-4xl">
       <div className="space-y-3.5 px-4 pb-6 pt-1.5 md:px-8 md:pt-4">
         <label className={`flex h-11 items-center gap-2 rounded-xl border bg-white px-3 dark:bg-neutral-950 ${query ? 'border-brand-500' : 'border-neutral-300'}`}>
           <Search className="h-[18px] w-[18px] shrink-0 text-neutral-500" aria-hidden />

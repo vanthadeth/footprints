@@ -144,30 +144,32 @@ export function PlanPage() {
   }
 
   return (
-    <div className="mx-auto max-w-lg space-y-4 px-4 pb-8 pt-3 md:max-w-2xl md:px-8">
-      <SegmentedControl<Day>
-        ariaLabel="Plan day"
-        value={day}
-        onChange={setDay}
-        options={[
-          { value: 'today', label: 'Today' },
-          { value: 'tomorrow', label: 'Tomorrow' },
-        ]}
-      />
+    <div className="mx-auto max-w-lg space-y-4 px-4 pb-8 pt-3 md:max-w-2xl md:px-8 lg:grid lg:max-w-6xl lg:grid-flow-dense lg:grid-cols-[minmax(0,1fr)_400px] lg:grid-rows-[repeat(6,auto)_1fr] lg:items-start lg:gap-x-6 lg:gap-y-4 lg:space-y-0 lg:pt-6">
+      <div className="lg:col-span-2 lg:max-w-sm">
+        <SegmentedControl<Day>
+          ariaLabel="Plan day"
+          value={day}
+          onChange={setDay}
+          options={[
+            { value: 'today', label: 'Today' },
+            { value: 'tomorrow', label: 'Tomorrow' },
+          ]}
+        />
+      </div>
 
       {plan.error && (
-        <p role="alert" className="rounded-lg bg-status-danger/10 px-3 py-2 text-sm text-status-danger">
+        <p role="alert" className="rounded-lg bg-status-danger/10 px-3 py-2 text-sm text-status-danger lg:col-span-2">
           {plan.error}
         </p>
       )}
 
       {plan.loading && plan.items.length === 0 ? (
-        <div className="space-y-3">
+        <div className="space-y-3 lg:col-span-2">
           <div className="h-24 animate-pulse rounded-2xl bg-neutral-100" />
           <div className="h-56 animate-pulse rounded-2xl bg-neutral-100" />
         </div>
       ) : total === 0 ? (
-        <div className="rounded-2xl bg-white shadow-card">
+        <div className="rounded-2xl bg-white shadow-card lg:col-span-2">
           <EmptyState
             icon={Route}
             title={day === 'today' ? 'Nothing planned for today' : 'Nothing planned for tomorrow'}
@@ -184,7 +186,7 @@ export function PlanPage() {
         </div>
       ) : (
         <>
-          <section className="rounded-2xl bg-white p-4 shadow-card" aria-label="Progress">
+          <section className="rounded-2xl bg-white p-4 shadow-card lg:col-start-2" aria-label="Progress">
             <div className="flex items-end justify-between gap-3">
               <div>
                 <p className="text-[28px] font-extrabold leading-none text-neutral-900">
@@ -212,7 +214,7 @@ export function PlanPage() {
           </section>
 
           {mapPoints.length > 0 && (
-            <MapView points={mapPoints} height={220}>
+            <MapView points={mapPoints} height={220} className="lg:col-start-2">
               {routeLine.length > 1 && <Polyline positions={routeLine} pathOptions={{ color: COLOR_NEXT, weight: 3, opacity: 0.7, dashArray: '6 8' }} />}
               {plan.items.map((item, i) => {
                 const c = coords(item)
@@ -231,7 +233,7 @@ export function PlanPage() {
           )}
 
           {next ? (
-            <section className="rounded-2xl bg-white p-4 shadow-card" aria-label="Next customer">
+            <section className="rounded-2xl bg-white p-4 shadow-card lg:col-start-2" aria-label="Next customer">
               <p className="text-[11px] font-bold uppercase tracking-wide text-brand-600">Next stop</p>
               <div className="mt-2 flex items-start gap-3">
                 <TierBadge tier={next.tier} className="mt-0.5" />
@@ -289,13 +291,13 @@ export function PlanPage() {
               )}
             </section>
           ) : (
-            <section className="flex items-center gap-3 rounded-2xl bg-status-working/10 p-4">
+            <section className="flex items-center gap-3 rounded-2xl bg-status-working/10 p-4 lg:col-start-2">
               <Check className="h-6 w-6 shrink-0 text-status-working" aria-hidden />
               <p className="text-sm font-semibold text-neutral-800">Every planned stop is done or skipped.</p>
             </section>
           )}
 
-          <section aria-label="Stops">
+          <section aria-label="Stops" className="lg:col-start-1 lg:row-span-7">
             <div className="mb-2 flex items-center justify-between px-1">
               <h2 className="text-[17px] font-bold text-neutral-900">Stops</h2>
               <button onClick={() => setAddOpen(true)} className="flex items-center gap-1 text-sm font-bold text-brand-600 tap-target">
@@ -342,7 +344,7 @@ export function PlanPage() {
       )}
 
       {suggestions.length > 0 && (
-        <section aria-label="Overdue nearby">
+        <section aria-label="Overdue nearby" className="lg:col-start-2">
           <div className="mb-2 px-1">
             <h2 className="text-[17px] font-bold text-neutral-900">Overdue nearby</h2>
           </div>
