@@ -1,3 +1,4 @@
+import { geoPoints, gapDistanceM } from '@/features/attendance/gapDistance'
 import { isFlaggedGap, visitSpan, type FlagRules, type IdleRule } from '@/features/attendance/flagRules'
 
 /** What a stretch of someone's day was, in the bar's colours. */
@@ -39,6 +40,8 @@ export interface DayInput {
   now: number
   /** When a gap is flagged (the idle threshold, longer around lunch). */
   idle: IdleRule
+  /** Metres travelled across a gap (from, to); omitted: 0, so the normal idle limit applies. */
+  distance?: (fromMs: number, toMs: number) => number
 }
 
 /**
@@ -76,7 +79,7 @@ export function daySegments(d: DayInput): Seg[] {
   // first visit -- flagged as a whole. Time outside working hours is its own colour.
   const gap = (a: number, b: number, flaggable: boolean) => {
     if (b <= a) return
-    const flagged = flaggable && isFlaggedGap(a, b, d.idle)
+    const flagged = flaggable && isFlaggedGap(a, b, d.idle, d.distance?.(a, b) ?? 0)
     const cuts = [a, ...[d.shiftStart, d.shiftEnd].filter((t) => t > a && t < b), b].sort((x, y) => x - y)
     for (let i = 0; i < cuts.length - 1; i++) {
       const [x, y] = [cuts[i], cuts[i + 1]]
@@ -151,8 +154,8 @@ export const atLocal = (day: string, hm: string) => new Date(`${day}T${hm.slice(
  * to the last clock-out (still open if any session is), cancelled visits
  * left out. `live` is the visits kept, in the order `Seg.visit` refers to.
  */
-export function segmentsFor<V extends { checked_in_at: string; checked_out_at: string | null; cancelled_at: string | null; flags?: string[] | null }>(opts: {
-  attendance: { clock_in_at: string; clock_out_at: string | null }[]
+export function segmentsFor<V extends { checked_in_at: string; checked_out_at: string | null; cancelled_at: string | null; flags?: string[] | null; in_latitude?: number | null; in_longitude?: number | null; out_latitude?: number | null; out_longitude?: number | null }>(opts: {
+  attendance: { clock_in_at: string; clock_out_at: string | null; clock_in_latitude?: number | null; clock_in_longitude?: number | null; clock_out_latitude?: number | null; clock_out_longitude?: number | null }[]
   visits: V[]
   shiftStart: number
   shiftEnd: number
@@ -164,6 +167,7 @@ export function segmentsFor<V extends { checked_in_at: string; checked_out_at: s
   const clockIn = ins.length ? Math.min(...ins) : null
   const open = opts.attendance.some((a) => !a.clock_out_at)
   const clockOut = !opts.attendance.length || open ? null : Math.max(...opts.attendance.map((a) => Date.parse(a.clock_out_at!)))
+  const points = geoPoints(opts.attendance, live, opts.now, opts.flagRules.forgottenCapMin)
   const segs = daySegments({
     clockIn,
     clockOut,
@@ -177,6 +181,7 @@ export function segmentsFor<V extends { checked_in_at: string; checked_out_at: s
     shiftEnd: opts.shiftEnd,
     now: opts.now,
     idle: opts.flagRules.idle,
+    distance: (a, b) => gapDistanceM(points, a, b),
   })
   return { segs, live, clockIn, clockOut }
 }

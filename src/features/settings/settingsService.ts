@@ -1,5 +1,7 @@
 import { supabase } from '@/lib/supabase'
 import { DEFAULT_DAILY_VISIT_TARGET } from '@/lib/config'
+import { distanceRulesOf } from '@/hooks/useAppSettings'
+import type { FirstVisitFarRule, IdleFarRule, TravelRule } from '@/features/attendance/flagRules'
 
 /** The global settings a super admin can edit here. Working hours, clock-in
  * rules and leave defaults live on their own screens (Working hours & days,
@@ -25,6 +27,10 @@ export interface EditableSettings {
   lunchWindowStart: string
   lunchWindowEnd: string
   lunchIdleThresholdMinutes: number
+  /** The distance rules: long travel outside the home city, the far first visit window, idle gaps by distance. */
+  travel: TravelRule
+  firstVisitFar: FirstVisitFarRule
+  idleFar: IdleFarRule
   /** A visit nobody checked out of counts at most this many minutes. */
   forgottenVisitCapMinutes: number
   /** A visit counts toward effectiveness for at most this many minutes. */
@@ -46,7 +52,7 @@ export const settingsService = {
     const { data, error } = await supabase
       .from('app_settings')
       .select(
-        'checkin_radius_m, location_ping_interval_minutes, auto_checkout_enabled, idle_alert_threshold_minutes, short_visit_threshold_minutes, max_location_accuracy_m, check_window_start, check_window_end, first_visit_deadline, lunch_window_start, lunch_window_end, lunch_idle_threshold_minutes, forgotten_visit_cap_minutes, visit_credit_cap_minutes, daily_unique_customer_target, daily_visit_target'
+        'checkin_radius_m, location_ping_interval_minutes, auto_checkout_enabled, idle_alert_threshold_minutes, short_visit_threshold_minutes, max_location_accuracy_m, check_window_start, check_window_end, first_visit_deadline, lunch_window_start, lunch_window_end, lunch_idle_threshold_minutes, forgotten_visit_cap_minutes, visit_credit_cap_minutes, daily_unique_customer_target, daily_visit_target, travel_deduction_enabled, travel_deduction_min_km, travel_deduction_step_km, travel_deduction_minutes, home_city_latitude, home_city_longitude, home_city_radius_km, first_visit_far_enabled, first_visit_far_km, first_visit_far_extra_minutes, idle_far_enabled, idle_far_km, idle_far_step_km, idle_far_minutes_per_step, idle_far_window_minutes'
       )
       .single()
     if (error) throw error
@@ -67,6 +73,7 @@ export const settingsService = {
       visitCreditCapMinutes: data.visit_credit_cap_minutes,
       dailyUniqueCustomerTarget: data.daily_unique_customer_target,
       dailyVisitTarget: data.daily_visit_target ?? DEFAULT_DAILY_VISIT_TARGET,
+      ...distanceRulesOf(data),
     }
   },
 
@@ -90,6 +97,21 @@ export const settingsService = {
         visit_credit_cap_minutes: settings.visitCreditCapMinutes,
         daily_unique_customer_target: settings.dailyUniqueCustomerTarget,
         daily_visit_target: settings.dailyVisitTarget,
+        travel_deduction_enabled: settings.travel.enabled,
+        travel_deduction_min_km: settings.travel.minKm,
+        travel_deduction_step_km: settings.travel.stepKm,
+        travel_deduction_minutes: settings.travel.minutes,
+        home_city_latitude: settings.travel.homeLat,
+        home_city_longitude: settings.travel.homeLng,
+        home_city_radius_km: settings.travel.homeRadiusKm,
+        first_visit_far_enabled: settings.firstVisitFar.enabled,
+        first_visit_far_km: settings.firstVisitFar.km,
+        first_visit_far_extra_minutes: settings.firstVisitFar.extraMin,
+        idle_far_enabled: settings.idleFar.enabled,
+        idle_far_km: settings.idleFar.km,
+        idle_far_step_km: settings.idleFar.stepKm,
+        idle_far_minutes_per_step: settings.idleFar.minPerStep,
+        idle_far_window_minutes: settings.idleFar.windowMin,
       })
       .eq('id', true)
     if (error) throw error

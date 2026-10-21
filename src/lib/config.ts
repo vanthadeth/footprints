@@ -82,11 +82,18 @@ export const DEFAULT_VISIT_CREDIT_CAP_MINUTES = 45
 export const DEFAULT_DAILY_VISIT_TARGET = 8
 /** The effectiveness score: a visit that doesn't count (under the short-visit limit) earns this share of a counted one. */
 export const INEFFECTIVE_VISIT_WEIGHT = 0.25
-/** Every full this many km travelled in a day adds an hour to active time. */
-export const TRAVEL_KM_PER_ACTIVE_HOUR = 50
-/** A first visit after the deadline, within this many km of where the person clocked in, costs the score 10%. */
-export const NEAR_FIRST_VISIT_KM = 10
+/** The score takes the day's late first visit off by this factor (a late first visit, after the far window, costs 10%). */
 export const LATE_FIRST_VISIT_SCORE_FACTOR = 0.9
+/**
+ * The distance rules, until the live settings load (app_settings, migration 0116). Each has its own switch.
+ * - Travel: on a day travelling more than 25 km with a visit outside the home city (Phnom Penh), every full
+ *   10 km takes 10 minutes off the paid hours the score is measured against.
+ * - First visit: more than 10 km from the clock-in point gives 30 more minutes before it is late.
+ * - Idle gap: travel over 10 km makes the limit 30 minutes plus 10 per full 10 km (never below the normal limit).
+ */
+export const DEFAULT_TRAVEL_DEDUCTION = { enabled: true, minKm: 25, stepKm: 10, minutes: 10, homeLat: 11.5564, homeLng: 104.9282, homeRadiusKm: 15 }
+export const DEFAULT_FIRST_VISIT_FAR = { enabled: true, km: 10, extraMinutes: 30 }
+export const DEFAULT_IDLE_FAR = { enabled: true, km: 10, stepKm: 10, minutesPerStep: 10, windowMinutes: 30 }
 /**
  * What full marks looks like for each part of the effectiveness score: visits at
  * 100% of the day's target, active time at 50% of working hours, orders at 25%

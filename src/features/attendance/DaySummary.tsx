@@ -4,7 +4,7 @@ import { InfoSheet } from '@/components/InfoSheet'
 import type { JourneyStats } from '@/features/attendance/journeyStats'
 import { BAND_LABEL, BAND_STYLE, formatScore, type ScoreBand } from '@/features/attendance/effectivenessScore'
 import type { FirstVisit, FlagRules } from '@/features/attendance/flagRules'
-import { INEFFECTIVE_VISIT_WEIGHT, NEAR_FIRST_VISIT_KM, ORDER_RECONCILE_DAYS, SCORE_GOAL_ACTIVE, SCORE_GOAL_ORDERS, SCORE_GOAL_VISITS } from '@/lib/config'
+import { INEFFECTIVE_VISIT_WEIGHT, ORDER_RECONCILE_DAYS, SCORE_GOAL_ACTIVE, SCORE_GOAL_ORDERS, SCORE_GOAL_VISITS } from '@/lib/config'
 import { formatDuration, formatTime } from '@/lib/datetime'
 
 type Tone = 'good' | 'warn' | 'danger'
@@ -204,8 +204,8 @@ export function DaySummary({
             <Contributor
               label="Active time"
               share={day ? day.hoursShare : null}
-              figure={`${fmt((day?.activeMs ?? 0) + (day?.travelBonusMs ?? 0))} of ${fmt(day?.workingMs ?? 0)}`}
-              detail={day ? `${pct(day.activeRatio)} · goal ${pct(SCORE_GOAL_ACTIVE)}${day.travelBonusMs > 0 ? ` · +${fmt(day.travelBonusMs)} travel` : ''}` : ''}
+              figure={`${fmt(day?.activeMs ?? 0)} of ${fmt((day?.workingMs ?? 0) - (day?.travelDeductionMs ?? 0))}`}
+              detail={day ? `${pct(day.activeRatio)} · goal ${pct(SCORE_GOAL_ACTIVE)}${day.travelDeductionMs > 0 ? ` · ${fmt(day.travelDeductionMs)} long travel taken off` : ''}` : ''}
             />
             <Contributor
               label="Orders"
@@ -226,11 +226,16 @@ export function DaySummary({
         <ul className="list-disc space-y-1.5 pl-5">
           <li>A visit under {rules.shortVisitMin} min is not credited and earns a quarter of an effective visit.</li>
           <li>
-            Every full 50 km travelled adds an hour of active time. Clocked in {fmt(stats.totalWorkingMs)}
+            {rules.travel.enabled
+              ? `On a day with more than ${rules.travel.minKm} km of travel and a visit outside Phnom Penh, every full ${rules.travel.stepKm} km takes ${rules.travel.minutes} min off your working time. `
+              : ''}
+            Clocked in {fmt(stats.totalWorkingMs)}
             {outsideMs > 0 ? `; ${fmt(outsideMs)} outside your hours isn't counted` : ''}.
           </li>
           <li>A visit marked ordered counts until the sale order syncs, up to {ORDER_RECONCILE_DAYS} days after the visit.</li>
-          <li>A first visit after {deadline} within {NEAR_FIRST_VISIT_KM} km of where you clocked in takes 10% off.</li>
+          <li>
+            A late first visit takes 10% off. After {deadline}{rules.firstVisitFar.enabled ? `, or ${rules.firstVisitFar.extraMin} min later when it is more than ${rules.firstVisitFar.km} km from where you clocked in` : ''}.
+          </li>
         </ul>
         <div className="space-y-1.5 border-t border-neutral-100 pt-3">
           {(
@@ -256,7 +261,6 @@ export function DaySummary({
         <p className="mb-2 text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">Warnings</p>
         {hasWarnings ? (
           <div className="space-y-2.5">
-            {day?.lateDeduction && <Warning title="Late first visit, close by">First visit after {deadline} within {NEAR_FIRST_VISIT_KM} km of where you clocked in: score reduced by 10%.</Warning>}
             {stats.forgottenCheckouts > 0 && (
               <Warning title="Forgot to check out">
                 {stats.forgottenCheckouts} {stats.forgottenCheckouts === 1 ? 'visit' : 'visits'} closed automatically, counted as {rules.forgottenCapMin} min.
@@ -273,7 +277,7 @@ export function DaySummary({
                 {fmt(stats.flaggedGapMs)} over {stats.flaggedGaps} {stats.flaggedGaps === 1 ? 'gap' : 'gaps'}.
               </Warning>
             )}
-            {firstVisit.kind === 'late' && <Warning title="Late first visit">First visit at {formatTime(new Date(firstVisit.at).toISOString())}, after {deadline}.</Warning>}
+            {firstVisit.kind === 'late' && <Warning title="Late first visit">First visit at {formatTime(new Date(firstVisit.at).toISOString())}, after {deadline}{day?.lateDeduction ? ': score reduced by 10%' : ''}.</Warning>}
             {firstVisit.kind === 'none' && <Warning title="No visit yet">No customer visit by {deadline}.</Warning>}
           </div>
         ) : (

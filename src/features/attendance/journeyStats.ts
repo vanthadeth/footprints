@@ -1,5 +1,6 @@
 import { creditedVisitMs, dayEffectiveness, paidWorkMs, uniqueCustomerTarget, type BreakRule } from './efficiency'
 import { DEFAULT_FLAG_RULES, FORGOTTEN_VISIT_FLAGS, isFlaggedGap, visitSpan, type FlagRules } from './flagRules'
+import { geoPoints, gapDistanceM } from './gapDistance'
 import { meanScore, scoreDay, type DayScore } from './effectivenessScore'
 import { countsAsOrdered, type OrderState } from '@/features/orders/orderReconcile'
 import type { DayJourney } from './useJourneyHistory'
@@ -120,8 +121,9 @@ export function computeJourneyStats(
     }
     forgottenCheckouts += sorted.filter((v) => v.flags?.some((f) => FORGOTTEN_VISIT_FLAGS.includes(f))).length
     uniqueCustomers += new Set(sorted.map((v) => v.customer_id).filter((id): id is string => !!id)).size
+    const points = geoPoints(day.attendance, sorted, now, flags.forgottenCapMin)
     const noteFlaggedGap = (from: number, to: number) => {
-      if (isFlaggedGap(from, to, flags.idle)) {
+      if (isFlaggedGap(from, to, flags.idle, gapDistanceM(points, from, to))) {
         flaggedGapMs += to - from
         flaggedGaps += 1
       }

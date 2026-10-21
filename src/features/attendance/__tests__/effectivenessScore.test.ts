@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { BAND_LABEL, BAND_STYLE, computeScore, formatScore, lateNearFirstVisit, meanScore, scoreBand, scoreDay, scoreTextClass, travelMeters } from '../effectivenessScore'
+import { BAND_LABEL, BAND_STYLE, computeScore, formatScore, lateFirstVisit, meanScore, scoreBand, scoreDay, scoreTextClass, travelDeductionMs, travelMeters } from '../effectivenessScore'
 import { DEFAULT_FLAG_RULES } from '../flagRules'
 
 const HOUR = 3_600_000
-const base = { effectiveVisits: 0, ineffectiveVisits: 0, visitTarget: 10, orderedVisits: 0, totalVisits: 0, activeMs: 0, travelMeters: 0, workingMs: 9 * HOUR, lateNearFirstVisit: false }
+const base = { effectiveVisits: 0, ineffectiveVisits: 0, visitTarget: 10, orderedVisits: 0, totalVisits: 0, activeMs: 0, travelMeters: 0, travelDeductionMs: 0, workingMs: 9 * HOUR, lateFirstVisit: false }
 
 describe('computeScore', () => {
   it('scores each part against its own goal: visits 100% of target, active time 50% of working hours, orders 25% of visits', () => {
@@ -35,20 +35,21 @@ describe('computeScore', () => {
     expect(computeScore({ ...base, workingMs: 9 * HOUR }).orderShare).toBe(0)
   })
 
-  it('adds an hour of active time for every full 50 km travelled', () => {
-    const none = computeScore({ ...base, activeMs: 2 * HOUR, travelMeters: 49_000 })
-    const one = computeScore({ ...base, activeMs: 2 * HOUR, travelMeters: 50_000 })
-    const two = computeScore({ ...base, activeMs: 2 * HOUR, travelMeters: 120_000 })
-    expect(none.travelBonusMs).toBe(0)
-    expect(one.travelBonusMs).toBe(HOUR)
-    expect(two.travelBonusMs).toBe(2 * HOUR)
-    expect(one.activeRatio).toBeCloseTo(3 / 9, 5)
+  it('measures active time against working hours less the long-travel deduction', () => {
+    const none = computeScore({ ...base, activeMs: 2 * HOUR })
+    const cut = computeScore({ ...base, activeMs: 2 * HOUR, travelDeductionMs: 3 * HOUR })
+    expect(none.travelDeductionMs).toBe(0)
+    expect(cut.travelDeductionMs).toBe(3 * HOUR)
+    expect(none.activeRatio).toBeCloseTo(2 / 9, 5)
+    expect(cut.activeRatio).toBeCloseTo(2 / 6, 5)
+    // The deduction can't take more than the working time itself
+    expect(computeScore({ ...base, activeMs: HOUR, travelDeductionMs: 20 * HOUR }).activeRatio).toBe(1)
   })
 
-  it('takes 10% off the score for a late first visit that was close by', () => {
+  it('takes 10% off the score for a late first visit', () => {
     const inputs = { ...base, effectiveVisits: 4, totalVisits: 4, orderedVisits: 1, activeMs: 3 * HOUR }
     const plain = computeScore(inputs)
-    const late = computeScore({ ...inputs, lateNearFirstVisit: true })
+    const late = computeScore({ ...inputs, lateFirstVisit: true })
     expect(late.lateDeduction).toBe(true)
     expect(late.score).toBeCloseTo((plain.score as number) * 0.9, 1)
   })
@@ -117,15 +118,50 @@ describe('travelMeters', () => {
   })
 })
 
-describe('lateNearFirstVisit', () => {
-  it('is true for a first visit after 10:00 within 10 km of the clock-in point', () => {
-    expect(lateNearFirstVisit([clockIn], [visit('04:00', '04:30')], day, '10:00')).toBe(true) // 11:00 local, same spot
+describe('lateFirstVisit', () => {
+  const rules = { firstVisitDeadline: '10:00', firstVisitFar: { enabled: true, km: 10, extraMin: 30 } }
+
+  it('is true for a first visit after the deadline close to the clock-in point', () => {
+    expect(lateFirstVisit([clockIn], [visit('04:00', '04:30')], day, rules)).toBe(true) // 11:00 local, same spot
+    expect(lateFirstVisit([clockIn], [visit('03:10', '03:30')], day, rules)).toBe(true) // 10:10, close by: no extra time
   })
 
-  it('is false when on time, far away, or a position is unknown', () => {
-    expect(lateNearFirstVisit([clockIn], [visit('02:00', '02:30')], day, '10:00')).toBe(false) // 09:00 local
-    expect(lateNearFirstVisit([clockIn], [visit('04:00', '04:30', 11.7, 104.9282)], day, '10:00')).toBe(false) // ~16 km away
-    expect(lateNearFirstVisit([{ ...clockIn, clock_in_latitude: null }], [visit('04:00', '04:30')], day, '10:00')).toBe(false)
+  it('is false when on time', () => {
+    expect(lateFirstVisit([clockIn], [visit('02:00', '02:30')], day, rules)).toBe(false) // 09:00 local
+    expect(lateFirstVisit([clockIn], [], day, rules)).toBe(false)
+  })
+
+  it('gives 30 more minutes when the first stop is more than 10 km from the clock-in point', () => {
+    expect(lateFirstVisit([clockIn], [visit('03:20', '03:50', 11.7, 104.9282)], day, rules)).toBe(false) // ~16 km away, 10:20 local
+    expect(lateFirstVisit([clockIn], [visit('03:40', '04:10', 11.7, 104.9282)], day, rules)).toBe(true) // 10:40, past 10:30
+    expect(lateFirstVisit([clockIn], [visit('03:20', '03:50', 11.7, 104.9282)], day, { ...rules, firstVisitFar: { ...rules.firstVisitFar, enabled: false } })).toBe(true)
+  })
+
+  it('keeps the plain deadline when a position is unknown', () => {
+    expect(lateFirstVisit([{ ...clockIn, clock_in_latitude: null }], [visit('03:20', '03:50', 11.7, 104.9282)], day, rules)).toBe(true)
+  })
+})
+
+describe('travelDeductionMs', () => {
+  const rule = { enabled: true, minKm: 25, stepKm: 10, minutes: 10, homeLat: 11.5564, homeLng: 104.9282, homeRadiusKm: 15 }
+  const out = [visit('02:00', '02:30', 11.9, 104.9282)] // ~38 km north of the centre: outside Phnom Penh
+  const inside = [visit('02:00', '02:30')]
+
+  it('takes 10 minutes for every full 10 km once the day travels more than 25 km, with a visit outside Phnom Penh', () => {
+    expect(travelDeductionMs(25_000, out, rule)).toBe(0) // not over 25 km
+    expect(travelDeductionMs(26_000, out, rule)).toBe(2 * 10 * 60_000)
+    expect(travelDeductionMs(59_999, out, rule)).toBe(5 * 10 * 60_000)
+    expect(travelDeductionMs(100_000, out, rule)).toBe(10 * 10 * 60_000)
+  })
+
+  it('does nothing when every visit is inside Phnom Penh, or when it is switched off', () => {
+    expect(travelDeductionMs(60_000, inside, rule)).toBe(0)
+    expect(travelDeductionMs(60_000, out, { ...rule, enabled: false })).toBe(0)
+    expect(travelDeductionMs(60_000, out, undefined)).toBe(0)
+  })
+
+  it('ignores a cancelled visit outside the city', () => {
+    expect(travelDeductionMs(60_000, [{ ...out[0], cancelled_at: at('03:00') }], rule)).toBe(0)
   })
 })
 

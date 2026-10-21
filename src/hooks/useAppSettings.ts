@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { scheduleService } from '@/features/schedule/scheduleService'
-import { flagRulesOf, type FlagRules } from '@/features/attendance/flagRules'
+import { flagRulesOf, type FirstVisitFarRule, type FlagRules, type IdleFarRule, type TravelRule } from '@/features/attendance/flagRules'
 import {
   DEFAULT_ALLOW_EARLY_CLOCKIN_MINUTES,
   DEFAULT_AUTO_CHECKOUT_ENABLED,
@@ -9,6 +9,9 @@ import {
   DEFAULT_CHECK_WINDOW_END,
   DEFAULT_CHECK_WINDOW_START,
   DEFAULT_FIRST_VISIT_DEADLINE,
+  DEFAULT_FIRST_VISIT_FAR,
+  DEFAULT_IDLE_FAR,
+  DEFAULT_TRAVEL_DEDUCTION,
   DEFAULT_DAILY_UNIQUE_CUSTOMER_TARGET,
   DEFAULT_DAILY_VISIT_TARGET,
   DEFAULT_FORGOTTEN_VISIT_CAP_MINUTES,
@@ -48,6 +51,10 @@ export interface AppSettings {
   lunchWindowEnd: string
   lunchIdleThresholdMinutes: number
   firstVisitDeadline: string
+  /** The distance rules (migration 0116): late first visit window, long-travel deduction, idle gaps by distance. */
+  firstVisitFar: FirstVisitFarRule
+  travel: TravelRule
+  idleFar: IdleFarRule
   forgottenVisitCapMinutes: number
   /** A visit counts toward effectiveness for at most this many minutes; unique customers expected on a full day. */
   visitCreditCapMinutes: number
@@ -68,6 +75,39 @@ export interface AppSettings {
   holidayName: string | null
 }
 
+/** The distance-rule columns of app_settings (migration 0116) as the rules the app applies; shared with the admin form. */
+export function distanceRulesOf(d: {
+  travel_deduction_enabled: boolean
+  travel_deduction_min_km: number
+  travel_deduction_step_km: number
+  travel_deduction_minutes: number
+  home_city_latitude: number
+  home_city_longitude: number
+  home_city_radius_km: number
+  first_visit_far_enabled: boolean
+  first_visit_far_km: number
+  first_visit_far_extra_minutes: number
+  idle_far_enabled: boolean
+  idle_far_km: number
+  idle_far_step_km: number
+  idle_far_minutes_per_step: number
+  idle_far_window_minutes: number
+}): Pick<AppSettings, 'travel' | 'firstVisitFar' | 'idleFar'> {
+  return {
+    travel: {
+      enabled: d.travel_deduction_enabled,
+      minKm: d.travel_deduction_min_km,
+      stepKm: d.travel_deduction_step_km,
+      minutes: d.travel_deduction_minutes,
+      homeLat: Number(d.home_city_latitude),
+      homeLng: Number(d.home_city_longitude),
+      homeRadiusKm: d.home_city_radius_km,
+    },
+    firstVisitFar: { enabled: d.first_visit_far_enabled, km: d.first_visit_far_km, extraMin: d.first_visit_far_extra_minutes },
+    idleFar: { enabled: d.idle_far_enabled, km: d.idle_far_km, stepKm: d.idle_far_step_km, minPerStep: d.idle_far_minutes_per_step, windowMin: d.idle_far_window_minutes },
+  }
+}
+
 const FALLBACK: AppSettings = {
   checkinRadiusM: DEFAULT_VISIT_RADIUS_METERS,
   locationPingIntervalMinutes: DEFAULT_LOCATION_PING_INTERVAL_MINUTES,
@@ -84,6 +124,9 @@ const FALLBACK: AppSettings = {
   lunchWindowEnd: DEFAULT_LUNCH_WINDOW_END,
   lunchIdleThresholdMinutes: DEFAULT_LUNCH_IDLE_THRESHOLD_MINUTES,
   firstVisitDeadline: DEFAULT_FIRST_VISIT_DEADLINE,
+  firstVisitFar: { enabled: DEFAULT_FIRST_VISIT_FAR.enabled, km: DEFAULT_FIRST_VISIT_FAR.km, extraMin: DEFAULT_FIRST_VISIT_FAR.extraMinutes },
+  travel: { ...DEFAULT_TRAVEL_DEDUCTION },
+  idleFar: { enabled: DEFAULT_IDLE_FAR.enabled, km: DEFAULT_IDLE_FAR.km, stepKm: DEFAULT_IDLE_FAR.stepKm, minPerStep: DEFAULT_IDLE_FAR.minutesPerStep, windowMin: DEFAULT_IDLE_FAR.windowMinutes },
   forgottenVisitCapMinutes: DEFAULT_FORGOTTEN_VISIT_CAP_MINUTES,
   visitCreditCapMinutes: DEFAULT_VISIT_CREDIT_CAP_MINUTES,
   dailyUniqueCustomerTarget: DEFAULT_DAILY_UNIQUE_CUSTOMER_TARGET,
@@ -172,6 +215,15 @@ export function useAppSettings(): AppSettings & { flagRules: FlagRules } {
           dailyVisitTarget: data.daily_visit_target ?? DEFAULT_DAILY_VISIT_TARGET,
           dailyWorkingHours: Number(data.daily_working_hours) || DEFAULT_FULL_DAY_HOURS,
         }))
+      })
+    // The distance rules (migration 0116), read on their own for the same reason.
+    supabase
+      .from('app_settings')
+      .select('travel_deduction_enabled, travel_deduction_min_km, travel_deduction_step_km, travel_deduction_minutes, home_city_latitude, home_city_longitude, home_city_radius_km, first_visit_far_enabled, first_visit_far_km, first_visit_far_extra_minutes, idle_far_enabled, idle_far_km, idle_far_step_km, idle_far_minutes_per_step, idle_far_window_minutes')
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled || !data) return
+        setSettings((prev) => ({ ...prev, ...distanceRulesOf(data) }))
       })
     // The signed-in person's own hours today (team schedule or company
     // schedule, minus holidays -- app.work_day). Overrides the company-wide

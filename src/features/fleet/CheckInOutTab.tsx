@@ -18,6 +18,7 @@ import { useTeamWorkDays } from '@/features/schedule/useTeamWorkDays'
 import type { BreakRule } from '@/features/attendance/efficiency'
 import { formatScore } from '@/features/attendance/effectivenessScore'
 import { firstVisitStatus, type FlagRules } from '@/features/attendance/flagRules'
+import { firstVisitDistanceM } from '@/features/attendance/effectivenessScore'
 import { useAppSettings } from '@/hooks/useAppSettings'
 import { FleetStatusBadge } from './FleetStatusBadge'
 import type { FleetMemberSnapshot } from './types'
@@ -167,7 +168,7 @@ function MemberCheckInOutCard({
   const onLeaveLabel = !day && leaveType ? leaveType === 'flex' ? 'On a day off' : `On ${LEAVE_TYPE_LABEL[leaveType]} Leave` : null
   const lateMinutes = serverLateMinutes ?? 0
   // The first customer visit of the day after the deadline, or none yet by then.
-  const firstVisit = firstVisitStatus(day?.visits ?? [], sessions.length > 0, date, flagRules.firstVisitDeadline, Date.now())
+  const firstVisit = firstVisitStatus(day?.visits ?? [], sessions.length > 0, date, flagRules.firstVisitDeadline, Date.now(), flagRules.firstVisitFar, firstVisitDistanceM(sessions, day?.visits ?? []))
   const isLate = lateMinutes > 0
   const initials = member.fullName
     .split(' ')
