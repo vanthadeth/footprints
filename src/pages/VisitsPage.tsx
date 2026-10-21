@@ -25,7 +25,7 @@ export function VisitsPage() {
   const [tab, setTab] = useState<Tab>('today')
 
   return (
-    <div className="mx-auto max-w-lg pb-6 md:max-w-2xl">
+    <div className="mx-auto max-w-lg pb-6 md:max-w-2xl lg:max-w-4xl">
       <div className="px-4 pt-4 md:px-8">
         <div className="flex gap-1 rounded-full bg-neutral-100 p-1">
           {TABS.map((item) => (
@@ -107,7 +107,7 @@ function UpcomingTab() {
       {visits.length === 0 ? (
         <EmptyState icon={CalendarClock} title={t('visits.upcomingEmptyTitle')} body={t('visits.upcomingEmptyBody')} />
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
           {visits.map((v) => (
             <button
               key={v.id}

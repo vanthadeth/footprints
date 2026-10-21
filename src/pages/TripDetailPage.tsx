@@ -43,7 +43,7 @@ export function TripDetailPage() {
 
   if (trip.can_decide) {
     return (
-      <div className="mx-auto max-w-lg space-y-3 px-4 pb-8 pt-2 md:max-w-2xl md:px-8">
+      <div className="mx-auto max-w-lg space-y-3 px-4 pb-8 pt-2 md:max-w-2xl lg:max-w-4xl md:px-8">
         <TripApprovalCard trip={trip} rates={rates} onDecided={() => load()} />
       </div>
     )
@@ -70,7 +70,7 @@ export function TripDetailPage() {
   }
 
   return (
-    <div className="mx-auto max-w-lg space-y-3 px-4 pb-8 pt-2 md:max-w-2xl md:px-8">
+    <div className="mx-auto max-w-lg space-y-3 px-4 pb-8 pt-2 md:max-w-2xl lg:max-w-4xl md:px-8">
       <div className="space-y-3 rounded-[20px] bg-brand-900 p-4 text-white">
         <div className="flex items-start justify-between gap-2">
           <div>

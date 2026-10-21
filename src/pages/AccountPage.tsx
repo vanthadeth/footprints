@@ -39,7 +39,7 @@ export function AccountPage() {
   const roleLine = [profile?.position, profile?.role_name].filter(Boolean).join(' · ')
 
   return (
-    <div className="mx-auto max-w-lg md:max-w-2xl">
+    <div className="mx-auto max-w-lg md:max-w-2xl lg:max-w-4xl">
       <div className="space-y-5 px-4 pb-6 pt-1 md:px-8 md:pt-4">
         <Link to="/profile" className="flex items-center gap-3.5 rounded-2xl bg-white p-3.5 shadow-card">
           <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-500 text-[22px] font-bold text-white">

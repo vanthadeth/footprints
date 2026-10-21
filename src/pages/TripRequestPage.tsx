@@ -231,7 +231,7 @@ export function TripRequestPage() {
   if (step === 'review') {
     const hol = plan.days.find((d) => holidays[d.date])
     return (
-      <div className="mx-auto max-w-lg space-y-3 px-4 pb-8 pt-2 md:max-w-2xl md:px-8">
+      <div className="mx-auto max-w-lg space-y-3 px-4 pb-8 pt-2 md:max-w-2xl lg:max-w-4xl md:px-8">
         <div className="space-y-3 rounded-[20px] bg-brand-900 p-4 text-white">
           <div>
             <p className="text-[12px] font-extrabold uppercase tracking-wide text-white/60">Sales trip · {plan.range}</p>
@@ -295,7 +295,7 @@ export function TripRequestPage() {
   }
 
   return (
-    <div className="mx-auto max-w-lg space-y-3.5 px-4 pb-8 pt-2 md:max-w-2xl md:px-8">
+    <div className="mx-auto max-w-lg space-y-3.5 px-4 pb-8 pt-2 md:max-w-2xl lg:max-w-4xl md:px-8">
       {decisionNote && (
         <p className="rounded-2xl bg-status-warn/10 px-3.5 py-2.5 text-[13px] leading-snug text-neutral-900">
           <b>Changes asked:</b> “{decisionNote}”

@@ -105,7 +105,7 @@ export function DaysOffPage() {
   const rows = usedRows(list)
 
   return (
-    <div className="mx-auto max-w-lg px-4 pb-8 pt-3 md:max-w-2xl">
+    <div className="mx-auto max-w-lg px-4 pb-8 pt-3 md:max-w-2xl lg:max-w-4xl">
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <button type="button" onClick={() => go(addDays(cycle.cycleStart, -1))} aria-label="Previous cycle" className="flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-600 dark:border-neutral-800">
