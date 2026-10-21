@@ -53,6 +53,7 @@ export const en = {
     team: 'Team',
     people: 'People',
     approvals: 'Approvals',
+    attendanceAll: 'Attendance',
     admin: 'Admin',
     briefing: 'Briefing',
     trips: 'Sales trips',

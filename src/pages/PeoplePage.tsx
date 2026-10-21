@@ -84,7 +84,7 @@ export function PeoplePage() {
     { label: 'Holidays', to: '/settings/holidays', icon: CalendarRange },
     { label: 'Days off', to: '/leave/flexible', icon: CalendarRange },
     { label: 'By cycle', to: '/fleet?tab=attendance&view=monthly', icon: CalendarCheck },
-    { label: 'Weekly', to: '/fleet?tab=attendance&view=weekly', icon: CalendarCheck },
+    { label: 'Weekly', to: '/attendance', icon: CalendarCheck },
     { label: 'Team map', to: '/fleet', icon: UsersIcon },
   ]
 

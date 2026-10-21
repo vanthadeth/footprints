@@ -115,7 +115,7 @@ export function homeFor(group: RoleGroup, ctx: NavContext): string {
 
 export type RowKey =
   | 'trips' | 'tripset' | 'plan' | 'calendar' | 'journey' | 'report' | 'messages' | 'customers' | 'leave' | 'daysoff'
-  | 'team' | 'attendance' | 'reports' | 'logs' | 'briefing' | 'flexteam' | 'approvals'
+  | 'team' | 'attendance' | 'attendanceAll' | 'reports' | 'logs' | 'briefing' | 'flexteam' | 'approvals'
   | 'allowances' | 'holidays' | 'users' | 'permissions' | 'org' | 'hours' | 'adminatt' | 'locations' | 'notifications' | 'translations' | 'settings' | 'sheetsync'
 
 export interface RowDef {
@@ -142,6 +142,7 @@ export const ROW: Record<RowKey, RowDef> = {
   daysoff: { key: 'daysoff', label: 'My days off', sub: 'Flexible allowance this cycle', to: '/leave/days-off', icon: CalendarRange, tone: 'bg-status-visiting', needs: (ctx) => !!ctx.flexible },
   team: { key: 'team', label: 'Team map', sub: 'Status, map, routes and customers', to: '/fleet', icon: UsersIcon, tone: 'bg-brand-500', needs: can('team_map') },
   attendance: { key: 'attendance', label: 'Team attendance', sub: 'Daily, weekly and by cycle', to: '/fleet?tab=attendance', icon: CalendarCheck, tone: 'bg-status-working', needs: can('team_map') },
+  attendanceAll: { key: 'attendanceAll', label: 'All attendance', sub: 'Week by week: late, leave and absent', to: '/attendance', icon: CalendarCheck, tone: 'bg-status-working', needs: (ctx) => can('team_map')(ctx) || hrOrAdmin(ctx) },
   reports: { key: 'reports', label: 'Team reports', sub: 'Visits, orders, effectiveness', to: '/fleet?tab=reports', icon: BarChart3, tone: 'bg-status-visiting', needs: can('team_map') },
   logs: { key: 'logs', label: 'Activity logs', sub: 'What happened, by person', to: '/fleet?tab=logs', icon: History, tone: 'bg-neutral-600', needs: can('team_map') },
   briefing: { key: 'briefing', label: 'Customer briefing', sub: 'Customers by province, last visit and who', to: '/team/customers', icon: Table2, tone: 'bg-status-visiting', needs: can('customer_briefing') },
@@ -164,7 +165,7 @@ export const ROW: Record<RowKey, RowDef> = {
 const FOR_YOU: Record<RoleGroup, RowKey[]> = {
   field: ['plan', 'leave', 'report', 'customers', 'journey', 'trips'],
   manager: ['attendance', 'briefing', 'flexteam', 'reports', 'trips', 'logs'],
-  hr: ['allowances', 'holidays', 'flexteam', 'attendance', 'users', 'leave'],
+  hr: ['allowances', 'holidays', 'flexteam', 'attendanceAll', 'users', 'leave'],
   office: ['calendar', 'customers', 'team', 'leave', 'messages', 'journey'],
   admin: ['users', 'permissions', 'hours', 'notifications', 'locations', 'sheetsync'],
 }
@@ -204,7 +205,7 @@ const ROW_FN: [RowKey, FnKey, PartKey][] = [
   ['customers', 'sell', 'mine'], ['plan', 'sell', 'mine'], ['trips', 'sell', 'mine'], ['briefing', 'sell', 'team'],
   ['calendar', 'day', 'mine'], ['messages', 'day', 'mine'], ['journey', 'day', 'mine'], ['report', 'day', 'mine'],
   ['leave', 'time', 'mine'], ['daysoff', 'time', 'mine'], ['approvals', 'time', 'team'], ['flexteam', 'time', 'team'], ['allowances', 'time', 'company'], ['holidays', 'time', 'company'],
-  ['team', 'team', 'team'], ['attendance', 'team', 'team'], ['reports', 'team', 'team'], ['logs', 'team', 'team'],
+  ['team', 'team', 'team'], ['attendance', 'team', 'team'], ['attendanceAll', 'team', 'team'], ['reports', 'team', 'team'], ['logs', 'team', 'team'],
   ['users', 'company', 'people'], ['permissions', 'company', 'people'], ['org', 'company', 'people'],
   ['hours', 'company', 'rules'], ['adminatt', 'company', 'rules'], ['locations', 'company', 'rules'], ['tripset', 'company', 'rules'],
   ['notifications', 'company', 'system'], ['translations', 'company', 'system'], ['settings', 'company', 'system'], ['sheetsync', 'company', 'system'],

@@ -80,7 +80,7 @@ describe('hub', () => {
 
   it('shows HR the HR tools and admins everything in Administration', () => {
     const hr = forYou('hr', ctx(HR)).map((r) => r.key)
-    expect(hr.slice(0, 4)).toEqual(['allowances', 'holidays', 'flexteam', 'attendance'])
+    expect(hr.slice(0, 4)).toEqual(['allowances', 'holidays', 'flexteam', 'attendanceAll'])
     expect(hr.length % 3).toBe(0)
     expect(forYou('admin', ctx([], true)).map((r) => r.key)).toEqual(['users', 'permissions', 'hours', 'notifications', 'locations', 'sheetsync'])
     expect(adminRows(ctx([], true))).toHaveLength(10)

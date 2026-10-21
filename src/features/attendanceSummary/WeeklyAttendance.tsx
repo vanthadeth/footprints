@@ -15,17 +15,53 @@ const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const NO_DEPARTMENT = 'No department'
 const hours = (min: number) => (min / 60).toFixed(1)
 
-/** Team › Attendance › Weekly: KPIs and a Mon–Sun grid per person, grouped by department, for one week. */
+/** "This week", "Last week", "3 weeks ago" for a week offset (0 = this week). */
+function weekLabel(offset: number): string {
+  return offset === 0 ? 'This week' : offset === -1 ? 'Last week' : `${-offset} weeks ago`
+}
+
+/** Previous / next week arrows around the week's date range; never past this week. */
+export function WeekNavigator({ offset, onChange, from, to }: { offset: number; onChange: (offset: number) => void; from: string; to: string }) {
+  return (
+    <div className="flex items-center justify-between">
+      <button type="button" onClick={() => onChange(offset - 1)} aria-label="Previous week" className="flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-600 tap-target">
+        <ChevronLeft className="h-[18px] w-[18px]" />
+      </button>
+      <div className="text-center">
+        <p className="text-base font-bold text-neutral-900">
+          {shortDate(from)} – {shortDate(to)}
+        </p>
+        <p className="text-xs text-neutral-500">{weekLabel(offset)}</p>
+      </div>
+      <button type="button" onClick={() => onChange(Math.min(0, offset + 1))} disabled={offset >= 0} aria-label="Next week" className="flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-600 tap-target disabled:opacity-40">
+        <ChevronRight className="h-[18px] w-[18px]" />
+      </button>
+    </div>
+  )
+}
+
+/** Team › Attendance › Weekly: the week's navigator, then KPIs and a Mon–Sun grid per person, grouped by department. */
 export function WeeklyAttendance({ team }: { team: TeamMember[] }) {
   const today = todayDateString()
   const [offset, setOffset] = useState(0)
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
-  const [personId, setPersonId] = useState<string | null>(null)
   const from = weekStart(today, offset)
   const to = addDays(from, 6)
-  const days = datesBetween(from, to)
   const ids = useMemo(() => team.map((m) => m.id), [team])
   const { rows, loading, error } = useAttendanceDays(from, to, ids)
+  return (
+    <div className="space-y-3.5">
+      <WeekNavigator offset={offset} onChange={setOffset} from={from} to={to} />
+      <WeeklyAttendanceView team={team} from={from} to={to} rows={rows} loading={loading} error={error} />
+    </div>
+  )
+}
+
+/** The week's numbers and grid for rows already loaded (the Attendance page loads them once and shares them with its day details). */
+export function WeeklyAttendanceView({ team, from, to, rows, loading, error }: { team: TeamMember[]; from: string; to: string; rows: AttendanceDay[]; loading: boolean; error: string | null }) {
+  const today = todayDateString()
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
+  const [personId, setPersonId] = useState<string | null>(null)
+  const days = datesBetween(from, to)
 
   const byPerson = useMemo(() => {
     const m = new Map<string, Map<string, AttendanceDay>>()
@@ -45,21 +81,6 @@ export function WeeklyAttendance({ team }: { team: TeamMember[] }) {
 
   return (
     <div className="space-y-3.5">
-      <div className="flex items-center justify-between">
-        <button type="button" onClick={() => setOffset(offset - 1)} aria-label="Previous week" className="flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-600 tap-target">
-          <ChevronLeft className="h-[18px] w-[18px]" />
-        </button>
-        <div className="text-center">
-          <p className="text-base font-bold text-neutral-900">
-            {shortDate(from)} – {shortDate(to)}
-          </p>
-          <p className="text-xs text-neutral-500">{offset === 0 ? 'This week' : offset === -1 ? 'Last week' : `${-offset} weeks ago`}</p>
-        </div>
-        <button type="button" onClick={() => setOffset(Math.min(0, offset + 1))} disabled={offset >= 0} aria-label="Next week" className="flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-600 tap-target disabled:opacity-40">
-          <ChevronRight className="h-[18px] w-[18px]" />
-        </button>
-      </div>
-
       {error && <p className="rounded-xl bg-status-danger/10 px-3 py-2 text-sm text-status-danger">{error}</p>}
 
       <div className="grid grid-cols-2 gap-2 md:grid-cols-5">

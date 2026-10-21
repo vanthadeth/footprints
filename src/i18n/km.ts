@@ -61,6 +61,7 @@ export const km: TranslationKey = {
     team: 'ក្រុម',
     people: 'បុគ្គលិក',
     approvals: 'ការអនុម័ត',
+    attendanceAll: 'វត្តមាន',
     admin: 'គ្រប់គ្រង',
     briefing: 'សង្ខេប',
     trips: 'ដំណើរលក់',
