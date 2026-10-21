@@ -2,21 +2,16 @@ import { useState, type ReactNode } from 'react'
 import { AlertTriangle, CheckCircle2, ChevronDown, Info } from 'lucide-react'
 import { InfoSheet } from '@/components/InfoSheet'
 import type { JourneyStats } from '@/features/attendance/journeyStats'
-import { BAND_LABEL, BAND_STYLE, formatScore, type ScoreBand } from '@/features/attendance/effectivenessScore'
+import { BAND_LABEL, BAND_STYLE, formatScore, scoreBand, type ScoreBand } from '@/features/attendance/effectivenessScore'
 import type { FirstVisit, FlagRules } from '@/features/attendance/flagRules'
 import { formatDistance } from '@/lib/geo'
 import { INEFFECTIVE_VISIT_WEIGHT, ORDER_RECONCILE_DAYS, SCORE_GOAL_ACTIVE, SCORE_GOAL_ORDERS, SCORE_GOAL_VISITS } from '@/lib/config'
 import { formatDuration, formatTime } from '@/lib/datetime'
 
-type Tone = 'good' | 'warn' | 'danger'
-/** Text and fill colours; these have dark-theme overrides. */
-const TEXT: Record<Tone, string> = { good: 'text-status-working', warn: 'text-status-warn', danger: 'text-status-danger' }
-const FILL: Record<Tone, string> = { good: 'bg-status-working', warn: 'bg-status-warn', danger: 'bg-status-danger' }
-
 const card = 'rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card'
 
-/** How close a part is to its goal: full is green, at least half amber, under half red. */
-const toneOf = (share: number): Tone => (share >= 1 ? 'good' : share >= 0.5 ? 'warn' : 'danger')
+/** A part's share of its goal on the score's own 0-10 scale, so it takes the same band and colour as the score. */
+const partScore = (share: number) => Math.min(10, Math.max(0, share * 10))
 
 /** The bands as a scale from 0 to 10, with a marker at the score: poor 0-5, average 5-7, good 7-9, excellent 9-10. */
 const SCALE: { band: ScoreBand; from: number; to: number }[] = [
@@ -26,9 +21,9 @@ const SCALE: { band: ScoreBand; from: number; to: number }[] = [
   { band: 'excellent', from: 9, to: 10 },
 ]
 
-function ScoreScale({ score, band }: { score: number | null; band: ScoreBand | null }) {
+function ScoreScale({ score, band, labels = true, className = 'mt-4' }: { score: number | null; band: ScoreBand | null; labels?: boolean; className?: string }) {
   return (
-    <div className="mt-4">
+    <div className={className}>
       <div className="relative">
         <div className="flex gap-[3px]">
           {SCALE.map((seg) => (
@@ -43,29 +38,30 @@ function ScoreScale({ score, band }: { score: number | null; band: ScoreBand | n
           />
         )}
       </div>
-      <div className="relative mt-1.5 h-3 text-[10px] font-semibold text-neutral-500">
-        {[0, 5, 7, 9, 10].map((n) => (
-          <span key={n} className="absolute -translate-x-1/2" style={{ left: `${n * 10}%` }}>
-            {n}
-          </span>
-        ))}
-      </div>
+      {labels && (
+        <div className="relative mt-1.5 h-3 text-[10px] font-semibold text-neutral-500">
+          {[0, 5, 7, 9, 10].map((n) => (
+            <span key={n} className="absolute -translate-x-1/2" style={{ left: `${n * 10}%` }}>
+              {n}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
 
 /** One contributor to the score: what it is, how far to its goal as a bar, and the figures behind it. */
 function Contributor({ label, share, figure, detail }: { label: string; share: number | null; figure: string; detail: string }) {
-  const tone = toneOf(share ?? 0)
+  const value = share != null ? partScore(share) : null
+  const band = value != null ? scoreBand(value) : null
   return (
     <div>
       <div className="flex items-baseline justify-between gap-3">
         <span className="text-[13.5px] font-bold text-neutral-900">{label}</span>
-        <span className={`text-[13px] font-extrabold ${TEXT[tone]}`}>{share != null ? `${Math.round(share * 100)}%` : '—'}</span>
+        <span className={`text-[13px] font-extrabold ${band ? BAND_STYLE[band].text : 'text-neutral-500'}`}>{share != null ? `${Math.round(share * 100)}%` : '—'}</span>
       </div>
-      <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-neutral-100">
-        <div className={`h-full rounded-full ${FILL[tone]}`} style={{ width: `${Math.min(100, Math.max(0, (share ?? 0) * 100))}%` }} />
-      </div>
+      <ScoreScale score={value} band={band} labels={false} className="mt-2" />
       <div className="mt-1.5 flex items-baseline justify-between gap-3 text-[12px]">
         <span className="font-semibold text-neutral-900">{figure}</span>
         <span className="text-right text-neutral-500">{detail}</span>
@@ -189,7 +185,7 @@ export function DaySummary({
                 ].map(([label, share], i) => (
                   <span key={label as string}>
                     {i > 0 && ' · '}
-                    {label as string} <b className={TEXT[toneOf(share as number)]}>{Math.round((share as number) * 100)}%</b>
+                    {label as string} <b className={BAND_STYLE[scoreBand(partScore(share as number))].text}>{Math.round((share as number) * 100)}%</b>
                   </span>
                 ))}
               </span>
