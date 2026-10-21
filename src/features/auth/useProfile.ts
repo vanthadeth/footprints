@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from './AuthContext'
 import type { Tables } from '@/types/database.types'
 
-export type Profile = Tables<'users'> & { role_name: string | null }
+export type Profile = Tables<'users'> & { role_name: string | null; role_key?: string | null }
 
 interface ProfileState {
   profile: Profile | null
@@ -63,7 +63,7 @@ function load(force = false): Promise<void> {
   if (inflight) return inflight
   if (!force && Date.now() - fetchedAt < FRESH_MS) return Promise.resolve()
   inflight = (async () => {
-    const { data, error } = await supabase.from('users').select('*, roles(name)').eq('id', id).single()
+    const { data, error } = await supabase.from('users').select('*, roles(name, key)').eq('id', id).single()
     if (id !== userId) return
     fetchedAt = Date.now()
     if (error || !data) {
@@ -71,8 +71,8 @@ function load(force = false): Promise<void> {
       set({ profile: state.profile, loading: false, error: state.profile ? null : (error?.message ?? 'Profile not found') })
       return
     }
-    const { roles, ...row } = data as typeof data & { roles: { name: string } | null }
-    const profile = { ...(row as Tables<'users'>), role_name: roles?.name ?? null }
+    const { roles, ...row } = data as typeof data & { roles: { name: string; key: string } | null }
+    const profile = { ...(row as Tables<'users'>), role_name: roles?.name ?? null, role_key: roles?.key ?? null }
     writeCache(id, profile)
     set({ profile, loading: false, error: null })
   })().finally(() => {

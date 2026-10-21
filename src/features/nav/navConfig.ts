@@ -43,6 +43,8 @@ export interface NavContext {
   scope: (module: string, action: Action) => Scope | null
   /** On flexible (travel) days off -- shows "My days off". */
   flexible?: boolean
+  /** The person's role (roles.key); a few roles have their own tab bar (ROLE_TABS). */
+  roleKey?: string | null
 }
 
 /** First match wins: Admin → HR → Manager → Field → Office. */
@@ -67,9 +69,11 @@ type Need = (ctx: NavContext) => boolean
 const can = (module: string, action: Action = 'view'): Need => (ctx) => ctx.isSuperAdmin || ctx.scope(module, action) !== null
 const admin: Need = (ctx) => ctx.isSuperAdmin
 const hrOrAdmin: Need = (ctx) => ctx.isSuperAdmin || ctx.scope('leave_balance', 'edit') === 'any'
+/** Can see other people's attendance (Team or All scope), or is HR/admin: the attendance page has someone to show. */
+const seesOthersAttendance: Need = (ctx) => hrOrAdmin(ctx) || ['sub', 'any'].includes(ctx.scope('attendance', 'view') ?? '') || ctx.scope('team_map', 'view') !== null
 const seesOthersLeave: Need = (ctx) => ctx.isSuperAdmin || ['sub', 'any'].includes(ctx.scope('leave', 'view') ?? '') || ['sub', 'any'].includes(ctx.scope('leave_balance', 'view') ?? '')
 
-export type TabKey = 'today' | 'calendar' | 'customers' | 'briefing' | 'checkin' | 'leave' | 'messages' | 'team' | 'approvals' | 'people' | 'admin' | 'hub'
+export type TabKey = 'today' | 'attendance' | 'calendar' | 'customers' | 'briefing' | 'checkin' | 'leave' | 'messages' | 'team' | 'approvals' | 'people' | 'admin' | 'hub'
 
 export interface TabDef {
   key: TabKey
@@ -86,6 +90,7 @@ export const TAB: Record<TabKey, TabDef> = {
   briefing: { key: 'briefing', to: '/team/customers', labelKey: 'nav.briefing', icon: Table2, needs: can('customer_briefing') },
   checkin: { key: 'checkin', to: '/check-in', labelKey: 'nav.checkIn', icon: MapPin },
   leave: { key: 'leave', to: '/leave', labelKey: 'nav.leave', icon: CalendarDays },
+  attendance: { key: 'attendance', to: '/attendance', labelKey: 'nav.attendanceAll', icon: CalendarCheck, needs: seesOthersAttendance },
   messages: { key: 'messages', to: '/messages', labelKey: 'nav.messages', icon: MessagesSquare },
   team: { key: 'team', to: '/team', labelKey: 'nav.team', icon: UsersIcon },
   approvals: { key: 'approvals', to: '/approvals', labelKey: 'nav.approvals', icon: CheckSquare, needs: canApprove },
@@ -102,14 +107,27 @@ const GROUP_TABS: Record<RoleGroup, TabKey[]> = {
   admin: ['team', 'customers', 'checkin', 'admin', 'hub'],
 }
 
+/**
+ * Roles with their own tab bar, whatever their permissions would otherwise put them in.
+ * Admins (and the Admin group) keep theirs. The first tab is where they land.
+ */
+export const ROLE_TABS: Record<string, TabKey[]> = {
+  sale_admin: ['today', 'messages', 'checkin', 'attendance', 'hub'],
+  accounting: ['today', 'messages', 'checkin', 'attendance', 'hub'],
+  warehouse: ['today', 'messages', 'checkin', 'leave', 'hub'],
+}
+
+const roleTabs = (group: RoleGroup, ctx: NavContext): TabKey[] | undefined =>
+  group === 'admin' || ctx.isSuperAdmin || !ctx.roleKey ? undefined : ROLE_TABS[ctx.roleKey]
+
 /** The phone tab bar (and the top of the desktop sidebar) for a group, minus tabs the person can't use. */
 export function tabsFor(group: RoleGroup, ctx: NavContext): TabDef[] {
-  return GROUP_TABS[group].map((k) => TAB[k]).filter((t) => !t.needs || t.needs(ctx))
+  return (roleTabs(group, ctx) ?? GROUP_TABS[group]).map((k) => TAB[k]).filter((t) => !t.needs || t.needs(ctx))
 }
 
 /** Where a group lands after sign-in: the Check In tab for salespeople (their main tab), else the first tab. */
 export function homeFor(group: RoleGroup, ctx: NavContext): string {
-  if (group === 'field') return '/check-in'
+  if (group === 'field' && !roleTabs(group, ctx)) return '/check-in'
   return tabsFor(group, ctx)[0]?.to ?? '/check-in'
 }
 
@@ -142,7 +160,7 @@ export const ROW: Record<RowKey, RowDef> = {
   daysoff: { key: 'daysoff', label: 'My days off', sub: 'Flexible allowance this cycle', to: '/leave/days-off', icon: CalendarRange, tone: 'bg-status-visiting', needs: (ctx) => !!ctx.flexible },
   team: { key: 'team', label: 'Team map', sub: 'Status, map, routes and customers', to: '/fleet', icon: UsersIcon, tone: 'bg-brand-500', needs: can('team_map') },
   attendance: { key: 'attendance', label: 'Team attendance', sub: 'Daily, weekly and by cycle', to: '/fleet?tab=attendance', icon: CalendarCheck, tone: 'bg-status-working', needs: can('team_map') },
-  attendanceAll: { key: 'attendanceAll', label: 'All attendance', sub: 'Week by week: late, leave and absent', to: '/attendance', icon: CalendarCheck, tone: 'bg-status-working', needs: (ctx) => can('team_map')(ctx) || hrOrAdmin(ctx) },
+  attendanceAll: { key: 'attendanceAll', label: 'All attendance', sub: 'Week by week: late, leave and absent', to: '/attendance', icon: CalendarCheck, tone: 'bg-status-working', needs: seesOthersAttendance },
   reports: { key: 'reports', label: 'Team reports', sub: 'Visits, orders, effectiveness', to: '/fleet?tab=reports', icon: BarChart3, tone: 'bg-status-visiting', needs: can('team_map') },
   logs: { key: 'logs', label: 'Activity logs', sub: 'What happened, by person', to: '/fleet?tab=logs', icon: History, tone: 'bg-neutral-600', needs: can('team_map') },
   briefing: { key: 'briefing', label: 'Customer briefing', sub: 'Customers by province, last visit and who', to: '/team/customers', icon: Table2, tone: 'bg-status-visiting', needs: can('customer_briefing') },

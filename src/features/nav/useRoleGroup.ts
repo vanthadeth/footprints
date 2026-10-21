@@ -8,7 +8,7 @@ export function useRoleGroup(flexible = false): { group: RoleGroup; ctx: NavCont
   const { profile } = useProfile()
   const { scope, ready } = usePermissions()
   return useMemo(() => {
-    const ctx: NavContext = { isSuperAdmin: profile?.is_super_admin === true, scope, flexible }
+    const ctx: NavContext = { isSuperAdmin: profile?.is_super_admin === true, scope, flexible, roleKey: profile?.role_key ?? null }
     return { group: roleGroup(ctx), ctx, ready: ready && !!profile }
   }, [profile, scope, ready, flexible])
 }

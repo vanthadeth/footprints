@@ -3,9 +3,9 @@ import { adminRows, canApprove, fnForPath, forYou, homeFor, hubFunctions, hubSea
 import type { Scope } from '@/features/permissions/catalog'
 
 /** A context from "module.action=scope" strings, like the role_permissions rows. */
-function ctx(perms: string[], isSuperAdmin = false, flexible = false): NavContext {
+function ctx(perms: string[], isSuperAdmin = false, flexible = false, roleKey: string | null = null): NavContext {
   const map = new Map(perms.map((p) => p.split('=') as [string, Scope]))
-  return { isSuperAdmin, flexible, scope: (m, a) => map.get(`${m}.${a}`) ?? null }
+  return { isSuperAdmin, flexible, roleKey, scope: (m, a) => map.get(`${m}.${a}`) ?? null }
 }
 
 const SALES = ['plan.view=own', 'footprints.view=own', 'visit.add=own', 'customer.view=any', 'customer_conversation.view=any', 'leave.view=own', 'leave.edit=own']
@@ -92,5 +92,47 @@ describe('canApprove', () => {
   it('lets the accountant into Approvals to transfer trip allowances', () => {
     expect(canApprove(ctx(ACCOUNTING))).toBe(true)
     expect(canApprove(ctx(SALES))).toBe(false)
+  })
+})
+
+describe('role tab bars', () => {
+  const keys = (group: Parameters<typeof tabsFor>[0], c: NavContext) => tabsFor(group, c).map((t) => t.key)
+  // What the live roles hold: Sale Admin sees everyone's attendance, Accounting also edits leave for the team.
+  const SALE_ADMIN = ['attendance.view=any', 'customer_briefing.view=any', 'leave.view=own', 'leave.edit=own']
+  const ACCOUNTING_LIVE = ['attendance.view=any', 'customer_briefing.view=any', 'leave.view=sub', 'leave.edit=sub']
+  const WAREHOUSE_LIVE = ['plan.view=own', 'footprints.view=own', 'visit.add=own', 'leave.view=own', 'leave.edit=own']
+
+  it('gives Sale Admin and Accounting Today, Messages, Check In, Attendance and Hub, landing on Today', () => {
+    const sa = ctx(SALE_ADMIN, false, false, 'sale_admin')
+    const ac = ctx(ACCOUNTING_LIVE, false, false, 'accounting')
+    expect(keys(roleGroup(sa), sa)).toEqual(['today', 'messages', 'checkin', 'attendance', 'hub'])
+    expect(keys(roleGroup(ac), ac)).toEqual(['today', 'messages', 'checkin', 'attendance', 'hub'])
+    expect(homeFor(roleGroup(sa), sa)).toBe('/today')
+    expect(homeFor(roleGroup(ac), ac)).toBe('/today')
+  })
+
+  it('gives Warehouse & Logistics Today, Messages, Check In, Leave and Hub, landing on Today', () => {
+    const wh = ctx(WAREHOUSE_LIVE, false, false, 'warehouse')
+    expect(roleGroup(wh)).toBe('field')
+    expect(keys('field', wh)).toEqual(['today', 'messages', 'checkin', 'leave', 'hub'])
+    expect(homeFor('field', wh)).toBe('/today')
+  })
+
+  it('drops Attendance when the person cannot see anyone else', () => {
+    const c = ctx(['leave.view=own'], false, false, 'sale_admin')
+    expect(keys('office', c)).toEqual(['today', 'messages', 'checkin', 'hub'])
+  })
+
+  it('leaves other roles, admins and a super admin on their permission-based bar', () => {
+    expect(keys('field', ctx(SALES, false, false, 'sales'))).toEqual(['calendar', 'messages', 'checkin', 'hub'])
+    expect(homeFor('field', ctx(SALES, false, false, 'sales'))).toBe('/check-in')
+    expect(keys('admin', ctx([], true, false, 'warehouse'))).toEqual(['team', 'customers', 'checkin', 'admin', 'hub'])
+  })
+
+  it('moves the screens that left the bar into the Hub', () => {
+    const ac = ctx(ACCOUNTING_LIVE, false, false, 'accounting')
+    const rows = hubFunctions('manager', ac).flatMap((f) => f.rows.map((r) => r.key))
+    expect(rows).toContain('approvals')
+    expect(rows).not.toContain('attendanceAll')
   })
 })
