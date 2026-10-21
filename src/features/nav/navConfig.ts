@@ -185,7 +185,13 @@ const FOR_YOU: Record<RoleGroup, RowKey[]> = {
   manager: ['attendance', 'briefing', 'flexteam', 'reports', 'trips', 'logs'],
   hr: ['allowances', 'holidays', 'flexteam', 'attendanceAll', 'users', 'leave'],
   office: ['calendar', 'customers', 'team', 'leave', 'messages', 'journey'],
-  admin: ['users', 'permissions', 'hours', 'notifications', 'locations', 'sheetsync'],
+  admin: ['users', 'permissions', 'attendanceAll', 'hours', 'notifications', 'locations', 'sheetsync'],
+}
+
+/** Shortcuts a role gets first in "For you", on top of its group's (see ROLE_TABS for the roles with their own bar). */
+const FOR_YOU_ROLE: Record<string, RowKey[]> = {
+  sale_admin: ['attendanceAll'],
+  accounting: ['attendanceAll'],
 }
 
 const allowed = (ctx: NavContext) => (r: RowDef) => !r.needs || r.needs(ctx)
@@ -277,7 +283,8 @@ export const ADMIN_ROWS: RowKey[] = ['users', 'permissions', 'hours', 'adminatt'
 
 /** Hub "For you": up to four shortcuts for the group. */
 export function forYou(group: RoleGroup, ctx: NavContext): RowDef[] {
-  const rows = FOR_YOU[group].map((k) => ROW[k]).filter(allowed(ctx))
+  const first = (!ctx.isSuperAdmin && ctx.roleKey && FOR_YOU_ROLE[ctx.roleKey]) || []
+  const rows = [...new Set([...first, ...FOR_YOU[group]])].map((k) => ROW[k]).filter(allowed(ctx))
   // Full rows of three tiles, as on the canvas: top up a short row with the
   // person's next screens from the Hub, or drop the stragglers if there are none.
   const extra = hubFunctions(group, ctx)

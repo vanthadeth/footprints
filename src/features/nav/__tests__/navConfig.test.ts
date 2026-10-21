@@ -82,7 +82,7 @@ describe('hub', () => {
     const hr = forYou('hr', ctx(HR)).map((r) => r.key)
     expect(hr.slice(0, 4)).toEqual(['allowances', 'holidays', 'flexteam', 'attendanceAll'])
     expect(hr.length % 3).toBe(0)
-    expect(forYou('admin', ctx([], true)).map((r) => r.key)).toEqual(['users', 'permissions', 'hours', 'notifications', 'locations', 'sheetsync'])
+    expect(forYou('admin', ctx([], true)).map((r) => r.key).slice(0, 7)).toEqual(['users', 'permissions', 'attendanceAll', 'hours', 'notifications', 'locations', 'sheetsync'])
     expect(adminRows(ctx([], true))).toHaveLength(10)
     expect(adminRows(ctx(MANAGER))).toHaveLength(0)
   })
@@ -127,6 +127,16 @@ describe('role tab bars', () => {
     expect(keys('field', ctx(SALES, false, false, 'sales'))).toEqual(['calendar', 'messages', 'checkin', 'hub'])
     expect(homeFor('field', ctx(SALES, false, false, 'sales'))).toBe('/check-in')
     expect(keys('admin', ctx([], true, false, 'warehouse'))).toEqual(['team', 'customers', 'checkin', 'admin', 'hub'])
+  })
+
+  it('puts the attendance link in For you for Sale Admin, Accounting and a super admin', () => {
+    const sa = ctx(SALE_ADMIN, false, false, 'sale_admin')
+    const ac = ctx(ACCOUNTING_LIVE, false, false, 'accounting')
+    expect(forYou(roleGroup(sa), sa)[0].key).toBe('attendanceAll')
+    expect(forYou(roleGroup(ac), ac)[0].key).toBe('attendanceAll')
+    expect(forYou('admin', ctx([], true)).map((r) => r.key)).toContain('attendanceAll')
+    // someone else in the same group doesn't get it
+    expect(forYou('office', ctx(['leave.view=own'], false, false, 'sales')).map((r) => r.key)).not.toContain('attendanceAll')
   })
 
   it('moves the screens that left the bar into the Hub', () => {
