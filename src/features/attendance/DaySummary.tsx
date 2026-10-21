@@ -4,6 +4,7 @@ import { InfoSheet } from '@/components/InfoSheet'
 import type { JourneyStats } from '@/features/attendance/journeyStats'
 import { BAND_LABEL, BAND_STYLE, formatScore, type ScoreBand } from '@/features/attendance/effectivenessScore'
 import type { FirstVisit, FlagRules } from '@/features/attendance/flagRules'
+import { formatDistance } from '@/lib/geo'
 import { INEFFECTIVE_VISIT_WEIGHT, ORDER_RECONCILE_DAYS, SCORE_GOAL_ACTIVE, SCORE_GOAL_ORDERS, SCORE_GOAL_VISITS } from '@/lib/config'
 import { formatDuration, formatTime } from '@/lib/datetime'
 
@@ -204,7 +205,7 @@ export function DaySummary({
             <Contributor
               label="Active time"
               share={day ? day.hoursShare : null}
-              figure={`${fmt(day?.activeMs ?? 0)} of ${fmt((day?.workingMs ?? 0) - (day?.travelDeductionMs ?? 0))}`}
+              figure={`${fmt(day?.activeMs ?? 0)} of ${fmt((day?.workingMs ?? 0) - (day?.travelDeductionMs ?? 0))}${day ? ` · ${formatDistance(day.travelMeters)} travelled` : ''}`}
               detail={day ? `${pct(day.activeRatio)} · goal ${pct(SCORE_GOAL_ACTIVE)}${day.travelDeductionMs > 0 ? ` · ${fmt(day.travelDeductionMs)} long travel taken off` : ''}` : ''}
             />
             <Contributor
