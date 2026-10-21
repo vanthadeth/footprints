@@ -40,6 +40,7 @@ const TranslationsPage = lazyPage(() => import('@/pages/TranslationsPage').then(
 const PermissionsPage = lazyPage(() => import('@/pages/PermissionsPage').then((m) => ({ default: m.PermissionsPage })))
 const TodayPage = lazyPage(() => import('@/pages/TodayPage').then((m) => ({ default: m.TodayPage })))
 const TeamHomePage = lazyPage(() => import('@/pages/TeamHomePage').then((m) => ({ default: m.TeamHomePage })))
+const AttendanceOverviewPage = lazyPage(() => import('@/pages/AttendanceOverviewPage').then((m) => ({ default: m.AttendanceOverviewPage })))
 const PeoplePage = lazyPage(() => import('@/pages/PeoplePage').then((m) => ({ default: m.PeoplePage })))
 const TripsPage = lazyPage(() => import('@/pages/TripsPage').then((m) => ({ default: m.TripsPage })))
 const TripRequestPage = lazyPage(() => import('@/pages/TripRequestPage').then((m) => ({ default: m.TripRequestPage })))
@@ -132,6 +133,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageFallback />}>
             <TeamHomePage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/attendance',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <AttendanceOverviewPage />
           </Suspense>
         ),
       },
