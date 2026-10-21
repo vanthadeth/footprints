@@ -1,8 +1,8 @@
-import { INEFFECTIVE_VISIT_WEIGHT, LATE_FIRST_VISIT_SCORE_FACTOR, NEAR_FIRST_VISIT_KM, SCORE_GOAL_ACTIVE, SCORE_GOAL_ORDERS, SCORE_GOAL_VISITS, TRAVEL_KM_PER_ACTIVE_HOUR } from '@/lib/config'
+import { INEFFECTIVE_VISIT_WEIGHT, LATE_FIRST_VISIT_SCORE_FACTOR, SCORE_GOAL_ACTIVE, SCORE_GOAL_ORDERS, SCORE_GOAL_VISITS } from '@/lib/config'
 import { countsAsOrdered, type OrderState } from '@/features/orders/orderReconcile'
 import { distanceInMeters } from '@/lib/geo'
 import { creditedVisitMs, dayEffectiveness, scaledDailyTarget, type BreakRule } from './efficiency'
-import type { FlagRules } from './flagRules'
+import { firstVisitDeadlineMs, type FlagRules, type TravelRule } from './flagRules'
 
 /**
  * The effectiveness score, 0 to 10, for one person-day: the average of three
@@ -10,12 +10,15 @@ import type { FlagRules } from './flagRules'
  *
  * - Visits: effective visits (completed and long enough to count) plus a quarter
  *   of the ineffective ones, over the day's visit target. Goal: 100% of target.
- * - Active hours: active time over working time in the person's hours, where every
- *   full 50 km travelled adds an hour to active time. Goal: 50% of working time.
+ * - Active hours: active time over working time in the person's hours. On a day that
+ *   travels more than 25 km with a visit outside the home city, every full 10 km takes
+ *   10 minutes off the working time (the travel isn't held against the person).
+ *   Goal: 50% of working time.
  * - Orders: visits that ordered over all visits. Goal: 25% of visits.
  *
- * A first visit after the deadline that is within 10 km of where the person
- * clocked in, so distance doesn't explain it, takes 10% off the score.
+ * A late first visit takes 10% off the score. The deadline is 30 minutes later when
+ * the first stop is more than 10 km from where the person clocked in. (All the
+ * numbers are settings; see FlagRules.)
  */
 
 export type ScoreBand = 'poor' | 'average' | 'good' | 'excellent'
@@ -49,7 +52,6 @@ export function formatScore(score: number | null | undefined): string {
 }
 
 const round1 = (n: number) => Math.round(n * 10) / 10
-const HOUR_MS = 3_600_000
 
 export interface ScoreInputs {
   effectiveVisits: number
@@ -60,12 +62,14 @@ export interface ScoreInputs {
   totalVisits: number
   /** Time in counted visits. */
   activeMs: number
-  /** Whole kilometres travelled in the day, for the active-time bonus. */
+  /** Metres travelled in the day. */
   travelMeters: number
+  /** Time taken off working time for long travel outside the home city (travelDeductionMs). */
+  travelDeductionMs: number
   /** Paid time inside the person's hours. */
   workingMs: number
-  /** The first visit was after the deadline and within reach of where the person clocked in. */
-  lateNearFirstVisit: boolean
+  /** The first visit was after the deadline (moved out when it was far from the clock-in point). */
+  lateFirstVisit: boolean
 }
 
 export interface DayScore {
@@ -85,8 +89,8 @@ export interface DayScore {
   ineffectiveVisits: number
   visitTarget: number
   activeMs: number
-  /** Hours added to active time for distance travelled. */
-  travelBonusMs: number
+  /** Time taken off working time for long travel outside the home city. */
+  travelDeductionMs: number
   travelMeters: number
   workingMs: number
   /** The late-first-visit deduction applied. */
@@ -95,14 +99,15 @@ export interface DayScore {
 
 export function computeScore(i: ScoreInputs): DayScore {
   const visitRatio = i.visitTarget > 0 ? (i.effectiveVisits + INEFFECTIVE_VISIT_WEIGHT * i.ineffectiveVisits) / i.visitTarget : 0
-  const travelBonusMs = Math.floor(i.travelMeters / 1000 / TRAVEL_KM_PER_ACTIVE_HOUR) * HOUR_MS
-  const activeRatio = i.workingMs > 0 ? (i.activeMs + travelBonusMs) / i.workingMs : 0
+  const travelDeductionMs = Math.min(i.workingMs, i.travelDeductionMs)
+  const workingAfterTravel = i.workingMs - travelDeductionMs
+  const activeRatio = workingAfterTravel > 0 ? i.activeMs / workingAfterTravel : i.activeMs > 0 ? 1 : 0
   const orderRatio = i.totalVisits > 0 ? i.orderedVisits / i.totalVisits : 0
   const visitShare = Math.min(1, visitRatio / SCORE_GOAL_VISITS)
   const hoursShare = Math.min(1, activeRatio / SCORE_GOAL_ACTIVE)
   const orderShare = Math.min(1, orderRatio / SCORE_GOAL_ORDERS)
   let raw = ((visitShare + hoursShare + orderShare) / 3) * 10
-  if (i.lateNearFirstVisit) raw *= LATE_FIRST_VISIT_SCORE_FACTOR
+  if (i.lateFirstVisit) raw *= LATE_FIRST_VISIT_SCORE_FACTOR
   const score = i.workingMs > 0 ? round1(Math.min(10, raw)) : null
   return {
     score,
@@ -118,10 +123,10 @@ export function computeScore(i: ScoreInputs): DayScore {
     ineffectiveVisits: i.ineffectiveVisits,
     visitTarget: i.visitTarget,
     activeMs: i.activeMs,
-    travelBonusMs,
+    travelDeductionMs,
     travelMeters: i.travelMeters,
     workingMs: i.workingMs,
-    lateDeduction: i.lateNearFirstVisit && score != null,
+    lateDeduction: i.lateFirstVisit && score != null,
   }
 }
 
@@ -166,17 +171,37 @@ export function travelMeters(sessions: SessionLike[], visits: VisitLike[]): numb
 }
 
 /**
- * Was the day's first visit after the deadline even though it was close to where
- * the person clocked in? Unknown positions never count against anyone.
+ * Metres from where the person clocked in to the day's first visit; null when either
+ * position is unknown.
  */
-export function lateNearFirstVisit(sessions: SessionLike[], visits: VisitLike[], day: string, deadline: string): boolean {
+export function firstVisitDistanceM(sessions: SessionLike[], visits: VisitLike[]): number | null {
   const first = [...visits].filter((v) => !v.cancelled_at).sort((a, b) => a.checked_in_at.localeCompare(b.checked_in_at))[0]
   const clockIn = [...sessions].sort((a, b) => a.clock_in_at.localeCompare(b.clock_in_at))[0]
-  if (!first || !clockIn) return false
-  const deadlineMs = new Date(`${day}T${deadline.slice(0, 5)}:00+07:00`).getTime()
-  if (new Date(first.checked_in_at).getTime() <= deadlineMs) return false
-  if (clockIn.clock_in_latitude == null || clockIn.clock_in_longitude == null || first.in_latitude == null || first.in_longitude == null) return false
-  return distanceInMeters(clockIn.clock_in_latitude, clockIn.clock_in_longitude, first.in_latitude, first.in_longitude) < NEAR_FIRST_VISIT_KM * 1000
+  if (!first || !clockIn || clockIn.clock_in_latitude == null || clockIn.clock_in_longitude == null || first.in_latitude == null || first.in_longitude == null) return null
+  return distanceInMeters(clockIn.clock_in_latitude, clockIn.clock_in_longitude, first.in_latitude, first.in_longitude)
+}
+
+/**
+ * Was the day's first visit after the deadline? The deadline moves out when the first
+ * stop is more than the far distance from where the person clocked in. An unknown
+ * position keeps the plain deadline.
+ */
+export function lateFirstVisit(sessions: SessionLike[], visits: VisitLike[], day: string, rules: Pick<FlagRules, 'firstVisitDeadline' | 'firstVisitFar'>): boolean {
+  const first = [...visits].filter((v) => !v.cancelled_at).sort((a, b) => a.checked_in_at.localeCompare(b.checked_in_at))[0]
+  if (!first) return false
+  return new Date(first.checked_in_at).getTime() > firstVisitDeadlineMs(day, rules.firstVisitDeadline, rules.firstVisitFar, firstVisitDistanceM(sessions, visits))
+}
+
+/**
+ * Time off the working hours for long travel: on a day travelling more than `minKm`
+ * with a visit outside the home city, every full `stepKm` takes `minutes`.
+ */
+export function travelDeductionMs(meters: number, visits: VisitLike[], rule: TravelRule | undefined): number {
+  if (!rule?.enabled || rule.minutes <= 0 || meters / 1000 <= rule.minKm) return 0
+  const outside = visits.some(
+    (v) => !v.cancelled_at && v.in_latitude != null && v.in_longitude != null && distanceInMeters(rule.homeLat, rule.homeLng, v.in_latitude, v.in_longitude) > rule.homeRadiusKm * 1000
+  )
+  return outside ? Math.floor(meters / 1000 / rule.stepKm) * rule.minutes * 60_000 : 0
 }
 
 /**
@@ -202,6 +227,7 @@ export function scoreDay(
     if (creditedVisitMs(v, now, rules) > 0) effective += 1
     else ineffective += 1
   }
+  const meters = travelMeters(sessions, live)
   return computeScore({
     effectiveVisits: effective,
     ineffectiveVisits: ineffective,
@@ -209,8 +235,9 @@ export function scoreDay(
     orderedVisits: live.filter((v) => countsAsOrdered(orders ? (v.id ? orders[v.id] : undefined) : (v.order_amount_usd ?? 0) > 0 ? 'pending' : 'none')).length,
     totalVisits: live.length,
     activeMs: eff.creditedMs,
-    travelMeters: travelMeters(sessions, live),
+    travelMeters: meters,
+    travelDeductionMs: travelDeductionMs(meters, live, rules.travel),
     workingMs: eff.scheduledPaidMs,
-    lateNearFirstVisit: lateNearFirstVisit(sessions, live, day, rules.firstVisitDeadline),
+    lateFirstVisit: lateFirstVisit(sessions, live, day, rules),
   })
 }

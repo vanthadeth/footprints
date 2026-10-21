@@ -4,12 +4,15 @@ import {
   DEFAULT_DAILY_VISIT_TARGET,
   DEFAULT_FIRST_VISIT_DEADLINE,
   DEFAULT_FORGOTTEN_VISIT_CAP_MINUTES,
+  DEFAULT_FIRST_VISIT_FAR,
   DEFAULT_FULL_DAY_HOURS,
+  DEFAULT_IDLE_FAR,
   DEFAULT_IDLE_ALERT_THRESHOLD_MINUTES,
   DEFAULT_LUNCH_IDLE_THRESHOLD_MINUTES,
   DEFAULT_LUNCH_WINDOW_END,
   DEFAULT_LUNCH_WINDOW_START,
   DEFAULT_SHORT_VISIT_THRESHOLD_MINUTES,
+  DEFAULT_TRAVEL_DEDUCTION,
   DEFAULT_VISIT_CREDIT_CAP_MINUTES,
 } from '@/lib/config'
 import { localDateKey } from '@/lib/dateRange'
@@ -23,11 +26,39 @@ import { localDateKey } from '@/lib/dateRange'
  */
 
 /** How long a gap must be to be flagged idle, and the lunch window that makes it longer. Times are "HH:MM[:SS]" Asia/Phnom_Penh. */
+export interface IdleFarRule {
+  enabled: boolean
+  km: number
+  stepKm: number
+  minPerStep: number
+  windowMin: number
+}
+
 export interface IdleRule {
   idleMin: number
   lunchStart: string
   lunchEnd: string
   lunchMin: number
+  /** A gap that travelled further than `farKm` uses `farWindowMin` + `farMinPerStep` per full `farStepKm` (never below idleMin). */
+  far: IdleFarRule
+}
+
+/** The first-visit deadline moves out by `extraMin` when the first stop is further than `km` from the clock-in point. */
+export interface FirstVisitFarRule {
+  enabled: boolean
+  km: number
+  extraMin: number
+}
+
+/** On a day with travel over `minKm` and a visit outside the home city, every full `stepKm` takes `minutes` off paid time. */
+export interface TravelRule {
+  enabled: boolean
+  minKm: number
+  stepKm: number
+  minutes: number
+  homeLat: number
+  homeLng: number
+  homeRadiusKm: number
 }
 
 export interface FlagRules {
@@ -36,6 +67,8 @@ export interface FlagRules {
   forgottenCapMin: number
   /** A first customer visit of the day after this time is flagged. */
   firstVisitDeadline: string
+  firstVisitFar: FirstVisitFarRule
+  travel: TravelRule
   /** A completed visit shorter than this counts nothing toward effectiveness. */
   shortVisitMin: number
   /** A visit counts toward effectiveness for at most this many minutes. */
@@ -52,9 +85,26 @@ export const DEFAULT_FLAG_RULES: FlagRules = {
     lunchStart: DEFAULT_LUNCH_WINDOW_START,
     lunchEnd: DEFAULT_LUNCH_WINDOW_END,
     lunchMin: DEFAULT_LUNCH_IDLE_THRESHOLD_MINUTES,
+    far: {
+      enabled: DEFAULT_IDLE_FAR.enabled,
+      km: DEFAULT_IDLE_FAR.km,
+      stepKm: DEFAULT_IDLE_FAR.stepKm,
+      minPerStep: DEFAULT_IDLE_FAR.minutesPerStep,
+      windowMin: DEFAULT_IDLE_FAR.windowMinutes,
+    },
   },
   forgottenCapMin: DEFAULT_FORGOTTEN_VISIT_CAP_MINUTES,
   firstVisitDeadline: DEFAULT_FIRST_VISIT_DEADLINE,
+  firstVisitFar: { enabled: DEFAULT_FIRST_VISIT_FAR.enabled, km: DEFAULT_FIRST_VISIT_FAR.km, extraMin: DEFAULT_FIRST_VISIT_FAR.extraMinutes },
+  travel: {
+    enabled: DEFAULT_TRAVEL_DEDUCTION.enabled,
+    minKm: DEFAULT_TRAVEL_DEDUCTION.minKm,
+    stepKm: DEFAULT_TRAVEL_DEDUCTION.stepKm,
+    minutes: DEFAULT_TRAVEL_DEDUCTION.minutes,
+    homeLat: DEFAULT_TRAVEL_DEDUCTION.homeLat,
+    homeLng: DEFAULT_TRAVEL_DEDUCTION.homeLng,
+    homeRadiusKm: DEFAULT_TRAVEL_DEDUCTION.homeRadiusKm,
+  },
   shortVisitMin: DEFAULT_SHORT_VISIT_THRESHOLD_MINUTES,
   visitCreditCapMin: DEFAULT_VISIT_CREDIT_CAP_MINUTES,
   visitTarget: DEFAULT_DAILY_VISIT_TARGET,
@@ -74,19 +124,23 @@ function localMinutes(ms: number): number {
 }
 
 /**
- * Minutes a gap from `fromMs` to `toMs` must exceed to be flagged: the lunch
- * threshold when it overlaps the lunch window on the same local day (possible
- * lunch), else the idle threshold. Mirrors app.idle_threshold_minutes.
+ * Minutes a gap from `fromMs` to `toMs` must exceed to be flagged. `distanceM` is how far
+ * the person travelled across the gap (previous check-out to the next check-in): past
+ * the far distance the limit is the window plus minutes per full step, never below the
+ * normal limit. The lunch limit applies on top when the gap overlaps the lunch window
+ * on the same local day (possible lunch) and is longer. Mirrors app.idle_threshold_minutes.
  */
-export function gapThresholdMin(fromMs: number, toMs: number, rule: IdleRule): number {
+export function gapThresholdMin(fromMs: number, toMs: number, rule: IdleRule, distanceM = 0): number {
   const sameDay = localDateKey(new Date(fromMs).toISOString()) === localDateKey(new Date(toMs).toISOString())
   const overlapsLunch = sameDay && localMinutes(fromMs) < minutesOf(rule.lunchEnd) && localMinutes(toMs) > minutesOf(rule.lunchStart)
-  return overlapsLunch ? Math.max(rule.idleMin, rule.lunchMin) : rule.idleMin
+  const f = rule.far
+  const travelMin = f?.enabled && distanceM > f.km * 1000 ? Math.max(rule.idleMin, f.windowMin + f.minPerStep * Math.floor(distanceM / 1000 / f.stepKm)) : rule.idleMin
+  return overlapsLunch ? Math.max(travelMin, rule.lunchMin) : travelMin
 }
 
 /** Is this gap, between two visits or after the last check-out, long enough to be flagged? */
-export function isFlaggedGap(fromMs: number, toMs: number, rule: IdleRule): boolean {
-  return toMs > fromMs && (toMs - fromMs) / 60_000 > gapThresholdMin(fromMs, toMs, rule)
+export function isFlaggedGap(fromMs: number, toMs: number, rule: IdleRule, distanceM = 0): boolean {
+  return toMs > fromMs && (toMs - fromMs) / 60_000 > gapThresholdMin(fromMs, toMs, rule, distanceM)
 }
 
 /** Visits closed because nobody checked out (at clock-out or the end of the day). */
@@ -118,15 +172,31 @@ export type FirstVisit =
   /** Nothing to judge yet (not clocked in, or the deadline hasn't passed). */
   | { kind: 'pending' }
 
+/** The first-visit deadline in ms for a day, moved out when the first stop was far from the clock-in point. */
+export function firstVisitDeadlineMs(date: string, deadline: string, far: FirstVisitFarRule | undefined, fromClockInM: number | null): number {
+  const base = new Date(`${date}T${deadline.slice(0, 5)}:00+07:00`).getTime()
+  return far?.enabled && fromClockInM != null && fromClockInM > far.km * 1000 ? base + far.extraMin * 60_000 : base
+}
+
 /**
  * The day's first-visit rule: the first customer check-in after the deadline is
- * flagged; so is being clocked in past the deadline with no visit yet.
- * `date` is the local day ("YYYY-MM-DD") being judged; `now` decides whether its deadline has passed.
+ * flagged; so is being clocked in past the deadline with no visit yet. `fromClockInM`
+ * is the distance from where the person clocked in to that first visit: past the far
+ * distance the deadline moves out. `date` is the local day ("YYYY-MM-DD") being
+ * judged; `now` decides whether its deadline has passed.
  */
-export function firstVisitStatus(visits: { checked_in_at: string; cancelled_at?: string | null }[], clockedIn: boolean, date: string, deadline: string, now: number): FirstVisit {
-  const deadlineMs = new Date(`${date}T${deadline.slice(0, 5)}:00+07:00`).getTime()
+export function firstVisitStatus(
+  visits: { checked_in_at: string; cancelled_at?: string | null }[],
+  clockedIn: boolean,
+  date: string,
+  deadline: string,
+  now: number,
+  far?: FirstVisitFarRule,
+  fromClockInM: number | null = null
+): FirstVisit {
   const first = visits.filter((v) => !v.cancelled_at).map((v) => new Date(v.checked_in_at).getTime()).sort((a, b) => a - b)[0]
-  if (first !== undefined) return first > deadlineMs ? { kind: 'late', at: first } : { kind: 'ok' }
+  if (first !== undefined) return first > firstVisitDeadlineMs(date, deadline, far, fromClockInM) ? { kind: 'late', at: first } : { kind: 'ok' }
+  const deadlineMs = firstVisitDeadlineMs(date, deadline, far, null)
   return clockedIn && now > deadlineMs ? { kind: 'none' } : { kind: 'pending' }
 }
 
@@ -137,6 +207,9 @@ export interface FlagRuleSettings {
   lunchIdleThresholdMinutes: number
   forgottenVisitCapMinutes: number
   firstVisitDeadline: string
+  firstVisitFar: FirstVisitFarRule
+  travel: TravelRule
+  idleFar: IdleFarRule
   shortVisitThresholdMinutes: number
   visitCreditCapMinutes: number
   dailyVisitTarget: number
@@ -147,9 +220,11 @@ export interface FlagRuleSettings {
 /** The rules from the live settings (useAppSettings). */
 export function flagRulesOf(s: FlagRuleSettings): FlagRules {
   return {
-    idle: { idleMin: s.idleAlertThresholdMinutes, lunchStart: s.lunchWindowStart, lunchEnd: s.lunchWindowEnd, lunchMin: s.lunchIdleThresholdMinutes },
+    idle: { idleMin: s.idleAlertThresholdMinutes, lunchStart: s.lunchWindowStart, lunchEnd: s.lunchWindowEnd, lunchMin: s.lunchIdleThresholdMinutes, far: s.idleFar },
     forgottenCapMin: s.forgottenVisitCapMinutes,
     firstVisitDeadline: s.firstVisitDeadline,
+    firstVisitFar: s.firstVisitFar,
+    travel: s.travel,
     shortVisitMin: s.shortVisitThresholdMinutes,
     visitCreditCapMin: s.visitCreditCapMinutes,
     visitTarget: s.dailyVisitTarget,

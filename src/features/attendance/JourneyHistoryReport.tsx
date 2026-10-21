@@ -6,6 +6,7 @@ import { FlagBadge } from '@/components/FlagBadge'
 import { useJourneyHistory, type DayJourney } from '@/features/attendance/useJourneyHistory'
 import { computeJourneyStats } from '@/features/attendance/journeyStats'
 import { firstVisitStatus } from '@/features/attendance/flagRules'
+import { firstVisitDistanceM } from '@/features/attendance/effectivenessScore'
 import { useTeamWorkDays } from '@/features/schedule/useTeamWorkDays'
 import { useVisitOrders } from '@/features/orders/useVisitOrders'
 import { DaySummary } from '@/features/attendance/DaySummary'
@@ -69,7 +70,7 @@ export function JourneyHistoryReport({ userId, interactive, subtitle }: { userId
   const workDay = useTeamWorkDays(selectedDate)[userId ?? '']
   const orderStates = useVisitOrders(day?.visits ?? [])
   const stats = computeJourneyStats(day ? [day] : [], undefined, workDay ?? null, appSettings.flagRules, orderStates)
-  const firstVisit = firstVisitStatus(day?.visits ?? [], !!day?.attendance.length, selectedDate, appSettings.flagRules.firstVisitDeadline, Date.now())
+  const firstVisit = firstVisitStatus(day?.visits ?? [], !!day?.attendance.length, selectedDate, appSettings.flagRules.firstVisitDeadline, Date.now(), appSettings.flagRules.firstVisitFar, firstVisitDistanceM(day?.attendance ?? [], day?.visits ?? []))
   const flags = [...new Set((day?.visits ?? []).flatMap((v) => v.flags ?? []))]
   const liveVisits = (day?.visits ?? []).filter((v) => !v.cancelled_at)
   const paid = liveVisits.filter((v) => (v.collected_usd ?? 0) > 0).length

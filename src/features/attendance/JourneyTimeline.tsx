@@ -137,7 +137,7 @@ export function JourneyTimeline({ attendance, visits, customerNames, interactive
     if (cursor) {
       const gapMs = gapBetween(cursor, event.time)
       if (gapMs != null) {
-        // Distance covered is shown for context; it no longer decides whether the gap is flagged.
+        // The distance covered is shown, and a long drive raises the limit before the gap is flagged.
         const arrival = arrivalLocationOf(event)
         const distanceMeters = cursorLocation && arrival ? distanceInMeters(cursorLocation.lat, cursorLocation.lng, arrival.lat, arrival.lng) : null
         rows.push(
@@ -396,7 +396,7 @@ function GapEntry({ ms, distanceMeters, fromMs, idle, flaggable, offClock = fals
   const { t, language } = useLanguage()
   // Flagged in full once it is longer than the idle threshold (longer around lunch),
   // after the session's first visit; time off the clock is never flagged.
-  const flagged = !offClock && flaggable && isFlaggedGap(fromMs, fromMs + ms, idle)
+  const flagged = !offClock && flaggable && isFlaggedGap(fromMs, fromMs + ms, idle, distanceMeters ?? 0)
   return (
     <li className="relative flex items-center justify-between gap-3 py-0.5">
       <span

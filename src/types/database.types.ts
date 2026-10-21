@@ -29,6 +29,21 @@ export type Database = {
           default_annual_leave_days: number
           default_sick_leave_days: number
           first_visit_deadline: string
+          travel_deduction_enabled: boolean
+          travel_deduction_min_km: number
+          travel_deduction_step_km: number
+          travel_deduction_minutes: number
+          home_city_latitude: number
+          home_city_longitude: number
+          home_city_radius_km: number
+          first_visit_far_enabled: boolean
+          first_visit_far_km: number
+          first_visit_far_extra_minutes: number
+          idle_far_enabled: boolean
+          idle_far_km: number
+          idle_far_step_km: number
+          idle_far_minutes_per_step: number
+          idle_far_window_minutes: number
           forgotten_visit_cap_minutes: number
           visit_credit_cap_minutes: number
           daily_unique_customer_target: number
@@ -78,6 +93,21 @@ export type Database = {
           default_annual_leave_days?: number
           default_sick_leave_days?: number
           first_visit_deadline?: string
+          travel_deduction_enabled?: boolean
+          travel_deduction_min_km?: number
+          travel_deduction_step_km?: number
+          travel_deduction_minutes?: number
+          home_city_latitude?: number
+          home_city_longitude?: number
+          home_city_radius_km?: number
+          first_visit_far_enabled?: boolean
+          first_visit_far_km?: number
+          first_visit_far_extra_minutes?: number
+          idle_far_enabled?: boolean
+          idle_far_km?: number
+          idle_far_step_km?: number
+          idle_far_minutes_per_step?: number
+          idle_far_window_minutes?: number
           forgotten_visit_cap_minutes?: number
           visit_credit_cap_minutes?: number
           daily_unique_customer_target?: number
@@ -127,6 +157,21 @@ export type Database = {
           default_annual_leave_days?: number
           default_sick_leave_days?: number
           first_visit_deadline?: string
+          travel_deduction_enabled?: boolean
+          travel_deduction_min_km?: number
+          travel_deduction_step_km?: number
+          travel_deduction_minutes?: number
+          home_city_latitude?: number
+          home_city_longitude?: number
+          home_city_radius_km?: number
+          first_visit_far_enabled?: boolean
+          first_visit_far_km?: number
+          first_visit_far_extra_minutes?: number
+          idle_far_enabled?: boolean
+          idle_far_km?: number
+          idle_far_step_km?: number
+          idle_far_minutes_per_step?: number
+          idle_far_window_minutes?: number
           forgotten_visit_cap_minutes?: number
           visit_credit_cap_minutes?: number
           daily_unique_customer_target?: number

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Building2, Clock3, Crosshair, Loader2, LocateFixed, LogOut, PauseCircle, RefreshCw, ShieldAlert, Store, Timer } from 'lucide-react'
+import { Building2, Clock3, Crosshair, Loader2, LocateFixed, LogOut, PauseCircle, RefreshCw, Route, ShieldAlert, Store, Timer } from 'lucide-react'
 import { Circle, Marker } from 'react-leaflet'
 import { AdminFrame, AdminGroup, AdminRow, AdminSwitch } from '@/components/AdminKit'
 import { Stepper } from '@/components/Stepper'
@@ -243,6 +243,102 @@ function Geofence() {
               sub="A shorter day, such as a half-day Saturday, is scaled by its hours"
               control={<Stepper label="Daily unique customers" value={settings.dailyUniqueCustomerTarget} step={1} min={1} max={50} format={(v) => `${v}`} onChange={(v) => patch({ dailyUniqueCustomerTarget: v })} />}
             />
+          </AdminGroup>
+          <AdminGroup title="Long travel (effectiveness score)">
+            <AdminRow
+              icon={Route}
+              label="Take travel time off working hours"
+              sub="On a day with long travel and a visit outside the home city, the score is measured against fewer hours"
+              control={<AdminSwitch on={settings.travel.enabled} label="Long travel deduction" onToggle={() => patch({ travel: { ...settings.travel, enabled: !settings.travel.enabled } })} />}
+            />
+            {settings.travel.enabled && (
+              <>
+                <AdminRow
+                  icon={Route}
+                  label="Applies when the day's travel is over"
+                  sub="Straight-line distance through clock-in, visits and clock-out"
+                  control={<Stepper label="Travel threshold" value={settings.travel.minKm} step={5} min={0} max={500} format={(v) => `${v} km`} onChange={(v) => patch({ travel: { ...settings.travel, minKm: v } })} />}
+                />
+                <AdminRow
+                  icon={Route}
+                  label="For every full"
+                  sub="Distance steps counted over the whole day's travel"
+                  control={<Stepper label="Travel step" value={settings.travel.stepKm} step={5} min={1} max={200} format={(v) => `${v} km`} onChange={(v) => patch({ travel: { ...settings.travel, stepKm: v } })} />}
+                />
+                <AdminRow
+                  icon={Timer}
+                  label="Take off"
+                  sub="Minutes off the paid working hours for each step"
+                  control={<Stepper label="Minutes per step" value={settings.travel.minutes} step={5} min={0} max={240} format={(v) => `${v} min`} onChange={(v) => patch({ travel: { ...settings.travel, minutes: v } })} />}
+                />
+                <AdminRow
+                  icon={Building2}
+                  label="Home city radius"
+                  sub={`Visits within this distance of ${settings.travel.homeLat.toFixed(4)}, ${settings.travel.homeLng.toFixed(4)} (Phnom Penh) don't trigger it`}
+                  control={<Stepper label="Home city radius" value={settings.travel.homeRadiusKm} step={5} min={1} max={200} format={(v) => `${v} km`} onChange={(v) => patch({ travel: { ...settings.travel, homeRadiusKm: v } })} />}
+                />
+              </>
+            )}
+          </AdminGroup>
+          <AdminGroup title="First visit far from clock-in">
+            <AdminRow
+              icon={Route}
+              label="Allow more time when the first stop is far"
+              sub="Late first visit and the score both use the later deadline"
+              control={<AdminSwitch on={settings.firstVisitFar.enabled} label="Far first visit window" onToggle={() => patch({ firstVisitFar: { ...settings.firstVisitFar, enabled: !settings.firstVisitFar.enabled } })} />}
+            />
+            {settings.firstVisitFar.enabled && (
+              <>
+                <AdminRow
+                  icon={Route}
+                  label="Far means more than"
+                  sub="From where they clocked in to the first customer"
+                  control={<Stepper label="Far first visit distance" value={settings.firstVisitFar.km} step={5} min={1} max={200} format={(v) => `${v} km`} onChange={(v) => patch({ firstVisitFar: { ...settings.firstVisitFar, km: v } })} />}
+                />
+                <AdminRow
+                  icon={Timer}
+                  label="Extra time before it is late"
+                  sub="Added to the first-visit deadline"
+                  control={<Stepper label="Far first visit extra time" value={settings.firstVisitFar.extraMin} step={5} min={0} max={240} format={(v) => `${v} min`} onChange={(v) => patch({ firstVisitFar: { ...settings.firstVisitFar, extraMin: v } })} />}
+                />
+              </>
+            )}
+          </AdminGroup>
+          <AdminGroup title="Idle gaps after a long drive">
+            <AdminRow
+              icon={PauseCircle}
+              label="Allow more time after a long drive"
+              sub="The idle limit grows with the distance between two visits. The manager alert has no live position, so it keeps the normal limit"
+              control={<AdminSwitch on={settings.idleFar.enabled} label="Idle limit by distance" onToggle={() => patch({ idleFar: { ...settings.idleFar, enabled: !settings.idleFar.enabled } })} />}
+            />
+            {settings.idleFar.enabled && (
+              <>
+                <AdminRow
+                  icon={Route}
+                  label="Applies when the drive is over"
+                  sub="From the last check-out to the next check-in"
+                  control={<Stepper label="Idle far distance" value={settings.idleFar.km} step={5} min={1} max={200} format={(v) => `${v} km`} onChange={(v) => patch({ idleFar: { ...settings.idleFar, km: v } })} />}
+                />
+                <AdminRow
+                  icon={Timer}
+                  label="Window"
+                  sub="The limit is this plus the minutes below; never shorter than the normal limit, and lunch can make it longer"
+                  control={<Stepper label="Idle far window" value={settings.idleFar.windowMin} step={5} min={0} max={240} format={(v) => `${v} min`} onChange={(v) => patch({ idleFar: { ...settings.idleFar, windowMin: v } })} />}
+                />
+                <AdminRow
+                  icon={Timer}
+                  label="Plus for every full"
+                  sub="Distance step"
+                  control={<Stepper label="Idle far step" value={settings.idleFar.stepKm} step={5} min={1} max={200} format={(v) => `${v} km`} onChange={(v) => patch({ idleFar: { ...settings.idleFar, stepKm: v } })} />}
+                />
+                <AdminRow
+                  icon={Timer}
+                  label="Add"
+                  sub="Minutes added for each step"
+                  control={<Stepper label="Idle far minutes per step" value={settings.idleFar.minPerStep} step={5} min={0} max={240} format={(v) => `${v} min`} onChange={(v) => patch({ idleFar: { ...settings.idleFar, minPerStep: v } })} />}
+                />
+              </>
+            )}
           </AdminGroup>
           {lunchInvalid && <p className="rounded-xl bg-status-danger/10 px-3 py-2 text-sm text-status-danger">The lunch window must end after it starts.</p>}
           <section aria-label="Save location every">

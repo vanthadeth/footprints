@@ -82,11 +82,11 @@ export function buildTeamRoute(day: DayJourney | null, nowIso: string = new Date
   let idleMs = 0
   let distance = 0
 
-  const idleIfLong = (prev: Stop, nextStartIso: string, ongoing: boolean) => {
+  const idleIfLong = (prev: Stop, nextStartIso: string, ongoing: boolean, distanceM = 0) => {
     // Only the time after a visit can be idle (not clock-in to the first visit).
     if (!prev.end || prev.kind !== 'visit') return
     const gap = mins(prev.end, nextStartIso)
-    if (isFlaggedGap(Date.parse(prev.end), Date.parse(nextStartIso), rules.idle)) {
+    if (isFlaggedGap(Date.parse(prev.end), Date.parse(nextStartIso), rules.idle, distanceM)) {
       events.push({ kind: 'idle', start: prev.end, end: ongoing ? null : nextStartIso, lat: prev.outLat, lng: prev.outLng, minutes: gap, ongoing })
       idleMs += gap * 60_000
     }
@@ -94,7 +94,7 @@ export function buildTeamRoute(day: DayJourney | null, nowIso: string = new Date
 
   stops.forEach((s, i) => {
     const prev = stops[i - 1]
-    if (prev && !prev.sessionEnd && s.kind !== 'clock-in') idleIfLong(prev, s.start, false)
+    if (prev && !prev.sessionEnd && s.kind !== 'clock-in') idleIfLong(prev, s.start, false, distanceInMeters(prev.outLat, prev.outLng, s.inLat, s.inLng))
     if (prev) distance += distanceInMeters(prev.outLat, prev.outLng, s.inLat, s.inLng)
     path.push([s.inLat, s.inLng])
     if (s.kind === 'visit') {
