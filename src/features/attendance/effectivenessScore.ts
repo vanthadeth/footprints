@@ -1,7 +1,7 @@
 import { INEFFECTIVE_VISIT_WEIGHT, LATE_FIRST_VISIT_SCORE_FACTOR, SCORE_GOAL_ACTIVE, SCORE_GOAL_ORDERS, SCORE_GOAL_VISITS } from '@/lib/config'
 import { countsAsOrdered, type OrderState } from '@/features/orders/orderReconcile'
 import { distanceInMeters } from '@/lib/geo'
-import { creditedVisitMs, dayEffectiveness, scaledDailyTarget, type BreakRule } from './efficiency'
+import { creditedVisitMs, dayEffectiveness, isLateClockIn, scaledDailyTarget, scheduledSoFarMs, type BreakRule } from './efficiency'
 import { firstVisitDeadlineMs, type FlagRules, type TravelRule } from './flagRules'
 
 /**
@@ -15,6 +15,10 @@ import { firstVisitDeadlineMs, type FlagRules, type TravelRule } from './flagRul
  *   10 minutes off the working time (the travel isn't held against the person).
  *   Goal: 50% of working time.
  * - Orders: visits that ordered over all visits. Goal: 25% of visits.
+ *
+ * A person who clocks in late with no approved leave that day is measured against
+ * their full working hours (or the schedule so far, while the day is still running),
+ * so arriving late never shrinks the hours the score is judged against.
  *
  * A late first visit takes 10% off the score. The deadline is 30 minutes later when
  * the first stop is more than 10 km from where the person clocked in. (All the
@@ -70,6 +74,8 @@ export interface ScoreInputs {
   workingMs: number
   /** The first visit was after the deadline (moved out when it was far from the clock-in point). */
   lateFirstVisit: boolean
+  /** Working time was set to the full working hours because the person clocked in late with no approved leave. */
+  lateFullHours?: boolean
 }
 
 export interface DayScore {
@@ -95,6 +101,8 @@ export interface DayScore {
   workingMs: number
   /** The late-first-visit deduction applied. */
   lateDeduction: boolean
+  /** Late clock-in with no approved leave: the full working hours are what active time is measured against. */
+  lateFullHours: boolean
 }
 
 export function computeScore(i: ScoreInputs): DayScore {
@@ -127,6 +135,7 @@ export function computeScore(i: ScoreInputs): DayScore {
     travelMeters: i.travelMeters,
     workingMs: i.workingMs,
     lateDeduction: i.lateFirstVisit && score != null,
+    lateFullHours: !!i.lateFullHours && score != null,
   }
 }
 
@@ -204,6 +213,15 @@ export function travelDeductionMs(meters: number, visits: VisitLike[], rule: Tra
   return outside ? Math.floor(meters / 1000 / rule.stepKm) * rule.minutes * 60_000 : 0
 }
 
+export interface ScoreDayOptions {
+  /** Approved leave covering the day (0 none, 0.5 half day, 1 full): a late clock-in is only held against the person when there is none. */
+  leaveFraction?: number
+  /** Clocked in late, when the server already says so; otherwise worked out from the first clock-in, the person's start time and the grace period. */
+  late?: boolean
+  /** The person's unpaid break, when `rule` carries the server's paid time instead (its break is zeroed). */
+  breakRule?: Pick<BreakRule, 'breakMinutes' | 'breakPaid'> | null
+}
+
 /**
  * One person-day's score from its sessions and visits. `paidMs` is the server's
  * paid time for a finished day; without it, paid time is worked out from the sessions.
@@ -217,7 +235,8 @@ export function scoreDay(
   rules: FlagRules,
   paidMs?: number,
   /** Each visit's order state (useVisitOrders). Without it, a visit with an order amount counts as ordered. */
-  orders?: Record<string, OrderState>
+  orders?: Record<string, OrderState>,
+  opts: ScoreDayOptions = {}
 ): DayScore {
   const live = visits.filter((v) => !v.cancelled_at)
   const eff = dayEffectiveness(sessions, live, day, rule, now, rules, paidMs)
@@ -228,6 +247,11 @@ export function scoreDay(
     else ineffective += 1
   }
   const meters = travelMeters(sessions, live)
+  // Late with no approved leave: judged against the full working hours, not the shorter time they were clocked in.
+  const late = opts.late ?? isLateClockIn(sessions, day, rule, rules.lateGraceMin)
+  const fullRule = rule && opts.breakRule ? { ...rule, ...opts.breakRule } : rule
+  const fullHoursMs = late && !(opts.leaveFraction && opts.leaveFraction > 0) ? scheduledSoFarMs(day, fullRule, now) : 0
+  const lateFullHours = fullHoursMs > eff.scheduledPaidMs
   return computeScore({
     effectiveVisits: effective,
     ineffectiveVisits: ineffective,
@@ -237,7 +261,8 @@ export function scoreDay(
     activeMs: eff.creditedMs,
     travelMeters: meters,
     travelDeductionMs: travelDeductionMs(meters, live, rules.travel),
-    workingMs: eff.scheduledPaidMs,
+    workingMs: lateFullHours ? fullHoursMs : eff.scheduledPaidMs,
     lateFirstVisit: lateFirstVisit(sessions, live, day, rules),
+    lateFullHours,
   })
 }

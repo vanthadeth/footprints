@@ -196,3 +196,53 @@ describe('scoreDay', () => {
     expect(byAmount.orderedVisits).toBe(1)
   })
 })
+
+describe('scoreDay: a late clock-in counts the full working hours', () => {
+  const HOURS = 3_600_000
+  const rule = { breakMinutes: 0, breakPaid: true, start: '08:00', end: '17:00' }
+  const rules = { ...DEFAULT_FLAG_RULES, lateGraceMin: 5 }
+  const after = Date.parse(`${day}T11:00:00.000Z`) // 18:00 local, the day is over
+  const session = (inHm: string, outHm: string) => ({ clock_in_at: at(inHm), clock_out_at: at(outHm) })
+  const v = [visit('03:00', '03:40')]
+
+  it('measures a person who clocked in an hour late against the whole 9 hours, not the 8 they were in', () => {
+    const d = scoreDay([session('02:00', '10:00')], v, day, rule, after, rules) // in 09:00, out 17:00 local
+    expect(d.lateFullHours).toBe(true)
+    expect(d.workingMs).toBe(9 * HOURS)
+  })
+
+  it('leaves an on-time clock-in, or one inside the grace period, as it was', () => {
+    const onTime = scoreDay([session('01:00', '10:00')], v, day, rule, after, rules)
+    expect(onTime.lateFullHours).toBe(false)
+    expect(onTime.workingMs).toBe(9 * HOURS)
+    const grace = scoreDay([session('01:04', '10:00')], v, day, rule, after, rules) // 08:04, within the 5 min
+    expect(grace.lateFullHours).toBe(false)
+    expect(grace.workingMs).toBeGreaterThan(8.9 * HOURS)
+    expect(grace.workingMs).toBeLessThan(9 * HOURS)
+  })
+
+  it('does not apply with approved leave that day (half or full)', () => {
+    const half = scoreDay([session('02:00', '10:00')], v, day, rule, after, rules, undefined, undefined, { leaveFraction: 0.5 })
+    expect(half.lateFullHours).toBe(false)
+    expect(half.workingMs).toBe(8 * HOURS)
+  })
+
+  it('uses the schedule so far while the day is still running', () => {
+    const now = Date.parse(`${day}T03:00:00.000Z`) // 10:00 local
+    const d = scoreDay([{ clock_in_at: at('02:30'), clock_out_at: null }], [], day, rule, now, rules) // in 09:30
+    expect(d.lateFullHours).toBe(true)
+    expect(d.workingMs).toBe(2 * HOURS) // 08:00 to 10:00
+  })
+
+  it('takes the server\'s word for late, and the person\'s own unpaid break for the full hours', () => {
+    const zeroBreak = { breakMinutes: 0, breakPaid: true, start: '08:00', end: '17:00' }
+    const d = scoreDay([session('02:00', '10:00')], v, day, zeroBreak, after, { ...rules, lateGraceMin: 600 }, 7 * HOURS, undefined, { late: true, breakRule: { breakMinutes: 60, breakPaid: false } })
+    expect(d.lateFullHours).toBe(true)
+    expect(d.workingMs).toBe(8 * HOURS) // 9 h day less the 1 h unpaid break
+  })
+
+  it('has no effect without the person\'s hours', () => {
+    const d = scoreDay([session('02:00', '10:00')], v, day, null, after, rules)
+    expect(d.lateFullHours).toBe(false)
+  })
+})

@@ -113,7 +113,7 @@ export function TeamHomePage() {
         const sessions = week.attendance.filter((a) => a.user_id === r.userId && localDateKey(a.clock_in_at) === r.day)
         const visits = week.visits.filter((v) => v.user_id === r.userId && localDateKey(v.checked_in_at) === r.day)
         const rule = { breakMinutes: 0, breakPaid: true, start: r.scheduledStart ?? undefined, end: r.scheduledEnd ?? undefined }
-        return scoreDay(sessions.length ? sessions : [{ clock_in_at: r.firstIn!, clock_out_at: r.lastOut }], visits, r.day, rule, now, settings.flagRules, r.workedMinutes * 60_000, weekOrderStates).score
+        return scoreDay(sessions.length ? sessions : [{ clock_in_at: r.firstIn!, clock_out_at: r.lastOut }], visits, r.day, rule, now, settings.flagRules, r.workedMinutes * 60_000, weekOrderStates, { late: r.status === 'late', leaveFraction: r.leaveFraction, breakRule: { breakMinutes: settings.breakMinutes, breakPaid: settings.breakPaid } }).score
       })
   )
 
