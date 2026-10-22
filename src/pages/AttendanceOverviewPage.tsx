@@ -2,9 +2,9 @@ import { useMemo, useState } from 'react'
 import { ChevronRight } from 'lucide-react'
 import { EmptyState } from '@/components/EmptyState'
 import { useTeam } from '@/features/fleet/useTeam'
-import { LEAVE_TYPE_LABEL } from '@/features/leave/types'
 import { addDays, datesBetween, weekStart } from '@/features/attendanceSummary/attendanceCycle'
-import { buildDayDetails, type DayDetail, type DetailItem, type DetailKind } from '@/features/attendanceSummary/attendanceDetails'
+import { buildDayDetails, type DayDetail, type DetailKind } from '@/features/attendanceSummary/attendanceDetails'
+import { KIND_STYLE } from '@/features/attendanceSummary/AttendanceParts'
 import { useAttendanceDays } from '@/features/attendanceSummary/useAttendanceDays'
 import { WeekNavigator, WeeklyAttendanceView } from '@/features/attendanceSummary/WeeklyAttendance'
 import { formatTime } from '@/lib/datetime'
@@ -19,18 +19,6 @@ const FILTERS: [Filter, string][] = [
   ['leave', 'Leave'],
 ]
 const KIND_FILTER: Record<DetailKind, Filter> = { absent: 'absent', notin: 'absent', late: 'late', leave: 'leave', dayoff: 'leave' }
-
-const KIND_STYLE: Record<DetailKind, { label: (i: DetailItem) => string; tag: string; sub: (i: DetailItem) => string }> = {
-  absent: { label: () => 'Absent', tag: 'bg-status-danger/10 text-status-danger', sub: () => 'No clock-in, no leave' },
-  notin: { label: () => 'Not in yet', tag: 'bg-status-danger/10 text-status-danger', sub: () => 'On shift, not clocked in' },
-  late: { label: (i) => `${i.lateMinutes} min late`, tag: 'bg-status-warn/10 text-status-warn', sub: (i) => (i.firstIn ? `Clocked in ${formatTime(i.firstIn)}` : '') },
-  leave: {
-    label: (i) => (i.leaveType === 'flex' ? 'Day off' : i.leaveType ? `${LEAVE_TYPE_LABEL[i.leaveType]} leave` : 'Leave'),
-    tag: 'bg-brand-50 text-brand-700',
-    sub: (i) => (i.leaveFraction < 1 ? 'Half day' : 'Full day'),
-  },
-  dayoff: { label: () => 'Day off (auto)', tag: 'bg-status-visiting/10 text-status-visiting', sub: () => 'No clock-in · uses a flexible day off' },
-}
 
 const dayTitle = (day: string, today: string) => {
   const long = new Date(`${day}T00:00:00Z`).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })

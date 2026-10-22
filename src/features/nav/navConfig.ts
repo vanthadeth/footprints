@@ -282,14 +282,15 @@ export function hubSearch(group: RoleGroup, ctx: NavContext, query: string): (Ro
 export const ADMIN_ROWS: RowKey[] = ['users', 'permissions', 'hours', 'adminatt', 'locations', 'sheetsync', 'tripset', 'translations', 'settings', 'notifications']
 
 /** Hub "For you": up to four shortcuts for the group. */
-export function forYou(group: RoleGroup, ctx: NavContext): RowDef[] {
+export function forYou(group: RoleGroup, ctx: NavContext, opts: { skip?: RowKey[] } = {}): RowDef[] {
+  const skip = opts.skip ?? []
   const first = (!ctx.isSuperAdmin && ctx.roleKey && FOR_YOU_ROLE[ctx.roleKey]) || []
-  const rows = [...new Set([...first, ...FOR_YOU[group]])].map((k) => ROW[k]).filter(allowed(ctx))
+  const rows = [...new Set([...first, ...FOR_YOU[group]])].filter((k) => !skip.includes(k)).map((k) => ROW[k]).filter(allowed(ctx))
   // Full rows of three tiles, as on the canvas: top up a short row with the
   // person's next screens from the Hub, or drop the stragglers if there are none.
   const extra = hubFunctions(group, ctx)
     .flatMap((f) => f.rows)
-    .filter((r) => !rows.some((x) => x.key === r.key))
+    .filter((r) => !rows.some((x) => x.key === r.key) && !skip.includes(r.key))
   while (rows.length % 3 && extra.length) rows.push(extra.shift()!)
   return rows.length > 3 ? rows.slice(0, rows.length - (rows.length % 3)) : rows
 }
