@@ -7,6 +7,7 @@ import {
   DEFAULT_FIRST_VISIT_FAR,
   DEFAULT_FULL_DAY_HOURS,
   DEFAULT_IDLE_FAR,
+  DEFAULT_LATE_GRACE_MINUTES,
   DEFAULT_IDLE_ALERT_THRESHOLD_MINUTES,
   DEFAULT_LUNCH_IDLE_THRESHOLD_MINUTES,
   DEFAULT_LUNCH_WINDOW_END,
@@ -69,6 +70,8 @@ export interface FlagRules {
   firstVisitDeadline: string
   firstVisitFar: FirstVisitFarRule
   travel: TravelRule
+  /** Minutes after a person's start time before a clock-in counts as late (the score then counts their full working hours). */
+  lateGraceMin: number
   /** A completed visit shorter than this counts nothing toward effectiveness. */
   shortVisitMin: number
   /** A visit counts toward effectiveness for at most this many minutes. */
@@ -105,6 +108,7 @@ export const DEFAULT_FLAG_RULES: FlagRules = {
     homeLng: DEFAULT_TRAVEL_DEDUCTION.homeLng,
     homeRadiusKm: DEFAULT_TRAVEL_DEDUCTION.homeRadiusKm,
   },
+  lateGraceMin: DEFAULT_LATE_GRACE_MINUTES,
   shortVisitMin: DEFAULT_SHORT_VISIT_THRESHOLD_MINUTES,
   visitCreditCapMin: DEFAULT_VISIT_CREDIT_CAP_MINUTES,
   visitTarget: DEFAULT_DAILY_VISIT_TARGET,
@@ -211,6 +215,8 @@ export interface FlagRuleSettings {
   travel: TravelRule
   idleFar: IdleFarRule
   shortVisitThresholdMinutes: number
+  /** Optional so older callers keep the default. */
+  lateGraceMinutes?: number
   visitCreditCapMinutes: number
   dailyVisitTarget: number
   dailyUniqueCustomerTarget: number
@@ -225,6 +231,7 @@ export function flagRulesOf(s: FlagRuleSettings): FlagRules {
     firstVisitDeadline: s.firstVisitDeadline,
     firstVisitFar: s.firstVisitFar,
     travel: s.travel,
+    lateGraceMin: s.lateGraceMinutes ?? DEFAULT_LATE_GRACE_MINUTES,
     shortVisitMin: s.shortVisitThresholdMinutes,
     visitCreditCapMin: s.visitCreditCapMinutes,
     visitTarget: s.dailyVisitTarget,

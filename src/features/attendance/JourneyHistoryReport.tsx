@@ -69,7 +69,7 @@ export function JourneyHistoryReport({ userId, interactive, subtitle }: { userId
   // This person's own shift and break on this date (not the signed-in person's, and not today's).
   const workDay = useTeamWorkDays(selectedDate)[userId ?? '']
   const orderStates = useVisitOrders(day?.visits ?? [])
-  const stats = computeJourneyStats(day ? [day] : [], undefined, workDay ?? null, appSettings.flagRules, orderStates)
+  const stats = computeJourneyStats(day ? [day] : [], undefined, workDay ?? null, appSettings.flagRules, orderStates, () => ({ leaveFraction: leaveType ? 1 : 0 }))
   const firstVisit = firstVisitStatus(day?.visits ?? [], !!day?.attendance.length, selectedDate, appSettings.flagRules.firstVisitDeadline, Date.now(), appSettings.flagRules.firstVisitFar, firstVisitDistanceM(day?.attendance ?? [], day?.visits ?? []))
   const flags = [...new Set((day?.visits ?? []).flatMap((v) => v.flags ?? []))]
   const liveVisits = (day?.visits ?? []).filter((v) => !v.cancelled_at)

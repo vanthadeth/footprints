@@ -84,6 +84,32 @@ export function creditedVisitMs(v: VisitLike, now: number, rules: EffectivenessR
 
 const localMs = (day: string, hm: string) => new Date(`${day}T${hm.slice(0, 5)}:00+07:00`).getTime()
 
+/**
+ * Did the person clock in late: their first clock-in of the day is after their start time
+ * plus the grace period? False without the person's hours.
+ */
+export function isLateClockIn(sessions: SessionLike[], day: string, rule: Pick<BreakRule, 'start'> | null | undefined, graceMin: number): boolean {
+  if (!rule?.start || sessions.length === 0) return false
+  const first = Math.min(...sessions.map((s) => new Date(s.clock_in_at).getTime()))
+  return first > localMs(day, rule.start) + graceMin * 60_000
+}
+
+/**
+ * The paid working time the person's schedule has run to by `now`: the whole day's
+ * hours once their end time has passed, otherwise the time since their start less the
+ * unpaid break (once the day is long enough to include it, as paidWorkMs does).
+ * 0 without the person's hours.
+ */
+export function scheduledSoFarMs(day: string, rule: BreakRule | null | undefined, now: number): number {
+  if (!rule?.start || !rule.end) return 0
+  const start = localMs(day, rule.start)
+  const end = localMs(day, rule.end)
+  if (now >= end) return scheduledHours(rule) * HOUR_MS
+  const elapsed = Math.max(0, now - start)
+  const breakMs = rule.breakPaid ? 0 : rule.breakMinutes * 60_000
+  return elapsed >= breakMs + HOUR_MS ? elapsed - breakMs : elapsed
+}
+
 /** First clock-in and last clock-out (or `now`, capped like paidWorkMs) over a day's sessions; null with none. */
 export function sessionBounds(sessions: SessionLike[], now: number): { first: number; last: number } | null {
   if (sessions.length === 0) return null
@@ -167,6 +193,9 @@ export function dayEffectiveness(
 /** A finished day as the server counts it (app.attendance_days): paid minutes and the person's hours that day. */
 export interface ServerDay {
   paidMinutes: number
+  /** The server says the person clocked in late that day, and the approved leave covering it (0, 0.5 or 1). */
+  late?: boolean
+  leaveFraction?: number
   start?: string | null
   end?: string | null
 }

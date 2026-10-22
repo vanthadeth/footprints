@@ -61,7 +61,7 @@ export function computeJourneyStats(
   /** Each visit's order state (useVisitOrders). Without it, a visit with an order amount counts as ordered. */
   orders?: Record<string, OrderState>,
   /** A day's own hours and the server's paid time for it, when they differ from `rule` (a report over several days). */
-  dayContext?: (date: string) => { rule?: BreakRule | null; paidMs?: number } | undefined
+  dayContext?: (date: string) => { rule?: BreakRule | null; paidMs?: number; leaveFraction?: number; late?: boolean; breakRule?: BreakRule | null } | undefined
 ): JourneyStats {
   let totalWorkingMs = 0
   let totalPaidMs = 0
@@ -95,7 +95,7 @@ export function computeJourneyStats(
       scheduledMs += dayEffectiveness(day.attendance, day.visits.filter((v) => !v.cancelled_at), day.date, rule, now, flags, paid).scheduledPaidMs
       uniqueTarget += uniqueCustomerTarget(rule, flags)
       const ctx = dayContext?.(day.date)
-      dayScores.push(scoreDay(day.attendance, day.visits, day.date, ctx?.rule ?? rule, now, flags, ctx?.paidMs, orders))
+      dayScores.push(scoreDay(day.attendance, day.visits, day.date, ctx?.rule ?? rule, now, flags, ctx?.paidMs, orders, { leaveFraction: ctx?.leaveFraction, late: ctx?.late, breakRule: ctx?.breakRule }))
       forgottenClockOuts += day.attendance.filter((s) => s.auto_clocked_out).length
       // A day can have more than one clock-in/clock-out session -- sum
       // working time across all of them, not just the first.

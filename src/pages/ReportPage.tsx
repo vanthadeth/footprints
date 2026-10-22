@@ -69,9 +69,9 @@ export function ReportPage() {
   const today = todayDateString()
   const curServer = useAttendanceDays(localDateKey(range.startIso), today, me)
   const prevServer = useAttendanceDays(localDateKey(prevRange.startIso), localDateKey(new Date(Date.parse(prevRange.endIso) - 1).toISOString()), me)
-  const serverDays = (rows: { day: string; workedMinutes: number; scheduledStart: string | null; scheduledEnd: string | null }[]) => {
+  const serverDays = (rows: { day: string; status: string; leaveFraction: number; workedMinutes: number; scheduledStart: string | null; scheduledEnd: string | null }[]) => {
     const m: Record<string, ServerDay> = {}
-    for (const r of rows) m[r.day] = { paidMinutes: (m[r.day]?.paidMinutes ?? 0) + r.workedMinutes, start: r.scheduledStart, end: r.scheduledEnd }
+    for (const r of rows) m[r.day] = { paidMinutes: (m[r.day]?.paidMinutes ?? 0) + r.workedMinutes, start: r.scheduledStart, end: r.scheduledEnd, late: r.status === 'late', leaveFraction: r.leaveFraction }
     return m
   }
   const rule = { breakMinutes: settings.breakMinutes, breakPaid: settings.breakPaid, start: settings.workStartTime, end: settings.workEndTime }
@@ -81,7 +81,7 @@ export function ReportPage() {
     return (date: string) => {
       const srv = byDay[date]
       if (!srv || date === liveDay) return undefined
-      return { rule: { breakMinutes: 0, breakPaid: true, start: srv.start ?? undefined, end: srv.end ?? undefined }, paidMs: srv.paidMinutes * 60_000 }
+      return { rule: { breakMinutes: 0, breakPaid: true, start: srv.start ?? undefined, end: srv.end ?? undefined }, paidMs: srv.paidMinutes * 60_000, late: srv.late, leaveFraction: srv.leaveFraction, breakRule: rule }
     }
   }
   const stats = useMemo(

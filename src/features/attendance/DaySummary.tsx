@@ -202,7 +202,7 @@ export function DaySummary({
               label="Active time"
               share={day ? day.hoursShare : null}
               figure={`${fmt(day?.activeMs ?? 0)} of ${fmt((day?.workingMs ?? 0) - (day?.travelDeductionMs ?? 0))}${day ? ` · ${formatDistance(day.travelMeters)} travelled` : ''}`}
-              detail={day ? `${pct(day.activeRatio)} · goal ${pct(SCORE_GOAL_ACTIVE)}${day.travelDeductionMs > 0 ? ` · ${fmt(day.travelDeductionMs)} long travel taken off` : ''}` : ''}
+              detail={day ? `${pct(day.activeRatio)} · goal ${pct(SCORE_GOAL_ACTIVE)}${day.travelDeductionMs > 0 ? ` · ${fmt(day.travelDeductionMs)} long travel taken off` : ''}${day.lateFullHours ? ' · late: full working hours counted' : ''}` : ''}
             />
             <Contributor
               label="Orders"
@@ -226,6 +226,7 @@ export function DaySummary({
             {rules.travel.enabled
               ? `On a day with more than ${rules.travel.minKm} km of travel and a visit outside Phnom Penh, every full ${rules.travel.stepKm} km takes ${rules.travel.minutes} min off your working time. `
               : ''}
+            {`Clocking in more than ${rules.lateGraceMin} min after your start time, with no approved leave, counts your full working hours. `}
             Clocked in {fmt(stats.totalWorkingMs)}
             {outsideMs > 0 ? `; ${fmt(outsideMs)} outside your hours isn't counted` : ''}.
           </li>

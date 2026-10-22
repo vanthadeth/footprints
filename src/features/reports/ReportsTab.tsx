@@ -30,7 +30,7 @@ export function ReportsTab({ team }: { team: TeamMember[] }) {
   const [historyUserId, setHistoryUserId] = useState<string | null>(null)
   const userIds = team.map((m) => m.id)
   const { attendance, visits, loading } = useFleetHistory(userIds, range)
-  const { shortVisitThresholdMinutes, flagRules } = useAppSettings()
+  const { shortVisitThresholdMinutes, flagRules, breakMinutes, breakPaid } = useAppSettings()
   const orderStates = useVisitOrders(visits)
   // Paid working time per person as the server counts it (unpaid break off), so
   // effectiveness is on the same basis as "hours worked" everywhere else.
@@ -52,7 +52,7 @@ export function ReportsTab({ team }: { team: TeamMember[] }) {
       const sessions = attendance.filter((a) => a.user_id === r.userId && localDateKey(a.clock_in_at) === r.day)
       const rule = { breakMinutes: 0, breakPaid: true, start: r.scheduledStart ?? undefined, end: r.scheduledEnd ?? undefined }
       if (r.firstIn) {
-        const sc = scoreDay(sessions.length ? sessions : [{ clock_in_at: r.firstIn, clock_out_at: r.lastOut }], dayVisits, r.day, rule, now, flagRules, r.workedMinutes * 60_000, orderStates)
+        const sc = scoreDay(sessions.length ? sessions : [{ clock_in_at: r.firstIn, clock_out_at: r.lastOut }], dayVisits, r.day, rule, now, flagRules, r.workedMinutes * 60_000, orderStates, { late: r.status === 'late', leaveFraction: r.leaveFraction, breakRule: { breakMinutes, breakPaid } })
         ;(dailyScores[r.userId] ??= []).push(sc.score)
         scheduledByUser[r.userId] = { uniqueTarget: (scheduledByUser[r.userId]?.uniqueTarget ?? 0) + uniqueCustomerTarget(rule, flagRules) }
       }
