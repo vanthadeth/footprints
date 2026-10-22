@@ -120,6 +120,7 @@ export const FLAGS = {
   SHORT_VISIT: 'SHORT_VISIT',
   LATE_FIRST_VISIT: 'LATE_FIRST_VISIT',
   TRACKING_INTERRUPTED: 'TRACKING_INTERRUPTED',
+  EARLY_CLOCK_OUT: 'EARLY_CLOCK_OUT',
 } as const
 
 export type FlagKey = (typeof FLAGS)[keyof typeof FLAGS]
