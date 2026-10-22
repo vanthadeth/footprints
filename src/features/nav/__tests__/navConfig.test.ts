@@ -139,6 +139,15 @@ describe('role tab bars', () => {
     expect(forYou('office', ctx(['leave.view=own'], false, false, 'sales')).map((r) => r.key)).not.toContain('attendanceAll')
   })
 
+  it('leaves a shortcut out of For you on request and still fills rows of three', () => {
+    const admin = ctx([], true)
+    const all = forYou('admin', admin)
+    const skipped = forYou('admin', admin, { skip: ['attendanceAll'] })
+    expect(all.map((r) => r.key)).toContain('attendanceAll')
+    expect(skipped.map((r) => r.key)).not.toContain('attendanceAll')
+    expect(skipped.length % 3).toBe(0)
+  })
+
   it('moves the screens that left the bar into the Hub', () => {
     const ac = ctx(ACCOUNTING_LIVE, false, false, 'accounting')
     const rows = hubFunctions('manager', ac).flatMap((f) => f.rows.map((r) => r.key))

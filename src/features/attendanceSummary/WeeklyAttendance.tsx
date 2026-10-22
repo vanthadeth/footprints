@@ -8,6 +8,7 @@ import { todayDateString } from '@/lib/dateRange'
 import { groupBy, sortGroupKeys } from '@/lib/groupBy'
 import { addDays, datesBetween, shortDate, weekStart } from './attendanceCycle'
 import { formatDays, formatRate, teamKpis, totalsByPerson, type AttendanceDay } from './attendanceSummary'
+import { Kpi, Legend } from './AttendanceParts'
 import { DayCell } from './DayCell'
 import { useAttendanceDays } from './useAttendanceDays'
 
@@ -224,30 +225,11 @@ function StatusTag({ row }: { row: AttendanceDay | undefined }) {
   return <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-extrabold ${cls}`}>{label}</span>
 }
 
-function Kpi({ label, value, sub, tone = 'text-neutral-900', className = '' }: { label: string; value: string; sub: string; tone?: string; className?: string }) {
-  return (
-    <div className={`rounded-2xl bg-white px-3.5 py-3 shadow-card ${className}`}>
-      <p className="text-xs font-bold text-neutral-500">{label}</p>
-      <p className={`mt-0.5 text-2xl font-extrabold ${tone}`}>{value}</p>
-      <p className="truncate text-xs text-neutral-500">{sub}</p>
-    </div>
-  )
-}
-
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl bg-neutral-100 px-2.5 py-2">
       <p className="text-[11px] text-neutral-500">{label}</p>
       <p className="text-sm font-extrabold text-neutral-900">{value}</p>
     </div>
-  )
-}
-
-function Legend({ className, label }: { className: string; label: string }) {
-  return (
-    <span className="flex items-center gap-1.5">
-      <span className={`h-3 w-3 rounded-[3px] ${className}`} />
-      {label}
-    </span>
   )
 }

@@ -4,6 +4,7 @@ import { ChevronDown, ChevronRight, Search, Settings, X } from 'lucide-react'
 import { useRoleGroup } from '@/features/nav/useRoleGroup'
 import { usePendingApprovals } from '@/features/nav/usePendingApprovals'
 import { canApprove, forYou, hubFunctions, hubSearch, shortLabel } from '@/features/nav/navConfig'
+import { AttendanceHubCard } from '@/features/attendanceSummary/AttendanceHubCard'
 import { useFlexCycle } from '@/features/flex/useFlexCycle'
 import { useMessages } from '@/features/conversations/MessagesContext'
 import { useLanguage } from '@/i18n/LanguageContext'
@@ -24,7 +25,9 @@ export function MenuPage() {
   const pendingApprovals = usePendingApprovals(canApprove(ctx))
   const { unreadCount: unreadMessages } = useMessages()
   const badge = (key: string) => (key === 'approvals' ? pendingApprovals : key === 'messages' ? unreadMessages : 0)
-  const shortcuts = forYou(group, ctx)
+  // The attendance shortcut is a card of its own (this week's numbers); the other shortcuts stay tiles.
+  const hasAttendanceCard = forYou(group, ctx).some((r) => r.key === 'attendanceAll')
+  const shortcuts = forYou(group, ctx, { skip: hasAttendanceCard ? ['attendanceAll'] : [] })
   const functions = hubFunctions(group, ctx)
   const results = hubSearch(group, ctx, query)
 
@@ -101,19 +104,22 @@ export function MenuPage() {
           </section>
         ) : (
           <>
-            {shortcuts.length > 0 && (
-              <section aria-label="For you">
-                <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">For you</h2>
-                <div className="grid grid-cols-3 gap-2">
-                  {shortcuts.map((q) => (
-                    <Link key={q.key} to={q.to} className="flex flex-col items-center gap-2 rounded-2xl border border-neutral-100 bg-white px-1.5 pb-3 pt-3.5 shadow-card">
-                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-500">
-                        <q.icon className="h-5 w-5" aria-hidden />
-                      </span>
-                      <span className="text-center text-[13px] font-semibold leading-4 text-neutral-900">{q.label}</span>
-                    </Link>
-                  ))}
-                </div>
+            {(shortcuts.length > 0 || hasAttendanceCard) && (
+              <section aria-label="For you" className="space-y-2.5">
+                <h2 className="text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">For you</h2>
+                {hasAttendanceCard && <AttendanceHubCard />}
+                {shortcuts.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2">
+                    {shortcuts.map((q) => (
+                      <Link key={q.key} to={q.to} className="flex flex-col items-center gap-2 rounded-2xl border border-neutral-100 bg-white px-1.5 pb-3 pt-3.5 shadow-card">
+                        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-500">
+                          <q.icon className="h-5 w-5" aria-hidden />
+                        </span>
+                        <span className="text-center text-[13px] font-semibold leading-4 text-neutral-900">{q.label}</span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </section>
             )}
 
