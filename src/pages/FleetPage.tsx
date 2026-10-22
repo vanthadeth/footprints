@@ -59,6 +59,8 @@ export function FleetPage() {
   // office reports, for instance, never clock in and would just be noise
   // here).
   const snapshots = useMemo(() => allSnapshots.filter((s) => s.member.isFieldSales), [allSnapshots])
+  // Attendance is for everyone the viewer can see (every active user), office staff included.
+  const everyone = useMemo(() => allSnapshots.map((s) => s.member), [allSnapshots])
 
   return (
     <div className="mx-auto max-w-lg pb-6 md:max-w-5xl lg:max-w-[1440px]">
@@ -79,7 +81,7 @@ export function FleetPage() {
             <div className="h-24 animate-pulse rounded-xl2 bg-neutral-100" />
             <div className="h-56 animate-pulse rounded-xl2 bg-neutral-100" />
           </div>
-        ) : snapshots.length === 0 ? (
+        ) : snapshots.length === 0 && !(tab === 'attendance' && allSnapshots.length > 0) ? (
           <EmptyState icon={Truck} title="No field salespeople yet" body="Once someone marked as a field salesperson clocks in, they'll appear here." />
         ) : (
           <>
@@ -144,10 +146,10 @@ export function FleetPage() {
                     { value: 'monthly', label: 'Month' },
                   ]}
                 />
-                {view === 'daily' && <DailyAttendance team={snapshots.map((s) => s.member)} onShowPhotos={() => setParams({ tab: 'attendance', view: 'photos' }, { replace: true })} />}
-                {view === 'photos' && <CheckInOutTab snapshots={snapshots} />}
-                {view === 'weekly' && <WeeklyAttendance team={snapshots.map((s) => s.member)} />}
-                {view === 'monthly' && <MonthlyAttendance team={snapshots.map((s) => s.member)} canEditCycle={profile?.is_super_admin === true} />}
+                {view === 'daily' && <DailyAttendance team={everyone} onShowPhotos={() => setParams({ tab: 'attendance', view: 'photos' }, { replace: true })} />}
+                {view === 'photos' && <CheckInOutTab snapshots={allSnapshots} />}
+                {view === 'weekly' && <WeeklyAttendance team={everyone} />}
+                {view === 'monthly' && <MonthlyAttendance team={everyone} canEditCycle={profile?.is_super_admin === true} />}
               </div>
             )}
           </>
