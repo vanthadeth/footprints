@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { AlertTriangle, CheckCircle2, ChevronDown, Info } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, ChevronDown, Flame, Info, Trophy } from 'lucide-react'
 import { InfoSheet } from '@/components/InfoSheet'
 import type { JourneyStats } from '@/features/attendance/journeyStats'
 import { BAND_LABEL, BAND_STYLE, formatScore, inputsOf, nextSteps, scoreBand, type NextStep, type ScoreBand } from '@/features/attendance/effectivenessScore'
@@ -124,6 +124,7 @@ export function DaySummary({
   paidVisits,
   appointments,
   language,
+  progress,
 }: {
   stats: JourneyStats
   rules: FlagRules
@@ -132,6 +133,8 @@ export function DaySummary({
   paidVisits: number
   appointments: number
   language: string
+  /** Momentum for the person's own day: their streak (today only) and whether this day is their best so far. */
+  progress?: { streak?: number; bestDay?: boolean }
 }) {
   const fmt = (ms: number) => formatDuration(ms, language as Parameters<typeof formatDuration>[1])
   const day = stats.dayScores[0]
@@ -198,6 +201,18 @@ export function DaySummary({
         </div>
         <ScoreScale score={score} band={band} />
         {hint && <NextStepHint score={score} steps={hint.steps} next={hint.next} />}
+        {progress?.bestDay && (
+          <p className="mt-3 flex items-center gap-1.5 text-[13px] font-bold text-status-working">
+            <Trophy className="h-4 w-4" aria-hidden />
+            Your best day so far
+          </p>
+        )}
+        {!!progress?.streak && progress.streak > 0 && (
+          <p className="mt-2 flex items-center gap-1.5 text-[13px] font-bold text-status-warn">
+            <Flame className="h-4 w-4" aria-hidden />
+            {progress.streak}-day streak at Good or better
+          </p>
+        )}
 
         <details className="group mt-5 border-t border-neutral-100 pt-4">
           <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">

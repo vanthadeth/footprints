@@ -10,6 +10,8 @@ import { firstVisitDistanceM } from '@/features/attendance/effectivenessScore'
 import { useTeamWorkDays } from '@/features/schedule/useTeamWorkDays'
 import { useVisitOrders, useVisitOrderTotals } from '@/features/orders/useVisitOrders'
 import { useOrderTargets } from '@/features/orders/useOrderTargets'
+import { useScoreHistory } from '@/features/attendance/useScoreHistory'
+import { isBestDay, scoreProgress } from '@/features/attendance/scoreProgress'
 import { DaySummary } from '@/features/attendance/DaySummary'
 import { JourneyTimeline } from '@/features/attendance/JourneyTimeline'
 import { JourneyMap } from '@/features/attendance/JourneyMap'
@@ -73,6 +75,9 @@ export function JourneyHistoryReport({ userId, interactive, subtitle }: { userId
   const orderTotals = useVisitOrderTotals(day?.visits ?? [])
   const orderTargets = useOrderTargets()
   const stats = computeJourneyStats(day ? [day] : [], undefined, workDay ?? null, appSettings.flagRules, orderStates, () => ({ leaveFraction: leaveType ? 1 : 0 }), { orderTargetUsd: orderTargets[userId ?? ''] ?? null, orderTotals })
+  // Momentum is the person's own: a streak (as of today) and a best-day note, only on their own Footprints.
+  const score = useScoreHistory(interactive ? userId : null, orderTargets[userId ?? ''] ?? null)
+  const progress = interactive ? { streak: selectedDate === today ? scoreProgress(score.days, today).streak : 0, bestDay: isBestDay(score.days, selectedDate) } : undefined
   const firstVisit = firstVisitStatus(day?.visits ?? [], !!day?.attendance.length, selectedDate, appSettings.flagRules.firstVisitDeadline, Date.now(), appSettings.flagRules.firstVisitFar, firstVisitDistanceM(day?.attendance ?? [], day?.visits ?? []))
   const flags = [...new Set((day?.visits ?? []).flatMap((v) => v.flags ?? []))]
   const liveVisits = (day?.visits ?? []).filter((v) => !v.cancelled_at)
@@ -138,7 +143,7 @@ export function JourneyHistoryReport({ userId, interactive, subtitle }: { userId
           )
         ) : tab === 'summary' ? (
           <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
-            <DaySummary stats={stats} rules={appSettings.flagRules} firstVisit={firstVisit} paidVisits={paid} appointments={appts} language={language} />
+            <DaySummary stats={stats} rules={appSettings.flagRules} firstVisit={firstVisit} paidVisits={paid} appointments={appts} language={language} progress={progress} />
 
             <div className="rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card">
               <div className="flex items-baseline justify-between">

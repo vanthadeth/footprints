@@ -76,6 +76,11 @@ export const DEFAULT_FORGOTTEN_VISIT_CAP_MINUTES = 30
 /** A visit marked "ordered" is provisional until a synced sale order confirms it: from the visit's day to this many days after (public.visit_orders). */
 export const ORDER_RECONCILE_DAYS = 2
 
+/** A priority customer is one of the person's own who bought within this many days. */
+export const PRIORITY_PURCHASE_DAYS = 90
+/** A priority customer not visited within this many days is overdue. */
+export const PRIORITY_VISIT_DAYS = 14
+
 /** A visit counts toward effectiveness for at most this many minutes (app_settings.visit_credit_cap_minutes). */
 export const DEFAULT_VISIT_CREDIT_CAP_MINUTES = 45
 /** Visits expected on a full working day, for the effectiveness score (app_settings.daily_visit_target). */
