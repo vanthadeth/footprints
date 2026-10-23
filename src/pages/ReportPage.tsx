@@ -17,7 +17,12 @@ import {
 } from '@/features/reports/personalReport'
 import { getPresetRange, localDateKey, todayDateString } from '@/lib/dateRange'
 import { BAND_LABEL, formatScore, scoreBand } from '@/features/attendance/effectivenessScore'
-import type { ServerDay } from '@/features/attendance/efficiency'
+import { dayContextFrom } from '@/features/attendance/dayContext'
+import { useScoreHistory } from '@/features/attendance/useScoreHistory'
+import { scoreProgress } from '@/features/attendance/scoreProgress'
+import { MomentumCard, PriorityCard } from '@/features/attendance/MomentumCards'
+import { priorityCoverage } from '@/features/customers/priorityCoverage'
+import { useMyPriorityCustomers } from '@/features/customers/useMyPriorityCustomers'
 import { useAttendanceDays } from '@/features/attendanceSummary/useAttendanceDays'
 import { useAppSettings } from '@/hooks/useAppSettings'
 import { formatDuration } from '@/lib/datetime'
@@ -71,31 +76,22 @@ export function ReportPage() {
   const today = todayDateString()
   const curServer = useAttendanceDays(localDateKey(range.startIso), today, me)
   const prevServer = useAttendanceDays(localDateKey(prevRange.startIso), localDateKey(new Date(Date.parse(prevRange.endIso) - 1).toISOString()), me)
-  const serverDays = (rows: { day: string; status: string; leaveFraction: number; workedMinutes: number; scheduledStart: string | null; scheduledEnd: string | null }[]) => {
-    const m: Record<string, ServerDay> = {}
-    for (const r of rows) m[r.day] = { paidMinutes: (m[r.day]?.paidMinutes ?? 0) + r.workedMinutes, start: r.scheduledStart, end: r.scheduledEnd, late: r.status === 'late', leaveFraction: r.leaveFraction }
-    return m
-  }
   const rule = { breakMinutes: settings.breakMinutes, breakPaid: settings.breakPaid, start: settings.workStartTime, end: settings.workEndTime }
-  // Each day's own hours and paid time come from the server; today and the partly counted comparison day are worked out here.
-  const dayContextFor = (rows: typeof curServer.rows, liveDay: string) => {
-    const byDay = serverDays(rows)
-    return (date: string) => {
-      const srv = byDay[date]
-      if (!srv || date === liveDay) return undefined
-      return { rule: { breakMinutes: 0, breakPaid: true, start: srv.start ?? undefined, end: srv.end ?? undefined }, paidMs: srv.paidMinutes * 60_000, late: srv.late, leaveFraction: srv.leaveFraction, breakRule: rule }
-    }
-  }
   const stats = useMemo(
-    () => computeJourneyStats(current.days, undefined, rule, settings.flagRules, orderStates, dayContextFor(curServer.rows, today), scoring),
+    () => computeJourneyStats(current.days, undefined, rule, settings.flagRules, orderStates, dayContextFrom(curServer.rows, today, rule), scoring),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the rule's fields are the real inputs
     [current.days, curServer.rows, today, settings.breakMinutes, settings.breakPaid, settings.workStartTime, settings.workEndTime, settings.flagRules, orderTotals, profile?.daily_order_target_usd]
   )
   const prevStats = useMemo(
-    () => computeJourneyStats(prevDays, prevEndMs, rule, settings.flagRules, orderStates, dayContextFor(prevServer.rows, localDateKey(cutoff)), scoring),
+    () => computeJourneyStats(prevDays, prevEndMs, rule, settings.flagRules, orderStates, dayContextFrom(prevServer.rows, localDateKey(cutoff), rule), scoring),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the rule's fields are the real inputs
     [prevDays, prevServer.rows, cutoff, prevEndMs, settings.breakMinutes, settings.breakPaid, settings.workStartTime, settings.workEndTime, settings.flagRules, orderTotals, profile?.daily_order_target_usd]
   )
+  // Momentum: eight weeks of daily scores (streak, best week) and the customers worth a visit.
+  const history = useScoreHistory(profile?.id ?? null, profile?.daily_order_target_usd ?? null)
+  const progress = useMemo(() => scoreProgress(history.days, today), [history.days, today])
+  const priorityCustomers = useMyPriorityCustomers(profile?.id ?? null)
+  const coverage = useMemo(() => priorityCoverage(priorityCustomers, history.visits, Date.now()), [priorityCustomers, history.visits])
   const buckets = useMemo(() => visitBuckets(period, current.allVisits, new Date().toISOString()), [period, current.allVisits])
   const avg = bucketAverage(buckets)
   const max = Math.max(1, ...buckets.map((b) => b.value ?? 0), avg)
@@ -178,6 +174,13 @@ export function ReportPage() {
             </div>
           ))}
         </div>
+
+        {(progress.thisWeek || progress.streak > 0 || coverage.total > 0) && (
+          <div className="space-y-3.5 lg:col-span-2 lg:row-start-4 lg:grid lg:grid-cols-2 lg:gap-x-6 lg:space-y-0">
+            {(progress.thisWeek || progress.streak > 0) && <MomentumCard progress={progress} />}
+            {coverage.total > 0 && <PriorityCard coverage={coverage} />}
+          </div>
+        )}
 
         <section className="rounded-2xl bg-white p-4 shadow-card lg:col-start-1 lg:row-start-3">
           <div className="flex items-baseline justify-between">

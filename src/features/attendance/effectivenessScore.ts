@@ -83,6 +83,8 @@ export interface ScoreInputs {
 }
 
 export interface DayScore {
+  /** The calendar day scored ("YYYY-MM-DD"), set by scoreDay. */
+  date?: string
   /** 0-10 with one decimal; null when there is no working time to judge (not clocked in). */
   score: number | null
   band: ScoreBand | null
@@ -362,7 +364,7 @@ export function scoreDay(
   const fullRule = rule && opts.breakRule ? { ...rule, ...opts.breakRule } : rule
   const fullHoursMs = late && !(opts.leaveFraction && opts.leaveFraction > 0) ? scheduledSoFarMs(day, fullRule, now) : 0
   const lateFullHours = fullHoursMs > eff.scheduledPaidMs
-  return computeScore({
+  const scored = computeScore({
     effectiveVisits: effective,
     ineffectiveVisits: ineffective,
     visitTarget: scaledDailyTarget(rule, rules.visitTarget, rules.fullDayHours),
@@ -377,4 +379,5 @@ export function scoreDay(
     lateFirstVisit: lateFirstVisit(sessions, live, day, rules),
     lateFullHours,
   })
+  return { ...scored, date: day }
 }
