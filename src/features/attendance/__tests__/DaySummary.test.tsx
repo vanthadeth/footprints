@@ -33,7 +33,7 @@ describe('DaySummary', () => {
     expect(html).not.toContain('How the score works') // the explanation lives in the popup, closed until asked for
     expect(html).toContain('Active time')
     expect(html).toContain('Orders')
-    expect(html).toContain('1 of 2 visits')
+    expect(html).toContain('$50 of $300 order target')
     expect(html).toContain('Long idle gaps') // 57 min between the visits, and 6 h after the last
   })
 
@@ -54,7 +54,7 @@ describe('DaySummary', () => {
     const visits = ['a', 'b', 'c'].map((id, i) => visit({ id, customer_id: id, checked_in_at: `2026-01-01T0${2 + i}:00:00Z`, checked_out_at: `2026-01-01T0${2 + i}:30:00Z` }))
     const stats = computeJourneyStats([{ date: '2026-01-01', attendance, visits }], 0, null, rules, { a: 'confirmed', b: 'pending', c: 'unmatched' })
     const html = renderToStaticMarkup(<DaySummary stats={stats} rules={rules} firstVisit={{ kind: 'ok' }} paidVisits={0} appointments={0} language="en" />)
-    expect(html).toContain('2 of 3 visits')
+    expect(html).toContain('$0 of $300 order target')
     expect(html).toContain('1 confirmed · 1 pending')
     expect(html).toContain('Order not found')
   })

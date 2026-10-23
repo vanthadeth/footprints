@@ -1,7 +1,7 @@
-import { INEFFECTIVE_VISIT_WEIGHT, LATE_FIRST_VISIT_SCORE_FACTOR, SCORE_GOAL_ACTIVE, SCORE_GOAL_ORDERS, SCORE_GOAL_VISITS } from '@/lib/config'
+import { INEFFECTIVE_VISIT_WEIGHT, LATE_FIRST_VISIT_SCORE_FACTOR, SCORE_GOAL_ACTIVE, SCORE_GOAL_VISITS } from '@/lib/config'
 import { countsAsOrdered, type OrderState } from '@/features/orders/orderReconcile'
 import { distanceInMeters } from '@/lib/geo'
-import { creditedVisitMs, dayEffectiveness, isLateClockIn, scaledDailyTarget, scheduledSoFarMs, type BreakRule } from './efficiency'
+import { creditedVisitMs, dayEffectiveness, isLateClockIn, scaledDailyAmount, scaledDailyTarget, scheduledSoFarMs, type BreakRule } from './efficiency'
 import { firstVisitDeadlineMs, type FlagRules, type TravelRule } from './flagRules'
 
 /**
@@ -14,7 +14,8 @@ import { firstVisitDeadlineMs, type FlagRules, type TravelRule } from './flagRul
  *   travels more than 25 km with a visit outside the home city, every full 10 km takes
  *   10 minutes off the working time (the travel isn't held against the person).
  *   Goal: 50% of working time.
- * - Orders: visits that ordered over all visits. Goal: 25% of visits.
+ * - Orders: the value of the day's orders over the person's daily order target (scaled
+ *   by the day's hours). Goal: 100% of target. A target of 0 leaves this part out.
  *
  * A person who clocks in late with no approved leave that day is measured against
  * their full working hours (or the schedule so far, while the day is still running),
@@ -64,6 +65,9 @@ export interface ScoreInputs {
   /** Visits that count as ordered (confirmed, found in the sync, or marked and still pending), and all visits. */
   orderedVisits: number
   totalVisits: number
+  /** Value of the day's orders in USD and the person's order target for the day (0: no target, the part is left out). */
+  orderValueUsd: number
+  orderTargetUsd: number
   /** Time in counted visits. */
   activeMs: number
   /** Metres travelled in the day. */
@@ -86,11 +90,13 @@ export interface DayScore {
   visitShare: number
   hoursShare: number
   orderShare: number
-  /** Each part as measured: active time over working time, orders over visits. */
+  /** Each part as measured: active time over working time, orders over visits (for display). */
   activeRatio: number
   orderRatio: number
   orderedVisits: number
   totalVisits: number
+  orderValueUsd: number
+  orderTargetUsd: number
   effectiveVisits: number
   ineffectiveVisits: number
   visitTarget: number
@@ -113,8 +119,9 @@ export function computeScore(i: ScoreInputs): DayScore {
   const orderRatio = i.totalVisits > 0 ? i.orderedVisits / i.totalVisits : 0
   const visitShare = Math.min(1, visitRatio / SCORE_GOAL_VISITS)
   const hoursShare = Math.min(1, activeRatio / SCORE_GOAL_ACTIVE)
-  const orderShare = Math.min(1, orderRatio / SCORE_GOAL_ORDERS)
-  let raw = ((visitShare + hoursShare + orderShare) / 3) * 10
+  const hasOrderTarget = i.orderTargetUsd > 0
+  const orderShare = hasOrderTarget ? Math.min(1, i.orderValueUsd / i.orderTargetUsd) : 0
+  let raw = hasOrderTarget ? ((visitShare + hoursShare + orderShare) / 3) * 10 : ((visitShare + hoursShare) / 2) * 10
   if (i.lateFirstVisit) raw *= LATE_FIRST_VISIT_SCORE_FACTOR
   const score = i.workingMs > 0 ? round1(Math.min(10, raw)) : null
   return {
@@ -127,6 +134,8 @@ export function computeScore(i: ScoreInputs): DayScore {
     orderRatio: Math.min(1, orderRatio),
     orderedVisits: i.orderedVisits,
     totalVisits: i.totalVisits,
+    orderValueUsd: i.orderValueUsd,
+    orderTargetUsd: i.orderTargetUsd,
     effectiveVisits: i.effectiveVisits,
     ineffectiveVisits: i.ineffectiveVisits,
     visitTarget: i.visitTarget,
@@ -137,6 +146,76 @@ export function computeScore(i: ScoreInputs): DayScore {
     lateDeduction: i.lateFirstVisit && score != null,
     lateFullHours: !!i.lateFullHours && score != null,
   }
+}
+
+/** The inputs a day's score was computed from, rebuilt from the result (for nextSteps). */
+export function inputsOf(d: DayScore): ScoreInputs {
+  return {
+    effectiveVisits: d.effectiveVisits,
+    ineffectiveVisits: d.ineffectiveVisits,
+    visitTarget: d.visitTarget,
+    orderedVisits: d.orderedVisits,
+    totalVisits: d.totalVisits,
+    orderValueUsd: d.orderValueUsd,
+    orderTargetUsd: d.orderTargetUsd,
+    activeMs: d.activeMs,
+    travelMeters: d.travelMeters,
+    travelDeductionMs: d.travelDeductionMs,
+    workingMs: d.workingMs,
+    lateFirstVisit: d.lateDeduction,
+    lateFullHours: d.lateFullHours,
+  }
+}
+
+/** The next band above `score` and the lowest score that reaches it (bands are cut at 5, 7 and above 9). */
+export function nextBand(score: number): { band: ScoreBand; at: number } | null {
+  if (score < 5) return { band: 'average', at: 5 }
+  if (score < 7) return { band: 'good', at: 7 }
+  if (score <= 9) return { band: 'excellent', at: 9.1 }
+  return null
+}
+
+export interface NextStep {
+  kind: 'visit' | 'order'
+  /** How many more visits, or how many more orders of `orderUsd` each. */
+  count: number
+  orderUsd?: number
+  /** The score if the person did that. */
+  score: number
+  /** It reaches the next band. */
+  reaches: boolean
+}
+
+/**
+ * What would lift the day's score: the smallest number of extra visits, and of extra orders, that
+ * reaches the next band (or, when neither can within a few, the best single step). One result each,
+ * visits first. A visit adds the day's average visit time to active time. An order is worth a
+ * quarter of the day's target, rounded to $50, at least $50.
+ */
+export function nextSteps(i: ScoreInputs, maxMore = 5): { next: { band: ScoreBand; at: number } | null; steps: NextStep[] } {
+  const now = computeScore(i)
+  if (now.score == null) return { next: null, steps: [] }
+  const next = nextBand(now.score)
+  if (!next) return { next: null, steps: [] }
+  const avgVisitMs = i.effectiveVisits > 0 ? i.activeMs / i.effectiveVisits : 20 * 60_000
+  const orderUsd = Math.max(50, Math.round((i.orderTargetUsd * 0.25) / 50) * 50)
+  const pick = (kind: 'visit' | 'order'): NextStep | null => {
+    let best: NextStep | null = null
+    for (let n = 1; n <= maxMore; n++) {
+      const more: ScoreInputs =
+        kind === 'visit'
+          ? { ...i, effectiveVisits: i.effectiveVisits + n, totalVisits: i.totalVisits + n, activeMs: i.activeMs + n * avgVisitMs }
+          : { ...i, orderedVisits: i.orderedVisits + n, orderValueUsd: i.orderValueUsd + n * orderUsd }
+      const score = computeScore(more).score ?? 0
+      const step: NextStep = { kind, count: n, orderUsd: kind === 'order' ? orderUsd : undefined, score, reaches: score >= next.at }
+      if (score <= (now.score ?? 0)) continue
+      if (step.reaches) return step
+      best = step
+    }
+    return best
+  }
+  const steps = [pick('visit'), i.orderTargetUsd > 0 ? pick('order') : null].filter((x): x is NextStep => !!x)
+  return { next, steps }
 }
 
 /** The average score over days that have one, one decimal; null with none. */
@@ -220,6 +299,37 @@ export interface ScoreDayOptions {
   late?: boolean
   /** The person's unpaid break, when `rule` carries the server's paid time instead (its break is zeroed). */
   breakRule?: Pick<BreakRule, 'breakMinutes' | 'breakPaid'> | null
+  /** The person's own daily order target in USD for a full working day; without it the company default (`rules.orderTargetUsd`). */
+  orderTargetUsd?: number | null
+  /** The synced sale order matched to each visit (useVisitOrderTotals): its total is the order's value, counted once per order number. */
+  orderTotals?: Record<string, { orderNo: string; totalUsd: number | null }>
+}
+
+/**
+ * The value in USD of the visits that count as ordered: a synced sale order's total when one
+ * matched (counted once however many visits matched it), else the amount the person entered.
+ */
+export function orderValueUsd(
+  visits: VisitLike[],
+  orders: Record<string, OrderState> | undefined,
+  totals: Record<string, { orderNo: string; totalUsd: number | null }> | undefined
+): number {
+  const seen = new Set<string>()
+  let sum = 0
+  for (const v of visits) {
+    if (v.cancelled_at) continue
+    const state = orders ? (v.id ? orders[v.id] : undefined) : (v.order_amount_usd ?? 0) > 0 ? 'pending' : 'none'
+    if (!countsAsOrdered(state)) continue
+    const match = v.id ? totals?.[v.id] : undefined
+    if (match) {
+      if (seen.has(match.orderNo)) continue
+      seen.add(match.orderNo)
+      sum += match.totalUsd ?? v.order_amount_usd ?? 0
+    } else {
+      sum += v.order_amount_usd ?? 0
+    }
+  }
+  return sum
 }
 
 /**
@@ -258,6 +368,8 @@ export function scoreDay(
     visitTarget: scaledDailyTarget(rule, rules.visitTarget, rules.fullDayHours),
     orderedVisits: live.filter((v) => countsAsOrdered(orders ? (v.id ? orders[v.id] : undefined) : (v.order_amount_usd ?? 0) > 0 ? 'pending' : 'none')).length,
     totalVisits: live.length,
+    orderValueUsd: orderValueUsd(live, orders, opts.orderTotals),
+    orderTargetUsd: scaledDailyAmount(rule, opts.orderTargetUsd ?? rules.orderTargetUsd, rules.fullDayHours),
     activeMs: eff.creditedMs,
     travelMeters: meters,
     travelDeductionMs: travelDeductionMs(meters, live, rules.travel),

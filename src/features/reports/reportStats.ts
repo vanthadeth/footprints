@@ -156,7 +156,9 @@ export function computeUserReportRows(
   /** Per person, each day's score worked out with the server's paid time and hours; absent when the server's days can't be had. */
   scoreByUser?: Record<string, number | null>,
   /** Each visit's order state (useVisitOrders). */
-  orders?: Record<string, OrderState>
+  orders?: Record<string, OrderState>,
+  /** Each person's own daily order target in USD and the synced sale order matched to each visit, for the orders part of the score. */
+  scoring?: { targets?: Record<string, number | null>; totals?: Record<string, { orderNo: string; totalUsd: number | null }> }
 ): UserReportRow[] {
   return members.map((member) => {
     const myAttendance = attendanceRows.filter((a) => a.user_id === member.id)
@@ -203,7 +205,7 @@ export function computeUserReportRows(
       lastClockOut: lastClockOuts[0] ? formatTime(lastClockOuts[0].clock_out_at) : null,
       totalWorkingMs,
       totalPaidMs: paidMsByUser?.[member.id] ?? totalWorkingMs,
-      score: scoreByUser ? (scoreByUser[member.id] ?? null) : meanScore([...workDayKeys].map((d) => scoreDay(myAttendance.filter((a) => localDateKey(a.clock_in_at) === d), myVisits.filter((v) => localDateKey(v.checked_in_at) === d), d, null, now, rules, undefined, orders).score)),
+      score: scoreByUser ? (scoreByUser[member.id] ?? null) : meanScore([...workDayKeys].map((d) => scoreDay(myAttendance.filter((a) => localDateKey(a.clock_in_at) === d), myVisits.filter((v) => localDateKey(v.checked_in_at) === d), d, null, now, rules, undefined, orders, { orderTargetUsd: scoring?.targets?.[member.id] ?? null, orderTotals: scoring?.totals }).score)),
       uniqueCustomerDays,
       uniqueCustomerTarget: scheduledByUser?.[member.id]?.uniqueTarget ?? workDayKeys.size * rules.uniqueTarget,
       visitCount: myVisits.length,

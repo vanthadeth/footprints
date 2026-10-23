@@ -2,11 +2,13 @@ import { useState, type ReactNode } from 'react'
 import { AlertTriangle, CheckCircle2, ChevronDown, Info } from 'lucide-react'
 import { InfoSheet } from '@/components/InfoSheet'
 import type { JourneyStats } from '@/features/attendance/journeyStats'
-import { BAND_LABEL, BAND_STYLE, formatScore, scoreBand, type ScoreBand } from '@/features/attendance/effectivenessScore'
+import { BAND_LABEL, BAND_STYLE, formatScore, inputsOf, nextSteps, scoreBand, type NextStep, type ScoreBand } from '@/features/attendance/effectivenessScore'
 import type { FirstVisit, FlagRules } from '@/features/attendance/flagRules'
 import { formatDistance } from '@/lib/geo'
-import { INEFFECTIVE_VISIT_WEIGHT, ORDER_RECONCILE_DAYS, SCORE_GOAL_ACTIVE, SCORE_GOAL_ORDERS, SCORE_GOAL_VISITS } from '@/lib/config'
+import { INEFFECTIVE_VISIT_WEIGHT, ORDER_RECONCILE_DAYS, SCORE_GOAL_ACTIVE, SCORE_GOAL_VISITS } from '@/lib/config'
 import { formatDuration, formatTime } from '@/lib/datetime'
+
+const money = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`
 
 const card = 'rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card'
 
@@ -51,6 +53,33 @@ function ScoreScale({ score, band, labels = true, className = 'mt-4' }: { score:
   )
 }
 
+/** What would lift the score to the next band: the fewest extra visits, and the fewest extra orders, that get there. */
+function NextStepHint({ score, steps, next }: { score: number | null; steps: NextStep[]; next: { band: ScoreBand; at: number } | null }) {
+  if (score == null) return null
+  if (!next)
+    return <p className="mt-3 text-[12.5px] font-semibold text-status-working">You are at the top. Keep it up!</p>
+  if (steps.length === 0) return null
+  const label = (s: NextStep) => (s.kind === 'visit' ? `${s.count} more ${s.count === 1 ? 'visit' : 'visits'}` : `${s.count === 1 ? 'one more order' : `${s.count} more orders`} of about ${money(s.orderUsd ?? 0)}`)
+  return (
+    <div className="mt-3 rounded-xl bg-neutral-50 px-3 py-2.5 dark:bg-neutral-800/60">
+      <p className="text-[11px] font-extrabold uppercase tracking-[0.06em] text-neutral-500">
+        To reach {BAND_LABEL[next.band]} ({Math.min(10, next.at).toFixed(1)})
+      </p>
+      <ul className="mt-1 space-y-0.5">
+        {steps.map((s) => (
+          <li key={s.kind} className="flex items-baseline justify-between gap-2 text-[13px]">
+            <span className="font-semibold text-neutral-900">{label(s)}</span>
+            <span className={`shrink-0 text-[12px] font-bold ${s.reaches ? BAND_STYLE[next.band].text : 'text-neutral-500'}`}>
+              → {s.score.toFixed(1)}
+              {s.reaches ? ' ✓' : ''}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 /** One contributor to the score: what it is, how far to its goal as a bar, and the figures behind it. */
 function Contributor({ label, share, figure, detail }: { label: string; share: number | null; figure: string; detail: string }) {
   const value = share != null ? partScore(share) : null
@@ -85,7 +114,7 @@ function Warning({ title, children }: { title: string; children?: ReactNode }) {
 /**
  * The Summary tab of a day: how many visits were made and how many counted,
  * the effectiveness score broken into its parts (customers against the target,
- * counted time against working time, orders against visits), and warnings for
+ * counted time against working time, order value against the day's target), and warnings for
  * anything forgotten.
  */
 export function DaySummary({
@@ -111,6 +140,7 @@ export function DaySummary({
   const score = stats.score
   const band = day?.band ?? null
   const [infoOpen, setInfoOpen] = useState(false)
+  const hint = day ? nextSteps(inputsOf(day)) : null
   const visitTarget = day?.visitTarget ?? rules.visitTarget
   const pct = (n: number) => `${Math.round(n * 100)}%`
   const notCredited = stats.totalVisits - stats.creditedVisits
@@ -167,6 +197,7 @@ export function DaySummary({
           {band && <span className={`mb-1 rounded-full px-3 py-1 text-[12px] font-extrabold ${BAND_STYLE[band].text} ${BAND_STYLE[band].soft}`}>{BAND_LABEL[band]}</span>}
         </div>
         <ScoreScale score={score} band={band} />
+        {hint && <NextStepHint score={score} steps={hint.steps} next={hint.next} />}
 
         <details className="group mt-5 border-t border-neutral-100 pt-4">
           <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
@@ -207,8 +238,8 @@ export function DaySummary({
             <Contributor
               label="Orders"
               share={day ? day.orderShare : null}
-              figure={`${stats.orderedVisits} of ${stats.totalVisits} visits`}
-              detail={day ? [`${pct(day.orderRatio)} · goal ${pct(SCORE_GOAL_ORDERS)}`, orderExtra].filter(Boolean).join(' · ') : ''}
+              figure={day && day.orderTargetUsd > 0 ? `${money(day.orderValueUsd)} of ${money(day.orderTargetUsd)} order target` : `${money(day?.orderValueUsd ?? 0)} in orders`}
+              detail={day ? [`${stats.orderedVisits} ${stats.orderedVisits === 1 ? 'order' : 'orders'} in ${stats.totalVisits} visits`, orderExtra].filter(Boolean).join(' · ') : ''}
             />
           </div>
         </details>
@@ -218,7 +249,7 @@ export function DaySummary({
       <InfoSheet open={infoOpen} onClose={() => setInfoOpen(false)} title="How the score works">
         <p>
           The score is the average of three parts, times 10. Each part is measured against its own goal and stops counting at 100% of it: visits {pct(SCORE_GOAL_VISITS)} of the target, active time {pct(SCORE_GOAL_ACTIVE)} of working hours,
-          orders {pct(SCORE_GOAL_ORDERS)} of visits.
+          and orders {pct(1)} of your daily order target{day && day.orderTargetUsd > 0 ? ` (${money(day.orderTargetUsd)} today)` : ''}. A big order counts for more than a small one.
         </p>
         <ul className="list-disc space-y-1.5 pl-5">
           <li>A visit under {rules.shortVisitMin} min is not credited and earns a quarter of an effective visit.</li>

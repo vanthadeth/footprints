@@ -13,6 +13,7 @@ import {
   DEFAULT_IDLE_FAR,
   DEFAULT_TRAVEL_DEDUCTION,
   DEFAULT_DAILY_UNIQUE_CUSTOMER_TARGET,
+  DEFAULT_DAILY_ORDER_TARGET_USD,
   DEFAULT_DAILY_VISIT_TARGET,
   DEFAULT_FORGOTTEN_VISIT_CAP_MINUTES,
   DEFAULT_FULL_DAY_HOURS,
@@ -61,6 +62,8 @@ export interface AppSettings {
   dailyUniqueCustomerTarget: number
   /** Visits expected on a full day (the effectiveness score). */
   dailyVisitTarget: number
+  /** Orders expected on a full day in USD, for people without their own target. */
+  dailyOrderTargetUsd: number
   /** A full working day in hours (the unique-customer target scales by a day's hours against this). */
   dailyWorkingHours: number
   /** Customer check-in / check-out is only allowed between these times ("HH:MM:SS", Asia/Phnom_Penh). */
@@ -131,6 +134,7 @@ const FALLBACK: AppSettings = {
   visitCreditCapMinutes: DEFAULT_VISIT_CREDIT_CAP_MINUTES,
   dailyUniqueCustomerTarget: DEFAULT_DAILY_UNIQUE_CUSTOMER_TARGET,
   dailyVisitTarget: DEFAULT_DAILY_VISIT_TARGET,
+  dailyOrderTargetUsd: DEFAULT_DAILY_ORDER_TARGET_USD,
   dailyWorkingHours: DEFAULT_FULL_DAY_HOURS,
   checkWindowStart: DEFAULT_CHECK_WINDOW_START,
   checkWindowEnd: DEFAULT_CHECK_WINDOW_END,
@@ -215,6 +219,15 @@ export function useAppSettings(): AppSettings & { flagRules: FlagRules } {
           dailyVisitTarget: data.daily_visit_target ?? DEFAULT_DAILY_VISIT_TARGET,
           dailyWorkingHours: Number(data.daily_working_hours) || DEFAULT_FULL_DAY_HOURS,
         }))
+      })
+    // The daily order target (migration 0118), read on its own for the same reason.
+    supabase
+      .from('app_settings')
+      .select('daily_order_target_usd')
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled || !data) return
+        setSettings((prev) => ({ ...prev, dailyOrderTargetUsd: Number(data.daily_order_target_usd) }))
       })
     // The distance rules (migration 0116), read on their own for the same reason.
     supabase

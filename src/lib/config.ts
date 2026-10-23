@@ -80,6 +80,8 @@ export const ORDER_RECONCILE_DAYS = 2
 export const DEFAULT_VISIT_CREDIT_CAP_MINUTES = 45
 /** Visits expected on a full working day, for the effectiveness score (app_settings.daily_visit_target). */
 export const DEFAULT_DAILY_VISIT_TARGET = 8
+/** Orders expected on a full working day, in USD, for people without their own target (app_settings.daily_order_target_usd). */
+export const DEFAULT_DAILY_ORDER_TARGET_USD = 300
 /** The effectiveness score: a visit that doesn't count (under the short-visit limit) earns this share of a counted one. */
 export const INEFFECTIVE_VISIT_WEIGHT = 0.25
 /** The score takes the day's late first visit off by this factor (a late first visit, after the far window, costs 10%). */
@@ -96,12 +98,11 @@ export const DEFAULT_FIRST_VISIT_FAR = { enabled: true, km: 10, extraMinutes: 30
 export const DEFAULT_IDLE_FAR = { enabled: true, km: 10, stepKm: 10, minutesPerStep: 10, windowMinutes: 30 }
 /**
  * What full marks looks like for each part of the effectiveness score: visits at
- * 100% of the day's target, active time at 50% of working hours, orders at 25%
- * of visits. Each part is scored against its own goal; the score is their average.
+ * 100% of the day's target, active time at 50% of working hours, orders at 100%
+ * of the person's daily order target (in USD). Each part is scored against its own goal; the score is their average.
  */
 export const SCORE_GOAL_VISITS = 1
 export const SCORE_GOAL_ACTIVE = 0.5
-export const SCORE_GOAL_ORDERS = 0.25
 
 /** Unique customers expected on a full working day; a shorter day scales it (app_settings.daily_unique_customer_target). */
 export const DEFAULT_DAILY_UNIQUE_CUSTOMER_TARGET = 5
@@ -119,6 +120,7 @@ export const FLAGS = {
   SHORT_VISIT: 'SHORT_VISIT',
   LATE_FIRST_VISIT: 'LATE_FIRST_VISIT',
   TRACKING_INTERRUPTED: 'TRACKING_INTERRUPTED',
+  EARLY_CLOCK_OUT: 'EARLY_CLOCK_OUT',
 } as const
 
 export type FlagKey = (typeof FLAGS)[keyof typeof FLAGS]

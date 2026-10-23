@@ -1,4 +1,5 @@
-import { useVisitOrders } from '@/features/orders/useVisitOrders'
+import { useVisitOrders, useVisitOrderTotals } from '@/features/orders/useVisitOrders'
+import { useOrderTargets } from '@/features/orders/useOrderTargets'
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { Camera, CalendarDays } from 'lucide-react'
 import { FullScreenSheet } from '@/components/FullScreenSheet'
@@ -162,7 +163,9 @@ function MemberCheckInOutCard({
   const firstSession = sessions[0] ?? null
   const lastSession = sessions[sessions.length - 1] ?? null
   const orderStates = useVisitOrders(day?.visits ?? [])
-  const stats = computeJourneyStats(day ? [day] : [], undefined, workDay ?? null, flagRules, orderStates, () => ({ leaveFraction: leaveType ? 1 : 0 }))
+  const orderTotals = useVisitOrderTotals(day?.visits ?? [])
+  const orderTargets = useOrderTargets()
+  const stats = computeJourneyStats(day ? [day] : [], undefined, workDay ?? null, flagRules, orderStates, () => ({ leaveFraction: leaveType ? 1 : 0 }), { orderTargetUsd: orderTargets[member.id] ?? null, orderTotals })
   // Only overrides the placeholder when there's no attendance at all that
   // day -- an actual clock-in/out session is ground truth and always wins.
   const onLeaveLabel = !day && leaveType ? leaveType === 'flex' ? 'On a day off' : `On ${LEAVE_TYPE_LABEL[leaveType]} Leave` : null

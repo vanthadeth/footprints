@@ -25,6 +25,7 @@ export type Database = {
           checkin_radius_m: number
           daily_active_hours: number | null
           daily_visit_target: number | null
+          daily_order_target_usd: number
           daily_working_hours: number | null
           default_annual_leave_days: number
           default_sick_leave_days: number
@@ -89,6 +90,7 @@ export type Database = {
           checkin_radius_m?: number
           daily_active_hours?: number | null
           daily_visit_target?: number | null
+          daily_order_target_usd?: number
           daily_working_hours?: number | null
           default_annual_leave_days?: number
           default_sick_leave_days?: number
@@ -153,6 +155,7 @@ export type Database = {
           checkin_radius_m?: number
           daily_active_hours?: number | null
           daily_visit_target?: number | null
+          daily_order_target_usd?: number
           daily_working_hours?: number | null
           default_annual_leave_days?: number
           default_sick_leave_days?: number
@@ -3665,6 +3668,7 @@ export type Database = {
           bank_name: string | null
           created_at: string
           date_of_birth: string | null
+          daily_order_target_usd: number | null
           department_id: string | null
           discharged_date: string | null
           email: string | null
@@ -3696,6 +3700,7 @@ export type Database = {
           bank_name?: string | null
           created_at?: string
           date_of_birth?: string | null
+          daily_order_target_usd?: number | null
           department_id?: string | null
           discharged_date?: string | null
           email?: string | null
@@ -3727,6 +3732,7 @@ export type Database = {
           bank_name?: string | null
           created_at?: string
           date_of_birth?: string | null
+          daily_order_target_usd?: number | null
           department_id?: string | null
           discharged_date?: string | null
           email?: string | null

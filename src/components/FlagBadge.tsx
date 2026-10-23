@@ -8,6 +8,7 @@ const FLAG_LABELS: Record<string, string> = {
   SHORT_VISIT: 'Short Visit',
   LATE_FIRST_VISIT: 'Late First Visit',
   TRACKING_INTERRUPTED: 'Tracking Interrupted',
+  EARLY_CLOCK_OUT: 'Early Clock-Out',
 }
 
 const FLAG_TONE: Record<string, string> = {
@@ -20,6 +21,7 @@ const FLAG_TONE: Record<string, string> = {
   SHORT_VISIT: 'bg-neutral-100 text-neutral-500',
   LATE_FIRST_VISIT: 'bg-status-warn/10 text-status-warn',
   TRACKING_INTERRUPTED: 'bg-status-danger/10 text-status-danger',
+  EARLY_CLOCK_OUT: 'bg-status-warn/10 text-status-warn',
 }
 
 /** Standardised flag chip (spec §49) -- same look everywhere a flag appears: Footprints, Fleet, Dashboard, Reports. */

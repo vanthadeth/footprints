@@ -164,6 +164,13 @@ export function scaledDailyTarget(rule: BreakRule | null | undefined, base: numb
   return Math.max(1, Math.round((base * Math.min(hours, fullDayHours)) / fullDayHours))
 }
 
+/** A full-day money target (say daily orders in USD) scaled by the day's scheduled hours, without rounding. The full-day target without the person's hours. */
+export function scaledDailyAmount(rule: BreakRule | null | undefined, base: number, fullDayHours: number): number {
+  const hours = scheduledHours(rule)
+  if (hours <= 0 || fullDayHours <= 0) return base
+  return (base * Math.min(hours, fullDayHours)) / fullDayHours
+}
+
 /** Unique customers expected on a day: the full-day target scaled by the day's scheduled hours. */
 export function uniqueCustomerTarget(rule: BreakRule | null | undefined, rules: Pick<FlagRules, 'uniqueTarget' | 'fullDayHours'>): number {
   return scaledDailyTarget(rule, rules.uniqueTarget, rules.fullDayHours)

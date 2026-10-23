@@ -8,7 +8,8 @@ import { computeJourneyStats } from '@/features/attendance/journeyStats'
 import { firstVisitStatus } from '@/features/attendance/flagRules'
 import { firstVisitDistanceM } from '@/features/attendance/effectivenessScore'
 import { useTeamWorkDays } from '@/features/schedule/useTeamWorkDays'
-import { useVisitOrders } from '@/features/orders/useVisitOrders'
+import { useVisitOrders, useVisitOrderTotals } from '@/features/orders/useVisitOrders'
+import { useOrderTargets } from '@/features/orders/useOrderTargets'
 import { DaySummary } from '@/features/attendance/DaySummary'
 import { JourneyTimeline } from '@/features/attendance/JourneyTimeline'
 import { JourneyMap } from '@/features/attendance/JourneyMap'
@@ -69,7 +70,9 @@ export function JourneyHistoryReport({ userId, interactive, subtitle }: { userId
   // This person's own shift and break on this date (not the signed-in person's, and not today's).
   const workDay = useTeamWorkDays(selectedDate)[userId ?? '']
   const orderStates = useVisitOrders(day?.visits ?? [])
-  const stats = computeJourneyStats(day ? [day] : [], undefined, workDay ?? null, appSettings.flagRules, orderStates, () => ({ leaveFraction: leaveType ? 1 : 0 }))
+  const orderTotals = useVisitOrderTotals(day?.visits ?? [])
+  const orderTargets = useOrderTargets()
+  const stats = computeJourneyStats(day ? [day] : [], undefined, workDay ?? null, appSettings.flagRules, orderStates, () => ({ leaveFraction: leaveType ? 1 : 0 }), { orderTargetUsd: orderTargets[userId ?? ''] ?? null, orderTotals })
   const firstVisit = firstVisitStatus(day?.visits ?? [], !!day?.attendance.length, selectedDate, appSettings.flagRules.firstVisitDeadline, Date.now(), appSettings.flagRules.firstVisitFar, firstVisitDistanceM(day?.attendance ?? [], day?.visits ?? []))
   const flags = [...new Set((day?.visits ?? []).flatMap((v) => v.flags ?? []))]
   const liveVisits = (day?.visits ?? []).filter((v) => !v.cancelled_at)

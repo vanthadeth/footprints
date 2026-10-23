@@ -21,6 +21,7 @@ const FLAG_TEXT: Record<string, string> = {
   SHORT_VISIT: 'very short visit',
   LATE_FIRST_VISIT: 'first customer visit after the deadline',
   TRACKING_INTERRUPTED: 'tracking interrupted',
+  EARLY_CLOCK_OUT: 'clocked out before the end of the day with no leave',
   OUT_OF_RANGE: 'checked in outside the radius',
 }
 
