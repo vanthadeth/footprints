@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Search } from 'lucide-react'
 import { SegmentedControl } from '@/components/SegmentedControl'
-import { displayName } from '@/lib/displayName'
+import { displayName } from '@footprints/shared/lib/displayName'
 import {
   FNS,
   GROUPS,

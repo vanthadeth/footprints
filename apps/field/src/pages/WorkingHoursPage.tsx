@@ -6,7 +6,7 @@ import { useProfile } from '@footprints/shared/features/auth/useProfile'
 import { ScheduleEditor } from '@/features/schedule/ScheduleEditor'
 import { commonHours, dayHours, formatHours, fromMinutes, scheduleProblems, toMinutes, weekFrom, weekHours, workingDaysLabel, type DaySchedule } from '@/features/schedule/schedule'
 import { scheduleService, type ClockRules, type WorkSchedule } from '@/features/schedule/scheduleService'
-import { usersService } from '@/features/users/usersService'
+import { usersService } from '@footprints/shared/features/users/usersService'
 import { AdminFrame, AdminGroup, AdminRow, AdminTabs } from '@footprints/shared/components/AdminKit'
 import { useTab } from '@/hooks/useTab'
 

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronDown, ChevronLeft, ChevronRight, Loader2, Search } from 'lucide-react'
-import { displayName } from '@/lib/displayName'
+import { displayName } from '@footprints/shared/lib/displayName'
 import type { BookRow, BookSort, Bucket } from '@/features/customers/customerBookService'
 import { useBookPage, useBookSummary, useDebounced, useOwners, useVisitors } from '@/features/customers/useCustomerBook'
 import { CustomerFilterSheet, FilterButton, FilterChips, PeoplePicker } from '@/features/customers/CustomerFilterSheet'

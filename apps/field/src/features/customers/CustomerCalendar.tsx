@@ -4,7 +4,7 @@ import type { ActivityRow } from './customerBookService'
 import { localDay } from './book'
 import { todayDateString } from '@/lib/dateRange'
 import { formatTime } from '@/lib/datetime'
-import { displayName } from '@/lib/displayName'
+import { displayName } from '@footprints/shared/lib/displayName'
 
 const pad = (n: number) => String(n).padStart(2, '0')
 const WEEK = ['M', 'T', 'W', 'T', 'F', 'S', 'S']

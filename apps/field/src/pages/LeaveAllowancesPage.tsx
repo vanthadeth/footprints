@@ -6,8 +6,8 @@ import { Stepper } from '@/components/Stepper'
 import { Switch } from '@/components/Switch'
 import { useProfile } from '@footprints/shared/features/auth/useProfile'
 import { leaveErrorMessage, leaveService, type AllowanceRow, type LeavePolicy } from '@/features/leave/leaveService'
-import { usersService, type ManagedUser } from '@/features/users/usersService'
-import { displayName } from '@/lib/displayName'
+import { usersService, type ManagedUser } from '@footprints/shared/features/users/usersService'
+import { displayName } from '@footprints/shared/lib/displayName'
 
 type Filter = 'all' | 'custom' | 'default'
 

@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react'
 import { Search, X } from 'lucide-react'
 import { BottomSheet } from '@/components/BottomSheet'
 import { Switch } from '@/components/Switch'
-import { displayName } from '@/lib/displayName'
+import { displayName } from '@footprints/shared/lib/displayName'
 import { customerBookService, type BookRow } from '@/features/customers/customerBookService'
 import { useDebounced } from '@/features/customers/useCustomerBook'
-import { orgErrorText } from '@/features/org/org'
+import { orgErrorText } from '@footprints/shared/features/org/org'
 import { calendarService, type TeamPerson } from './calendarService'
 
 export interface Assignee {

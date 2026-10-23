@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useLocation, useParams } from 'react-router-dom'
 import { JourneyHistoryReport } from '@/features/attendance/JourneyHistoryReport'
 import { calendarService } from '@/features/calendar/calendarService'
-import { displayName } from '@/lib/displayName'
+import { displayName } from '@footprints/shared/lib/displayName'
 
 /**
  * One team member's footprints (Team › a name in People): who it is, then

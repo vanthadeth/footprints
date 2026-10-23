@@ -3,7 +3,7 @@ import { MoneyInput } from '@/components/MoneyInput'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { AlertTriangle, CalendarDays, ChevronRight, Home, Minus, Moon, Plus, X } from 'lucide-react'
 import { useProfile } from '@footprints/shared/features/auth/useProfile'
-import { displayName } from '@/lib/displayName'
+import { displayName } from '@footprints/shared/lib/displayName'
 import { customerBookService } from '@/features/customers/customerBookService'
 import { calendarService } from '@/features/calendar/calendarService'
 import {

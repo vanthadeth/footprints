@@ -1,5 +1,5 @@
-import { supabase } from '@footprints/shared/lib/supabase'
-import { callRpc } from '@footprints/shared/lib/rpc'
+import { supabase } from '../../lib/supabase'
+import { callRpc } from '../../lib/rpc'
 
 export type UserStatus = 'active' | 'suspended' | 'discharged'
 

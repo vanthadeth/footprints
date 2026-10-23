@@ -1,4 +1,4 @@
-import { callRpc } from '@footprints/shared/lib/rpc'
+import { callRpc } from '../../lib/rpc'
 
 /** One row of org_overview: a role or a department with how many active people are in it. */
 export interface OrgItem {

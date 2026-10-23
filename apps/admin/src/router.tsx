@@ -7,6 +7,7 @@ import { ResetPasswordPage } from '@footprints/shared/pages/ResetPasswordPage'
 import { RequireSuperAdmin } from '@/features/auth/RequireSuperAdmin'
 import { AdminLayout } from '@/layouts/AdminLayout'
 import { SectionPage } from '@/pages/SectionPage'
+import { UsersPage } from '@/pages/UsersPage'
 import { SECTIONS } from '@/sections'
 
 // The shared auth screens redirect to /start after sign-in and to /welcome when
@@ -27,7 +28,8 @@ export const router = createBrowserRouter([
     ),
     children: [
       { path: '/', element: <Navigate to="/users" replace /> },
-      ...SECTIONS.map((s) => ({ path: s.path, element: <SectionPage section={s} /> })),
+      { path: '/users', element: <UsersPage /> },
+      ...SECTIONS.filter((s) => s.path !== '/users').map((s) => ({ path: s.path, element: <SectionPage section={s} /> })),
       { path: '*', element: <Navigate to="/users" replace /> },
     ],
   },

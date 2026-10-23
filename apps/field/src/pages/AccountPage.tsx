@@ -11,7 +11,7 @@ import { useProfile } from '@footprints/shared/features/auth/useProfile'
 import { useAvatarUrl } from '@/features/auth/useAvatarUrl'
 import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 import { useTheme } from '@footprints/shared/lib/ThemeContext'
-import { displayName } from '@/lib/displayName'
+import { displayName } from '@footprints/shared/lib/displayName'
 import type { ThemeMode } from '@footprints/shared/lib/theme'
 
 type SheetKey = 'help' | 'location' | 'about' | 'privacy' | null

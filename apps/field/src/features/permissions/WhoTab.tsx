@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Check, Minus } from 'lucide-react'
-import { displayName } from '@/lib/displayName'
+import { displayName } from '@footprints/shared/lib/displayName'
 import { formatDate } from '@/lib/datetime'
 import { FNS, FN_BY_KEY, GROUPS, describeGrant, expiryToUntil, whoCan, type FnKey } from '@footprints/shared/features/permissions/catalog'
 import { Chip, GroupCard } from './PermissionBits'

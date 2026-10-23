@@ -1,6 +1,6 @@
 import type { TeamMember } from '@/features/fleet/types'
 import type { LeaveType } from '@/features/leave/types'
-import { displayName } from '@/lib/displayName'
+import { displayName } from '@footprints/shared/lib/displayName'
 import type { AttendanceDay } from './attendanceSummary'
 
 /** What needs attention for one person on one day. `notin`: today, on shift, nobody has seen them clock in yet. */

@@ -7,7 +7,7 @@ import { Switch } from '@/components/Switch'
 import { useProfile } from '@footprints/shared/features/auth/useProfile'
 import { daysUntil, groupByMonth, holidayDayCount, nextHoliday, suggestedCambodiaHolidays, type Holiday } from '@/features/holidays/holidays'
 import { holidaysService } from '@/features/holidays/holidaysService'
-import { usersService } from '@/features/users/usersService'
+import { usersService } from '@footprints/shared/features/users/usersService'
 import { todayDateString } from '@/lib/dateRange'
 
 type Draft = Omit<Holiday, 'id'>

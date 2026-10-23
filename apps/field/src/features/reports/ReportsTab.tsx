@@ -14,7 +14,7 @@ import { useAttendanceDays } from '@/features/attendanceSummary/useAttendanceDay
 import { useAppSettings } from '@/hooks/useAppSettings'
 import { uniqueCustomerTarget } from '@/features/attendance/efficiency'
 import { BAND_LABEL, BAND_STYLE, formatScore, meanScore, scoreBand, scoreDay } from '@/features/attendance/effectivenessScore'
-import { displayName } from '@/lib/displayName'
+import { displayName } from '@footprints/shared/lib/displayName'
 import { groupBy, sortGroupKeys } from '@/lib/groupBy'
 import type { TeamMember } from '@/features/fleet/types'
 

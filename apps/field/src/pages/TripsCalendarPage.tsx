@@ -5,11 +5,11 @@ import { useProfile } from '@footprints/shared/features/auth/useProfile'
 import { monthGrid } from '@/features/calendar/calendar'
 import { leaveService } from '@/features/leave/leaveService'
 import type { LeaveRequest } from '@/features/leave/types'
-import { usersService, type ManagedUser } from '@/features/users/usersService'
+import { usersService, type ManagedUser } from '@footprints/shared/features/users/usersService'
 import { dayLabel, money, ppToday, provinceName } from '@/features/trips/trip'
 import { tripErrorMessage, tripService, type TripRow } from '@/features/trips/tripService'
 import { StatusPill } from '@/features/trips/TripParts'
-import { displayName } from '@/lib/displayName'
+import { displayName } from '@footprints/shared/lib/displayName'
 
 const card = 'rounded-[18px] border border-neutral-100 bg-white shadow-card'
 const LIVE = ['pending', 'changes', 'approved']

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Check, Copy, RefreshCw } from 'lucide-react'
-import { haptic } from '@footprints/shared/lib/haptic'
+import { haptic } from '../../lib/haptic'
 
 const PASSWORD_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789' // no 0/O/1/l/I -- same alphabet the server falls back to
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { displayName } from '@/lib/displayName'
+import { displayName } from '@footprints/shared/lib/displayName'
 import type { Colleague } from './conversationMeta'
 import { conversationsService } from './conversationsService'
 

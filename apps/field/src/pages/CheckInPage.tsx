@@ -18,7 +18,7 @@ import { atLocal, segText, segmentsFor, type Seg } from '@/features/fleet/dayBar
 import { useLocationNames } from '@/features/locations/useLocationNames'
 import { useApprovedLeaveOnDate } from '@/features/leave/useApprovedLeaveOnDate'
 import { LEAVE_TYPE_LABEL, type LeaveType } from '@/features/leave/types'
-import { displayName } from '@/lib/displayName'
+import { displayName } from '@footprints/shared/lib/displayName'
 import { useAppSettings } from '@/hooks/useAppSettings'
 import { summarizeAttendanceTimes } from '@/features/attendance/stateMachine'
 import { greeting, formatDuration, formatTime, isPastTimeOfDay, isWithinClockInWindow, shiftTimeOfDay } from '@/lib/datetime'

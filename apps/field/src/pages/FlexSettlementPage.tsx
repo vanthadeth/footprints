@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useProfile } from '@footprints/shared/features/auth/useProfile'
-import { displayName } from '@/lib/displayName'
+import { displayName } from '@footprints/shared/lib/displayName'
 import { flexService } from '@/features/flex/flexService'
 import { addDays, cycleLabel, dayDate, days, rate, usedRows, type FlexCycle, type FlexDay } from '@/features/flex/flex'
 

@@ -1,5 +1,5 @@
 import { callRpc } from '@footprints/shared/lib/rpc'
-import { displayName } from '@/lib/displayName'
+import { displayName } from '@footprints/shared/lib/displayName'
 import type { FlexCycle, FlexDay, FlexKind } from './flex'
 
 type N = number | string | null

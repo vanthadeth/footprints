@@ -11,7 +11,7 @@ import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 import { useTheme } from '@footprints/shared/lib/ThemeContext'
 import type { ThemeMode } from '@footprints/shared/lib/theme'
 import { formatTime } from '@/lib/datetime'
-import { displayName } from '@/lib/displayName'
+import { displayName } from '@footprints/shared/lib/displayName'
 import { haptic } from '@footprints/shared/lib/haptic'
 
 function initialsOf(name: string): string {

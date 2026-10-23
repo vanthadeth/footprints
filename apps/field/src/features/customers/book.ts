@@ -1,5 +1,5 @@
 import { APP_TIMEZONE } from '@/lib/config'
-import { displayName } from '@/lib/displayName'
+import { displayName } from '@footprints/shared/lib/displayName'
 import type { ActivityRow, BookRow, Bucket, SummaryRow, Visitor } from './customerBookService'
 import { provinceEnglish } from './provinces'
 

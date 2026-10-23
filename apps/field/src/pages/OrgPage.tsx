@@ -5,8 +5,8 @@ import { BottomSheet } from '@/components/BottomSheet'
 import { Switch } from '@/components/Switch'
 import { AdminGroup, AdminRow } from '@footprints/shared/components/AdminKit'
 import { useProfile } from '@footprints/shared/features/auth/useProfile'
-import { orgService, type OrgItem } from '@/features/org/orgService'
-import { deactivateNote, nameProblem, orgErrorText, peopleText, sortItems, type OrgKind } from '@/features/org/org'
+import { orgService, type OrgItem } from '@footprints/shared/features/org/orgService'
+import { deactivateNote, nameProblem, orgErrorText, peopleText, sortItems, type OrgKind } from '@footprints/shared/features/org/org'
 
 interface Draft {
   kind: OrgKind
