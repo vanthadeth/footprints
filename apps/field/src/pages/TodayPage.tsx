@@ -10,7 +10,7 @@ import { localDay } from '@/features/customers/book'
 import { useRoleGroup } from '@/features/nav/useRoleGroup'
 import { forYou } from '@/features/nav/navConfig'
 import { displayName } from '@footprints/shared/lib/displayName'
-import { greeting } from '@/lib/datetime'
+import { greeting } from '@footprints/shared/lib/datetime'
 
 const money = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`
 

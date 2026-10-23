@@ -1,4 +1,4 @@
-import { APP_TIMEZONE } from '@/lib/config'
+import { APP_TIMEZONE } from '@footprints/shared/lib/config'
 
 export type ReportPeriod = 'today' | 'week' | 'month'
 

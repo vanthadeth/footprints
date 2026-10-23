@@ -22,9 +22,9 @@ import { SEG_LABEL, atLocal, dayBreakdown, minutesText, segText, segmentsFor, ty
 import { useAppSettings } from '@/hooks/useAppSettings'
 import { useApprovedLeaveOnDate } from '@/features/leave/useApprovedLeaveOnDate'
 import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
-import { formatLongDate, formatTime } from '@/lib/datetime'
+import { formatLongDate, formatTime } from '@footprints/shared/lib/datetime'
 import { getCustomRange, todayDateString } from '@/lib/dateRange'
-import { distanceInMeters, formatDistance } from '@/lib/geo'
+import { distanceInMeters, formatDistance } from '@footprints/shared/lib/geo'
 import { useIsWide } from '@/hooks/useIsDesktop'
 
 const LEAVE_TYPE_LABEL: Record<string, string> = { annual: 'Annual', sick: 'Sick', unpaid: 'Unpaid', flex: 'Day Off' }

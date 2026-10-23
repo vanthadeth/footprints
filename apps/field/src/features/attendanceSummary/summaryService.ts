@@ -1,7 +1,7 @@
 import { callRpc } from '@footprints/shared/lib/rpc'
 import type { AttendanceDay, DayStatus } from './attendanceSummary'
 import type { LeaveType } from '@/features/leave/types'
-import { DEFAULT_LATE_GRACE_MINUTES } from '@/lib/config'
+import { DEFAULT_LATE_GRACE_MINUTES } from '@footprints/shared/lib/config'
 
 type Row = {
   user_id: string

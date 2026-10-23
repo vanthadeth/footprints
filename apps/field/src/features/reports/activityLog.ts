@@ -1,4 +1,4 @@
-import { APP_TIMEZONE } from '@/lib/config'
+import { APP_TIMEZONE } from '@footprints/shared/lib/config'
 import type { AttendanceRow, VisitRow } from '@/features/attendance/types'
 
 export type ActivityKind = 'clock-in' | 'clock-out' | 'check-in' | 'check-out'

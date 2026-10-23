@@ -1,4 +1,4 @@
-import { DEFAULT_IDLE_ALERT_THRESHOLD_MINUTES } from '@/lib/config'
+import { DEFAULT_IDLE_ALERT_THRESHOLD_MINUTES } from '@footprints/shared/lib/config'
 import type { FleetStatus } from '../types'
 
 /** Whole minutes since `atIso`, never negative. */

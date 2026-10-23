@@ -1,5 +1,5 @@
 import { supabase } from '@footprints/shared/lib/supabase'
-import { startOfTodayIso } from '@/lib/datetime'
+import { startOfTodayIso } from '@footprints/shared/lib/datetime'
 import type { AttendanceRow, VisitRow } from '@/features/attendance/types'
 import type { FleetMemberSnapshot, FleetStatus, LastLocation, TeamMember } from './types'
 

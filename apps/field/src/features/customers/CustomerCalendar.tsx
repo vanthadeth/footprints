@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import type { ActivityRow } from './customerBookService'
 import { localDay } from './book'
 import { todayDateString } from '@/lib/dateRange'
-import { formatTime } from '@/lib/datetime'
+import { formatTime } from '@footprints/shared/lib/datetime'
 import { displayName } from '@footprints/shared/lib/displayName'
 
 const pad = (n: number) => String(n).padStart(2, '0')

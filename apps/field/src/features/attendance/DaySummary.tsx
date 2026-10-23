@@ -4,9 +4,9 @@ import { InfoSheet } from '@/components/InfoSheet'
 import type { JourneyStats } from '@/features/attendance/journeyStats'
 import { BAND_LABEL, BAND_STYLE, formatScore, inputsOf, nextSteps, scoreBand, type NextStep, type ScoreBand } from '@/features/attendance/effectivenessScore'
 import type { FirstVisit, FlagRules } from '@/features/attendance/flagRules'
-import { formatDistance } from '@/lib/geo'
-import { INEFFECTIVE_VISIT_WEIGHT, ORDER_RECONCILE_DAYS, SCORE_GOAL_ACTIVE, SCORE_GOAL_VISITS } from '@/lib/config'
-import { formatDuration, formatTime } from '@/lib/datetime'
+import { formatDistance } from '@footprints/shared/lib/geo'
+import { INEFFECTIVE_VISIT_WEIGHT, ORDER_RECONCILE_DAYS, SCORE_GOAL_ACTIVE, SCORE_GOAL_VISITS } from '@footprints/shared/lib/config'
+import { formatDuration, formatTime } from '@footprints/shared/lib/datetime'
 
 const money = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`
 

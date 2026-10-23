@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { AlertTriangle, ChevronDown, ChevronRight, Phone, Plus, ReceiptText, RefreshCw, Sheet, Trash2, X } from 'lucide-react'
-import { SegmentedControl } from '@/components/SegmentedControl'
+import { SegmentedControl } from '@footprints/shared/components/SegmentedControl'
 import { useProfile } from '@footprints/shared/features/auth/useProfile'
 import { sheetSyncService } from '@/features/sheetSync/sheetSyncService'
 import {

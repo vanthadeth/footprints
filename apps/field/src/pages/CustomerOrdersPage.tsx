@@ -3,7 +3,7 @@ import { useLocation, useParams } from 'react-router-dom'
 import { ReceiptText, Store } from 'lucide-react'
 import { customersService } from '@/features/customers/customersService'
 import { PAGE, orderBadges, orderValue, ordersService, type CustomerOrder } from '@/features/orders/ordersService'
-import { formatTime } from '@/lib/datetime'
+import { formatTime } from '@footprints/shared/lib/datetime'
 import { DataTable, type Column } from '@footprints/shared/components/desktop/DataTable'
 import { useIsWide } from '@/hooks/useIsDesktop'
 

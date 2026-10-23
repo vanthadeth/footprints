@@ -10,7 +10,7 @@ import { LogoutConfirmSheet } from '@/components/LogoutConfirmSheet'
 import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 import { useTheme } from '@footprints/shared/lib/ThemeContext'
 import type { ThemeMode } from '@footprints/shared/lib/theme'
-import { formatTime } from '@/lib/datetime'
+import { formatTime } from '@footprints/shared/lib/datetime'
 import { displayName } from '@footprints/shared/lib/displayName'
 import { haptic } from '@footprints/shared/lib/haptic'
 

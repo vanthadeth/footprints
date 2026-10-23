@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AtSign, CalendarClock, Check, MessageCircle, SmilePlus } from 'lucide-react'
-import { formatTime, timeAgo } from '@/lib/datetime'
+import { formatTime, timeAgo } from '@footprints/shared/lib/datetime'
 import { kindLabel, type Colleague, type ReactionKey } from './conversationMeta'
 import { Initials, KindIcon, MessageText, OutcomeChips, PurposeTags, ReactionBar } from './ConversationBits'
 import { conversationsService, type PostRow, type ReplyRow } from './conversationsService'

@@ -28,7 +28,7 @@ import { useVisitOrders, useVisitOrderTotals } from '@/features/orders/useVisitO
 import { useOrderTargets } from '@/features/orders/useOrderTargets'
 import { formatScore, meanScore, scoreDay, scoreTextClass } from '@/features/attendance/effectivenessScore'
 import { visitSpan } from '@/features/attendance/flagRules'
-import { formatDuration, formatTime } from '@/lib/datetime'
+import { formatDuration, formatTime } from '@footprints/shared/lib/datetime'
 
 interface Need {
   key: string

@@ -4,7 +4,7 @@ import { MapView } from '@/features/maps/MapView'
 import { pinIcon } from '@/features/maps/markers'
 import { useLocationNames } from '@/features/locations/useLocationNames'
 import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
-import { formatDuration, formatTime } from '@/lib/datetime'
+import { formatDuration, formatTime } from '@footprints/shared/lib/datetime'
 import type { AttendanceRow, VisitRow } from './types'
 
 // Matches tailwind.config.js's status.working (green), status.warn (amber),

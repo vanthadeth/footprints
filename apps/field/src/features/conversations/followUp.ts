@@ -1,4 +1,4 @@
-import { APP_TIMEZONE } from '@/lib/config'
+import { APP_TIMEZONE } from '@footprints/shared/lib/config'
 
 /**
  * Follow-up presets for a logged call: Tomorrow, In 3 days, or a picked

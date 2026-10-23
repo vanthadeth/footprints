@@ -1,4 +1,4 @@
-import { APP_TIMEZONE } from '@/lib/config'
+import { APP_TIMEZONE } from '@footprints/shared/lib/config'
 import { displayName } from '@footprints/shared/lib/displayName'
 import type { ActivityRow, BookRow, Bucket, SummaryRow, Visitor } from './customerBookService'
 import { provinceEnglish } from './provinces'

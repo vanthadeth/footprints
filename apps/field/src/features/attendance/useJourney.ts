@@ -5,7 +5,7 @@ import { visitsService, type VisitOutcomeDetails } from '@/features/visits/visit
 import { locationService } from '@/features/location/locationService'
 import { LocationError } from '@/features/location/types'
 import { useAppSettings } from '@/hooks/useAppSettings'
-import { isPastTimeOfDay, startOfTodayIso } from '@/lib/datetime'
+import { isPastTimeOfDay, startOfTodayIso } from '@footprints/shared/lib/datetime'
 import { haptic } from '@footprints/shared/lib/haptic'
 import { deriveAttendanceStatus, deriveVisitStatus } from './stateMachine'
 import type { AttendanceRow, JourneyState, VisitRow } from './types'

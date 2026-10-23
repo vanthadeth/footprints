@@ -8,7 +8,7 @@ import { JourneyTimeline } from '@/features/attendance/JourneyTimeline'
 import { useUpcomingVisits } from '@/features/visits/useUpcomingVisits'
 import { useCustomerNames } from '@/features/customers/useCustomerNames'
 import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
-import { formatDate } from '@/lib/datetime'
+import { formatDate } from '@footprints/shared/lib/datetime'
 import { FootprintsPage } from './FootprintsPage'
 
 type Tab = 'today' | 'upcoming' | 'history'

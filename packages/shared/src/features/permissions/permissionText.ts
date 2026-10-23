@@ -1,4 +1,4 @@
-import type { Direction, WorkLocation } from '@footprints/shared/features/permissions/permissionsService'
+import type { Direction, WorkLocation } from './permissionsService'
 
 export const errorText = (e: unknown) =>
   e && typeof e === 'object' && 'message' in e ? String((e as { message: string }).message) : 'Something went wrong.'

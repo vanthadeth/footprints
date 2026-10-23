@@ -10,7 +10,7 @@ import type { WorkLocationRow } from '@/features/locations/locationsService'
 import { MapView } from '@/features/maps/MapView'
 import { pinIcon } from '@/features/maps/markers'
 import { settingsService, type EditableSettings } from '@/features/settings/settingsService'
-import { ALLOWED_CHECKIN_RADII_METERS, ALLOWED_LOCATION_PING_MINUTES } from '@/lib/config'
+import { ALLOWED_CHECKIN_RADII_METERS, ALLOWED_LOCATION_PING_MINUTES } from '@footprints/shared/lib/config'
 import { haptic } from '@footprints/shared/lib/haptic'
 
 /**

@@ -1,4 +1,4 @@
-import { PRIORITY_PURCHASE_DAYS, PRIORITY_VISIT_DAYS } from '@/lib/config'
+import { PRIORITY_PURCHASE_DAYS, PRIORITY_VISIT_DAYS } from '@footprints/shared/lib/config'
 
 /**
  * Priority customers: the person's own customers who bought recently. They are the ones a visit

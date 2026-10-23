@@ -1,5 +1,5 @@
 import { supabase } from '@footprints/shared/lib/supabase'
-import { DEFAULT_DAILY_VISIT_TARGET } from '@/lib/config'
+import { DEFAULT_DAILY_VISIT_TARGET } from '@footprints/shared/lib/config'
 import { distanceRulesOf } from '@/hooks/useAppSettings'
 import type { FirstVisitFarRule, IdleFarRule, TravelRule } from '@/features/attendance/flagRules'
 

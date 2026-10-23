@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@footprints/shared/lib/supabase'
-import { startOfTodayIso } from '@/lib/datetime'
+import { startOfTodayIso } from '@footprints/shared/lib/datetime'
 import type { VisitRow } from '@/features/attendance/types'
 
 interface UpcomingVisitsState {

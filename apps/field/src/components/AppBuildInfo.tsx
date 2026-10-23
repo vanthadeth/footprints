@@ -1,4 +1,4 @@
-import { formatDate, formatTime } from '@/lib/datetime'
+import { formatDate, formatTime } from '@footprints/shared/lib/datetime'
 
 /**
  * Version/build/timestamp trio for the About sheet -- lets someone confirm

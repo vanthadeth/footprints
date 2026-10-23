@@ -16,7 +16,7 @@ import {
   DEFAULT_SHORT_VISIT_THRESHOLD_MINUTES,
   DEFAULT_TRAVEL_DEDUCTION,
   DEFAULT_VISIT_CREDIT_CAP_MINUTES,
-} from '@/lib/config'
+} from '@footprints/shared/lib/config'
 import { localDateKey } from '@/lib/dateRange'
 
 /**

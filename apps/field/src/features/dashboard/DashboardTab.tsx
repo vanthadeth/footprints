@@ -3,7 +3,7 @@ import { StatTile } from '@/components/StatTile'
 import { DateRangeFilter } from '@/components/DateRangeFilter'
 import { computeLiveFleetKpis, computeVisitKpis } from '@/features/reports/reportStats'
 import { useFleetHistory } from '@/features/reports/useFleetHistory'
-import { formatDuration } from '@/lib/datetime'
+import { formatDuration } from '@footprints/shared/lib/datetime'
 import { getPresetRange } from '@/lib/dateRange'
 import type { FleetMemberSnapshot } from '@/features/fleet/types'
 

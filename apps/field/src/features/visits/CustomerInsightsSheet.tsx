@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { AlertTriangle, Check, ChevronRight, Lightbulb, Phone, Store, Wallet, X } from 'lucide-react'
 import type { CustomerDirectoryRow } from '@/features/customers/customersService'
 import type { PostRow } from '@/features/conversations/conversationsService'
-import { formatDate } from '@/lib/datetime'
+import { formatDate } from '@footprints/shared/lib/datetime'
 import { daysSince, money, type CustomerInsights } from './customerInsights'
 
 type Tip = { tone: 'money' | 'warn' | 'tip' | 'ok'; text: string }

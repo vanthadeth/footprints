@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Search } from 'lucide-react'
-import { SegmentedControl } from '@/components/SegmentedControl'
-import { displayName } from '@footprints/shared/lib/displayName'
+import { SegmentedControl } from '../../components/SegmentedControl'
+import { displayName } from '../../lib/displayName'
 import {
   FNS,
   GROUPS,
@@ -20,10 +20,10 @@ import {
   type FnState,
   type Grant,
   type Scope,
-} from '@footprints/shared/features/permissions/catalog'
+} from './catalog'
 import { Avatar, GroupCard, LocationPicker, SaveBar } from './PermissionBits'
 import { clockSummary, errorText, sameIds } from './permissionText'
-import { permissionsService, type Direction, type PermissionsData, type PersonRow } from '@footprints/shared/features/permissions/permissionsService'
+import { permissionsService, type Direction, type PermissionsData, type PersonRow } from './permissionsService'
 
 type Mode = 'role' | 'allow' | 'deny'
 
@@ -96,10 +96,12 @@ export function PersonTab({
   data,
   onOpenRole,
   onSaved,
+  saveBarClass,
 }: {
   data: PermissionsData
   onOpenRole: (roleId: string) => void
   onSaved: (message: string) => void
+  saveBarClass?: string
 }) {
   const now = useMemo(() => new Date(), [])
   const people = useMemo(() => data.people.filter((p) => !p.is_super_admin), [data.people])
@@ -213,7 +215,7 @@ export function PersonTab({
 
       <p className="px-1 text-xs text-neutral-500">Super Admins aren’t listed: they can always do everything.</p>
 
-      <SaveBar count={total} saving={saving} onSave={save} onDiscard={() => setDrafts({})} />
+      <SaveBar offsetClass={saveBarClass} count={total} saving={saving} onSave={save} onDiscard={() => setDrafts({})} />
     </div>
   )
 }

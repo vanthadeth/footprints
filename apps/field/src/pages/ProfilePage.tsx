@@ -45,7 +45,7 @@ import { useTheme } from '@footprints/shared/lib/ThemeContext'
 import type { ThemeMode } from '@footprints/shared/lib/theme'
 import { useInstallPrompt } from '@/hooks/useInstallPrompt'
 import { supabase } from '@footprints/shared/lib/supabase'
-import { formatDate, formatTime } from '@/lib/datetime'
+import { formatDate, formatTime } from '@footprints/shared/lib/datetime'
 import { displayName } from '@footprints/shared/lib/displayName'
 import { haptic } from '@footprints/shared/lib/haptic'
 

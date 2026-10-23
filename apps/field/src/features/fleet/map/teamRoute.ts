@@ -1,5 +1,5 @@
 import { DEFAULT_FLAG_RULES, isFlaggedGap, visitSpan, type FlagRules } from '@/features/attendance/flagRules'
-import { distanceInMeters } from '@/lib/geo'
+import { distanceInMeters } from '@footprints/shared/lib/geo'
 import type { DayJourney } from '@/features/attendance/useJourneyHistory'
 
 export type RouteEventKind = 'clock-in' | 'visit' | 'idle' | 'clock-out'

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { customersService, type CustomerDirectoryRow } from '@/features/customers/customersService'
 import { conversationsService, type PostRow } from '@/features/conversations/conversationsService'
-import { formatDate } from '@/lib/datetime'
+import { formatDate } from '@footprints/shared/lib/datetime'
 
 export interface CustomerInsights {
   customer: CustomerDirectoryRow | null

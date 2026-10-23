@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { callRpc } from '@footprints/shared/lib/rpc'
-import { ORDER_RECONCILE_DAYS } from '@/lib/config'
+import { ORDER_RECONCILE_DAYS } from '@footprints/shared/lib/config'
 import { useVisitOptions } from '@/features/visits/useVisitOptions'
 import { isMarkedOrdered, orderState, type OrderMatch, type OrderState } from './orderReconcile'
 

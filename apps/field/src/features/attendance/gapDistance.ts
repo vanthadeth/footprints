@@ -1,4 +1,4 @@
-import { distanceInMeters } from '@/lib/geo'
+import { distanceInMeters } from '@footprints/shared/lib/geo'
 import { visitSpan } from './flagRules'
 
 /** A place the person was at a moment: a clock-in or clock-out, or a visit's check-in or check-out. */

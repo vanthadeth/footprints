@@ -12,7 +12,7 @@ import { TaskSheet } from '@/features/calendar/TaskSheet'
 import { ApptList, TaskGroups, appointments, mergeItems, openTasks } from '@/features/calendar/CalendarLists'
 import { AdminTabs } from '@footprints/shared/components/AdminKit'
 import { useTab } from '@/hooks/useTab'
-import { formatTime } from '@/lib/datetime'
+import { formatTime } from '@footprints/shared/lib/datetime'
 
 /** Items for one person and date range; keeps the last result on screen while the next loads. */
 function useItems(userId: string | null, from: string, to: string, nonce: number) {

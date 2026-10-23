@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { SegmentedControl } from '@/components/SegmentedControl'
+import { SegmentedControl } from '@footprints/shared/components/SegmentedControl'
 import { KeyRound, Send, Sheet, X } from 'lucide-react'
 import { BottomSheet } from '@/components/BottomSheet'
 import { useProfile } from '@footprints/shared/features/auth/useProfile'

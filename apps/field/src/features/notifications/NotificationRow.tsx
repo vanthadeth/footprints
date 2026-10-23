@@ -1,5 +1,5 @@
 import { Bell } from 'lucide-react'
-import { timeAgo } from '@/lib/datetime'
+import { timeAgo } from '@footprints/shared/lib/datetime'
 import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 import { NOTIFICATION_KIND_META } from './notificationKindMeta'
 import type { NotificationFeedRow } from './notificationsService'

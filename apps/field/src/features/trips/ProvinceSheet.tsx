@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Minus, Moon, Plus, Search } from 'lucide-react'
 import { BottomSheet } from '@/components/BottomSheet'
-import { SegmentedControl } from '@/components/SegmentedControl'
+import { SegmentedControl } from '@footprints/shared/components/SegmentedControl'
 import { HOME, TRIP_PROVINCES, km, provinceName, roomsFor, type TripDayInput } from './trip'
 
 export type ProvinceCounts = Record<string, { total: number; stale: number }>

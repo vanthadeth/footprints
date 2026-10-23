@@ -21,12 +21,12 @@ import { LEAVE_TYPE_LABEL, type LeaveType } from '@/features/leave/types'
 import { displayName } from '@footprints/shared/lib/displayName'
 import { useAppSettings } from '@/hooks/useAppSettings'
 import { summarizeAttendanceTimes } from '@/features/attendance/stateMachine'
-import { greeting, formatDuration, formatTime, isPastTimeOfDay, isWithinClockInWindow, shiftTimeOfDay } from '@/lib/datetime'
+import { greeting, formatDuration, formatTime, isPastTimeOfDay, isWithinClockInWindow, shiftTimeOfDay } from '@footprints/shared/lib/datetime'
 import { todayDateString } from '@/lib/dateRange'
 import { useProfile } from '@footprints/shared/features/auth/useProfile'
 import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 import { useCan } from '@footprints/shared/features/permissions/PermissionsContext'
-import { useClockRules } from '@/features/permissions/clockRules'
+import { useClockRules } from '@footprints/shared/features/permissions/clockRules'
 
 
 export function CheckInPage() {

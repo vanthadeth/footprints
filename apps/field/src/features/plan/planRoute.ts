@@ -1,4 +1,4 @@
-import { distanceInMeters } from '@/lib/geo'
+import { distanceInMeters } from '@footprints/shared/lib/geo'
 
 export interface LatLng {
   lat: number

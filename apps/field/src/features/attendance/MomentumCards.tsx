@@ -1,7 +1,7 @@
 import { Flame, Trophy, Users } from 'lucide-react'
 import { BAND_LABEL, formatScore, scoreBand, scoreTextClass } from './effectivenessScore'
 import { STREAK_SCORE, type ScoreProgress } from './scoreProgress'
-import { PRIORITY_PURCHASE_DAYS, PRIORITY_VISIT_DAYS } from '@/lib/config'
+import { PRIORITY_PURCHASE_DAYS, PRIORITY_VISIT_DAYS } from '@footprints/shared/lib/config'
 import type { PriorityCoverage } from '@/features/customers/priorityCoverage'
 
 const card = 'space-y-2.5 rounded-2xl bg-white p-4 shadow-card'

@@ -1,6 +1,6 @@
 import { Check, SlidersHorizontal, X } from 'lucide-react'
 import { BottomSheet } from '@/components/BottomSheet'
-import { SegmentedControl } from '@/components/SegmentedControl'
+import { SegmentedControl } from '@footprints/shared/components/SegmentedControl'
 import type { Bucket, Visitor } from './customerBookService'
 import { EMPTY_FILTER, MONTHS, RANGES, activeCount, filterChips, peopleHint, removeChip, toggle, visitorNames, type CustomerFilter } from './book'
 

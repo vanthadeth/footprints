@@ -19,7 +19,7 @@ import {
   type DbScope,
   type FnState,
   type PermRow,
-} from '@footprints/shared/features/permissions/catalog'
+} from '../catalog'
 import { clockBlock } from '../clockRules'
 
 const rows = (spec: string): PermRow[] =>

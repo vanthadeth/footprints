@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { locationService } from '../locationService'
 import { LocationError } from '../types'
-import { MAX_ACCEPTABLE_LOCATION_ACCURACY_METERS } from '@/lib/config'
+import { MAX_ACCEPTABLE_LOCATION_ACCURACY_METERS } from '@footprints/shared/lib/config'
 
 function mockGeolocation(impl: (success: PositionCallback, error?: PositionErrorCallback) => void) {
   Object.defineProperty(navigator, 'geolocation', {

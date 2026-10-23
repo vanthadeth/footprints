@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { distanceInMeters, formatDistance } from '@/lib/geo'
-import { permissionsService, type Direction, type RequiredLocation } from '@footprints/shared/features/permissions/permissionsService'
+import { distanceInMeters, formatDistance } from '../../lib/geo'
+import { permissionsService, type Direction, type RequiredLocation } from './permissionsService'
 
 export type ClockRules = Record<Direction, RequiredLocation[]>
 

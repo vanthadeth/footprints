@@ -1,7 +1,7 @@
 import { useVisitOrders, useVisitOrderTotals } from '@/features/orders/useVisitOrders'
 import { useMemo, useState } from 'react'
 import { Sparkles, TrendingDown, TrendingUp, Minus } from 'lucide-react'
-import { SegmentedControl } from '@/components/SegmentedControl'
+import { SegmentedControl } from '@footprints/shared/components/SegmentedControl'
 import { useProfile } from '@footprints/shared/features/auth/useProfile'
 import { useJourneyHistory } from '@/features/attendance/useJourneyHistory'
 import { computeJourneyStats } from '@/features/attendance/journeyStats'
@@ -25,7 +25,7 @@ import { priorityCoverage } from '@/features/customers/priorityCoverage'
 import { useMyPriorityCustomers } from '@/features/customers/useMyPriorityCustomers'
 import { useAttendanceDays } from '@/features/attendanceSummary/useAttendanceDays'
 import { useAppSettings } from '@/hooks/useAppSettings'
-import { formatDuration } from '@/lib/datetime'
+import { formatDuration } from '@footprints/shared/lib/datetime'
 import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 
 const RANGES = {

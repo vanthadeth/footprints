@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { haptic } from '@footprints/shared/lib/haptic'
+import { haptic } from '../lib/haptic'
 
 export interface SegmentOption<T extends string> {
   value: T

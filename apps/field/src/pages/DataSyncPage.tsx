@@ -5,7 +5,7 @@ import { AdminFrame, AdminGroup, AdminRow } from '@footprints/shared/components/
 import { useProfile } from '@footprints/shared/features/auth/useProfile'
 import { sheetSyncService } from '@/features/sheetSync/sheetSyncService'
 import { countsText, orderCountsText, SCHEDULES, type SheetSyncRun, type SheetSyncSettings } from '@/features/sheetSync/sheetSync'
-import { formatTime, timeAgo } from '@/lib/datetime'
+import { formatTime, timeAgo } from '@footprints/shared/lib/datetime'
 import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 
 /**

@@ -7,7 +7,7 @@ import { buildDayDetails, type DayDetail, type DetailKind } from '@/features/att
 import { KIND_STYLE } from '@/features/attendanceSummary/kindStyle'
 import { useAttendanceDays } from '@/features/attendanceSummary/useAttendanceDays'
 import { WeekNavigator, WeeklyAttendanceView } from '@/features/attendanceSummary/WeeklyAttendance'
-import { formatTime } from '@/lib/datetime'
+import { formatTime } from '@footprints/shared/lib/datetime'
 import { todayDateString } from '@/lib/dateRange'
 import { Users as UsersIcon } from 'lucide-react'
 

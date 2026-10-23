@@ -1,4 +1,4 @@
-import { ORDER_RECONCILE_DAYS } from '@/lib/config'
+import { ORDER_RECONCILE_DAYS } from '@footprints/shared/lib/config'
 import { localDateKey } from '@/lib/dateRange'
 
 /**

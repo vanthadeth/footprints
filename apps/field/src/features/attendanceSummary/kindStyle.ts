@@ -1,5 +1,5 @@
 import { LEAVE_TYPE_LABEL } from '@/features/leave/types'
-import { formatTime } from '@/lib/datetime'
+import { formatTime } from '@footprints/shared/lib/datetime'
 import type { DetailItem, DetailKind } from './attendanceDetails'
 
 /** What each kind of "needs a look" person shows as: a pill label, its colours and a grey detail line. */

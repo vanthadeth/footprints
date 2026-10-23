@@ -14,10 +14,10 @@ import {
   type FnKey,
   type FnState,
   type Scope,
-} from '@footprints/shared/features/permissions/catalog'
+} from './catalog'
 import { Chip, GroupCard, LocationPicker, SaveBar } from './PermissionBits'
 import { clockSummary, errorText, sameIds, type ClockIds } from './permissionText'
-import { permissionsService, type Direction, type PermissionsData } from '@footprints/shared/features/permissions/permissionsService'
+import { permissionsService, type Direction, type PermissionsData } from './permissionsService'
 
 interface RoleDraft {
   state: FnState
@@ -40,11 +40,13 @@ export function RoleTab({
   roleId,
   onRole,
   onSaved,
+  saveBarClass,
 }: {
   data: PermissionsData
   roleId: string
   onRole: (id: string) => void
   onSaved: (message: string) => void
+  saveBarClass?: string
 }) {
   const [drafts, setDrafts] = useState<Record<string, RoleDraft>>({})
   const [saving, setSaving] = useState(false)
@@ -179,7 +181,7 @@ export function RoleTab({
         Changes apply the next time each person opens the app. Super Admins can always do everything.
       </p>
 
-      <SaveBar count={total} saving={saving} onSave={save} onDiscard={() => setDrafts({})} />
+      <SaveBar offsetClass={saveBarClass} count={total} saving={saving} onSave={save} onDiscard={() => setDrafts({})} />
     </div>
   )
 }

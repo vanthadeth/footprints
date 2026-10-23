@@ -1,6 +1,6 @@
-import { INEFFECTIVE_VISIT_WEIGHT, LATE_FIRST_VISIT_SCORE_FACTOR, SCORE_GOAL_ACTIVE, SCORE_GOAL_VISITS } from '@/lib/config'
+import { INEFFECTIVE_VISIT_WEIGHT, LATE_FIRST_VISIT_SCORE_FACTOR, SCORE_GOAL_ACTIVE, SCORE_GOAL_VISITS } from '@footprints/shared/lib/config'
 import { countsAsOrdered, type OrderState } from '@/features/orders/orderReconcile'
-import { distanceInMeters } from '@/lib/geo'
+import { distanceInMeters } from '@footprints/shared/lib/geo'
 import { creditedVisitMs, dayEffectiveness, isLateClockIn, scaledDailyAmount, scaledDailyTarget, scheduledSoFarMs, type BreakRule } from './efficiency'
 import { firstVisitDeadlineMs, type FlagRules, type TravelRule } from './flagRules'
 

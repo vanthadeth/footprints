@@ -1,5 +1,5 @@
-import { MAX_ACCEPTABLE_LOCATION_ACCURACY_METERS } from '@/lib/config'
-import { distanceInMeters } from '@/lib/geo'
+import { MAX_ACCEPTABLE_LOCATION_ACCURACY_METERS } from '@footprints/shared/lib/config'
+import { distanceInMeters } from '@footprints/shared/lib/geo'
 import { LocationError, type LocationReading } from './types'
 
 /** A reading older than this is never presented as "current". */

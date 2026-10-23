@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ChevronRight, Copy } from 'lucide-react'
 import { BottomSheet } from '@/components/BottomSheet'
-import { SegmentedControl } from '@/components/SegmentedControl'
+import { SegmentedControl } from '@footprints/shared/components/SegmentedControl'
 import { Stepper } from '@/components/Stepper'
 import { Switch } from '@/components/Switch'
 import { DAY_NAMES, DAY_SHORT, commonHours, dayHours, formatHours, type DaySchedule } from './schedule'

@@ -1,4 +1,4 @@
-import { SELFIE_JPEG_QUALITY, SELFIE_MAX_DIMENSION_PX } from './config'
+import { SELFIE_JPEG_QUALITY, SELFIE_MAX_DIMENSION_PX } from '@footprints/shared/lib/config'
 
 /** Downscale + re-encode a captured frame so selfie uploads stay small on slow mobile networks. */
 export async function compressImageBlob(

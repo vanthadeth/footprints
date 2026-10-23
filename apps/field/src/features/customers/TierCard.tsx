@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Check, Loader2, Plus } from 'lucide-react'
-import { SegmentedControl } from '@/components/SegmentedControl'
+import { SegmentedControl } from '@footprints/shared/components/SegmentedControl'
 import { planService } from '@/features/plan/planService'
 import { todayDateString } from '@/lib/dateRange'
 import { tierCadenceLabel } from './coverage'

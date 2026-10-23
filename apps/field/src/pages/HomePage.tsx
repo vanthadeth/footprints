@@ -15,9 +15,9 @@ import { visitsService, type NearbyCustomer } from '@/features/visits/visitsServ
 import { useCustomerNames } from '@/features/customers/useCustomerNames'
 import { useAppSettings } from '@/hooks/useAppSettings'
 import { locationService } from '@/features/location/locationService'
-import { formatDistance } from '@/lib/geo'
+import { formatDistance } from '@footprints/shared/lib/geo'
 import { displayName } from '@footprints/shared/lib/displayName'
-import { formatDuration, formatLongDate, formatTime, greeting, isPastTimeOfDay, isWithinClockInWindow, shiftTimeOfDay } from '@/lib/datetime'
+import { formatDuration, formatLongDate, formatTime, greeting, isPastTimeOfDay, isWithinClockInWindow, shiftTimeOfDay } from '@footprints/shared/lib/datetime'
 import { BottomSheet } from '@/components/BottomSheet'
 import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 

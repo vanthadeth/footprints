@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Clock } from 'lucide-react'
-import { timeAgo } from '@/lib/datetime'
-import { DEFAULT_LOCATION_PING_INTERVAL_MINUTES } from '@/lib/config'
+import { timeAgo } from '@footprints/shared/lib/datetime'
+import { DEFAULT_LOCATION_PING_INTERVAL_MINUTES } from '@footprints/shared/lib/config'
 
 /** "Updated Xm ago", visually flagged once data is stale enough that it should never be mistaken for live (spec §36). */
 export function Freshness({ at, label = 'Updated' }: { at: string | null; label?: string }) {

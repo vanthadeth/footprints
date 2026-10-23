@@ -29,7 +29,7 @@ import {
   DEFAULT_WORK_END_TIME,
   DEFAULT_WORK_START_TIME,
   MAX_ACCEPTABLE_LOCATION_ACCURACY_METERS,
-} from '@/lib/config'
+} from '@footprints/shared/lib/config'
 
 export interface AppSettings {
   checkinRadiusM: number

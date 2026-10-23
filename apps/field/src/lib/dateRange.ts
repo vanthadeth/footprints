@@ -1,4 +1,4 @@
-import { APP_TIMEZONE } from './config'
+import { APP_TIMEZONE } from '@footprints/shared/lib/config'
 
 export type DateRangePreset = 'today' | 'yesterday' | 'this_week' | 'last_week' | 'this_month' | 'last_month' | 'custom'
 

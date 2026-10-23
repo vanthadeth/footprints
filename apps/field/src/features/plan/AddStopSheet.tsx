@@ -3,7 +3,7 @@ import { Loader2, Plus, Search } from 'lucide-react'
 import { BottomSheet } from '@/components/BottomSheet'
 import { coverageService, type CoverageRow } from '@/features/customers/coverageService'
 import { DUE_META, lastVisitLabel } from '@/features/customers/coverage'
-import { formatDistance } from '@/lib/geo'
+import { formatDistance } from '@footprints/shared/lib/geo'
 import { TierBadge } from '@/features/customers/TierBadge'
 
 /**

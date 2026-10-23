@@ -1,7 +1,7 @@
 import type { OrderState } from '@/features/orders/orderReconcile'
 import type { AttendanceRow, VisitRow } from '@/features/attendance/types'
 import type { FleetMemberSnapshot } from '@/features/fleet/types'
-import { formatTime } from '@/lib/datetime'
+import { formatTime } from '@footprints/shared/lib/datetime'
 import { localDateKey } from '@/lib/dateRange'
 import { meanScore, scoreDay } from '@/features/attendance/effectivenessScore'
 import { DEFAULT_FLAG_RULES, visitSpan, type FlagRules } from '@/features/attendance/flagRules'

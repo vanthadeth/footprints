@@ -5,7 +5,7 @@ import { useMessages } from '@/features/conversations/MessagesContext'
 import { Initials, PurposeTags } from '@/features/conversations/ConversationBits'
 import { REASON_LABEL, THREAD_FILTERS, filterCounts, matchesFilter, unreadSummary, type ThreadFilter, type ThreadReason } from '@/features/conversations/threads'
 import { formatFollowUpAt } from '@/features/conversations/followUp'
-import { timeAgo } from '@/lib/datetime'
+import { timeAgo } from '@footprints/shared/lib/datetime'
 
 const REASON_STYLE: Record<ThreadReason, { icon: typeof AtSign; tone: string }> = {
   mention: { icon: AtSign, tone: 'bg-status-visiting text-white' },

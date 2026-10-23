@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
-import { SegmentedControl } from '@/components/SegmentedControl'
-import { usePermissions } from '@footprints/shared/features/permissions/PermissionsContext'
-import { PersonTab } from '@/features/permissions/PersonTab'
-import { RoleTab } from '@/features/permissions/RoleTab'
-import { WhoTab } from '@/features/permissions/WhoTab'
-import { errorText } from '@/features/permissions/permissionText'
-import { permissionsService, type PermissionsData } from '@footprints/shared/features/permissions/permissionsService'
+import { SegmentedControl } from '../components/SegmentedControl'
+import { usePermissions } from '../features/permissions/PermissionsContext'
+import { PersonTab } from '../features/permissions/PersonTab'
+import { RoleTab } from '../features/permissions/RoleTab'
+import { WhoTab } from '../features/permissions/WhoTab'
+import { errorText } from '../features/permissions/permissionText'
+import { permissionsService, type PermissionsData } from '../features/permissions/permissionsService'
 
 type Tab = 'role' | 'person' | 'who'
 
@@ -14,7 +14,7 @@ type Tab = 'role' | 'person' | 'who'
  * do what, by role or by person, and "who can…" for one function. Tabs stay
  * mounted so unsaved edits survive switching between them.
  */
-export function PermissionsPage() {
+export function PermissionsPage({ className = 'mx-auto max-w-lg space-y-3.5 px-4 pb-40 pt-3 md:max-w-2xl md:px-8 md:pt-5 lg:max-w-4xl', saveBarClass }: { className?: string; saveBarClass?: string }) {
   const { refresh } = usePermissions()
   const [tab, setTab] = useState<Tab>('role')
   const [data, setData] = useState<PermissionsData | null>(null)
@@ -46,7 +46,7 @@ export function PermissionsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-lg space-y-3.5 px-4 pb-40 pt-3 md:max-w-2xl md:px-8 md:pt-5 lg:max-w-4xl">
+    <div className={className}>
       <SegmentedControl<Tab>
         ariaLabel="Permissions view"
         value={tab}
@@ -77,10 +77,11 @@ export function PermissionsPage() {
       ) : (
         <div key={version}>
           <div hidden={tab !== 'role'}>
-            <RoleTab data={data} roleId={roleId ?? ''} onRole={setRoleId} onSaved={saved} />
+            <RoleTab saveBarClass={saveBarClass} data={data} roleId={roleId ?? ''} onRole={setRoleId} onSaved={saved} />
           </div>
           <div hidden={tab !== 'person'}>
             <PersonTab
+              saveBarClass={saveBarClass}
               data={data}
               onSaved={saved}
               onOpenRole={(id) => {

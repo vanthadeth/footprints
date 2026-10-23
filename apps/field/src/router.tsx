@@ -37,7 +37,7 @@ const MessagesPage = lazyPage(() => import('@/pages/MessagesPage').then((m) => (
 const MessageThreadPage = lazyPage(() => import('@/pages/MessageThreadPage').then((m) => ({ default: m.MessageThreadPage })))
 const NotificationsPage = lazyPage(() => import('@/pages/NotificationsPage').then((m) => ({ default: m.NotificationsPage })))
 const TranslationsPage = lazyPage(() => import('@/pages/TranslationsPage').then((m) => ({ default: m.TranslationsPage })))
-const PermissionsPage = lazyPage(() => import('@/pages/PermissionsPage').then((m) => ({ default: m.PermissionsPage })))
+const PermissionsPage = lazyPage(() => import('@footprints/shared/pages/PermissionsPage').then((m) => ({ default: m.PermissionsPage })))
 const TodayPage = lazyPage(() => import('@/pages/TodayPage').then((m) => ({ default: m.TodayPage })))
 const TeamHomePage = lazyPage(() => import('@/pages/TeamHomePage').then((m) => ({ default: m.TeamHomePage })))
 const AttendanceOverviewPage = lazyPage(() => import('@/pages/AttendanceOverviewPage').then((m) => ({ default: m.AttendanceOverviewPage })))

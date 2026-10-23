@@ -7,7 +7,7 @@ import { leaveService } from '@/features/leave/leaveService'
 import { MyLeaveTab } from '@/features/leave/MyLeaveTab'
 import { BalanceCards } from '@/features/leave/BalanceCards'
 import { AttendanceCalendar } from '@/features/leave/AttendanceCalendar'
-import { SegmentedControl } from '@/components/SegmentedControl'
+import { SegmentedControl } from '@footprints/shared/components/SegmentedControl'
 import { displayName } from '@footprints/shared/lib/displayName'
 import type { LeaveBalanceSummary, LeaveRequest } from '@/features/leave/types'
 

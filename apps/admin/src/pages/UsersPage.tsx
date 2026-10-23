@@ -1,5 +1,6 @@
 import { useSearchParams } from 'react-router-dom'
 import { useUsers } from '@footprints/shared/features/users/useUsers'
+import { PermissionsTab } from './PermissionsTab'
 import { OrgTable } from '@/features/org/OrgTable'
 import { UsersTable } from '@/features/users/UsersTable'
 import { Notice } from '@/components/form'
@@ -8,6 +9,7 @@ const TABS = [
   ['users', 'Users'],
   ['departments', 'Departments'],
   ['roles', 'Roles'],
+  ['permissions', 'Permissions'],
 ] as const
 type Tab = (typeof TABS)[number][0]
 
@@ -37,7 +39,13 @@ export function UsersPage() {
       </div>
       <div className="mt-5">
         {error && <div className="mb-4"><Notice tone="error">{error}</Notice></div>}
-        {tab === 'users' ? <UsersTable users={users} roles={roles} departments={departments} loading={loading} onChanged={refresh} /> : <OrgTable kind={tab === 'roles' ? 'role' : 'department'} />}
+        {tab === 'users' ? (
+          <UsersTable users={users} roles={roles} departments={departments} loading={loading} onChanged={refresh} />
+        ) : tab === 'permissions' ? (
+          <PermissionsTab />
+        ) : (
+          <OrgTable kind={tab === 'roles' ? 'role' : 'department'} />
+        )}
       </div>
     </div>
   )

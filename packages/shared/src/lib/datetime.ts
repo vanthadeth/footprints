@@ -1,5 +1,5 @@
 import { APP_TIMEZONE } from './config'
-import type { Language } from '@footprints/shared/lib/language'
+import type { Language } from './language'
 
 const KM_WEEKDAYS: Record<string, string> = {
   Monday: 'ថ្ងៃច័ន្ទ',

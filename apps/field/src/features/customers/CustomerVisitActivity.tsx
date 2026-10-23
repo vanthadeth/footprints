@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { CalendarDays } from 'lucide-react'
 import { displayName } from '@footprints/shared/lib/displayName'
-import { APP_TIMEZONE } from '@/lib/config'
+import { APP_TIMEZONE } from '@footprints/shared/lib/config'
 import type { ActivityRow } from './customerBookService'
 import { CHIP_TONE, agoText, dayDiff, formatUsd0, localDay, outcomeChips, shortDay, visitMetrics } from './book'
 

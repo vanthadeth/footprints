@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { SegmentedControl } from '@/components/SegmentedControl'
+import { SegmentedControl } from '@footprints/shared/components/SegmentedControl'
 import { PeopleMap } from './PeopleMap'
 import { RoutesMap } from './RoutesMap'
 import { CustomersMap } from './CustomersMap'

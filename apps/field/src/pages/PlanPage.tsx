@@ -19,7 +19,7 @@ import {
 } from 'lucide-react'
 import { BottomSheet } from '@/components/BottomSheet'
 import { EmptyState } from '@/components/EmptyState'
-import { SegmentedControl } from '@/components/SegmentedControl'
+import { SegmentedControl } from '@footprints/shared/components/SegmentedControl'
 import { useJourneyContext } from '@/features/attendance/JourneyContext'
 import { coverageService, type CoverageRow } from '@/features/customers/coverageService'
 import { DUE_META, daysAgo, lastVisitLabel } from '@/features/customers/coverage'
@@ -33,10 +33,10 @@ import { directionsUrl, etaMinutes, nearestNeighbourOrder, routeDistance, type L
 import type { PlanItem } from '@/features/plan/planService'
 import { usePlan } from '@/features/plan/usePlan'
 import { VisitFlow } from '@/features/visits/VisitFlow'
-import { APP_TIMEZONE } from '@/lib/config'
+import { APP_TIMEZONE } from '@footprints/shared/lib/config'
 import { todayDateString } from '@/lib/dateRange'
-import { formatTime } from '@/lib/datetime'
-import { distanceInMeters, formatDistance } from '@/lib/geo'
+import { formatTime } from '@footprints/shared/lib/datetime'
+import { distanceInMeters, formatDistance } from '@footprints/shared/lib/geo'
 
 type Day = 'today' | 'tomorrow'
 

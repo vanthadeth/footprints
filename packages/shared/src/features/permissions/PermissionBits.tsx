@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { Direction, WorkLocation } from '@footprints/shared/features/permissions/permissionsService'
+import type { Direction, WorkLocation } from './permissionsService'
 import type { ClockIds } from './permissionText'
 
 /** Pill choice; `plain` drops the white fill for chips sitting on a grey panel. */
@@ -96,10 +96,11 @@ export function LocationPicker({
   )
 }
 
-export function SaveBar({ count, saving, onSave, onDiscard }: { count: number; saving: boolean; onSave: () => void; onDiscard: () => void }) {
+/** `offsetClass` positions the bar clear of the app's side navigation on wide screens (the field app's rail by default). */
+export function SaveBar({ count, saving, onSave, onDiscard, offsetClass = 'md:left-56' }: { count: number; saving: boolean; onSave: () => void; onDiscard: () => void; offsetClass?: string }) {
   if (count === 0) return null
   return (
-    <div className="fixed inset-x-0 bottom-[calc(84px+env(safe-area-inset-bottom))] z-20 px-4 md:bottom-6 md:left-56">
+    <div className={`fixed inset-x-0 bottom-[calc(84px+env(safe-area-inset-bottom))] z-20 px-4 md:bottom-6 ${offsetClass}`}>
       <div className="mx-auto flex max-w-lg gap-2 md:max-w-2xl">
         <button
           type="button"
