@@ -42,6 +42,8 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
   const [managerId, setManagerId] = useState('')
   const [roleId, setRoleId] = useState('')
   const [isFieldSales, setIsFieldSales] = useState(false)
+  // Daily order target in USD as typed; empty = the company default.
+  const [orderTarget, setOrderTarget] = useState('')
   const [status, setStatus] = useState<UserStatus>('active')
   const [suspendedFrom, setSuspendedFrom] = useState('')
   const [suspendedTo, setSuspendedTo] = useState('')
@@ -99,6 +101,13 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
     setRoleId((mode === 'edit' && user?.roleId) || '')
     setIsFieldSales(mode === 'edit' && user ? user.isFieldSales : false)
     setStatus(mode === 'edit' && user ? user.status : 'active')
+    setOrderTarget('')
+    if (mode === 'edit' && user) {
+      usersService
+        .orderTarget(user.id)
+        .then((t) => setOrderTarget(t == null ? '' : String(t)))
+        .catch(() => {})
+    }
     setSuspendedFrom('')
     setSuspendedTo('')
     setDischargedDate('')
@@ -184,6 +193,7 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
           roleId: roleId || null,
           status,
           isFieldSales,
+          dailyOrderTargetUsd: orderTarget.trim() === '' ? null : Math.max(0, Number(orderTarget) || 0),
           suspendedFrom: suspendedFrom || null,
           suspendedTo: suspendedTo || null,
           dischargedDate: dischargedDate || null,
@@ -351,6 +361,11 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
           <Field label="Field Salesperson" hint="Tracks their attendance and customer visits (Check In, Team)." inline>
             <Switch checked={isFieldSales} onChange={setIsFieldSales} />
           </Field>
+          {mode === 'edit' && (
+            <Field label="Daily order target (USD)" hint="Orders expected on a full day, for the effectiveness score. Empty uses the company default; 0 leaves orders out of their score.">
+              <TextInput value={orderTarget} onChange={setOrderTarget} placeholder="Company default" type="number" />
+            </Field>
+          )}
         </Section>
 
         {mode === 'edit' && modeInfo && (

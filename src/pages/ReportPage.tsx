@@ -1,4 +1,4 @@
-import { useVisitOrders } from '@/features/orders/useVisitOrders'
+import { useVisitOrders, useVisitOrderTotals } from '@/features/orders/useVisitOrders'
 import { useMemo, useState } from 'react'
 import { Sparkles, TrendingDown, TrendingUp, Minus } from 'lucide-react'
 import { SegmentedControl } from '@/components/SegmentedControl'
@@ -16,7 +16,7 @@ import {
   type ReportPeriod,
 } from '@/features/reports/personalReport'
 import { getPresetRange, localDateKey, todayDateString } from '@/lib/dateRange'
-import { formatScore } from '@/features/attendance/effectivenessScore'
+import { BAND_LABEL, formatScore, scoreBand } from '@/features/attendance/effectivenessScore'
 import type { ServerDay } from '@/features/attendance/efficiency'
 import { useAttendanceDays } from '@/features/attendanceSummary/useAttendanceDays'
 import { useAppSettings } from '@/hooks/useAppSettings'
@@ -52,6 +52,8 @@ export function ReportPage() {
   const settings = useAppSettings()
   const bothPeriods = useMemo(() => [...current.allVisits, ...previous.allVisits], [current.allVisits, previous.allVisits])
   const orderStates = useVisitOrders(bothPeriods)
+  const orderTotals = useVisitOrderTotals(bothPeriods)
+  const scoring = { orderTargetUsd: profile?.daily_order_target_usd ?? null, orderTotals }
   // Compare against the same stretch of the previous period (Mon–Thu vs Mon–Thu), not all of it.
   const { cutoff, prevDays, prevEndMs } = useMemo(() => {
     const cut = comparableCutoff(range.startIso, prevRange.startIso, new Date().toISOString(), prevRange.endIso)
@@ -85,14 +87,14 @@ export function ReportPage() {
     }
   }
   const stats = useMemo(
-    () => computeJourneyStats(current.days, undefined, rule, settings.flagRules, orderStates, dayContextFor(curServer.rows, today)),
+    () => computeJourneyStats(current.days, undefined, rule, settings.flagRules, orderStates, dayContextFor(curServer.rows, today), scoring),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the rule's fields are the real inputs
-    [current.days, curServer.rows, today, settings.breakMinutes, settings.breakPaid, settings.workStartTime, settings.workEndTime, settings.flagRules]
+    [current.days, curServer.rows, today, settings.breakMinutes, settings.breakPaid, settings.workStartTime, settings.workEndTime, settings.flagRules, orderTotals, profile?.daily_order_target_usd]
   )
   const prevStats = useMemo(
-    () => computeJourneyStats(prevDays, prevEndMs, rule, settings.flagRules, orderStates, dayContextFor(prevServer.rows, localDateKey(cutoff))),
+    () => computeJourneyStats(prevDays, prevEndMs, rule, settings.flagRules, orderStates, dayContextFor(prevServer.rows, localDateKey(cutoff)), scoring),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the rule's fields are the real inputs
-    [prevDays, prevServer.rows, cutoff, prevEndMs, settings.breakMinutes, settings.breakPaid, settings.workStartTime, settings.workEndTime, settings.flagRules]
+    [prevDays, prevServer.rows, cutoff, prevEndMs, settings.breakMinutes, settings.breakPaid, settings.workStartTime, settings.workEndTime, settings.flagRules, orderTotals, profile?.daily_order_target_usd]
   )
   const buckets = useMemo(() => visitBuckets(period, current.allVisits, new Date().toISOString()), [period, current.allVisits])
   const avg = bucketAverage(buckets)
@@ -125,6 +127,7 @@ export function ReportPage() {
     {
       label: 'Effectiveness',
       value: stats.score != null ? `${formatScore(stats.score)} / 10` : '—',
+      note: stats.score != null ? BAND_LABEL[scoreBand(stats.score)] : undefined,
       delta: scoreDelta,
       deltaText: `${scoreDelta > 0 ? '+' : ''}${scoreDelta.toFixed(1)} ${vsPrev}`,
       accent: true,
@@ -167,6 +170,7 @@ export function ReportPage() {
             <div key={m.label} className="space-y-1 rounded-2xl bg-white p-3.5 shadow-card">
               <p className="text-xs font-semibold text-neutral-500">{m.label}</p>
               <p className={`text-2xl font-extrabold tracking-tight ${m.accent ? 'text-status-working' : 'text-neutral-900'}`}>{m.value}</p>
+              {m.note && <p className="text-xs font-bold text-neutral-600">{m.note}</p>}
               <p className={`flex items-center gap-1 text-[11.5px] font-bold ${deltaTone(m.delta)}`}>
                 {m.delta > 0 ? <TrendingUp className="h-3.5 w-3.5" aria-hidden /> : m.delta < 0 ? <TrendingDown className="h-3.5 w-3.5" aria-hidden /> : <Minus className="h-3.5 w-3.5" aria-hidden />}
                 {m.deltaText}

@@ -24,7 +24,8 @@ import { getPresetRange, localDateKey, todayDateString } from '@/lib/dateRange'
 import { useAttendanceDays } from '@/features/attendanceSummary/useAttendanceDays'
 import { useTeamWorkDays } from '@/features/schedule/useTeamWorkDays'
 import { countsAsOrdered } from '@/features/orders/orderReconcile'
-import { useVisitOrders } from '@/features/orders/useVisitOrders'
+import { useVisitOrders, useVisitOrderTotals } from '@/features/orders/useVisitOrders'
+import { useOrderTargets } from '@/features/orders/useOrderTargets'
 import { formatScore, meanScore, scoreDay, scoreTextClass } from '@/features/attendance/effectivenessScore'
 import { visitSpan } from '@/features/attendance/flagRules'
 import { formatDuration, formatTime } from '@/lib/datetime'
@@ -97,6 +98,8 @@ export function TeamHomePage() {
 
   const weekVisits = week.visits.length
   const weekOrderStates = useVisitOrders(week.visits)
+  const weekOrderTotals = useVisitOrderTotals(week.visits)
+  const orderTargets = useOrderTargets()
   const weekOrdered = week.visits.filter((v) => countsAsOrdered(weekOrderStates[v.id])).length
   // A visit nobody checked out of counts at most the cap.
   const visitMsOf = (v: { checked_in_at: string; checked_out_at: string | null; flags?: string[] | null }) => {
@@ -113,7 +116,7 @@ export function TeamHomePage() {
         const sessions = week.attendance.filter((a) => a.user_id === r.userId && localDateKey(a.clock_in_at) === r.day)
         const visits = week.visits.filter((v) => v.user_id === r.userId && localDateKey(v.checked_in_at) === r.day)
         const rule = { breakMinutes: 0, breakPaid: true, start: r.scheduledStart ?? undefined, end: r.scheduledEnd ?? undefined }
-        return scoreDay(sessions.length ? sessions : [{ clock_in_at: r.firstIn!, clock_out_at: r.lastOut }], visits, r.day, rule, now, settings.flagRules, r.workedMinutes * 60_000, weekOrderStates, { late: r.status === 'late', leaveFraction: r.leaveFraction, breakRule: { breakMinutes: settings.breakMinutes, breakPaid: settings.breakPaid } }).score
+        return scoreDay(sessions.length ? sessions : [{ clock_in_at: r.firstIn!, clock_out_at: r.lastOut }], visits, r.day, rule, now, settings.flagRules, r.workedMinutes * 60_000, weekOrderStates, { late: r.status === 'late', leaveFraction: r.leaveFraction, breakRule: { breakMinutes: settings.breakMinutes, breakPaid: settings.breakPaid }, orderTargetUsd: orderTargets[r.userId] ?? null, orderTotals: weekOrderTotals }).score
       })
   )
 
@@ -230,7 +233,7 @@ export function TeamHomePage() {
           const lastOut = lastClockOut(s.sessions)
           const visitMs = done.reduce((n, v) => n + visitMsOf(v), 0)
           const own = shiftOf(s.member.id)
-          const score = scoreDay(s.sessions, done, today, workDays[s.member.id], now, settings.flagRules, undefined, weekOrderStates).score
+          const score = scoreDay(s.sessions, done, today, workDays[s.member.id], now, settings.flagRules, undefined, weekOrderStates, { orderTargetUsd: orderTargets[s.member.id] ?? null, orderTotals: weekOrderTotals }).score
           const sub =
             st === 'visiting' && s.openVisit
               ? `On a visit · ${formatDuration(now - Date.parse(s.openVisit.checked_in_at), language)}`

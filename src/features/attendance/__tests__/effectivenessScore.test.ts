@@ -1,38 +1,46 @@
 import { describe, expect, it } from 'vitest'
-import { BAND_LABEL, BAND_STYLE, computeScore, formatScore, lateFirstVisit, meanScore, scoreBand, scoreDay, scoreTextClass, travelDeductionMs, travelMeters } from '../effectivenessScore'
+import { BAND_LABEL, BAND_STYLE, computeScore, formatScore, inputsOf, lateFirstVisit, meanScore, nextBand, nextSteps, orderValueUsd, scoreBand, scoreDay, scoreTextClass, travelDeductionMs, travelMeters } from '../effectivenessScore'
 import { DEFAULT_FLAG_RULES } from '../flagRules'
 
 const HOUR = 3_600_000
-const base = { effectiveVisits: 0, ineffectiveVisits: 0, visitTarget: 10, orderedVisits: 0, totalVisits: 0, activeMs: 0, travelMeters: 0, travelDeductionMs: 0, workingMs: 9 * HOUR, lateFirstVisit: false }
+const base = { effectiveVisits: 0, ineffectiveVisits: 0, visitTarget: 10, orderedVisits: 0, totalVisits: 0, orderValueUsd: 0, orderTargetUsd: 300, activeMs: 0, travelMeters: 0, travelDeductionMs: 0, workingMs: 9 * HOUR, lateFirstVisit: false }
 
 describe('computeScore', () => {
-  it('scores each part against its own goal: visits 100% of target, active time 50% of working hours, orders 25% of visits', () => {
-    // 5 effective + 2 ineffective of 10 -> 55% of the 100% goal; 3 h of 9 h = 33.3% of the 50% goal = 66.7%; 1 order in 4 visits = 25% of the 25% goal = 100%
-    const d = computeScore({ ...base, effectiveVisits: 5, ineffectiveVisits: 2, totalVisits: 7, orderedVisits: 2, activeMs: 3 * HOUR })
+  it('scores each part against its own goal: visits 100% of target, active time 50% of working hours, orders 100% of the order target', () => {
+    // 5 effective + 2 ineffective of 10 -> 55%; 3 h of 9 h = 33.3% of the 50% goal = 66.7%; $186 of the $300 order target = 62%
+    const d = computeScore({ ...base, effectiveVisits: 5, ineffectiveVisits: 2, totalVisits: 7, orderedVisits: 2, orderValueUsd: 186, activeMs: 3 * HOUR })
     expect(d.visitShare).toBeCloseTo(0.55, 5)
     expect(d.activeRatio).toBeCloseTo(1 / 3, 5)
     expect(d.hoursShare).toBeCloseTo(2 / 3, 5)
-    expect(d.orderRatio).toBeCloseTo(2 / 7, 5)
-    expect(d.orderShare).toBe(1) // 28.6% is past the 25% goal
-    expect(d.score).toBe(7.4) // (0.55 + 0.6667 + 1) / 3 x 10 = 7.39
+    expect(d.orderRatio).toBeCloseTo(2 / 7, 5) // shown, no longer scored
+    expect(d.orderShare).toBeCloseTo(0.62, 5)
+    expect(d.score).toBe(6.1) // (0.55 + 0.6667 + 0.62) / 3 x 10 = 6.12
   })
 
   it('gives 10.0 when every goal is met, and caps each part at its goal', () => {
-    expect(computeScore({ ...base, effectiveVisits: 10, totalVisits: 10, orderedVisits: 3, activeMs: 4.5 * HOUR }).score).toBe(10) // 100%, 50%, 30%
-    expect(computeScore({ ...base, effectiveVisits: 30, totalVisits: 30, orderedVisits: 30, activeMs: 9 * HOUR }).score).toBe(10)
+    expect(computeScore({ ...base, effectiveVisits: 10, totalVisits: 10, orderedVisits: 3, orderValueUsd: 300, activeMs: 4.5 * HOUR }).score).toBe(10)
+    expect(computeScore({ ...base, effectiveVisits: 30, totalVisits: 30, orderedVisits: 30, orderValueUsd: 5000, activeMs: 9 * HOUR }).score).toBe(10)
   })
 
   it('is 0 with nothing done, and one decimal otherwise', () => {
     expect(computeScore({ ...base }).score).toBe(0)
-    // visits 40%, active 3.5/9 = 38.9% -> 77.8% of goal, orders 1 of 4 = 25% -> 100%: (0.4 + 0.7778 + 1) / 3 x 10 = 7.26
-    expect(computeScore({ ...base, effectiveVisits: 4, totalVisits: 4, orderedVisits: 1, activeMs: 3.5 * HOUR }).score).toBe(7.3)
+    // visits 40%, active 3.5/9 = 38.9% -> 77.8% of goal, orders $150 of $300 = 50%: (0.4 + 0.7778 + 0.5) / 3 x 10 = 5.59
+    expect(computeScore({ ...base, effectiveVisits: 4, totalVisits: 4, orderedVisits: 1, orderValueUsd: 150, activeMs: 3.5 * HOUR }).score).toBe(5.6)
   })
 
-  it('has no order points without orders, and none to lose without visits', () => {
-    const d = computeScore({ ...base, effectiveVisits: 10, totalVisits: 10, activeMs: 4.5 * HOUR })
-    expect(d.orderShare).toBe(0)
-    expect(d.score).toBe(6.7) // (1 + 1 + 0) / 3
-    expect(computeScore({ ...base, workingMs: 9 * HOUR }).orderShare).toBe(0)
+  it('has no order points without orders, and one big order counts more than many visits to one small one', () => {
+    const none = computeScore({ ...base, effectiveVisits: 10, totalVisits: 10, activeMs: 4.5 * HOUR })
+    expect(none.orderShare).toBe(0)
+    expect(none.score).toBe(6.7) // (1 + 1 + 0) / 3
+    const small = computeScore({ ...base, effectiveVisits: 1, totalVisits: 1, orderedVisits: 1, orderValueUsd: 30 })
+    const big = computeScore({ ...base, effectiveVisits: 1, totalVisits: 1, orderedVisits: 1, orderValueUsd: 300 })
+    expect(big.orderShare).toBe(1)
+    expect(small.orderShare).toBeCloseTo(0.1, 5)
+  })
+
+  it('leaves the orders part out when the person has no order target', () => {
+    const d = computeScore({ ...base, effectiveVisits: 10, totalVisits: 10, activeMs: 4.5 * HOUR, orderTargetUsd: 0, orderValueUsd: 0 })
+    expect(d.score).toBe(10) // (1 + 1) / 2
   })
 
   it('measures active time against working hours less the long-travel deduction', () => {
@@ -244,5 +252,78 @@ describe('scoreDay: a late clock-in counts the full working hours', () => {
   it('has no effect without the person\'s hours', () => {
     const d = scoreDay([session('02:00', '10:00')], v, day, null, after, rules)
     expect(d.lateFullHours).toBe(false)
+  })
+})
+
+describe('orderValueUsd', () => {
+  const v = (id: string, amount: number | null, extra: Record<string, unknown> = {}) => ({ id, checked_in_at: at('02:00'), checked_out_at: at('02:30'), order_amount_usd: amount, ...extra })
+
+  it('adds up the visits that count as ordered, by the amount the person entered', () => {
+    expect(orderValueUsd([v('a', 120), v('b', null), v('c', 30)], undefined, undefined)).toBe(150)
+  })
+
+  it('uses a synced sale order total in place of the entered amount, once per order number', () => {
+    const totals = { a: { orderNo: 'SO-1', totalUsd: 500 }, b: { orderNo: 'SO-1', totalUsd: 500 }, c: { orderNo: 'SO-2', totalUsd: null } }
+    // a and b matched the same order; c matched one with no total, so the entered amount stands
+    expect(orderValueUsd([v('a', 120), v('b', 80), v('c', 40)], undefined, totals)).toBe(540)
+  })
+
+  it('leaves out cancelled visits and orders that no longer count (unmatched)', () => {
+    const states = { a: 'confirmed', b: 'unmatched', c: 'pending' } as const
+    expect(orderValueUsd([v('a', 100), v('b', 100), v('c', 50, { cancelled_at: at('03:00') })], states, undefined)).toBe(100)
+  })
+})
+
+describe('scoreDay: orders by value', () => {
+  const rule = { breakMinutes: 0, breakPaid: true, start: '08:00', end: '17:00' }
+  const rules = { ...DEFAULT_FLAG_RULES, orderTargetUsd: 300, fullDayHours: 9 }
+  const visits = [{ ...visit('02:00', '02:40'), id: 'v1', order_amount_usd: 150 }]
+
+  it("measures the day's order value against the person's own target, falling back to the company's", () => {
+    const own = scoreDay([clockIn], visits, day, rule, 0, rules, undefined, undefined, { orderTargetUsd: 600 })
+    expect(own.orderTargetUsd).toBe(600)
+    expect(own.orderValueUsd).toBe(150)
+    expect(own.orderShare).toBeCloseTo(0.25, 5)
+    const company = scoreDay([clockIn], visits, day, rule, 0, rules)
+    expect(company.orderTargetUsd).toBe(300)
+    expect(company.orderShare).toBeCloseTo(0.5, 5)
+  })
+
+  it("scales the target by the day's scheduled hours", () => {
+    const half = scoreDay([clockIn], visits, day, { ...rule, end: '12:30' }, 0, rules, undefined, undefined, { orderTargetUsd: 600 }) // 4.5 of 9 h
+    expect(half.orderTargetUsd).toBe(300)
+  })
+})
+
+describe('nextBand and nextSteps', () => {
+  it('names the next band and the score that reaches it', () => {
+    expect(nextBand(4.1)).toEqual({ band: 'average', at: 5 })
+    expect(nextBand(6.9)).toEqual({ band: 'good', at: 7 })
+    expect(nextBand(8.2)).toEqual({ band: 'excellent', at: 9.1 })
+    expect(nextBand(9.5)).toBeNull()
+  })
+
+  const day4 = { ...base, effectiveVisits: 4, totalVisits: 4, orderedVisits: 0, activeMs: 2 * HOUR }
+
+  it('suggests the fewest extra visits and extra orders that reach the next band', () => {
+    const now = computeScore(day4).score as number
+    const r = nextSteps(day4)
+    expect(r.next?.band).toBe(nextBand(now)?.band)
+    const visit = r.steps.find((s) => s.kind === 'visit')
+    const order = r.steps.find((s) => s.kind === 'order')
+    expect(visit && visit.score).toBeGreaterThan(now)
+    expect(order && order.orderUsd).toBe(100) // a quarter of the $300 target, to the nearest $50
+    for (const s of r.steps) if (s.reaches) expect(s.score).toBeGreaterThanOrEqual(r.next!.at)
+  })
+
+  it('has nothing to suggest at the top band, without a score, or for orders without a target', () => {
+    expect(nextSteps({ ...base, effectiveVisits: 10, totalVisits: 10, orderedVisits: 3, orderValueUsd: 300, activeMs: 4.5 * HOUR }).steps).toEqual([])
+    expect(nextSteps({ ...base, workingMs: 0 }).steps).toEqual([])
+    expect(nextSteps({ ...day4, orderTargetUsd: 0 }).steps.every((s) => s.kind === 'visit')).toBe(true)
+  })
+
+  it('rebuilds a day score\'s inputs so the suggestions match what was shown', () => {
+    const d = computeScore({ ...day4, lateFirstVisit: true })
+    expect(computeScore(inputsOf(d)).score).toBe(d.score)
   })
 })

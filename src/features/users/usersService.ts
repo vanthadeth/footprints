@@ -55,6 +55,8 @@ export interface EditUserInput {
   roleId: string | null
   status: UserStatus
   isFieldSales: boolean
+  /** This person's daily order target in USD (null: the company default). Left alone when undefined. */
+  dailyOrderTargetUsd?: number | null
   /** Required by a DB check constraint when status is 'suspended'; ignored otherwise. */
   suspendedFrom?: string | null
   suspendedTo?: string | null
@@ -141,6 +143,13 @@ export const usersService = {
     return (data ?? []).map(fromRow)
   },
 
+  /** The person's own daily order target in USD, or null when they use the company default (not part of manageable_users). */
+  async orderTarget(userId: string): Promise<number | null> {
+    const { data, error } = await supabase.from('users').select('daily_order_target_usd').eq('id', userId).maybeSingle()
+    if (error) throw error
+    return data?.daily_order_target_usd != null ? Number(data.daily_order_target_usd) : null
+  },
+
   async listRoles(): Promise<Option[]> {
     const { data, error } = await supabase.from('roles').select('id, name').eq('active', true).order('sort_order')
     if (error) throw error
@@ -166,6 +175,7 @@ export const usersService = {
         role_id: input.roleId,
         status: input.status,
         is_field_sales: input.isFieldSales,
+        ...(input.dailyOrderTargetUsd !== undefined ? { daily_order_target_usd: input.dailyOrderTargetUsd } : {}),
         // Only sent when relevant -- DB check constraints require these
         // exact fields when status is suspended/discharged, and don't care
         // about stale values from a previous suspension otherwise.
