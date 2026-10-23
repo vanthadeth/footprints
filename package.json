@@ -3,27 +3,18 @@
   "private": true,
   "version": "0.2.0",
   "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "preview": "vite preview",
+    "dev": "npm run dev -w @footprints/field",
+    "dev:admin": "npm run dev -w @footprints/admin",
+    "build": "npm run build --workspaces --if-present",
+    "preview": "npm run preview -w @footprints/field",
     "lint": "eslint .",
-    "typecheck": "tsc -b --noEmit",
-    "test": "vitest run"
-  },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.45.4",
-    "leaflet": "^1.9.4",
-    "lucide-react": "^0.451.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-leaflet": "^4.2.1",
-    "react-router-dom": "^6.26.2",
-    "react-zoom-pan-pinch": "^4.2.0",
-    "workbox-expiration": "^7.4.1",
-    "workbox-precaching": "^7.4.1",
-    "workbox-routing": "^7.4.1",
-    "workbox-strategies": "^7.4.1"
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm test --workspaces --if-present"
   },
   "devDependencies": {
     "@eslint/js": "^9.12.0",

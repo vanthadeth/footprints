@@ -7,6 +7,24 @@ employee attendance, customer visits, sales journeys, GPS locations, fleet
 status, and management reports — built on top of HIG's existing Supabase
 backend (`hig-biz-opt`).
 
+## Repository layout (monorepo)
+
+npm workspaces; one Supabase project backs both apps.
+
+| Path | What it is |
+|---|---|
+| `apps/field` | The field-sales PWA described below (Vercel project 1, root directory `apps/field`) |
+| `apps/admin` | Footprints Admin: desktop-first, Super Admin only, no PWA (Vercel project 2, root directory `apps/admin`). Sections: User management, Data sync, Company settings, System settings. Phase 0 ships the shell, shared login and Super Admin gate; the section screens are placeholders |
+| `packages/shared` | Source shared by both apps: Supabase client, auth (`AuthContext`, `useProfile`, guards), login / forgot / reset pages, permissions, i18n, theme, `AdminKit` and desktop UI, Tailwind preset and base styles. Imported as `@footprints/shared/...`; no build step |
+| `supabase/` | Migrations and Edge Functions (unchanged, shared by both apps) |
+
+Commands run from the repo root: `npm run dev` (field), `npm run dev:admin`
+(admin, port 5174), and `npm run typecheck | lint | test | build` for every
+workspace. Each app has its own `.env.example`; the admin app needs the same
+`VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` and its origin added to
+Supabase Auth's redirect URLs (password reset). Paths in the sections below
+that start with `src/` refer to `apps/field/src/` unless they are shared code.
+
 ## What's built
 
 - **Auth**: email/password sign-in, forgot/reset password, session-based
