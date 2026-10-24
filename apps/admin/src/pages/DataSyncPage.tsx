@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Eye, FileSpreadsheet, Loader2, RefreshCw } from 'lucide-react'
 import { DataTable, type Column } from '@footprints/shared/components/desktop/DataTable'
 import { countsText, orderCountsText, scheduleText, SCHEDULES, type SheetSyncRun, type SheetSyncSettings } from '@footprints/shared/features/sheetSync/sheetSync'
 import { sheetSyncService } from '@footprints/shared/features/sheetSync/sheetSyncService'
 import { formatTime } from '@footprints/shared/lib/datetime'
 import { Notice, PrimaryButton, SecondaryButton } from '@/components/form'
-import { groupBySheet, listLegacyDefinitions, type SheetGroup } from '@/features/sync/legacySyncs'
+import { SourcesTab } from '@/features/sync/SourcesTab'
 
 const RUN_COLUMNS: Column<SheetSyncRun>[] = [
   { key: 'when', header: 'When', sortValue: (r) => r.started_at, cell: (r) => <span className="tabular-nums">{new Date(r.started_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span> },
@@ -36,20 +37,25 @@ function agoText(iso: string | null): string {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
+const TABS = [
+  ['overview', 'Overview'],
+  ['sources', 'Sources'],
+] as const
+
 export function DataSyncPage() {
+  const [params, setParams] = useSearchParams()
+  const tab = params.get('tab') === 'sources' ? 'sources' : 'overview'
   const [settings, setSettings] = useState<SheetSyncSettings | null>(null)
   const [runs, setRuns] = useState<SheetSyncRun[]>([])
-  const [groups, setGroups] = useState<SheetGroup[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [busy, setBusy] = useState<'preview' | 'run' | null>(null)
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
 
   const load = useCallback(async () => {
-    const [s, r, defs] = await Promise.allSettled([sheetSyncService.get(), sheetSyncService.runs(), listLegacyDefinitions()])
+    const [s, r] = await Promise.allSettled([sheetSyncService.get(), sheetSyncService.runs()])
     setSettings(s.status === 'fulfilled' ? s.value : null)
     setRuns(r.status === 'fulfilled' ? r.value : [])
-    setGroups(defs.status === 'fulfilled' ? groupBySheet(defs.value) : [])
     setLoadError(s.status === 'rejected' ? (s.reason instanceof Error ? s.reason.message : 'Couldn’t load the sync.') : null)
     setLoading(false)
   }, [])
@@ -81,6 +87,24 @@ export function DataSyncPage() {
         <p className="mt-1 text-sm text-neutral-500">Where data comes from and which tables it goes to</p>
       </header>
 
+      <div role="tablist" className="flex gap-1 border-b border-neutral-200 dark:border-neutral-800">
+        {TABS.map(([key, label]) => (
+          <button
+            key={key}
+            role="tab"
+            aria-selected={tab === key}
+            onClick={() => setParams(key === 'overview' ? {} : { tab: key })}
+            className={`-mb-px border-b-2 px-4 py-2 text-sm font-semibold ${tab === key ? 'border-brand-500 text-brand-500' : 'border-transparent text-neutral-500 hover:text-neutral-800'}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'sources' ? (
+        <SourcesTab />
+      ) : (
+        <>
       {loadError && <Notice tone="error">{loadError}</Notice>}
 
       <section aria-label="Google Sheet sync" className="space-y-3">
@@ -138,36 +162,8 @@ export function DataSyncPage() {
         <h2 className="text-[11px] font-extrabold uppercase tracking-[0.05em] text-neutral-500">Recent runs</h2>
         <DataTable columns={RUN_COLUMNS} rows={runs} rowKey={(r) => r.id} loading={loading} empty="No runs yet." />
       </section>
-
-      <section aria-label="Sheets and the tables they feed" className="space-y-3">
-        <div>
-          <h2 className="text-[11px] font-extrabold uppercase tracking-[0.05em] text-neutral-500">Sheets and the tables they feed</h2>
-          <p className="mt-1 text-xs text-neutral-500">
-            The older sync definitions, read-only. Footprints doesn’t run these on a schedule; each was last run by hand. One sheet tab can feed several tables.
-          </p>
-        </div>
-        {groups.length === 0 ? (
-          <p className="text-sm text-neutral-500">{loading ? 'Loading…' : 'No older definitions.'}</p>
-        ) : (
-          <div className="grid gap-3 md:grid-cols-2">
-            {groups.map((g) => (
-              <div key={g.key} className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-                <p className="text-sm font-bold text-neutral-900 dark:text-neutral-50">Tab “{g.tabName}”</p>
-                <ul className="mt-2 space-y-1.5">
-                  {g.mappings.map((m) => (
-                    <li key={m.id} className="flex items-baseline justify-between gap-3 text-sm">
-                      <span className="min-w-0 truncate text-neutral-700 dark:text-neutral-200">
-                        {m.name} <span className="text-neutral-400">→</span> <code className="rounded bg-neutral-100 px-1 py-0.5 text-xs dark:bg-neutral-800">{m.targetTable}</code>
-                      </span>
-                      <span className="shrink-0 text-xs text-neutral-500">{m.lastRunAt ? `last run ${agoText(m.lastRunAt)}` : 'never run'}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+        </>
+      )}
     </div>
   )
 }
