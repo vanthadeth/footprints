@@ -62,7 +62,7 @@ function Dots({ cell }: { cell: DayCell }) {
   )
 }
 
-function Nav({ label, onPrev, onNext, unit, onToday }: { label: string; onPrev: () => void; onNext: () => void; unit: string; onToday?: () => void }) {
+export function CalendarNav({ label, onPrev, onNext, unit, onToday }: { label: string; onPrev: () => void; onNext: () => void; unit: string; onToday?: () => void }) {
   return (
     <div className="cal-head">
       <span className="cal-title">{label}</span>
@@ -123,7 +123,7 @@ export function Calendar({
       <section className="cal-card" aria-label={`${view[0].toUpperCase()}${view.slice(1)} calendar`}>
         {view === 'month' && (
           <>
-            <Nav label={monthLabel(cursor)} unit="month" onPrev={() => setCursor(addMonths(cursor, -1))} onNext={() => setCursor(addMonths(cursor, 1))} onToday={() => setCursor(today)} />
+            <CalendarNav label={monthLabel(cursor)} unit="month" onPrev={() => setCursor(addMonths(cursor, -1))} onNext={() => setCursor(addMonths(cursor, 1))} onToday={() => setCursor(today)} />
             <div className="cal-grid cal-wd">
               {weekdayNames(weekStart).map((w) => (
                 <span key={w} className={w === 'SAT' || w === 'SUN' ? 'cal-we' : ''}>{w.slice(0, 3)}</span>
@@ -141,7 +141,7 @@ export function Calendar({
         )}
         {view === 'week' && (
           <>
-            <Nav label={weekLabel(startOfWeek(cursor, weekStart))} unit="week" onPrev={() => setCursor(addDays(cursor, -7))} onNext={() => setCursor(addDays(cursor, 7))} />
+            <CalendarNav label={weekLabel(startOfWeek(cursor, weekStart))} unit="week" onPrev={() => setCursor(addDays(cursor, -7))} onNext={() => setCursor(addDays(cursor, 7))} />
             <div className="cal-grid cal-lines">
               {buildWeek(cursor, weekStart, opts).map((c) => (
                 <button key={c.key} type="button" className={cellClass(c, 'cal-tall')} disabled={c.disabled} aria-label={longDate(c.key)} aria-pressed={c.selected} aria-current={c.today ? 'date' : undefined} onClick={() => pick(c)}>

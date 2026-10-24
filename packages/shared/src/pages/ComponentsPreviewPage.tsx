@@ -1,5 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { Moon, Sun } from 'lucide-react'
+import { AttendanceCalendar, AttendanceKey } from '../components/AttendanceCalendar'
+import type { AttendanceRecord } from '../components/attendance'
 import { Calendar } from '../components/Calendar'
 import type { DayMarks } from '../components/calendar'
 import { DayStrip } from '../components/DayStrip'
@@ -60,6 +62,30 @@ function CalendarDemo({ view }: { view: 'month' | 'week' | 'agenda' }) {
   return <Calendar today={CAL_TODAY} value={value} onSelect={setValue} defaultView={view} marks={CAL_MARKS} disabled={[{ from: '2026-10-31', to: '2026-10-31' }]} />
 }
 
+const ATT_RECORDS: Record<string, AttendanceRecord> = Object.fromEntries(
+  [1, 2, 5, 7, 12, 16, 19, 22, 23].map((d) => [`2026-10-${String(d).padStart(2, '0')}`, { result: 'present' } as AttendanceRecord]),
+)
+Object.assign(ATT_RECORDS, {
+  '2026-10-06': { result: 'late', minutes: 18 },
+  '2026-10-08': { result: 'leave', code: 'AL' },
+  '2026-10-09': { result: 'leave', code: 'AL' },
+  '2026-10-13': { result: 'late', minutes: 35 },
+  '2026-10-14': { result: 'absent' },
+  '2026-10-20': { result: 'late', minutes: 12 },
+  '2026-10-21': { result: 'leave', code: 'UL' },
+  '2026-10-19': { result: 'leave', code: 'SL' },
+})
+
+function AttendanceDemo({ view }: { view: 'month' | 'week' }) {
+  const [value, setValue] = useState<string | undefined>()
+  return (
+    <div>
+      <AttendanceCalendar records={ATT_RECORDS} holidays={['2026-10-15']} today={CAL_TODAY} value={value} onSelect={setValue} defaultView={view} />
+      <AttendanceKey />
+    </div>
+  )
+}
+
 interface Entry {
   id: string
   name: string
@@ -104,6 +130,16 @@ const ENTRIES: Entry[] = [
       { label: 'Month: tap a day. Holiday stripes, late / leave / absent backgrounds, appointment and visit dots, 31 Oct disabled', node: <CalendarDemo view="month" /> },
       { label: 'Week', node: <CalendarDemo view="week" /> },
       { label: 'Agenda', node: <CalendarDemo view="agenda" /> },
+    ],
+  },
+  {
+    id: 'attendance-calendar',
+    name: 'Attendance calendar (one person)',
+    board: 'AttendanceCalendar.dc.html',
+    source: 'packages/shared/src/components/AttendanceCalendar.tsx',
+    variants: [
+      { label: 'Month: green check present, grey AL / UL / SL, red A absent, amber total minutes late or early', node: <AttendanceDemo view="month" /> },
+      { label: 'Week', node: <AttendanceDemo view="week" /> },
     ],
   },
 ]

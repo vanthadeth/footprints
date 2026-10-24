@@ -374,6 +374,11 @@ html.dark {
   --cal-leave: #e3e3e3;
   --cal-absent: #f6d5d5;
   --cal-stripe: #ececee;
+  --att-ok: #00701f;
+  --att-amber: #955000;
+  --att-leave: #4d4d4d;
+  --att-absent: #ba2323;
+  --att-tile: #f4f4f4;
 }
 html.dark {
   --cal-card: #232323;
@@ -388,6 +393,11 @@ html.dark {
   --cal-leave: #3a3a3a;
   --cal-absent: rgba(255, 143, 143, 0.24);
   --cal-stripe: #2f3135;
+  --att-ok: #5fd38a;
+  --att-amber: #f2a54a;
+  --att-leave: #c8c8c8;
+  --att-absent: #ff8f8f;
+  --att-tile: #2b2b2b;
 }
 .cal-switch { display: flex; gap: 3px; width: 100%; max-width: 390px; box-sizing: border-box; padding: 3px; margin-bottom: 12px; border-radius: 12px; background: var(--cal-card); border: 1px solid var(--cal-line); }
 .cal-switch button { flex: 1; font: inherit; font-size: 13px; font-weight: 700; line-height: 34px; border: 0; border-radius: 9px; background: transparent; color: var(--cal-muted); }
@@ -426,3 +436,28 @@ html.dark {
 .cal-ad small { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: var(--cal-muted); }
 .cal-ae { font-size: 13px; color: var(--cal-muted); }
 .cal-ag-t .cal-ad b, .cal-ag-t .cal-ad small { color: var(--cal-brand); }
+
+/* Attendance calendar (components/AttendanceCalendar.tsx): the base calendar with a result under each date. */
+.cal-day.att { height: 58px; padding-top: 5px; gap: 1px; }
+.cal-day.att.att-tall { height: 84px; padding-top: 8px; gap: 3px; }
+.att-st { display: flex; align-items: center; justify-content: center; height: 20px; font-size: 11px; line-height: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.att-present .att-st { color: var(--att-ok); }
+.att-late .att-st { color: var(--att-amber); }
+.att-leave .att-st { color: var(--att-leave); }
+.att-absent .att-st { color: var(--att-absent); }
+.att-sum { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; width: 100%; max-width: 390px; margin-top: 12px; }
+.att-sum > div { display: flex; flex-direction: column; gap: 2px; padding: 10px 8px; border-radius: 12px; background: var(--cal-card); border: 1px solid var(--cal-line); }
+.att-sum b { font-size: 20px; line-height: 24px; }
+.att-sum small { font-size: 12px; color: var(--cal-muted); }
+.att-sum span { font-size: 11px; font-weight: 700; color: var(--att-amber); }
+.att-sum-p b { color: var(--att-ok); }
+.att-sum-l b { color: var(--att-amber); }
+.att-sum-v b { color: var(--att-leave); }
+.att-sum-a b { color: var(--att-absent); }
+.att-key { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; width: 100%; max-width: 390px; margin-top: 12px; font-size: 12px; line-height: 16px; color: var(--cal-muted); }
+.att-key-i { display: flex; align-items: center; gap: 8px; }
+.att-sw { flex: none; display: flex; align-items: center; justify-content: center; width: 30px; height: 20px; box-sizing: border-box; border: 1px solid var(--cal-line); border-radius: 3px; background: var(--cal-card); font-size: 10px; font-style: normal; font-weight: 700; }
+.att-sw.att-present { color: var(--att-ok); }
+.att-sw.att-late { color: var(--att-amber); }
+.att-sw.att-leave { color: var(--att-leave); }
+.att-sw.att-absent { color: var(--att-absent); }
