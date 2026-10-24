@@ -1,5 +1,5 @@
-import { addDays, fromKey, longDate, toKey, type DateKey } from './calendar'
-import { addToSummary, dayMark, emptySummary, minutesText, type AttendanceRecord, type AttendanceSummary, type MarkContext, type MarkKind } from './attendance'
+import { addDays, fromKey, longDate, startOfWeek, toKey, type DateKey } from './calendar'
+import { LEAVE_NAMES, addToSummary, dayMark, emptySummary, minutesText, type AttendanceRecord, type AttendanceSummary, type MarkContext, type MarkKind } from './attendance'
 
 export interface RosterPerson {
   id: string
@@ -34,6 +34,8 @@ export interface RosterCell {
   /** Leave code, A, minutes, or in the week of the activity mode "visits · $amount". */
   text: string
   check: boolean
+  /** Half a day of leave: a ½ next to the mark. */
+  half: boolean
   /** A day with visits (activity mode, month). */
   dot: boolean
   /** Accessible name. */
@@ -61,9 +63,9 @@ export function rosterCell(key: DateKey, person: RosterPerson, data: RosterData,
   const mark = dayMark(key, ctx, data.records[person.id]?.[key])
   const act = data.activity?.[person.id]?.[key]
   const base = { key, kind: mark.kind, label: `${person.name}, ${longDate(key)}${mark.label ? `: ${mark.label}` : ''}` }
-  if (mode === 'attendance') return { ...base, text: mark.text, check: mark.kind === 'present', dot: false }
+  if (mode === 'attendance') return { ...base, text: mark.text, check: mark.kind === 'present', half: mark.half, dot: false }
   const text = detail === 'week' && attended(mark.kind) && act ? `${act.visits} · ${money(act.orders.amount)}` : ''
-  return { ...base, text, check: false, dot: detail === 'month' && attended(mark.kind) && !!act && act.visits > 0 }
+  return { ...base, text, check: false, half: false, dot: detail === 'month' && attended(mark.kind) && !!act && act.visits > 0 }
 }
 
 /** People grouped by department (in order of first appearance), one cell per day. */
@@ -93,6 +95,12 @@ export function monthDays(key: DateKey): DateKey[] {
 /** Seven days from `start`. */
 export function weekDays(start: DateKey): DateKey[] {
   return Array.from({ length: 7 }, (_, i) => addDays(start, i))
+}
+
+/** The first and last date shown for a month or week around `cursor` (weeks start on Monday). */
+export function visibleRange(view: 'month' | 'week', cursor: DateKey): { from: DateKey; to: DateKey } {
+  const days = view === 'month' ? monthDays(cursor) : weekDays(startOfWeek(cursor, 'mon'))
+  return { from: days[0], to: days[days.length - 1] }
 }
 
 /** Totals over every row. */
@@ -195,10 +203,11 @@ export function dayList(data: RosterData, key: DateKey, targets: Targets): DayLi
       }
     }
     const chip =
-      mark.kind === 'present' ? 'On time'
-      : mark.kind === 'late' && rec?.result === 'late' ? `Late ${minutesText(rec.minutes)}`
-      : mark.kind === 'leave' && rec?.result === 'leave' ? (({ AL: 'Annual leave', UL: 'Unpaid leave', SL: 'Sick leave' })[rec.code])
+      mark.kind === 'present' ? `On time${mark.half ? ' ½' : ''}`
+      : mark.kind === 'late' && rec?.result === 'late' ? `Late ${minutesText(rec.minutes)}${mark.half ? ' ½' : ''}`
+      : mark.kind === 'leave' && rec?.result === 'leave' ? `${LEAVE_NAMES[rec.code]}${rec.half ? ' ½' : ''}`
       : mark.kind === 'absent' ? 'Absent'
+      : mark.kind === 'dayoff' ? 'Day off'
       : mark.kind === 'holiday' ? 'Holiday'
       : mark.kind === 'weekend' ? 'Weekend'
       : '-'

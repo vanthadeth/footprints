@@ -42,6 +42,7 @@ const TITLE_KEYS: Record<string, string> = {
   '/team': 'nav.team',
   '/people': 'nav.people',
   '/attendance': 'nav.attendanceAll',
+  '/attendance/roster': 'nav.attendanceRoster',
   '/approvals': 'nav.approvals',
   '/admin': 'nav.admin',
   '/trips': 'nav.trips',

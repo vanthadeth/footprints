@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Check, ChevronLeft, ChevronRight } from 'lucide-react'
 import { addDays, addMonths, monthLabel, startOfWeek, weekLabel, fromKey, type DateKey } from './calendar'
 import type { MarkKind } from './attendance'
@@ -9,6 +9,7 @@ import {
   money,
   monthDays,
   teamKpis,
+  visibleRange,
   weekDays,
   type DayPerson,
   type RosterCell,
@@ -30,6 +31,10 @@ interface Props {
   targets?: Targets
   /** Under the title, after the people count, for example the team name. */
   subtitle?: string
+  /** Called with the first and last visible date on first render and whenever the month or week changes, so a page can load just that range. */
+  onRangeChange?: (from: DateKey, to: DateKey) => void
+  /** Data for the visible range is still loading: the grid dims and is marked busy. */
+  loading?: boolean
   className?: string
 }
 
@@ -37,8 +42,9 @@ const WEEKDAY_LETTER = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 const DEFAULT_TARGETS: Targets = { visits: 8, orders: 300 }
 
 function CellContent({ cell, mode }: { cell: RosterCell; mode: RosterMode }) {
-  if (cell.check) return <Check size={14} strokeWidth={3.2} aria-hidden="true" />
-  if (cell.text) return <span>{cell.text}</span>
+  const half = cell.half ? <span className="ros-half">½</span> : null
+  if (cell.check) return <><Check size={14} strokeWidth={3.2} aria-hidden="true" />{half}</>
+  if (cell.text) return <><span>{cell.text}</span>{half}</>
   if (mode === 'activity' && cell.dot) return <i className="ros-dot" />
   return null
 }
@@ -118,7 +124,9 @@ function Key({ mode }: { mode: RosterMode }) {
           { cls: 'ros-leave', node: 'AL', name: 'Annual leave' },
           { cls: 'ros-leave', node: 'UL', name: 'Unpaid leave' },
           { cls: 'ros-leave', node: 'SL', name: 'Sick leave' },
+          { cls: 'ros-leave', node: 'FD', name: 'Flexible day off (leave)' },
           { cls: 'ros-absent', node: 'A', name: 'Absent' },
+          { cls: 'ros-dayoff', node: '–', name: 'Day off (flexible, not absent)' },
           { cls: 'ros-holiday', node: '', name: 'Holiday' },
           { cls: 'ros-weekend', node: '', name: 'Weekend' },
         ]
@@ -189,7 +197,7 @@ function DayPanel({ data, date, mode, targets, onOpenPerson }: { data: RosterDat
   )
 }
 
-function TeamCalendarView({ mode, data, defaultView = 'month', value, onSelect, onOpenPerson, targets = DEFAULT_TARGETS, subtitle, className = '' }: Props & { mode: RosterMode }) {
+function TeamCalendarView({ mode, data, defaultView = 'month', value, onSelect, onOpenPerson, targets = DEFAULT_TARGETS, subtitle, onRangeChange, loading = false, className = '' }: Props & { mode: RosterMode }) {
   const [view, setView] = useState<'month' | 'week'>(defaultView)
   const [cursor, setCursor] = useState<DateKey>(value ?? data.today)
   const [own, setOwn] = useState<DateKey>(value ?? data.today)
@@ -198,6 +206,12 @@ function TeamCalendarView({ mode, data, defaultView = 'month', value, onSelect, 
     setOwn(d)
     onSelect?.(d)
   }
+  const range = visibleRange(view, cursor)
+  useEffect(() => {
+    onRangeChange?.(range.from, range.to)
+    // onRangeChange is the caller's loader; re-run only when the visible range changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [range.from, range.to])
   const days = view === 'month' ? monthDays(cursor) : weekDays(startOfWeek(cursor, 'mon'))
   const groups = buildRoster(data, days, mode, view)
   const kpis = view === 'month' ? teamKpis(groups, data, days, mode, targets) : []
@@ -205,39 +219,41 @@ function TeamCalendarView({ mode, data, defaultView = 'month', value, onSelect, 
   const title = view === 'month' ? `${name} · ${monthLabel(cursor)}` : `${name} · ${weekLabel(startOfWeek(cursor, 'mon'))}`
 
   return (
-    <div className={`ros-wrap ${className}`}>
-      <section className="ros-card" aria-label={title}>
-        <div className="ros-mh">
-          <div>
-            <p className="ros-mt">{title}</p>
-            <p className="ros-ms">{[`${data.people.length} people`, subtitle].filter(Boolean).join(' · ')}</p>
+    <div className={`ros-host ${className}`}>
+      <div className="ros-wrap">
+        <section className={`ros-card${loading ? ' ros-loading' : ''}`} aria-label={title} aria-busy={loading}>
+          <div className="ros-mh">
+            <div>
+              <p className="ros-mt">{title}</p>
+              <p className="ros-ms">{[`${data.people.length} people`, subtitle].filter(Boolean).join(' · ')}</p>
+            </div>
+            <div className="ros-sg" role="tablist" aria-label="Calendar view">
+              {(['month', 'week'] as const).map((v) => (
+                <button key={v} type="button" role="tab" aria-selected={view === v} className={view === v ? 'ros-on' : ''} onClick={() => setView(v)}>
+                  {v === 'month' ? 'Month' : 'Week'}
+                </button>
+              ))}
+            </div>
+            <button type="button" className="cal-today" onClick={() => { setCursor(data.today); pick(data.today) }}>Today</button>
+            <button type="button" className="cal-nav" aria-label={`Previous ${view}`} onClick={() => setCursor(view === 'month' ? addMonths(cursor, -1) : addDays(cursor, -7))}>
+              <ChevronLeft size={20} strokeWidth={2.4} />
+            </button>
+            <button type="button" className="cal-nav" aria-label={`Next ${view}`} onClick={() => setCursor(view === 'month' ? addMonths(cursor, 1) : addDays(cursor, 7))}>
+              <ChevronRight size={20} strokeWidth={2.4} />
+            </button>
           </div>
-          <div className="ros-sg" role="tablist" aria-label="Calendar view">
-            {(['month', 'week'] as const).map((v) => (
-              <button key={v} type="button" role="tab" aria-selected={view === v} className={view === v ? 'ros-on' : ''} onClick={() => setView(v)}>
-                {v === 'month' ? 'Month' : 'Week'}
-              </button>
-            ))}
-          </div>
-          <button type="button" className="cal-today" onClick={() => { setCursor(data.today); pick(data.today) }}>Today</button>
-          <button type="button" className="cal-nav" aria-label={`Previous ${view}`} onClick={() => setCursor(view === 'month' ? addMonths(cursor, -1) : addDays(cursor, -7))}>
-            <ChevronLeft size={20} strokeWidth={2.4} />
-          </button>
-          <button type="button" className="cal-nav" aria-label={`Next ${view}`} onClick={() => setCursor(view === 'month' ? addMonths(cursor, 1) : addDays(cursor, 7))}>
-            <ChevronRight size={20} strokeWidth={2.4} />
-          </button>
-        </div>
-        {kpis.length > 0 && (
-          <div className="ros-kp" style={{ gridTemplateColumns: `repeat(${kpis.length}, minmax(0, 1fr))` }}>
-            {kpis.map((k) => (
-              <div key={k.label} className={`ros-k ros-k-${k.tone}`}><b>{k.value}</b><span>{k.label}</span><small>{k.sub}</small></div>
-            ))}
-          </div>
-        )}
-        <Roster groups={groups} days={days} today={data.today} selected={selected} mode={mode} detail={view} onSelect={pick} onOpenPerson={onOpenPerson} />
-        <Key mode={mode} />
-      </section>
-      <DayPanel data={data} date={selected} mode={mode} targets={targets} onOpenPerson={onOpenPerson} />
+          {kpis.length > 0 && (
+            <div className="ros-kp" style={{ gridTemplateColumns: `repeat(${kpis.length}, minmax(0, 1fr))` }}>
+              {kpis.map((k) => (
+                <div key={k.label} className={`ros-k ros-k-${k.tone}`}><b>{k.value}</b><span>{k.label}</span><small>{k.sub}</small></div>
+              ))}
+            </div>
+          )}
+          <Roster groups={groups} days={days} today={data.today} selected={selected} mode={mode} detail={view} onSelect={pick} onOpenPerson={onOpenPerson} />
+          <Key mode={mode} />
+        </section>
+        <DayPanel data={data} date={selected} mode={mode} targets={targets} onOpenPerson={onOpenPerson} />
+      </div>
     </div>
   )
 }

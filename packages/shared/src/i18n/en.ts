@@ -54,6 +54,7 @@ export const en = {
     people: 'People',
     approvals: 'Approvals',
     attendanceAll: 'Attendance',
+    attendanceRoster: 'Attendance roster',
     admin: 'Admin',
     briefing: 'Briefing',
     trips: 'Sales trips',

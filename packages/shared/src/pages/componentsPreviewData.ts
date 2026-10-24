@@ -17,6 +17,14 @@ const PEOPLE: { name: string; department: string; late?: Record<number, number>;
   { name: 'Noun Chenda', department: 'Distribution', late: { 23: 20 }, absent: [7] },
 ]
 
+/** A few live-data cases the plain set above does not have: flexible-day leave, half days, a flexible day off. Keyed "person index-day". */
+const FLEX: Record<string, AttendanceRecord> = {
+  '0-7': { result: 'leave', code: 'FD' },
+  '1-21': { result: 'leave', code: 'AL', half: true },
+  '3-12': { result: 'present', halfLeave: 'SL' },
+  '6-22': { result: 'dayoff' },
+}
+
 export const PREVIEW_TODAY = key(23)
 export const PREVIEW_HOLIDAYS = [key(15)]
 
@@ -30,7 +38,7 @@ export function previewRoster(): RosterData {
     for (let d = 1; d <= 23; d++) {
       const dow = new Date(2026, 9, d).getDay()
       if (dow === 0 || dow === 6 || d === 15) continue
-      const rec: AttendanceRecord = p.leave?.[d] ? { result: 'leave', code: p.leave[d] } : p.absent?.includes(d) ? { result: 'absent' } : p.late?.[d] ? { result: 'late', minutes: p.late[d] } : { result: 'present' }
+      const rec: AttendanceRecord = FLEX[`${i}-${d}`] ?? (p.leave?.[d] ? { result: 'leave', code: p.leave[d] } : p.absent?.includes(d) ? { result: 'absent' } : p.late?.[d] ? { result: 'late', minutes: p.late[d] } : { result: 'present' })
       records[id][key(d)] = rec
       if (rec.result === 'present' || rec.result === 'late') {
         const visits = 4 + ((i * 5 + d * 3) % 5)

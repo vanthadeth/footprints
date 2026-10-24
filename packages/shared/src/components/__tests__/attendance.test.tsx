@@ -21,11 +21,26 @@ describe('dayMark', () => {
     expect(dayMark('2026-10-09', ctx, records['2026-10-09']).label).toBe('sick leave')
     expect(dayMark('2026-10-14', ctx, records['2026-10-14'])).toMatchObject({ kind: 'absent', text: 'A' })
   })
-  it('puts weekends and holidays first, then future days, and shows nothing for a past day without a record', () => {
-    expect(dayMark('2026-10-10', ctx, records['2026-10-05']).kind).toBe('weekend') // Saturday
-    expect(dayMark('2026-10-15', ctx, { result: 'present' }).kind).toBe('holiday')
-    expect(dayMark('2026-10-26', ctx, { result: 'present' }).kind).toBe('future')
+  it('lets a record decide the day, including a working Saturday and a person-level holiday or day off', () => {
+    expect(dayMark('2026-10-10', ctx, { result: 'present' }).kind).toBe('present') // a Saturday someone worked
+    expect(dayMark('2026-10-10', ctx, { result: 'absent' }).kind).toBe('absent')
+    expect(dayMark('2026-10-12', ctx, { result: 'holiday' })).toMatchObject({ kind: 'holiday', label: 'public holiday' })
+    expect(dayMark('2026-10-11', ctx, { result: 'off' }).kind).toBe('weekend')
+    expect(dayMark('2026-10-12', ctx, { result: 'dayoff' })).toMatchObject({ kind: 'dayoff', text: '–', label: 'day off' })
+  })
+  it('without a record falls back to the weekend, the holiday list, the future, or nothing', () => {
+    expect(dayMark('2026-10-10', ctx).kind).toBe('weekend') // Saturday
+    expect(dayMark('2026-10-11', ctx).kind).toBe('weekend') // Sunday
+    expect(dayMark('2026-10-15', ctx).kind).toBe('holiday')
+    expect(dayMark('2026-10-26', ctx).kind).toBe('future')
     expect(dayMark('2026-10-12', ctx).kind).toBe('none')
+  })
+  it('shows flexible-day leave as FD and half days with a half flag, with or without a clock-in', () => {
+    expect(dayMark('2026-10-12', ctx, { result: 'leave', code: 'FD' })).toMatchObject({ kind: 'leave', text: 'FD', half: false, label: 'flexible day off' })
+    expect(dayMark('2026-10-12', ctx, { result: 'leave', code: 'AL', half: true })).toMatchObject({ text: 'AL', half: true, label: 'half-day annual leave' })
+    expect(dayMark('2026-10-12', ctx, { result: 'present', halfLeave: 'SL' })).toMatchObject({ kind: 'present', half: true, label: 'present, half-day sick leave' })
+    expect(dayMark('2026-10-12', ctx, { result: 'late', minutes: 18, halfLeave: 'AL' })).toMatchObject({ kind: 'late', text: '18m', half: true })
+    expect(dayMark('2026-10-12', ctx, { result: 'present' }).half).toBe(false)
   })
 })
 
@@ -35,6 +50,10 @@ describe('summarize', () => {
     const s = summarize(keys, records, ctx)
     expect(s).toMatchObject({ present: 2, late: 1, lateMinutes: 18, leave: 2, absent: 1, workingDays: 6 })
     expect(s.rate).toBe(50) // 3 of 6 attended
+  })
+  it('does not count a day off, a holiday or a day that is not scheduled', () => {
+    const recs: Record<string, AttendanceRecord> = { '2026-10-05': { result: 'present' }, '2026-10-06': { result: 'dayoff' }, '2026-10-07': { result: 'holiday' }, '2026-10-08': { result: 'off' }, '2026-10-09': { result: 'present', halfLeave: 'AL' } }
+    expect(summarize(Object.keys(recs), recs, ctx)).toMatchObject({ present: 2, workingDays: 2, rate: 100 })
   })
   it('is all zero with no results', () => {
     expect(summarize(['2026-10-12'], {}, ctx)).toMatchObject({ workingDays: 0, rate: 0 })

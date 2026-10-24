@@ -40,6 +40,7 @@ function Mark({ mark }: { mark: DayMark }) {
   return (
     <span className="att-st">
       {mark.kind === 'present' ? <Check size={16} strokeWidth={3} aria-hidden="true" /> : mark.text}
+      {mark.half && <span className="att-half">½</span>}
     </span>
   )
 }
@@ -62,7 +63,7 @@ export function AttendanceCalendar({ records, holidays, value, onSelect, default
   const ctx: MarkContext = { today, holidays }
   const opts = { today, selected: value }
   const cells = view === 'month' ? buildMonth(cursor, weekStart, opts) : buildWeek(cursor, weekStart, opts)
-  const marks = cells.map((c) => (c.inMonth ? dayMark(c.key, ctx, records[c.key]) : { kind: 'none', text: '', label: '' } as DayMark))
+  const marks = cells.map((c) => (c.inMonth ? dayMark(c.key, ctx, records[c.key]) : { kind: 'none', text: '', half: false, label: '' } as DayMark))
   const counted = cells.filter((c) => c.inMonth).map((c) => c.key)
   const sum = summarize(counted, records, ctx)
 
