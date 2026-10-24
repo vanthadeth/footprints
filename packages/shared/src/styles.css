@@ -469,8 +469,16 @@ html.dark {
 /* The day list sits beside the roster only when the page's own width allows (a sidebar eats screen width, so this is a container query, not a media query). */
 .ros-host { container-type: inline-size; }
 @container (min-width: 1380px) { .ros-wrap { grid-template-columns: minmax(0, 1fr) 360px; } }
+.ros-top { margin-bottom: 12px; }
+.ros-top .ros-mh { margin-bottom: 10px; }
+.ros-top .ros-kp { margin-bottom: 0; }
+/* On the page background the tiles need their own box. */
+.ros-top .ros-k { background: var(--cal-card); border: 1px solid var(--cal-line); }
 .ros-card { box-sizing: border-box; padding: 16px; border-radius: 20px; background: var(--cal-card); color: var(--cal-text); border: 1px solid var(--cal-line); }
 .ros-mh { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+/* The roster's own box: no padding, so the grid runs edge to edge; the key sits under it with its own padding. */
+.ros-flush { padding: 0; overflow: hidden; }
+.ros-flush .ros-key { margin: 0; padding: 12px 14px 14px; border-top: 1px solid var(--cal-line); }
 .ros-mh > div:first-child { flex: 1; min-width: 180px; }
 .ros-mt { margin: 0; font-size: 18px; line-height: 24px; font-weight: 700; }
 .ros-ms { margin: 2px 0 0; font-size: 13px; color: var(--cal-muted); }
@@ -487,15 +495,17 @@ html.dark {
 .ros-k-late b { color: var(--att-amber); }
 .ros-k-leave b { color: var(--att-leave); }
 .ros-k-absent b { color: var(--att-absent); }
-.ros-scroll { overflow-x: auto; border: 1px solid var(--cal-line); border-radius: 12px; }
-.ros-hm { overflow: hidden; }
-.ros-hm.ros-month { min-width: 960px; }
+.ros-scroll { overflow-x: auto; }
+.ros-hm.ros-month { min-width: 1100px; }
 .ros-hm.ros-week { min-width: 520px; }
 .ros-row { display: grid; align-items: stretch; border-top: 1px solid var(--cal-line); }
 .ros-hh { border-top: 0; background: var(--att-tile); }
-.ros-nm { display: flex; flex-direction: column; justify-content: center; min-width: 0; padding: 2px 10px; text-align: left; border: 0; background: transparent; color: inherit; font: inherit; }
+.ros-nm { display: flex; flex-direction: column; justify-content: center; min-width: 0; padding: 2px 10px; text-align: left; border: 0; background: var(--cal-card); color: inherit; font: inherit; }
+/* The name column stays put while the days scroll sideways. Needs an opaque background and a scroller with no overflow clipping between it and the rows. */
+.ros-row > .ros-nm { position: sticky; left: 0; z-index: 3; box-shadow: 1px 0 0 var(--cal-line); }
+.ros-gh b { position: sticky; left: 10px; }
 .ros-nm b { font-size: 13px; line-height: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ros-hh .ros-nm { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--cal-muted); }
+.ros-hh .ros-nm { background: var(--att-tile); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--cal-muted); }
 .ros-hd { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4px 0; border-left: 1px solid var(--cal-line); font-size: 11px; font-weight: 700; line-height: 15px; }
 .ros-hd i { font-size: 9px; font-style: normal; font-weight: 600; color: var(--cal-muted); }
 .ros-hd.ros-we { color: var(--cal-dis); }

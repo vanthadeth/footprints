@@ -219,36 +219,39 @@ function TeamCalendarView({ mode, data, defaultView = 'month', value, onSelect, 
   const title = view === 'month' ? `${name} · ${monthLabel(cursor)}` : `${name} · ${weekLabel(startOfWeek(cursor, 'mon'))}`
 
   return (
-    <div className={`ros-host ${className}`}>
-      <div className="ros-wrap">
-        <section className={`ros-card${loading ? ' ros-loading' : ''}`} aria-label={title} aria-busy={loading}>
-          <div className="ros-mh">
-            <div>
-              <p className="ros-mt">{title}</p>
-              <p className="ros-ms">{[`${data.people.length} people`, subtitle].filter(Boolean).join(' · ')}</p>
-            </div>
-            <div className="ros-sg" role="tablist" aria-label="Calendar view">
-              {(['month', 'week'] as const).map((v) => (
-                <button key={v} type="button" role="tab" aria-selected={view === v} className={view === v ? 'ros-on' : ''} onClick={() => setView(v)}>
-                  {v === 'month' ? 'Month' : 'Week'}
-                </button>
-              ))}
-            </div>
-            <button type="button" className="cal-today" onClick={() => { setCursor(data.today); pick(data.today) }}>Today</button>
-            <button type="button" className="cal-nav" aria-label={`Previous ${view}`} onClick={() => setCursor(view === 'month' ? addMonths(cursor, -1) : addDays(cursor, -7))}>
-              <ChevronLeft size={20} strokeWidth={2.4} />
-            </button>
-            <button type="button" className="cal-nav" aria-label={`Next ${view}`} onClick={() => setCursor(view === 'month' ? addMonths(cursor, 1) : addDays(cursor, 7))}>
-              <ChevronRight size={20} strokeWidth={2.4} />
-            </button>
+    <div className={`ros-host ${className}`} aria-busy={loading}>
+      {/* The date controls and the summary tiles sit above the roster, outside its box, so the grid gets the whole width. */}
+      <div className="ros-top">
+        <div className="ros-mh">
+          <div>
+            <p className="ros-mt">{title}</p>
+            <p className="ros-ms">{[`${data.people.length} people`, subtitle].filter(Boolean).join(' · ')}</p>
           </div>
-          {kpis.length > 0 && (
-            <div className="ros-kp" style={{ gridTemplateColumns: `repeat(${kpis.length}, minmax(0, 1fr))` }}>
-              {kpis.map((k) => (
-                <div key={k.label} className={`ros-k ros-k-${k.tone}`}><b>{k.value}</b><span>{k.label}</span><small>{k.sub}</small></div>
-              ))}
-            </div>
-          )}
+          <div className="ros-sg" role="tablist" aria-label="Calendar view">
+            {(['month', 'week'] as const).map((v) => (
+              <button key={v} type="button" role="tab" aria-selected={view === v} className={view === v ? 'ros-on' : ''} onClick={() => setView(v)}>
+                {v === 'month' ? 'Month' : 'Week'}
+              </button>
+            ))}
+          </div>
+          <button type="button" className="cal-today" onClick={() => { setCursor(data.today); pick(data.today) }}>Today</button>
+          <button type="button" className="cal-nav" aria-label={`Previous ${view}`} onClick={() => setCursor(view === 'month' ? addMonths(cursor, -1) : addDays(cursor, -7))}>
+            <ChevronLeft size={20} strokeWidth={2.4} />
+          </button>
+          <button type="button" className="cal-nav" aria-label={`Next ${view}`} onClick={() => setCursor(view === 'month' ? addMonths(cursor, 1) : addDays(cursor, 7))}>
+            <ChevronRight size={20} strokeWidth={2.4} />
+          </button>
+        </div>
+        {kpis.length > 0 && (
+          <div className="ros-kp" style={{ gridTemplateColumns: `repeat(${kpis.length}, minmax(0, 1fr))` }}>
+            {kpis.map((k) => (
+              <div key={k.label} className={`ros-k ros-k-${k.tone}`}><b>{k.value}</b><span>{k.label}</span><small>{k.sub}</small></div>
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="ros-wrap">
+        <section className={`ros-card ros-flush${loading ? ' ros-loading' : ''}`} aria-label={title} aria-busy={loading}>
           <Roster groups={groups} days={days} today={data.today} selected={selected} mode={mode} detail={view} onSelect={pick} onOpenPerson={onOpenPerson} />
           <Key mode={mode} />
         </section>
