@@ -44,6 +44,7 @@ export const en = {
     hubTime: 'Leave & days off',
     hubTeam: 'Team',
     hubCompany: 'Company setup',
+    hubNew: 'New features',
     leaveApprovals: 'Leave Approvals',
     plan: "Today's Plan",
     calendar: 'Calendar',

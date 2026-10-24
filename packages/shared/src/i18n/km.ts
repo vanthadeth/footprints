@@ -52,6 +52,7 @@ export const km: TranslationKey = {
     hubTime: 'ច្បាប់ និងថ្ងៃឈប់',
     hubTeam: 'ក្រុម',
     hubCompany: 'ការរៀបចំក្រុមហ៊ុន',
+    hubNew: 'មុខងារថ្មី',
     leaveApprovals: 'អនុម័តច្បាប់',
     plan: 'ផែនការថ្ងៃនេះ',
     calendar: 'ប្រតិទិន',

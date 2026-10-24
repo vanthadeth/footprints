@@ -4,6 +4,7 @@ import {
   Building2,
   Calendar as CalendarIcon,
   CalendarCheck,
+  ClipboardCheck,
   CalendarDays,
   CalendarRange,
   CheckSquare,
@@ -26,6 +27,7 @@ import {
   UserRound,
   Users as UsersIcon,
   type LucideIcon,
+  Sparkles,
 } from 'lucide-react'
 import type { Action, Scope } from '@footprints/shared/features/permissions/catalog'
 
@@ -134,7 +136,7 @@ export function homeFor(group: RoleGroup, ctx: NavContext): string {
 export type RowKey =
   | 'trips' | 'tripset' | 'plan' | 'calendar' | 'journey' | 'report' | 'messages' | 'customers' | 'leave' | 'daysoff'
   | 'team' | 'attendance' | 'attendanceAll' | 'reports' | 'logs' | 'briefing' | 'flexteam' | 'approvals'
-  | 'allowances' | 'holidays' | 'users' | 'permissions' | 'org' | 'hours' | 'adminatt' | 'locations' | 'notifications' | 'translations' | 'settings' | 'sheetsync' | 'components'
+  | 'allowances' | 'holidays' | 'users' | 'permissions' | 'org' | 'hours' | 'adminatt' | 'locations' | 'notifications' | 'translations' | 'settings' | 'sheetsync' | 'components' | 'attendanceRoster'
 
 export interface RowDef {
   key: RowKey
@@ -178,6 +180,7 @@ export const ROW: Record<RowKey, RowDef> = {
   translations: { key: 'translations', label: 'Translations', sub: 'English and Khmer text', to: '/translations', icon: Languages, tone: 'bg-brand-600', needs: admin },
   settings: { key: 'settings', label: 'System settings', sub: 'Company-wide options', to: '/settings', icon: Settings, tone: 'bg-neutral-600', needs: admin },
   components: { key: 'components', label: 'Components', sub: 'Built components, light and dark', to: '/components', icon: LayoutGrid, tone: 'bg-neutral-600', needs: admin },
+  attendanceRoster: { key: 'attendanceRoster', label: 'Attendance', sub: 'Everyone, by day: present, leave, late', to: '/attendance/roster', icon: ClipboardCheck, tone: 'bg-status-working', needs: admin },
   sheetsync: { key: 'sheetsync', label: 'Data & sync', sub: 'Google Sheet sync and recent runs', to: '/admin/sync', icon: FileSpreadsheet, tone: 'bg-status-working', needs: admin },
 }
 
@@ -203,8 +206,8 @@ const allowed = (ctx: NavContext) => (r: RowDef) => !r.needs || r.needs(ctx)
  * Company...). Every screen the person can use appears in exactly one
  * function; nothing that is already one of their tabs is repeated.
  */
-export type FnKey = 'sell' | 'day' | 'time' | 'team' | 'company'
-export type PartKey = 'mine' | 'team' | 'company' | 'people' | 'rules' | 'system'
+export type FnKey = 'sell' | 'day' | 'time' | 'team' | 'company' | 'new'
+export type PartKey = 'mine' | 'team' | 'company' | 'people' | 'rules' | 'system' | 'preview'
 
 export interface FnDef {
   key: FnKey
@@ -221,9 +224,11 @@ export const FN: Record<FnKey, FnDef> = {
   time: { key: 'time', titleKey: 'nav.hubTime', title: 'Leave & days off', icon: CalendarDays, tone: 'bg-brand-500' },
   team: { key: 'team', titleKey: 'nav.hubTeam', title: 'Team', icon: UsersIcon, tone: 'bg-earth-500' },
   company: { key: 'company', titleKey: 'nav.hubCompany', title: 'Company setup', icon: ShieldCheck, tone: 'bg-brand-700' },
+  // Screens being tried out before they replace an existing one. Only people who may use a screen see it here; the card is dropped when it would be empty.
+  new: { key: 'new', titleKey: 'nav.hubNew', title: 'New features', icon: Sparkles, tone: 'bg-brand-500' },
 }
 
-export const PART_TITLE: Record<PartKey, string> = { mine: 'Mine', team: 'Your team', company: 'Company', people: 'People & access', rules: 'Work rules', system: 'System' }
+export const PART_TITLE: Record<PartKey, string> = { mine: 'Mine', team: 'Your team', company: 'Company', people: 'People & access', rules: 'Work rules', system: 'System', preview: 'Preview' }
 
 /** Where each screen lives: function, then part. Order here is the order inside a function. */
 const ROW_FN: [RowKey, FnKey, PartKey][] = [
@@ -234,15 +239,16 @@ const ROW_FN: [RowKey, FnKey, PartKey][] = [
   ['users', 'company', 'people'], ['permissions', 'company', 'people'], ['org', 'company', 'people'],
   ['hours', 'company', 'rules'], ['adminatt', 'company', 'rules'], ['locations', 'company', 'rules'], ['tripset', 'company', 'rules'],
   ['notifications', 'company', 'system'], ['translations', 'company', 'system'], ['settings', 'company', 'system'], ['sheetsync', 'company', 'system'], ['components', 'company', 'system'],
+  ['attendanceRoster', 'new', 'preview'],
 ]
 
 /** Which functions come first for each group. */
 const FN_ORDER: Record<RoleGroup, FnKey[]> = {
-  field: ['sell', 'day', 'time', 'team', 'company'],
-  manager: ['team', 'sell', 'time', 'day', 'company'],
-  hr: ['time', 'team', 'day', 'sell', 'company'],
-  office: ['day', 'team', 'time', 'sell', 'company'],
-  admin: ['company', 'team', 'time', 'sell', 'day'],
+  field: ['sell', 'day', 'time', 'team', 'company', 'new'],
+  manager: ['team', 'sell', 'time', 'day', 'company', 'new'],
+  hr: ['time', 'team', 'day', 'sell', 'company', 'new'],
+  office: ['day', 'team', 'time', 'sell', 'company', 'new'],
+  admin: ['company', 'team', 'time', 'sell', 'day', 'new'],
 }
 
 export interface HubFunction extends FnDef {
@@ -308,6 +314,7 @@ const SHORT: Partial<Record<RowKey, string>> = {
   org: 'Departments',
   hours: 'Hours',
   adminatt: 'Attendance',
+  attendanceRoster: 'Attendance',
   locations: 'Geofence',
   sheetsync: 'Sync',
   settings: 'System',
