@@ -134,7 +134,7 @@ export function homeFor(group: RoleGroup, ctx: NavContext): string {
 export type RowKey =
   | 'trips' | 'tripset' | 'plan' | 'calendar' | 'journey' | 'report' | 'messages' | 'customers' | 'leave' | 'daysoff'
   | 'team' | 'attendance' | 'attendanceAll' | 'reports' | 'logs' | 'briefing' | 'flexteam' | 'approvals'
-  | 'allowances' | 'holidays' | 'users' | 'permissions' | 'org' | 'hours' | 'adminatt' | 'locations' | 'notifications' | 'translations' | 'settings' | 'sheetsync'
+  | 'allowances' | 'holidays' | 'users' | 'permissions' | 'org' | 'hours' | 'adminatt' | 'locations' | 'notifications' | 'translations' | 'settings' | 'sheetsync' | 'components'
 
 export interface RowDef {
   key: RowKey
@@ -177,6 +177,7 @@ export const ROW: Record<RowKey, RowDef> = {
   notifications: { key: 'notifications', label: 'Notifications', sub: 'Alerts sent to managers', to: '/notifications', icon: Bell, tone: 'bg-status-danger', needs: admin },
   translations: { key: 'translations', label: 'Translations', sub: 'English and Khmer text', to: '/translations', icon: Languages, tone: 'bg-brand-600', needs: admin },
   settings: { key: 'settings', label: 'System settings', sub: 'Company-wide options', to: '/settings', icon: Settings, tone: 'bg-neutral-600', needs: admin },
+  components: { key: 'components', label: 'Components', sub: 'Built components, light and dark', to: '/components', icon: LayoutGrid, tone: 'bg-neutral-600', needs: admin },
   sheetsync: { key: 'sheetsync', label: 'Data & sync', sub: 'Google Sheet sync and recent runs', to: '/admin/sync', icon: FileSpreadsheet, tone: 'bg-status-working', needs: admin },
 }
 
@@ -232,7 +233,7 @@ const ROW_FN: [RowKey, FnKey, PartKey][] = [
   ['team', 'team', 'team'], ['attendance', 'team', 'team'], ['attendanceAll', 'team', 'team'], ['reports', 'team', 'team'], ['logs', 'team', 'team'],
   ['users', 'company', 'people'], ['permissions', 'company', 'people'], ['org', 'company', 'people'],
   ['hours', 'company', 'rules'], ['adminatt', 'company', 'rules'], ['locations', 'company', 'rules'], ['tripset', 'company', 'rules'],
-  ['notifications', 'company', 'system'], ['translations', 'company', 'system'], ['settings', 'company', 'system'], ['sheetsync', 'company', 'system'],
+  ['notifications', 'company', 'system'], ['translations', 'company', 'system'], ['settings', 'company', 'system'], ['sheetsync', 'company', 'system'], ['components', 'company', 'system'],
 ]
 
 /** Which functions come first for each group. */
@@ -279,7 +280,7 @@ export function hubSearch(group: RoleGroup, ctx: NavContext, query: string): (Ro
 }
 
 /** Admin tab: the Administration rows the person can use. */
-export const ADMIN_ROWS: RowKey[] = ['users', 'permissions', 'hours', 'adminatt', 'locations', 'sheetsync', 'tripset', 'translations', 'settings', 'notifications']
+export const ADMIN_ROWS: RowKey[] = ['users', 'permissions', 'hours', 'adminatt', 'locations', 'sheetsync', 'tripset', 'translations', 'settings', 'notifications', 'components']
 
 /** Hub "For you": up to four shortcuts for the group. */
 export function forYou(group: RoleGroup, ctx: NavContext, opts: { skip?: RowKey[] } = {}): RowDef[] {

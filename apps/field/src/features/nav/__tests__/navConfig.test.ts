@@ -60,7 +60,7 @@ describe('hub', () => {
     const fns = hubFunctions('admin', ctx([], true))
     expect(fns.map((f) => f.key)).toEqual(['company', 'team', 'time', 'sell', 'day'])
     const company = fns[0]
-    expect(company.rows).toHaveLength(11)
+    expect(company.rows).toHaveLength(12)
     expect(company.parts.map((p) => p.title)).toEqual(['People & access', 'Work rules', 'System'])
     expect(fns.find((f) => f.key === 'time')?.parts.map((p) => p.key)).toEqual(['mine', 'team', 'company'])
   })
@@ -83,7 +83,7 @@ describe('hub', () => {
     expect(hr.slice(0, 4)).toEqual(['allowances', 'holidays', 'flexteam', 'attendanceAll'])
     expect(hr.length % 3).toBe(0)
     expect(forYou('admin', ctx([], true)).map((r) => r.key).slice(0, 7)).toEqual(['users', 'permissions', 'attendanceAll', 'hours', 'notifications', 'locations', 'sheetsync'])
-    expect(adminRows(ctx([], true))).toHaveLength(10)
+    expect(adminRows(ctx([], true))).toHaveLength(11)
     expect(adminRows(ctx(MANAGER))).toHaveLength(0)
   })
 })
