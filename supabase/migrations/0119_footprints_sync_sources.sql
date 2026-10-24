@@ -1,4 +1,8 @@
--- Footprints: one sheet, many tables -- sync sources.   *** NOT YET APPLIED ***
+-- Footprints: one sheet, many tables -- sync sources.
+--
+-- Applied live (as footprints_sync_sources) after a rolled-back dry run: the 9
+-- existing definitions became 6 sources (CUS holds four mappings, the other
+-- five one each); the three phone mappings point at Customers as their parent.
 --
 -- Today a sync_definition is one Google Sheet tab feeding ONE table, so the
 -- customer tab "CUS" is entered four times (Customers + Customer phone 1/2/3),
