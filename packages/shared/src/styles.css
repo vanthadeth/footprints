@@ -292,6 +292,9 @@
   --strip-amber: #e8a22a;
   --strip-bad: #ba2323;
   --strip-line: #666666;
+  --strip-text: #1c1c1c;
+  --strip-muted: #666666;
+  --strip-ok: #00701f;
 }
 html.dark {
   --strip-card: #232323;
@@ -303,10 +306,34 @@ html.dark {
   --strip-amber: #f2a54a;
   --strip-bad: #ff8f8f;
   --strip-line: #a8a8a8;
+  --strip-text: #ececec;
+  --strip-muted: #a8a8a8;
+  --strip-ok: #5fd38a;
 }
 .day-strip {
   position: relative;
 }
+.day-strip-marks { position: relative; height: 34px; }
+.day-strip-mark {
+  position: absolute;
+  bottom: 0;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  color: var(--strip-text);
+}
+.day-strip-mark span { font-size: 11px; line-height: 14px; font-weight: 700; white-space: nowrap; }
+.day-strip-mark i { display: block; width: 2px; height: 9px; border-radius: 1px; background: currentColor; }
+.day-strip-mark-flag { color: var(--strip-bad); }
+.day-strip-pins { position: relative; height: 36px; margin-top: 6px; }
+.day-strip-pin { position: absolute; top: 0; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.day-strip-pi { width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; }
+.day-strip-tone-muted { color: var(--strip-muted); }
+.day-strip-tone-brand { color: var(--strip-long); }
+.day-strip-tone-ok { color: var(--strip-ok); }
+.day-strip-tone-amber { color: var(--strip-amber); }
 .day-strip-seg {
   position: absolute;
   top: 1px;
