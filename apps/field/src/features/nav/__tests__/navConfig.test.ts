@@ -56,13 +56,38 @@ describe('hub', () => {
     expect(keys(hubFunctions('field', ctx(SALES, false, true)))).toContain('daysoff')
   })
 
-  it('gives admins all five functions with Company setup first, split into parts', () => {
+  it('gives admins all five functions and New features, with Company setup first, split into parts', () => {
     const fns = hubFunctions('admin', ctx([], true))
-    expect(fns.map((f) => f.key)).toEqual(['company', 'team', 'time', 'sell', 'day'])
+    expect(fns.map((f) => f.key)).toEqual(['company', 'team', 'time', 'sell', 'day', 'new'])
     const company = fns[0]
     expect(company.rows).toHaveLength(12)
     expect(company.parts.map((p) => p.title)).toEqual(['People & access', 'Work rules', 'System'])
     expect(fns.find((f) => f.key === 'time')?.parts.map((p) => p.key)).toEqual(['mine', 'team', 'company'])
+  })
+
+  it('puts Attendance under Hub > New features for a super admin only', () => {
+    const fn = hubFunctions('admin', ctx([], true)).find((f) => f.key === 'new')!
+    expect(fn.title).toBe('New features')
+    expect(fn.rows.map((r) => [r.key, r.label, r.to])).toEqual([['attendanceRoster', 'Attendance', '/attendance/roster']])
+    expect(fn.parts.map((p) => p.title)).toEqual(['Preview'])
+    // having every permission is not enough: it is for super admins
+    const everything = ['attendance.view', 'team_map.view', 'leave_balance.edit', 'user.view', 'role_permission.edit']
+    for (const group of ['admin', 'hr', 'manager', 'field', 'office'] as const) {
+      expect(hubFunctions(group, ctx(everything, false)).map((f) => f.key)).not.toContain('new')
+    }
+    expect(hubFunctions('field', ctx(SALES)).map((f) => f.key)).not.toContain('new')
+  })
+
+  it('shows the New features card to a super admin whatever their role group', () => {
+    for (const group of ['admin', 'hr', 'manager', 'field', 'office'] as const) {
+      expect(hubFunctions(group, ctx([], true)).map((f) => f.key)).toContain('new')
+    }
+  })
+
+  it('links back to New features from the attendance roster page and finds it in Hub search', () => {
+    expect(fnForPath('/attendance/roster')).toBe('new')
+    expect(hubSearch('admin', ctx([], true), 'attendance').some((r) => r.key === 'attendanceRoster' && r.fn.key === 'new')).toBe(true)
+    expect(hubSearch('admin', ctx(['x.view'], false), 'attendance').some((r) => r.key === 'attendanceRoster')).toBe(false)
   })
 
   it('drops functions with nothing in them', () => {
