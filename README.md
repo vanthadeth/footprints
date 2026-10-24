@@ -129,7 +129,7 @@ Never apply an unreviewed migration to the live project.
    (Production and Preview).
 3. `vercel.json` already configures the SPA rewrite so client-side routes
    work on refresh/deep-link.
-4. Deploy. Vercel builds with `npm run build` and serves `dist/`.
+4. Deploy. From the repo root, the root `vercel.json` builds only the field app (`npm run build -w @footprints/field`) and serves `apps/field/dist`. If the project's Root Directory is set to `apps/field` instead, that app's own `vercel.json` applies and the root one is ignored. The admin app needs its own Vercel project with Root Directory `apps/admin`.
 
 **GitHub Actions** (`.github/workflows/ci.yml`) runs typecheck, lint,
 test, and build on every PR and on push to `main`.
