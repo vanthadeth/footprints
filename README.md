@@ -7,6 +7,24 @@ employee attendance, customer visits, sales journeys, GPS locations, fleet
 status, and management reports — built on top of HIG's existing Supabase
 backend (`hig-biz-opt`).
 
+## Repository layout (monorepo)
+
+npm workspaces; one Supabase project backs both apps.
+
+| Path | What it is |
+|---|---|
+| `apps/field` | The field-sales PWA described below (Vercel project 1, root directory `apps/field`) |
+| `apps/admin` | Footprints Admin: desktop-first, Super Admin only, no PWA (Vercel project 2, root directory `apps/admin`). Sections: User management, Data sync, Company settings, System settings. Phase 0 ships the shell, shared login and Super Admin gate; the section screens are placeholders |
+| `packages/shared` | Source shared by both apps: Supabase client, auth (`AuthContext`, `useProfile`, guards), login / forgot / reset pages, permissions, i18n, theme, `AdminKit` and desktop UI, Tailwind preset and base styles. Imported as `@footprints/shared/...`; no build step |
+| `supabase/` | Migrations and Edge Functions (unchanged, shared by both apps) |
+
+Commands run from the repo root: `npm run dev` (field), `npm run dev:admin`
+(admin, port 5174), and `npm run typecheck | lint | test | build` for every
+workspace. Each app has its own `.env.example`; the admin app needs the same
+`VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` and its origin added to
+Supabase Auth's redirect URLs (password reset). Paths in the sections below
+that start with `src/` refer to `apps/field/src/` unless they are shared code.
+
 ## What's built
 
 - **Auth**: email/password sign-in, forgot/reset password, session-based
@@ -56,6 +74,8 @@ what it does and why:
 | `0077_footprints_auto_clockout_rules` | Refines the working-hours auto clock-out (`app.enforce_working_hours`): if a visit is still open, both it and the attendance session close at the later of today's `work_end_time` or 60 minutes after the visit started; otherwise the clock-out time is the last visit checked out that session, rounded up to the next quarter hour. `app._close_visit` gains an optional explicit close-time param for this (unused by its other call sites) |
 | `0078_footprints_push_notifications` | `public.push_subscriptions` (a user's own Web Push device registrations), `notifications.pushed_at` marker, `app.pending_push_notifications()`/`app.mark_notifications_pushed()` (+ `public.*` wrappers, `service_role`-only) — lets the `push-notify-admins` Edge Function fan the existing anomaly notifications out to every super admin's subscribed device without ever resending an already-pushed case |
 | `0079_footprints_push_notifications_cron` | Schedules the push fan-out every 5 minutes via `pg_cron`/`pg_net`, calling `push-notify-admins` below, same pattern as `0074`. **Requires manual steps** — read the migration's header comment before applying |
+| `0119_footprints_sync_sources` | `sync_sources` (one Google Sheet tab) and `source_id` / `parent_id` / `engine` / `handler` on `sync_definitions`, so one sheet can feed many tables (e.g. customers + their contacts). Existing definitions are backfilled into sources and stay on the `legacy` engine, unchanged in behaviour |
+| `0120_footprints_sync_engine_apply` | `app.sync_engine_apply` / `public.sync_engine_apply` (service role only): applies one batch of rows to a mapping on the Footprints engine. Like the older `sync_apply`, but empty cells never erase, unchanged rows aren't written, added / updated / unchanged are counted, and `p_dry` rolls the batch back |
 
 All migrations are additive: no existing table, column, row, or function
 signature was removed or narrowed. **All are applied to the live
@@ -147,6 +167,7 @@ test, and build on every PR and on push to `main`.
      ```
   Once registered, message the bot with "get my id" or `/getid` from any
   account and it replies with that person's numeric IDs.
+- `supabase/functions/source-sync` syncs a sheet tab into the tables its mappings feed (Super Admin, from the admin app's Data sync › Sources): `preview` / `run` a whole source or one mapping, and `switch` a mapping between the older runner and the Footprints engine. The reading and converting rules are in `supabase/functions/sheet-sync/engine.ts` (unit-tested); `source-sync/parse.ts` and `engine.ts` re-export them, so when deploying without the CLI pass the real files from `sheet-sync/` in their place. Deployed (verify_jwt on) after migration 0120. The live copy was uploaded with the real `parse.ts` / `engine.ts`; redeploy from the repo with `supabase functions deploy source-sync` to guarantee it matches the source byte for byte. It is separate from `sheet-sync`, which keeps running the customer and order sync on its schedule.
 - `supabase/functions/push-notify-admins` sends the same anomaly
   notifications (late clock-in/out, idling too long, ineffective visit) to
   every super admin's Web Push-subscribed device — an additional channel
