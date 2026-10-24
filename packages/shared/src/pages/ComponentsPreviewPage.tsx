@@ -14,12 +14,12 @@ const early: StripDay = {
   clockOut: hm('17:40'),
   visits: [
     { start: hm('08:10'), end: hm('08:14') },
-    { start: hm('08:40'), end: hm('09:25') },
-    { start: hm('09:50'), end: hm('11:05') },
-    { start: hm('13:00'), end: hm('13:35') },
+    { start: hm('08:40'), end: hm('09:25'), icons: ['confirmed'] },
+    { start: hm('09:50'), end: hm('11:05'), icons: ['ordered', 'appointment'] },
+    { start: hm('13:00'), end: hm('13:35'), icons: ['collection'] },
     { start: hm('14:00'), end: hm('14:40'), flagged: true },
     { start: hm('15:00'), end: hm('15:07') },
-    { start: hm('15:30'), end: hm('16:15') },
+    { start: hm('15:30'), end: hm('16:15'), icons: ['confirmed', 'collection'] },
   ],
 }
 const late: StripDay = {
@@ -29,8 +29,8 @@ const late: StripDay = {
   clockOut: hm('15:30'),
   visits: [
     { start: hm('09:50'), end: hm('09:54') },
-    { start: hm('10:20'), end: hm('11:10') },
-    { start: hm('11:40'), end: hm('12:10') },
+    { start: hm('10:20'), end: hm('11:10'), icons: ['ordered'] },
+    { start: hm('11:40'), end: hm('12:10'), icons: ['appointment'] },
     { start: hm('13:30'), end: hm('14:00'), flagged: true },
     { start: hm('14:20'), end: hm('14:23') },
   ],
@@ -59,6 +59,16 @@ const ENTRIES: Entry[] = [
       { label: 'Late in, early out, one flagged visit', node: card(<DayStrip day={late} shiftLines />) },
       { label: 'No shift lines', node: card(<DayStrip day={early} />) },
       { label: 'Thin: for lists and team rows', node: card(<DayStrip day={late} thin />) },
+    ],
+  },
+  {
+    id: 'day-strip-indicators',
+    name: 'Day bar (strip with indicators)',
+    board: 'DayBar.dc.html',
+    source: 'packages/shared/src/components/DayStrip.tsx (indicators)',
+    variants: [
+      { label: 'Early in, late out: clock marks, far-away flag, order / collection / appointment icons', node: card(<DayStrip day={early} shiftLines indicators />) },
+      { label: 'Late in, early out', node: card(<DayStrip day={late} shiftLines indicators />) },
     ],
   },
 ]

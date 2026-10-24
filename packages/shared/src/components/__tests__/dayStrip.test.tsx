@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { axisPercent, buildStrip, gapKind, hm, segmentTitle, visitKind, type StripDay } from '../dayStrip'
+import { axisPercent, buildMarks, buildPins, buildStrip, clockText, gapKind, hm, segmentTitle, visitKind, type StripDay } from '../dayStrip'
 import { DayStrip } from '../DayStrip'
 
 const day = (over: Partial<StripDay> = {}): StripDay => ({
@@ -74,5 +74,41 @@ describe('<DayStrip>', () => {
     expect(plain).not.toContain('day-strip-shift')
     expect(renderToStaticMarkup(<DayStrip day={d} shiftLines />).match(/day-strip-shift/g)?.length).toBe(2)
     expect(renderToStaticMarkup(<DayStrip day={d} thin />)).toContain('h-[15px]')
+  })
+})
+
+describe('buildMarks / buildPins', () => {
+  const d = day({
+    clockIn: hm('07:45'),
+    clockOut: hm('17:40'),
+    visits: [
+      { start: hm('08:40'), end: hm('09:25'), icons: ['confirmed'] },
+      { start: hm('14:00'), end: hm('14:40'), flagged: true },
+      { start: hm('15:30'), end: hm('16:15'), icons: ['ordered', 'collection'] },
+    ],
+  })
+  it('formats minutes as a clock time', () => {
+    expect(clockText(hm('07:05'))).toBe('07:05')
+  })
+  it('marks clock-in, clock-out and each flagged visit at its middle', () => {
+    const marks = buildMarks(d, hm('07:00'), hm('19:00'))
+    expect(marks.map((m) => [m.kind, m.label])).toEqual([['in', 'In 07:45'], ['out', 'Out 17:40'], ['flag', 'Far away']])
+    expect(marks[2].left).toBeCloseTo(axisPercent(hm('14:20'), hm('07:00'), hm('19:00')))
+  })
+  it('pins icons only for visits that have them, at the visit middle', () => {
+    const pins = buildPins(d, hm('07:00'), hm('19:00'))
+    expect(pins.map((p) => p.icons)).toEqual([['confirmed'], ['ordered', 'collection']])
+    expect(pins[0].left).toBeCloseTo(axisPercent((hm('08:40') + hm('09:25')) / 2, hm('07:00'), hm('19:00')))
+  })
+})
+
+describe('<DayStrip indicators>', () => {
+  it('adds marks above and icon pins below only when asked', () => {
+    const d = day({ visits: [{ start: hm('09:00'), end: hm('10:00'), icons: ['appointment'] }] })
+    expect(renderToStaticMarkup(<DayStrip day={d} />)).not.toContain('day-strip-marks')
+    const html = renderToStaticMarkup(<DayStrip day={d} indicators />)
+    expect(html).toContain('day-strip-marks')
+    expect(html).toContain('aria-label="Appointment"')
+    expect(html).toContain('In 08:00')
   })
 })

@@ -1,4 +1,5 @@
-import { axisPercent, buildStrip, segmentTitle, type Minute, type StripDay } from './dayStrip'
+import { Banknote, CalendarDays, CircleCheck, Flag } from 'lucide-react'
+import { axisPercent, buildMarks, buildPins, buildStrip, segmentTitle, type Minute, type StripDay, type StripIcon } from './dayStrip'
 
 interface Props {
   day: StripDay
@@ -9,37 +10,76 @@ interface Props {
   shiftLines?: boolean
   /** Thinner bar for lists and team rows. */
   thin?: boolean
+  /** Clock-in, clock-out and flag marks above the strip, visit icons below it. */
+  indicators?: boolean
   className?: string
+}
+
+const ICON: Record<StripIcon, { Icon: typeof CircleCheck; tone: string; label: string }> = {
+  ordered: { Icon: CircleCheck, tone: 'day-strip-tone-muted', label: 'Ordered' },
+  confirmed: { Icon: CircleCheck, tone: 'day-strip-tone-brand', label: 'Order confirmed' },
+  collection: { Icon: Banknote, tone: 'day-strip-tone-ok', label: 'Collection' },
+  appointment: { Icon: CalendarDays, tone: 'day-strip-tone-amber', label: 'Appointment' },
 }
 
 /**
  * The day as one bar: visits (short, good, long), travel, idle and not
- * clocked-in time on a working-hours axis. No card, marks, icons or numbers,
- * so it can sit in any section. Colours come from the --strip-* variables
- * in index.css (light and dark).
+ * clocked-in time on a working-hours axis. By default no card, marks, icons
+ * or numbers, so it can sit in any section; `indicators` adds the clock-in,
+ * clock-out and far-away marks above and the order / collection /
+ * appointment icons below. Colours come from the --strip-* variables in
+ * styles.css (light and dark).
  */
-export function DayStrip({ day, axisStart = 7 * 60, axisEnd = 19 * 60, shiftLines = false, thin = false, className = '' }: Props) {
+export function DayStrip({ day, axisStart = 7 * 60, axisEnd = 19 * 60, shiftLines = false, thin = false, indicators = false, className = '' }: Props) {
   const segments = buildStrip(day, axisStart, axisEnd)
   const startPct = axisPercent(day.shiftStart, axisStart, axisEnd)
   const endPct = axisPercent(day.shiftEnd, axisStart, axisEnd)
   return (
-    <div className={`day-strip ${thin ? 'h-[15px]' : 'h-[33px]'} ${className}`} role="img" aria-label="Day timeline">
-      {/* Travel colour outside working hours. */}
-      <div className="day-strip-seg day-strip-travel" style={{ left: 0, width: `${startPct}%` }} />
-      <div className="day-strip-seg day-strip-travel" style={{ left: `${endPct}%`, right: 0 }} />
-      {segments.map((s, i) => (
-        <div
-          key={i}
-          className={`day-strip-seg day-strip-${s.kind}${s.flagged ? ' day-strip-flag' : ''}`}
-          style={{ left: `${s.left}%`, width: `${s.width}%` }}
-          title={segmentTitle(s)}
-        />
-      ))}
-      {shiftLines && (
-        <>
-          <div className="day-strip-shift" style={{ left: `${startPct}%` }} />
-          <div className="day-strip-shift" style={{ left: `${endPct}%` }} />
-        </>
+    <div className={className}>
+      {indicators && (
+        <div className="day-strip-marks">
+          {buildMarks(day, axisStart, axisEnd).map((m, i) => (
+            <div key={i} className={`day-strip-mark${m.kind === 'flag' ? ' day-strip-mark-flag' : ''}`} style={{ left: `${m.left}%` }}>
+              {m.kind === 'flag' ? <Flag role="img" aria-label={m.label} size={14} strokeWidth={2.4} /> : <span>{m.label}</span>}
+              <i />
+            </div>
+          ))}
+        </div>
+      )}
+      <div className={`day-strip ${thin ? 'h-[15px]' : indicators ? 'h-[22px]' : 'h-[33px]'}`} role="img" aria-label="Day timeline">
+        {/* Travel colour outside working hours. */}
+        <div className="day-strip-seg day-strip-travel" style={{ left: 0, width: `${startPct}%` }} />
+        <div className="day-strip-seg day-strip-travel" style={{ left: `${endPct}%`, right: 0 }} />
+        {segments.map((s, i) => (
+          <div
+            key={i}
+            className={`day-strip-seg day-strip-${s.kind}${s.flagged ? ' day-strip-flag' : ''}`}
+            style={{ left: `${s.left}%`, width: `${s.width}%` }}
+            title={segmentTitle(s)}
+          />
+        ))}
+        {shiftLines && (
+          <>
+            <div className="day-strip-shift" style={{ left: `${startPct}%` }} />
+            <div className="day-strip-shift" style={{ left: `${endPct}%` }} />
+          </>
+        )}
+      </div>
+      {indicators && (
+        <div className="day-strip-pins">
+          {buildPins(day, axisStart, axisEnd).map((p, i) => (
+            <div key={i} className="day-strip-pin" style={{ left: `${p.left}%` }}>
+              {p.icons.map((k, j) => {
+                const { Icon, tone, label } = ICON[k]
+                return (
+                  <span key={j} className={`day-strip-pi ${tone}`}>
+                    <Icon role="img" aria-label={label} size={15} strokeWidth={2.4} />
+                  </span>
+                )
+              })}
+            </div>
+          ))}
+        </div>
       )}
     </div>
   )
