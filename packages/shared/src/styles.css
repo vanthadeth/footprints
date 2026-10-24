@@ -461,3 +461,94 @@ html.dark {
 .att-sw.att-late { color: var(--att-amber); }
 .att-sw.att-leave { color: var(--att-leave); }
 .att-sw.att-absent { color: var(--att-absent); }
+
+/* Team calendar and team attendance calendar (components/TeamCalendar.tsx): a roster of people by day. */
+.ros-wrap { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (min-width: 1500px) { .ros-wrap { grid-template-columns: minmax(0, 1fr) 360px; } }
+.ros-card { box-sizing: border-box; padding: 16px; border-radius: 20px; background: var(--cal-card); color: var(--cal-text); border: 1px solid var(--cal-line); }
+.ros-mh { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.ros-mh > div:first-child { flex: 1; min-width: 180px; }
+.ros-mt { margin: 0; font-size: 18px; line-height: 24px; font-weight: 700; }
+.ros-ms { margin: 2px 0 0; font-size: 13px; color: var(--cal-muted); }
+.ros-sg { display: flex; gap: 2px; padding: 2px; border-radius: 10px; background: var(--att-tile); }
+.ros-sg button { border: 0; background: transparent; font: inherit; font-size: 13px; font-weight: 700; line-height: 30px; padding: 0 14px; border-radius: 8px; color: var(--cal-muted); }
+.ros-sg button.ros-on { background: var(--cal-brand); color: var(--cal-on); }
+.ros-kp { display: grid; gap: 8px; margin-bottom: 14px; }
+@media (max-width: 700px) { .ros-kp { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } }
+.ros-k { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 12px; background: var(--att-tile); }
+.ros-k b { font-size: 20px; line-height: 26px; font-variant-numeric: tabular-nums; }
+.ros-k span { font-size: 13px; font-weight: 600; }
+.ros-k small { font-size: 12px; color: var(--cal-muted); }
+.ros-k-present b { color: var(--att-ok); }
+.ros-k-late b { color: var(--att-amber); }
+.ros-k-leave b { color: var(--att-leave); }
+.ros-k-absent b { color: var(--att-absent); }
+.ros-scroll { overflow-x: auto; border: 1px solid var(--cal-line); border-radius: 12px; }
+.ros-hm { overflow: hidden; }
+.ros-hm.ros-month { min-width: 960px; }
+.ros-hm.ros-week { min-width: 520px; }
+.ros-row { display: grid; align-items: stretch; border-top: 1px solid var(--cal-line); }
+.ros-hh { border-top: 0; background: var(--att-tile); }
+.ros-nm { display: flex; flex-direction: column; justify-content: center; min-width: 0; padding: 2px 10px; text-align: left; border: 0; background: transparent; color: inherit; font: inherit; }
+.ros-nm b { font-size: 13px; line-height: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ros-hh .ros-nm { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--cal-muted); }
+.ros-hd { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4px 0; border-left: 1px solid var(--cal-line); font-size: 11px; font-weight: 700; line-height: 15px; }
+.ros-hd i { font-size: 9px; font-style: normal; font-weight: 600; color: var(--cal-muted); }
+.ros-hd.ros-we { color: var(--cal-dis); }
+.ros-hd.ros-t { color: var(--cal-brand); box-shadow: inset 0 -2px 0 var(--cal-brand); }
+.ros-hd.ros-s { background: var(--cal-brand); color: var(--cal-on); }
+.ros-hd.ros-s i { color: var(--cal-on); }
+.ros-th { display: flex; align-items: center; justify-content: center; padding: 4px 0; border-left: 1px solid var(--cal-line); font-size: 10px; font-weight: 700; line-height: 13px; letter-spacing: 0.04em; text-align: center; color: var(--cal-muted); }
+.ros-gh { display: flex; align-items: center; justify-content: space-between; min-height: 22px; padding: 2px 10px; border-top: 1px solid var(--cal-line); background: var(--att-tile); font-size: 12px; }
+.ros-gh span { font-weight: 600; color: var(--cal-muted); }
+.ros-ce { display: flex; align-items: center; justify-content: center; min-height: 32px; padding: 0; border: 0; border-left: 1px solid var(--cal-line); background: var(--cal-card); color: var(--cal-text); font: inherit; font-size: 10.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.ros-week .ros-ce { min-height: 44px; font-size: 12px; }
+.ros-weekend { background: var(--att-tile); }
+.ros-present { color: var(--att-ok); }
+.ros-late { background: var(--cal-late); color: var(--att-amber); }
+.ros-leave { background: var(--cal-leave); color: var(--att-leave); }
+.ros-absent { background: var(--cal-absent); color: var(--att-absent); }
+.ros-holiday { background: repeating-linear-gradient(135deg, var(--cal-card) 0 3px, var(--cal-stripe) 3px 6px); }
+.ros-dot { display: block; width: 6px; height: 6px; border-radius: 9999px; background: var(--cal-brand); }
+.ros-tt { display: flex; align-items: center; justify-content: center; border-left: 1px solid var(--cal-line); font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--cal-muted); }
+.ros-tt-present { color: var(--att-ok); }
+.ros-tt-late { color: var(--att-amber); }
+.ros-tt-leave { color: var(--att-leave); }
+.ros-tt-absent { color: var(--att-absent); }
+.ros-key { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 14px; font-size: 12px; color: var(--cal-muted); }
+.ros-key-i { display: flex; align-items: center; gap: 8px; }
+.ros-sw { flex: none; display: flex; align-items: center; justify-content: center; width: 30px; height: 18px; box-sizing: border-box; border: 1px solid var(--cal-line); border-radius: 3px; background: var(--cal-card); font-size: 10px; font-style: normal; font-weight: 700; }
+.ros-sw.ros-weekend { background: var(--att-tile); }
+.ros-sw.ros-late { background: var(--cal-late); }
+.ros-sw.ros-leave { background: var(--cal-leave); }
+.ros-sw.ros-absent { background: var(--cal-absent); }
+.ros-sw.ros-holiday { background: repeating-linear-gradient(135deg, var(--cal-card) 0 3px, var(--cal-stripe) 3px 6px); }
+.ros-st { margin: 0; font-size: 20px; line-height: 26px; font-weight: 700; }
+.ros-ss { margin: 3px 0 12px; font-size: 14px; color: var(--cal-muted); }
+.ros-cn { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; padding-bottom: 14px; }
+.ros-cn > div { display: flex; flex-direction: column; gap: 2px; padding: 8px; border-radius: 12px; background: var(--att-tile); }
+.ros-cn b { font-size: 18px; line-height: 22px; }
+.ros-cn small { font-size: 11px; color: var(--cal-muted); }
+.ros-cn-p b { color: var(--att-ok); }
+.ros-cn-l b { color: var(--att-amber); }
+.ros-cn-v b { color: var(--att-leave); }
+.ros-cn-a b { color: var(--att-absent); }
+.ros-nums { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 0 12px; padding: 12px 0; border-top: 1px solid var(--cal-line); }
+.ros-nr { display: flex; align-items: center; gap: 8px; min-height: 34px; font-size: 14px; }
+.ros-nl { flex: 1; min-width: 0; font-weight: 600; color: var(--cal-muted); }
+.ros-nv { font-weight: 600; text-align: right; color: var(--cal-muted); }
+.ros-nv b { font-weight: 700; color: var(--cal-text); }
+.ros-top { flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; border-right: 1px solid var(--cal-line); }
+.ros-top .ros-nl { flex: none; font-size: 12px; font-weight: 700; }
+.ros-top .ros-nv { font-size: 14px; text-align: left; }
+.ros-top .ros-nv b { font-size: 30px; line-height: 34px; letter-spacing: -0.02em; }
+.ros-gl { margin: 0; padding: 12px 0 4px; border-top: 1px solid var(--cal-line); font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--cal-muted); }
+.ros-pr { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; box-sizing: border-box; padding: 8px 0; border: 0; border-top: 1px solid var(--cal-line); background: transparent; color: inherit; font: inherit; font-size: 14px; text-align: left; }
+.ros-pn { flex: 1; min-width: 0; }
+.ros-pn b { font-size: 14px; line-height: 19px; }
+.ros-chip { flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 84px; box-sizing: border-box; padding: 3px 10px; border-radius: 9999px; background: var(--att-tile); font-size: 12px; line-height: 16px; font-weight: 700; color: var(--cal-muted); }
+.ros-chip-present { color: var(--att-ok); }
+.ros-chip-late { background: var(--cal-late); color: var(--att-amber); }
+.ros-chip-leave { background: var(--cal-leave); color: var(--att-leave); }
+.ros-chip-absent { background: var(--cal-absent); color: var(--att-absent); }
+.ros-pv { flex: none; width: 44px; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }

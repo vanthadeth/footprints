@@ -3,6 +3,8 @@ import { Moon, Sun } from 'lucide-react'
 import { AttendanceCalendar, AttendanceKey } from '../components/AttendanceCalendar'
 import type { AttendanceRecord } from '../components/attendance'
 import { Calendar } from '../components/Calendar'
+import { TeamAttendanceCalendar, TeamCalendar } from '../components/TeamCalendar'
+import { previewRoster } from './componentsPreviewData'
 import type { DayMarks } from '../components/calendar'
 import { DayStrip } from '../components/DayStrip'
 import { hm, type StripDay } from '../components/dayStrip'
@@ -86,6 +88,9 @@ function AttendanceDemo({ view }: { view: 'month' | 'week' }) {
   )
 }
 
+const TEAM = previewRoster()
+const teamView = (node: ReactNode) => <div className="w-full">{node}</div>
+
 interface Entry {
   id: string
   name: string
@@ -142,6 +147,26 @@ const ENTRIES: Entry[] = [
       { label: 'Week', node: <AttendanceDemo view="week" /> },
     ],
   },
+  {
+    id: 'team-attendance-calendar',
+    name: 'Team attendance calendar (managers)',
+    board: 'TeamAttendance.dc.html',
+    source: 'packages/shared/src/components/TeamCalendar.tsx (TeamAttendanceCalendar)',
+    variants: [
+      { label: 'Month: one row per person, marks in every cell, totals at the end of the row. Tap a date for the day list', node: teamView(<TeamAttendanceCalendar data={TEAM} value="2026-10-16" subtitle="Sales team Phnom Penh" />) },
+      { label: 'Week', node: teamView(<TeamAttendanceCalendar data={TEAM} defaultView="week" value="2026-10-16" subtitle="Sales team Phnom Penh" />) },
+    ],
+  },
+  {
+    id: 'team-calendar',
+    name: 'Team calendar (managers)',
+    board: 'TeamCalendar.dc.html',
+    source: 'packages/shared/src/components/TeamCalendar.tsx (TeamCalendar)',
+    variants: [
+      { label: 'Month: colour for late, leave, absent and holiday; a dot for a day with visits', node: teamView(<TeamCalendar data={TEAM} value="2026-10-16" subtitle="Sales team Phnom Penh" />) },
+      { label: 'Week: visits and order amount in each cell', node: teamView(<TeamCalendar data={TEAM} defaultView="week" value="2026-10-16" subtitle="Sales team Phnom Penh" />) },
+    ],
+  },
 ]
 
 /** Every built component on one page, light or dark with the toggle, each linked back to its design artboard. */
@@ -161,7 +186,7 @@ function ThemeButton() {
 /** `themeToggle`: show a floating light/dark button, for the public route that has no app shell around it. */
 export function ComponentsPreviewPage({ themeToggle = false }: { themeToggle?: boolean }) {
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
+    <div className="mx-auto max-w-[1500px] px-4 py-8">
       {themeToggle && <ThemeButton />}
       <h1 className="text-2xl font-semibold">Components</h1>
       <p className="mt-1 text-sm text-neutral-500">
