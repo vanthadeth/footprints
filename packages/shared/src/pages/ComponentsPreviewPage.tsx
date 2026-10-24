@@ -1,5 +1,7 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Moon, Sun } from 'lucide-react'
+import { Calendar } from '../components/Calendar'
+import type { DayMarks } from '../components/calendar'
 import { DayStrip } from '../components/DayStrip'
 import { hm, type StripDay } from '../components/dayStrip'
 import { useTheme } from '../lib/ThemeContext'
@@ -36,6 +38,28 @@ const late: StripDay = {
   ],
 }
 
+const CAL_TODAY = '2026-10-23'
+const CAL_MARKS: Record<string, DayMarks> = {
+  '2026-10-06': { attendance: 'late', visit: true },
+  '2026-10-08': { attendance: 'leave' },
+  '2026-10-09': { attendance: 'leave' },
+  '2026-10-13': { attendance: 'late', visit: true },
+  '2026-10-14': { attendance: 'absent' },
+  '2026-10-15': { holiday: true },
+  '2026-10-16': { appointment: true, visit: true },
+  '2026-10-20': { attendance: 'late', visit: true },
+  '2026-10-22': { appointment: true, visit: true },
+  '2026-10-23': { appointment: true, visit: true },
+  '2026-10-24': { appointment: true },
+  '2026-10-27': { appointment: true },
+}
+
+/** The calendar with its own selection, so tapping a day works on the preview page. */
+function CalendarDemo({ view }: { view: 'month' | 'week' | 'agenda' }) {
+  const [value, setValue] = useState('2026-10-27')
+  return <Calendar today={CAL_TODAY} value={value} onSelect={setValue} defaultView={view} marks={CAL_MARKS} disabled={[{ from: '2026-10-31', to: '2026-10-31' }]} />
+}
+
 interface Entry {
   id: string
   name: string
@@ -69,6 +93,17 @@ const ENTRIES: Entry[] = [
     variants: [
       { label: 'Early in, late out: far-away flag, order / collection / appointment icons', node: card(<DayStrip day={early} shiftLines indicators />) },
       { label: 'Late in, early out', node: card(<DayStrip day={late} shiftLines indicators />) },
+    ],
+  },
+  {
+    id: 'calendar',
+    name: 'Calendar (month, week, agenda)',
+    board: 'Calendar.dc.html',
+    source: 'packages/shared/src/components/Calendar.tsx',
+    variants: [
+      { label: 'Month: tap a day. Holiday stripes, late / leave / absent backgrounds, appointment and visit dots, 31 Oct disabled', node: <CalendarDemo view="month" /> },
+      { label: 'Week', node: <CalendarDemo view="week" /> },
+      { label: 'Agenda', node: <CalendarDemo view="agenda" /> },
     ],
   },
 ]
