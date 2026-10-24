@@ -1,0 +1,18 @@
+{
+  "name": "@footprints/shared",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Code shared by the Footprints field and admin apps (auth, login, permissions, UI kit). Consumed as source through the @footprints/shared alias; there is no build step.",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
+    "lucide-react": "^0.451.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.26.2"
+  }
+}
