@@ -8,7 +8,9 @@ import { SHORTCUT_OPTIONS, tabsForRole } from '../components/bottomNav'
 import type { AttendanceRecord } from '../components/attendance'
 import { Calendar } from '../components/Calendar'
 import { TeamAttendanceCalendar, TeamCalendar } from '../components/TeamCalendar'
-import { previewRoster } from './componentsPreviewData'
+import { NextUnlocksSheet, TrophyCard, TrophyDetailsSheet, TrophyHistorySheet, TrophyTiles } from '../components/Trophies'
+import type { Lang, TrophyId } from '../components/trophies'
+import { PREVIEW_HISTORY, PREVIEW_LAST_MONTH, PREVIEW_TROPHIES, previewRoster } from './componentsPreviewData'
 import type { DayMarks } from '../components/calendar'
 import { DayStrip } from '../components/DayStrip'
 import { hm, type StripDay } from '../components/dayStrip'
@@ -129,6 +131,28 @@ function NavDemo({ role }: { role: 'salesperson' | 'manager' }) {
   )
 }
 
+const noop = () => {}
+
+function TilesDemo() {
+  const [lang, setLang] = useState<Lang>('en')
+  const [open, setOpen] = useState<TrophyId | null>(null)
+  return (
+    <div className="relative max-w-[480px] overflow-hidden">
+      <div className="mb-3 inline-flex gap-0.5 rounded-full bg-neutral-200 p-[3px] dark:bg-neutral-800" role="radiogroup" aria-label="Language">
+        {(['en', 'km'] as const).map((l) => (
+          <button key={l} type="button" role="radio" aria-checked={lang === l} onClick={() => setLang(l)} className={`h-[30px] rounded-full px-3.5 text-xs font-semibold ${lang === l ? 'bg-white font-bold text-neutral-900 shadow-sm dark:bg-neutral-600 dark:text-white' : 'text-neutral-600 dark:text-neutral-300'}`}>
+            {l === 'en' ? 'EN' : 'ខ្មែរ'}
+          </button>
+        ))}
+      </div>
+      <TrophyTiles progress={PREVIEW_TROPHIES} lang={lang} onSelect={setOpen} />
+      <p className="mt-2 text-xs text-neutral-500">Tap a trophy for its details.</p>
+      {open && <TrophyDetailsSheet id={open} progress={PREVIEW_TROPHIES[open]} monthLabel="October 2026" onClose={() => setOpen(null)} overlay="absolute" />}
+      {open && <div className="h-[560px]" />}
+    </div>
+  )
+}
+
 const TEAM = previewRoster()
 const teamView = (node: ReactNode) => <div className="w-full">{node}</div>
 
@@ -234,6 +258,20 @@ const ENTRIES: Entry[] = [
       { label: 'Manager: Team, Customers, Check In, Approvals (badge 99+), Menu', node: <NavDemo role="manager" /> },
       { label: 'Clocked in, Check In open', node: <div className="w-[390px] max-w-full"><BottomNav tabs={tabsForRole('salesperson', { messages: 3 })} active="checkin" clockedIn /></div> },
       { label: 'Shortcut menu open (hold the tab after Check In)', node: <div className="w-[390px] max-w-full pt-[330px] [transform:translateZ(0)]"><BottomNav tabs={tabsForRole('salesperson', { messages: 3 })} active="calendar" shortcut={{ options: SHORTCUT_OPTIONS, onChange: () => {} }} defaultMenuOpen /></div> },
+    ],
+  },
+  {
+    id: 'trophies',
+    name: 'Trophies',
+    board: 'TrophyKit.dc.html · Trophies.dc.html · TrophySheet.dc.html · TrophyHistory.dc.html',
+    source: 'packages/shared/src/components/Trophies.tsx',
+    variants: [
+      { label: 'Card for Today: tap a medal or Next unlocks, or the Last month footer for the history', node: frame(<div className="p-4"><TrophyCard progress={PREVIEW_TROPHIES} monthLabel="October" lastMonth={PREVIEW_LAST_MONTH} history={PREVIEW_HISTORY} overlay="absolute" /></div>, 760) },
+      { label: 'The five trophies as tiles, English and Khmer', node: <TilesDemo /> },
+      { label: 'Next unlocks sheet (How it is counted opens on Visits)', node: frame(<NextUnlocksSheet progress={PREVIEW_TROPHIES} monthLabel="October 2026" onClose={noop} overlay="absolute" defaultOpen="visits" />, 760) },
+      { label: 'Trophy history sheet', node: frame(<TrophyHistorySheet months={PREVIEW_HISTORY} onClose={noop} overlay="absolute" />, 760) },
+      { label: 'Details sheet: earned silver', node: frame(<TrophyDetailsSheet id="attendance" progress={PREVIEW_TROPHIES.attendance} monthLabel="October 2026" onClose={noop} overlay="absolute" />, 640) },
+      { label: 'Details sheet: in progress', node: frame(<TrophyDetailsSheet id="visits" progress={PREVIEW_TROPHIES.visits} monthLabel="October 2026" onClose={noop} overlay="absolute" />, 640) },
     ],
   },
 ]
