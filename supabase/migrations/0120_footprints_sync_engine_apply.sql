@@ -1,4 +1,8 @@
--- Footprints: sync engine -- apply one batch of rows to a mapping.   *** NOT YET APPLIED ***
+-- Footprints: sync engine -- apply one batch of rows to a mapping.
+--
+-- Applied live (as footprints_sync_engine_apply) after a rolled-back dry run against
+-- the real brands and geo_provinces tables, then verified: service role can execute,
+-- anon and authenticated cannot, and no mapping is on the Footprints engine yet.
 --
 -- The source-sync Edge Function reads a sheet tab once, converts each
 -- mapping's rows to objects keyed by TARGET column (supabase/functions/
