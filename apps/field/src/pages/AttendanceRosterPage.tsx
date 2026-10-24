@@ -20,7 +20,7 @@ export function AttendanceRosterPage() {
   const data = useMemo(() => toRosterData(team, rows, today), [team, rows, today])
 
   return (
-    <div className="mx-auto max-w-[1500px] space-y-3 px-4 pb-10 pt-1.5 lg:pt-6">
+    <div className="mx-auto max-w-[1800px] space-y-3 px-4 pb-10 pt-1.5 lg:pt-6">
       <p className="text-sm text-neutral-500">
         {teamLoading ? 'Loading people...' : `${team.length} active ${team.length === 1 ? 'person' : 'people'}`} · late minutes are minutes late in; early clock-out is not counted here yet.
       </p>
