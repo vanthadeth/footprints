@@ -14,6 +14,7 @@ import { CheckInPage } from '@/pages/CheckInPage'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { MenuPage } from '@/pages/MenuPage'
 import { StartPage } from '@/pages/StartPage'
+import { ComponentsPreviewPage } from '@/pages/ComponentsPreviewPage'
 import { RequirePermission } from '@/features/permissions/RequirePermission'
 
 // Map libraries (leaflet/react-leaflet) only load once someone actually
@@ -83,6 +84,8 @@ export const router = createBrowserRouter([
       </RedirectIfAuthed>
     ),
   },
+  // Built components, one section each (see ComponentsPreviewPage). Public: it shows sample data only.
+  { path: '/components', element: <ComponentsPreviewPage /> },
   { path: '/forgot-password', element: <ForgotPasswordPage /> },
   { path: '/reset-password', element: <ResetPasswordPage /> },
   {

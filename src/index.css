@@ -278,3 +278,57 @@
     background-position: 0 50%;
   }
 }
+
+/* Day strip (components/DayStrip.tsx): the day as one bar. Visit colours
+   step up in strength with length; amber marks idle and missed time, red
+   marks a flagged visit. */
+:root {
+  --strip-card: #ffffff;
+  --strip-short: color-mix(in srgb, #006acc 35%, transparent);
+  --strip-good: color-mix(in srgb, #006acc 68%, transparent);
+  --strip-long: #006acc;
+  --strip-travel: #c9ccd1;
+  --strip-track: #e8e8e8;
+  --strip-amber: #e8a22a;
+  --strip-bad: #ba2323;
+  --strip-line: #666666;
+}
+html.dark {
+  --strip-card: #232323;
+  --strip-short: color-mix(in srgb, #339dff 35%, transparent);
+  --strip-good: color-mix(in srgb, #339dff 68%, transparent);
+  --strip-long: #339dff;
+  --strip-travel: #4a4d52;
+  --strip-track: #333333;
+  --strip-amber: #f2a54a;
+  --strip-bad: #ff8f8f;
+  --strip-line: #a8a8a8;
+}
+.day-strip {
+  position: relative;
+}
+.day-strip-seg {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  min-width: 3px;
+  box-sizing: border-box;
+  border-left: 1px solid var(--strip-card);
+  border-right: 1px solid var(--strip-card);
+  background-clip: padding-box;
+}
+.day-strip-short { background-color: var(--strip-short); }
+.day-strip-good { background-color: var(--strip-good); }
+.day-strip-long { background-color: var(--strip-long); }
+.day-strip-travel { background-color: var(--strip-travel); }
+.day-strip-idle { background-color: var(--strip-travel); box-shadow: inset 0 3px 0 var(--strip-amber); }
+.day-strip-missed { background-color: var(--strip-track); box-shadow: inset 0 3px 0 var(--strip-amber); }
+.day-strip-flag { box-shadow: inset 0 3px 0 var(--strip-bad); }
+.day-strip-shift {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 0;
+  border-left: 1.5px dashed var(--strip-line);
+  opacity: 0.8;
+}
