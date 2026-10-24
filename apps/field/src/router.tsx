@@ -16,6 +16,7 @@ import { MenuPage } from '@/pages/MenuPage'
 import { StartPage } from '@/pages/StartPage'
 import { ComponentsPreviewPage } from '@footprints/shared/pages/ComponentsPreviewPage'
 import { RequirePermission } from '@footprints/shared/features/permissions/RequirePermission'
+import { RequireSuperAdmin } from '@/features/auth/RequireSuperAdmin'
 
 // Map libraries (leaflet/react-leaflet) only load once someone actually
 // visits a page that needs them, instead of bloating the initial bundle
@@ -56,6 +57,7 @@ const FlexTeamPage = lazyPage(() => import('@/pages/FlexTeamPage').then((m) => (
 const DaysOffPage = lazyPage(() => import('@/pages/DaysOffPage').then((m) => ({ default: m.DaysOffPage })))
 const FlexSettlementPage = lazyPage(() => import('@/pages/FlexSettlementPage').then((m) => ({ default: m.FlexSettlementPage })))
 const SheetSyncPage = lazyPage(() => import('@/pages/SheetSyncPage').then((m) => ({ default: m.SheetSyncPage })))
+const AttendanceRosterPage = lazyPage(() => import('@/pages/AttendanceRosterPage').then((m) => ({ default: m.AttendanceRosterPage })))
 const AdminAttendancePage = lazyPage(() => import('@/pages/AdminAttendancePage').then((m) => ({ default: m.AdminAttendancePage })))
 const GeofencePage = lazyPage(() => import('@/pages/GeofencePage').then((m) => ({ default: m.GeofencePage })))
 const DataSyncPage = lazyPage(() => import('@/pages/DataSyncPage').then((m) => ({ default: m.DataSyncPage })))
@@ -334,6 +336,17 @@ export const router = createBrowserRouter([
               <TripSettingsPage />
             </Suspense>
           </RequirePermission>
+        ),
+      },
+      {
+        // Hidden for now: no menu row; Super Admins reach it by URL while the app is re-routed.
+        path: '/attendance/roster',
+        element: (
+          <RequireSuperAdmin>
+            <Suspense fallback={<PageFallback />}>
+              <AttendanceRosterPage />
+            </Suspense>
+          </RequireSuperAdmin>
         ),
       },
       {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { TeamAttendanceCalendar, TeamCalendar } from '../TeamCalendar'
+import { visibleRange } from '../roster'
 import { previewRoster } from '../../pages/componentsPreviewData'
 
 const data = previewRoster()
@@ -57,5 +58,36 @@ describe('<TeamCalendar>', () => {
   it('shows visits and the order amount in each week cell', () => {
     const html = renderToStaticMarkup(<TeamCalendar data={data} defaultView="week" value="2026-10-16" />)
     expect(html).toMatch(/>\d · \$\d+</)
+  })
+})
+
+describe('live-data cases and loading', () => {
+  it('shows FD, the half mark, the day-off dash and a key entry for them', () => {
+    const html = renderToStaticMarkup(<TeamAttendanceCalendar data={data} value="2026-10-16" />)
+    expect(html).toContain('>FD<') // the key
+    expect(html).toContain('Day off (flexible, not absent)')
+    const live = {
+      today: '2026-10-23',
+      people: [{ id: 'a', name: 'Sok Dara', department: 'Sales' }],
+      records: { a: { '2026-10-05': { result: 'leave', code: 'AL', half: true }, '2026-10-06': { result: 'dayoff' }, '2026-10-07': { result: 'present', halfLeave: 'SL' } } },
+    } as const
+    const h = renderToStaticMarkup(<TeamAttendanceCalendar data={live as never} value="2026-10-05" />)
+    expect(h).toContain('<span>AL</span><span class="ros-half">½</span>')
+    expect(h).toContain('<span>–</span>')
+    expect(h).toContain('class="ros-half">½</span>')
+  })
+  it('marks the card busy while loading', () => {
+    expect(renderToStaticMarkup(<TeamAttendanceCalendar data={data} loading />)).toContain('aria-busy="true"')
+    expect(renderToStaticMarkup(<TeamAttendanceCalendar data={data} />)).toContain('aria-busy="false"')
+    expect(renderToStaticMarkup(<TeamAttendanceCalendar data={data} loading />)).toContain('ros-loading')
+  })
+})
+
+describe('visibleRange', () => {
+  it('is the first and last day of the month, or the Monday to Sunday week', () => {
+    expect(visibleRange('month', '2026-10-23')).toEqual({ from: '2026-10-01', to: '2026-10-31' })
+    expect(visibleRange('month', '2026-02-10')).toEqual({ from: '2026-02-01', to: '2026-02-28' })
+    expect(visibleRange('week', '2026-10-23')).toEqual({ from: '2026-10-19', to: '2026-10-25' })
+    expect(visibleRange('week', '2026-10-25')).toEqual({ from: '2026-10-19', to: '2026-10-25' })
   })
 })

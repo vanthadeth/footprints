@@ -445,6 +445,8 @@ html.dark {
 .att-late .att-st { color: var(--att-amber); }
 .att-leave .att-st { color: var(--att-leave); }
 .att-absent .att-st { color: var(--att-absent); }
+.att-dayoff .att-st { color: var(--cal-dis); }
+.att-half { margin-left: 2px; font-size: 10px; }
 .att-sum { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; width: 100%; max-width: 390px; margin-top: 12px; }
 .att-sum > div { display: flex; flex-direction: column; gap: 2px; padding: 10px 8px; border-radius: 12px; background: var(--cal-card); border: 1px solid var(--cal-line); }
 .att-sum b { font-size: 20px; line-height: 24px; }
@@ -464,7 +466,9 @@ html.dark {
 
 /* Team calendar and team attendance calendar (components/TeamCalendar.tsx): a roster of people by day. */
 .ros-wrap { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
-@media (min-width: 1500px) { .ros-wrap { grid-template-columns: minmax(0, 1fr) 360px; } }
+/* The day list sits beside the roster only when the page's own width allows (a sidebar eats screen width, so this is a container query, not a media query). */
+.ros-host { container-type: inline-size; }
+@container (min-width: 1380px) { .ros-wrap { grid-template-columns: minmax(0, 1fr) 360px; } }
 .ros-card { box-sizing: border-box; padding: 16px; border-radius: 20px; background: var(--cal-card); color: var(--cal-text); border: 1px solid var(--cal-line); }
 .ros-mh { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
 .ros-mh > div:first-child { flex: 1; min-width: 180px; }
@@ -509,6 +513,9 @@ html.dark {
 .ros-leave { background: var(--cal-leave); color: var(--att-leave); }
 .ros-absent { background: var(--cal-absent); color: var(--att-absent); }
 .ros-holiday { background: repeating-linear-gradient(135deg, var(--cal-card) 0 3px, var(--cal-stripe) 3px 6px); }
+.ros-dayoff { color: var(--cal-dis); }
+.ros-half { margin-left: 0; font-size: 8.5px; font-weight: 700; }
+.ros-loading .ros-scroll { opacity: 0.55; transition: opacity 0.15s; }
 .ros-dot { display: block; width: 6px; height: 6px; border-radius: 9999px; background: var(--cal-brand); }
 .ros-tt { display: flex; align-items: center; justify-content: center; border-left: 1px solid var(--cal-line); font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--cal-muted); }
 .ros-tt-present { color: var(--att-ok); }

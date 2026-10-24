@@ -86,3 +86,46 @@ describe('days', () => {
     expect(weekDays('2026-10-26')).toEqual(['2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30', '2026-10-31', '2026-11-01'])
   })
 })
+
+describe('new record kinds in the roster', () => {
+  const people = [{ id: 'a', name: 'Sok Dara', department: 'Sales' }]
+  const d = ['2026-10-05', '2026-10-06', '2026-10-07', '2026-10-08', '2026-10-09', '2026-10-10']
+  const live: RosterData = {
+    today: '2026-10-23',
+    people,
+    records: {
+      a: {
+        '2026-10-05': { result: 'leave', code: 'FD' },
+        '2026-10-06': { result: 'leave', code: 'AL', half: true },
+        '2026-10-07': { result: 'present', halfLeave: 'SL' },
+        '2026-10-08': { result: 'dayoff' },
+        '2026-10-09': { result: 'holiday' },
+        '2026-10-10': { result: 'present' }, // a Saturday someone worked
+      },
+    },
+  }
+  it('writes FD, the half flag, the day-off dash, the holiday and a worked Saturday into the cells', () => {
+    const cells = buildRoster(live, d, 'attendance', 'month')[0].rows[0].cells
+    expect(cells.map((c) => [c.kind, c.text, c.half, c.check])).toEqual([
+      ['leave', 'FD', false, false],
+      ['leave', 'AL', true, false],
+      ['present', '', true, true],
+      ['dayoff', '–', false, false],
+      ['holiday', '', false, false],
+      ['present', '', false, true],
+    ])
+    expect(cells[3].label).toBe('Sok Dara, 8 October 2026: day off')
+  })
+  it('does not count a day off, a holiday or a half-day leave on a clocked-in day as anything but attended', () => {
+    const [g] = buildRoster(live, d, 'attendance', 'month')
+    expect(g.rows[0].summary).toMatchObject({ present: 2, leave: 2, absent: 0, workingDays: 4 })
+  })
+  it('labels the day-list chips for the new cases', () => {
+    const chip = (key: string) => dayList(live, key, { visits: 8, orders: 300 }).people[0].chip
+    expect(chip('2026-10-05')).toBe('Flexible day off')
+    expect(chip('2026-10-06')).toBe('Annual leave ½')
+    expect(chip('2026-10-07')).toBe('On time ½')
+    expect(chip('2026-10-08')).toBe('Day off')
+    expect(dayList(live, '2026-10-08', { visits: 8, orders: 300 }).counts).toEqual({ present: 0, late: 0, leave: 0, absent: 0 })
+  })
+})
