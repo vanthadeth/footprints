@@ -1,4 +1,4 @@
-import { Building2, RefreshCw, Settings, Users, type LucideIcon } from 'lucide-react'
+import { Building2, LayoutGrid, RefreshCw, Settings, Users, type LucideIcon } from 'lucide-react'
 
 export interface Section {
   path: string
@@ -37,5 +37,12 @@ export const SECTIONS: Section[] = [
     description: 'Global defaults and notifications',
     icon: Settings,
     planned: ['Global app settings', 'Telegram and Web Push notification channels', 'Translations'],
+  },
+  {
+    path: '/components',
+    label: 'Components',
+    description: 'Built components, light and dark',
+    icon: LayoutGrid,
+    planned: [],
   },
 ]

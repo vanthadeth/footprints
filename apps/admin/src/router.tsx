@@ -9,6 +9,7 @@ import { AdminLayout } from '@/layouts/AdminLayout'
 import { SectionPage } from '@/pages/SectionPage'
 import { UsersPage } from '@/pages/UsersPage'
 import { DataSyncPage } from '@/pages/DataSyncPage'
+import { ComponentsPreviewPage } from '@footprints/shared/pages/ComponentsPreviewPage'
 import { SECTIONS } from '@/sections'
 
 // The shared auth screens redirect to /start after sign-in and to /welcome when
@@ -31,7 +32,8 @@ export const router = createBrowserRouter([
       { path: '/', element: <Navigate to="/users" replace /> },
       { path: '/users', element: <UsersPage /> },
       { path: '/sync', element: <DataSyncPage /> },
-      ...SECTIONS.filter((s) => s.path !== '/users' && s.path !== '/sync').map((s) => ({ path: s.path, element: <SectionPage section={s} /> })),
+      { path: '/components', element: <ComponentsPreviewPage /> },
+      ...SECTIONS.filter((s) => s.path !== '/users' && s.path !== '/sync' && s.path !== '/components').map((s) => ({ path: s.path, element: <SectionPage section={s} /> })),
       { path: '*', element: <Navigate to="/users" replace /> },
     ],
   },
