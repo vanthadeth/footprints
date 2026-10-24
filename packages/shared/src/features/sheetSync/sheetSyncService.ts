@@ -1,4 +1,4 @@
-import { supabase } from '@footprints/shared/lib/supabase'
+import { supabase } from '../../lib/supabase'
 import type { SheetCheck, SheetSyncRun, SheetSyncSettings, SyncResult, TabConfig, Schedule, DateOrder, OrderTab } from './sheetSync'
 
 /** Calls the sheet-sync Edge Function; business errors come back as { ok: false, error }. */

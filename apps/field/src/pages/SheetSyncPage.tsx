@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom'
 import { AlertTriangle, ChevronDown, ChevronRight, Phone, Plus, ReceiptText, RefreshCw, Sheet, Trash2, X } from 'lucide-react'
 import { SegmentedControl } from '@footprints/shared/components/SegmentedControl'
 import { useProfile } from '@footprints/shared/features/auth/useProfile'
-import { sheetSyncService } from '@/features/sheetSync/sheetSyncService'
+import { sheetSyncService } from '@footprints/shared/features/sheetSync/sheetSyncService'
 import {
   FIELD_GROUPS,
   FIELDS,
@@ -29,7 +29,7 @@ import {
   type SheetSyncSettings,
   type SyncResult,
   type TabConfig,
-} from '@/features/sheetSync/sheetSync'
+} from '@footprints/shared/features/sheetSync/sheetSync'
 
 const card = 'rounded-2xl bg-white shadow-card'
 const kicker = 'text-[12px] font-extrabold uppercase tracking-wide text-neutral-500'
