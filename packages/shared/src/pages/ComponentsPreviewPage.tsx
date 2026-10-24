@@ -1,6 +1,10 @@
 import { useState, type ReactNode } from 'react'
 import { Moon, Sun } from 'lucide-react'
+import { AppBar } from '../components/AppBar'
+import { dateLine, type NotificationItem } from '../components/appBar'
 import { AttendanceCalendar, AttendanceKey } from '../components/AttendanceCalendar'
+import { BottomNav } from '../components/BottomNav'
+import { SHORTCUT_OPTIONS, tabsForRole } from '../components/bottomNav'
 import type { AttendanceRecord } from '../components/attendance'
 import { Calendar } from '../components/Calendar'
 import { TeamAttendanceCalendar, TeamCalendar } from '../components/TeamCalendar'
@@ -88,6 +92,43 @@ function AttendanceDemo({ view }: { view: 'month' | 'week' }) {
   )
 }
 
+const NOTES: NotificationItem[] = [
+  { id: '1', kind: 'alert', title: 'Invoice overdue · Lucky Mart', detail: '$480 unpaid for 14 days', time: '9:12', unread: true },
+  { id: '2', kind: 'announcement', title: 'Manager · Mr. Vireak', detail: 'New promo starts Monday on 6 SKUs', time: '8:40', unread: true },
+  { id: '3', kind: 'approved', title: 'Leave approved', detail: 'Annual leave 2 Nov, full day', time: 'Tue' },
+  { id: '4', kind: 'reminder', title: 'Reminder', detail: 'Appointment at Sok Heng Minimart, 10:00', time: 'Tue' },
+]
+const DATE_LINE = dateLine('2026-10-23')
+const PROFILE = { name: 'Dara Sok', role: 'Salesperson' }
+
+/** A phone-width frame on the page background; panels open inside it. */
+const frame = (node: ReactNode, height?: number) => (
+  <div className="relative w-[390px] max-w-full overflow-hidden bg-[var(--ab-page)]" style={height ? { height } : undefined}>{node}</div>
+)
+const stub = <div className="mx-4 mt-2.5 h-10 rounded-2xl bg-[var(--ab-card)]" />
+
+function ProfileDemo() {
+  const [prefs, setPrefs] = useState({ khmer: false, dark: false })
+  return frame(<><AppBar title="Calendar" dateLine={DATE_LINE} initials="DS" notifications={NOTES} profile={PROFILE} preferences={prefs} onPreferenceChange={(k, v) => setPrefs({ ...prefs, [k]: v })} overlay="absolute" defaultOpen="profile" />{stub}</>, 430)
+}
+
+function NavDemo({ role }: { role: 'salesperson' | 'manager' }) {
+  const [active, setActive] = useState('calendar')
+  const [shortcut, setShortcut] = useState('briefing')
+  const [clockedIn, setClockedIn] = useState(false)
+  return (
+    <div className="w-[390px] max-w-full">
+      <BottomNav
+        tabs={tabsForRole(role, { messages: 3, approvals: 120, shortcut })}
+        active={active}
+        onSelect={(k) => { setActive(k); if (k === 'checkin') setClockedIn(!clockedIn) }}
+        clockedIn={clockedIn}
+        shortcut={role === 'salesperson' ? { options: SHORTCUT_OPTIONS, onChange: setShortcut } : undefined}
+      />
+    </div>
+  )
+}
+
 const TEAM = previewRoster()
 const teamView = (node: ReactNode) => <div className="w-full">{node}</div>
 
@@ -165,6 +206,34 @@ const ENTRIES: Entry[] = [
     variants: [
       { label: 'Month: colour for late, leave, absent and holiday; a dot for a day with visits', node: teamView(<TeamCalendar data={TEAM} value="2026-10-16" subtitle="Sales team Phnom Penh" />) },
       { label: 'Week: visits and order amount in each cell', node: teamView(<TeamCalendar data={TEAM} defaultView="week" value="2026-10-16" subtitle="Sales team Phnom Penh" />) },
+    ],
+  },
+  {
+    id: 'app-bar',
+    name: 'App bar',
+    board: 'AppBar.dc.html',
+    source: 'packages/shared/src/components/AppBar.tsx',
+    variants: [
+      { label: 'Tab screen: date line, large title, notifications and profile', node: frame(<><AppBar title="Calendar" dateLine={DATE_LINE} initials="DS" notifications={NOTES} overlay="absolute" />{stub}</>) },
+      { label: 'Tab screen scrolled: compact title with a bottom border', node: frame(<><AppBar title="Calendar" dateLine={DATE_LINE} compact initials="DS" notifications={NOTES} overlay="absolute" />{stub}</>) },
+      { label: 'Today: greeting as the title', node: frame(<AppBar title="Good morning, Dara" dateLine={DATE_LINE} initials="DS" notifications={NOTES} overlay="absolute" />) },
+      { label: 'Sub screen: back, title with one line under it, one action', node: frame(<AppBar variant="sub" title="Sok Heng Minimart" subtitle="Toul Kork" action={{ kind: 'more', label: 'More', onClick: () => {} }} />) },
+      { label: 'Sub screen with search action', node: frame(<AppBar variant="sub" title="Customers" subtitle="128 customers" action={{ kind: 'search', label: 'Search', onClick: () => {} }} />) },
+      { label: 'Tap the bell: notifications open in a bottom sheet', node: frame(<AppBar title="Calendar" dateLine={DATE_LINE} initials="DS" notifications={NOTES} overlay="absolute" defaultOpen="notifications" />, 600) },
+      { label: 'Tap the profile circle: dropdown menu (the switches work)', node: <ProfileDemo /> },
+      { label: 'Offline: banner above the bar', node: frame(<><AppBar title="Calendar" dateLine={DATE_LINE} initials="DS" offline overlay="absolute" />{stub}</>) },
+    ],
+  },
+  {
+    id: 'bottom-nav',
+    name: 'Bottom navigation bar',
+    board: 'BottomNav.dc.html',
+    source: 'packages/shared/src/components/BottomNav.tsx',
+    variants: [
+      { label: 'Salesperson: tap a tab, tap Check In to clock in and out, hold Briefing to change it', node: <NavDemo role="salesperson" /> },
+      { label: 'Manager: Team, Customers, Check In, Approvals (badge 99+), Menu', node: <NavDemo role="manager" /> },
+      { label: 'Clocked in, Check In open', node: <div className="w-[390px] max-w-full"><BottomNav tabs={tabsForRole('salesperson', { messages: 3 })} active="checkin" clockedIn /></div> },
+      { label: 'Shortcut menu open (hold the tab after Check In)', node: <div className="w-[390px] max-w-full pt-[330px] [transform:translateZ(0)]"><BottomNav tabs={tabsForRole('salesperson', { messages: 3 })} active="calendar" shortcut={{ options: SHORTCUT_OPTIONS, onChange: () => {} }} defaultMenuOpen /></div> },
     ],
   },
 ]
