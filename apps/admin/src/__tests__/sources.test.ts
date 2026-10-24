@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { cadenceText, orderMappings, type Mapping } from '../features/sync/sources'
 
 const m = (id: string, name: string, parentId: string | null = null): Mapping => ({
-  id, name, targetTable: name, parentId, engine: 'legacy', handler: null, active: true, trigger: 'interval', intervalMinutes: 60, lastRunAt: null, columns: [],
+  id, name, targetTable: name, parentId, matchOn: 'sheet_id', requireColumn: null, engine: 'legacy', handler: null, active: true, trigger: 'interval', intervalMinutes: 60, lastRunAt: null, columns: [],
 })
 
 describe('orderMappings', () => {

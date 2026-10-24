@@ -75,6 +75,7 @@ what it does and why:
 | `0078_footprints_push_notifications` | `public.push_subscriptions` (a user's own Web Push device registrations), `notifications.pushed_at` marker, `app.pending_push_notifications()`/`app.mark_notifications_pushed()` (+ `public.*` wrappers, `service_role`-only) — lets the `push-notify-admins` Edge Function fan the existing anomaly notifications out to every super admin's subscribed device without ever resending an already-pushed case |
 | `0079_footprints_push_notifications_cron` | Schedules the push fan-out every 5 minutes via `pg_cron`/`pg_net`, calling `push-notify-admins` below, same pattern as `0074`. **Requires manual steps** — read the migration's header comment before applying |
 | `0119_footprints_sync_sources` | `sync_sources` (one Google Sheet tab) and `source_id` / `parent_id` / `engine` / `handler` on `sync_definitions`, so one sheet can feed many tables (e.g. customers + their contacts). Existing definitions are backfilled into sources and stay on the `legacy` engine, unchanged in behaviour |
+| `0120_footprints_sync_engine_apply` | **Not yet applied.** `app.sync_engine_apply` / `public.sync_engine_apply` (service role only): applies one batch of rows to a mapping on the Footprints engine. Like the older `sync_apply`, but empty cells never erase, unchanged rows aren't written, added / updated / unchanged are counted, and `p_dry` rolls the batch back |
 
 All migrations are additive: no existing table, column, row, or function
 signature was removed or narrowed. **All are applied to the live
@@ -166,6 +167,7 @@ test, and build on every PR and on push to `main`.
      ```
   Once registered, message the bot with "get my id" or `/getid` from any
   account and it replies with that person's numeric IDs.
+- `supabase/functions/source-sync` syncs a sheet tab into the tables its mappings feed (Super Admin, from the admin app's Data sync › Sources): `preview` / `run` a whole source or one mapping, and `switch` a mapping between the older runner and the Footprints engine. The reading and converting rules are in `supabase/functions/sheet-sync/engine.ts` (unit-tested); `source-sync/parse.ts` and `engine.ts` re-export them, so when deploying without the CLI pass the real files from `sheet-sync/` in their place. Deploy after migration 0120: `supabase functions deploy source-sync`. It is separate from `sheet-sync`, which keeps running the customer and order sync on its schedule.
 - `supabase/functions/push-notify-admins` sends the same anomaly
   notifications (late clock-in/out, idling too long, ineffective visit) to
   every super admin's Web Push-subscribed device — an additional channel

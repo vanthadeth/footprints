@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@footprints/shared/lib/supabase'
 
 export interface ColumnMap {
+  id: string
   sheetColumn: string
   targetColumn: string
   valueKind: string
@@ -17,6 +18,8 @@ export interface Mapping {
   name: string
   targetTable: string
   parentId: string | null
+  matchOn: 'sheet_id' | 'natural'
+  requireColumn: string | null
   engine: 'legacy' | 'footprints'
   handler: 'customers' | 'sale_orders' | null
   active: boolean
@@ -40,6 +43,7 @@ export interface Source {
 const db = supabase as unknown as SupabaseClient
 
 interface RawColumnMap {
+  id: string
   sheet_column: string
   target_column: string
   value_kind: string
@@ -53,6 +57,8 @@ interface RawDefinition {
   name: string
   target_table: string
   parent_id: string | null
+  match_on: 'sheet_id' | 'natural'
+  require_column: string | null
   engine: 'legacy' | 'footprints'
   handler: 'customers' | 'sale_orders' | null
   active: boolean
@@ -99,7 +105,7 @@ export async function listSources(): Promise<Source[]> {
   const { data, error } = await db
     .from('sync_sources')
     .select(
-      'id, name, spreadsheet_id, tab_name, header_row, active, sync_definitions(id, name, target_table, parent_id, engine, handler, active, trigger_kind, interval_minutes, last_run_at, sync_column_maps(sheet_column, target_column, value_kind, transform, transform_arg, reference_table, sort_order))',
+      'id, name, spreadsheet_id, tab_name, header_row, active, sync_definitions(id, name, target_table, parent_id, match_on, require_column, engine, handler, active, trigger_kind, interval_minutes, last_run_at, sync_column_maps(id, sheet_column, target_column, value_kind, transform, transform_arg, reference_table, sort_order))',
     )
     .order('name')
   if (error) throw new Error(error.details || error.message)
@@ -116,6 +122,8 @@ export async function listSources(): Promise<Source[]> {
         name: d.name,
         targetTable: d.target_table,
         parentId: d.parent_id,
+        matchOn: d.match_on,
+        requireColumn: d.require_column,
         engine: d.engine,
         handler: d.handler,
         active: d.active,
@@ -123,7 +131,7 @@ export async function listSources(): Promise<Source[]> {
         intervalMinutes: d.interval_minutes,
         lastRunAt: d.last_run_at,
         columns: d.sync_column_maps
-          .map((c) => ({ sheetColumn: c.sheet_column, targetColumn: c.target_column, valueKind: String(c.value_kind), transform: c.transform ? String(c.transform) : null, transformArg: c.transform_arg, referenceTable: c.reference_table, sortOrder: c.sort_order }))
+          .map((c) => ({ id: c.id, sheetColumn: c.sheet_column, targetColumn: c.target_column, valueKind: String(c.value_kind), transform: c.transform ? String(c.transform) : null, transformArg: c.transform_arg, referenceTable: c.reference_table, sortOrder: c.sort_order }))
           .sort((a, b) => a.sortOrder - b.sortOrder),
       })),
     ),
