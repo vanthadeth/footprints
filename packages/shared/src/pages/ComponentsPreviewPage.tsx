@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react'
-import { DayStrip } from '@/components/DayStrip'
-import { hm, type StripDay } from '@/components/dayStrip'
-import { ThemeToggle } from '@/components/ThemeToggle'
+import { Moon, Sun } from 'lucide-react'
+import { DayStrip } from '../components/DayStrip'
+import { hm, type StripDay } from '../components/dayStrip'
+import { useTheme } from '../lib/ThemeContext'
 
 /** The design canvas the components are built from (Reusable Components page). */
 const DESIGN_URL = 'https://claude.ai/artifact/6097a3bd-2ab7-4f7a-9e61-a8235eab334b'
@@ -63,10 +64,24 @@ const ENTRIES: Entry[] = [
 ]
 
 /** Every built component on one page, light or dark with the toggle, each linked back to its design artboard. */
-export function ComponentsPreviewPage() {
+function ThemeButton() {
+  const { theme, toggleTheme } = useTheme()
+  return (
+    <button
+      onClick={toggleTheme}
+      aria-label={theme === 'dark' ? 'Switch to light' : 'Switch to dark'}
+      className="fixed right-3 top-3 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-white/90 text-neutral-500 shadow-card backdrop-blur dark:border-neutral-700 dark:bg-neutral-900/90 dark:text-neutral-300"
+    >
+      {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+    </button>
+  )
+}
+
+/** `themeToggle`: show a floating light/dark button, for the public route that has no app shell around it. */
+export function ComponentsPreviewPage({ themeToggle = false }: { themeToggle?: boolean }) {
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <ThemeToggle />
+      {themeToggle && <ThemeButton />}
       <h1 className="text-2xl font-semibold">Components</h1>
       <p className="mt-1 text-sm text-neutral-500">
         Built from the <a className="underline" href={DESIGN_URL} target="_blank" rel="noreferrer">design canvas</a>, one at a time.
