@@ -104,28 +104,18 @@ export function segmentTitle(s: StripSegment): string {
   return `${KIND_LABEL[s.kind]} · ${d}${s.flagged ? ' · flagged' : ''}`
 }
 
-/** 465 -> "07:45". */
-export function clockText(minute: Minute): string {
-  return `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`
-}
-
 export interface StripMark {
-  kind: 'in' | 'out' | 'flag'
+  kind: 'flag'
   /** Percent of the axis, 0-100. */
   left: number
-  /** "In 07:45", "Out 17:40", "Far away". */
   label: string
 }
 
-/** Marks above the strip: clock-in, clock-out and one per flagged visit (at the visit's middle). */
+/** Marks above the strip: one flag per far-away visit, at the visit's middle. */
 export function buildMarks(day: StripDay, axisStart: Minute, axisEnd: Minute): StripMark[] {
-  const at = (m: Minute) => axisPercent(m, axisStart, axisEnd)
-  const marks: StripMark[] = [
-    { kind: 'in', left: at(day.clockIn), label: `In ${clockText(day.clockIn)}` },
-    { kind: 'out', left: at(day.clockOut), label: `Out ${clockText(day.clockOut)}` },
-  ]
-  for (const v of day.visits) if (v.flagged) marks.push({ kind: 'flag', left: at((v.start + v.end) / 2), label: 'Far away' })
-  return marks
+  return day.visits
+    .filter((v) => v.flagged)
+    .map((v) => ({ kind: 'flag', left: axisPercent((v.start + v.end) / 2, axisStart, axisEnd), label: 'Far away' }))
 }
 
 export interface StripPin {
