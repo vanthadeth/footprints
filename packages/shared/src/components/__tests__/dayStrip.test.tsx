@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { axisPercent, buildMarks, buildPins, buildStrip, clockText, gapKind, hm, segmentTitle, visitKind, type StripDay } from '../dayStrip'
+import { axisPercent, buildMarks, buildPins, buildStrip, gapKind, hm, segmentTitle, visitKind, type StripDay } from '../dayStrip'
 import { DayStrip } from '../DayStrip'
 
 const day = (over: Partial<StripDay> = {}): StripDay => ({
@@ -87,13 +87,10 @@ describe('buildMarks / buildPins', () => {
       { start: hm('15:30'), end: hm('16:15'), icons: ['ordered', 'collection'] },
     ],
   })
-  it('formats minutes as a clock time', () => {
-    expect(clockText(hm('07:05'))).toBe('07:05')
-  })
-  it('marks clock-in, clock-out and each flagged visit at its middle', () => {
+  it('marks each flagged visit at its middle, with no clock-in or clock-out times', () => {
     const marks = buildMarks(d, hm('07:00'), hm('19:00'))
-    expect(marks.map((m) => [m.kind, m.label])).toEqual([['in', 'In 07:45'], ['out', 'Out 17:40'], ['flag', 'Far away']])
-    expect(marks[2].left).toBeCloseTo(axisPercent(hm('14:20'), hm('07:00'), hm('19:00')))
+    expect(marks.map((m) => [m.kind, m.label])).toEqual([['flag', 'Far away']])
+    expect(marks[0].left).toBeCloseTo(axisPercent(hm('14:20'), hm('07:00'), hm('19:00')))
   })
   it('pins icons only for visits that have them, at the visit middle', () => {
     const pins = buildPins(d, hm('07:00'), hm('19:00'))
@@ -104,11 +101,12 @@ describe('buildMarks / buildPins', () => {
 
 describe('<DayStrip indicators>', () => {
   it('adds marks above and icon pins below only when asked', () => {
-    const d = day({ visits: [{ start: hm('09:00'), end: hm('10:00'), icons: ['appointment'] }] })
+    const d = day({ visits: [{ start: hm('09:00'), end: hm('10:00'), icons: ['appointment'], flagged: true }] })
     expect(renderToStaticMarkup(<DayStrip day={d} />)).not.toContain('day-strip-marks')
     const html = renderToStaticMarkup(<DayStrip day={d} indicators />)
     expect(html).toContain('day-strip-marks')
     expect(html).toContain('aria-label="Appointment"')
-    expect(html).toContain('In 08:00')
+    expect(html).not.toContain('In 08:00')
+    expect(html).not.toContain('Out 17:00')
   })
 })

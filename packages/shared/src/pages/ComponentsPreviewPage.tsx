@@ -67,7 +67,7 @@ const ENTRIES: Entry[] = [
     board: 'DayBar.dc.html',
     source: 'packages/shared/src/components/DayStrip.tsx (indicators)',
     variants: [
-      { label: 'Early in, late out: clock marks, far-away flag, order / collection / appointment icons', node: card(<DayStrip day={early} shiftLines indicators />) },
+      { label: 'Early in, late out: far-away flag, order / collection / appointment icons', node: card(<DayStrip day={early} shiftLines indicators />) },
       { label: 'Late in, early out', node: card(<DayStrip day={late} shiftLines indicators />) },
     ],
   },

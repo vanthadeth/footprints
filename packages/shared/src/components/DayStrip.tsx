@@ -10,7 +10,7 @@ interface Props {
   shiftLines?: boolean
   /** Thinner bar for lists and team rows. */
   thin?: boolean
-  /** Clock-in, clock-out and flag marks above the strip, visit icons below it. */
+  /** A flag above the strip for each far-away visit, and visit icons below it. */
   indicators?: boolean
   className?: string
 }
@@ -25,22 +25,22 @@ const ICON: Record<StripIcon, { Icon: typeof CircleCheck; tone: string; label: s
 /**
  * The day as one bar: visits (short, good, long), travel, idle and not
  * clocked-in time on a working-hours axis. By default no card, marks, icons
- * or numbers, so it can sit in any section; `indicators` adds the clock-in,
- * clock-out and far-away marks above and the order / collection /
- * appointment icons below. Colours come from the --strip-* variables in
+ * or numbers, so it can sit in any section; `indicators` adds the far-away
+ * flags above and the order / collection / appointment icons below. Colours come from the --strip-* variables in
  * styles.css (light and dark).
  */
 export function DayStrip({ day, axisStart = 7 * 60, axisEnd = 19 * 60, shiftLines = false, thin = false, indicators = false, className = '' }: Props) {
   const segments = buildStrip(day, axisStart, axisEnd)
+  const marks = indicators ? buildMarks(day, axisStart, axisEnd) : []
   const startPct = axisPercent(day.shiftStart, axisStart, axisEnd)
   const endPct = axisPercent(day.shiftEnd, axisStart, axisEnd)
   return (
     <div className={className}>
-      {indicators && (
+      {marks.length > 0 && (
         <div className="day-strip-marks">
-          {buildMarks(day, axisStart, axisEnd).map((m, i) => (
-            <div key={i} className={`day-strip-mark${m.kind === 'flag' ? ' day-strip-mark-flag' : ''}`} style={{ left: `${m.left}%` }}>
-              {m.kind === 'flag' ? <Flag role="img" aria-label={m.label} size={14} strokeWidth={2.4} /> : <span>{m.label}</span>}
+          {marks.map((m, i) => (
+            <div key={i} className="day-strip-mark day-strip-mark-flag" style={{ left: `${m.left}%` }}>
+              <Flag role="img" aria-label={m.label} size={14} strokeWidth={2.4} />
               <i />
             </div>
           ))}
