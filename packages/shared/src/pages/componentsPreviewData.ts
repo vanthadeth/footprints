@@ -1,5 +1,6 @@
 import type { AttendanceRecord, LeaveCode } from '../components/attendance'
 import type { Activity, RosterData } from '../components/roster'
+import type { HistoryMonth, MonthProgress } from '../components/trophies'
 
 const pad = (n: number) => String(n).padStart(2, '0')
 const key = (d: number) => `2026-10-${pad(d)}`
@@ -46,3 +47,34 @@ export function previewRoster(): RosterData {
     activity,
   }
 }
+
+/** October so far: sales and attendance at silver, new customers at gold, visits and system master still to go. */
+export const PREVIEW_TROPHIES: MonthProgress = {
+  sales: { actual: 5040, target: 6000 },
+  visits: { actual: 102, target: 176 },
+  newcustomer: { actual: 6, target: 6 },
+  attendance: { actual: 95, lates: [12] },
+  system: { actual: 71 },
+}
+
+type M = [HistoryMonth['medals'][number]['id'], 'gold' | 'silver']
+const month = (label: string, medals: M[], inProgress = false): HistoryMonth => ({ label, inProgress, medals: medals.map(([id, tier]) => ({ id, tier })) })
+
+/** The last 12 months of trophies, October still in progress. */
+export const PREVIEW_HISTORY: HistoryMonth[] = [
+  month('October 2026', [['sales', 'silver'], ['newcustomer', 'gold'], ['attendance', 'silver']], true),
+  month('September 2026', [['sales', 'gold'], ['visits', 'silver'], ['newcustomer', 'gold'], ['attendance', 'gold'], ['system', 'gold']]),
+  month('August 2026', [['sales', 'silver'], ['visits', 'silver'], ['attendance', 'gold']]),
+  month('July 2026', [['visits', 'silver'], ['newcustomer', 'gold']]),
+  month('June 2026', [['sales', 'silver'], ['attendance', 'silver'], ['system', 'gold']]),
+  month('May 2026', [['sales', 'gold'], ['visits', 'gold'], ['attendance', 'silver']]),
+  month('April 2026', [['attendance', 'gold']]),
+  month('March 2026', [['sales', 'silver'], ['visits', 'silver'], ['newcustomer', 'gold'], ['attendance', 'silver']]),
+  month('February 2026', []),
+  month('January 2026', [['sales', 'silver'], ['attendance', 'gold']]),
+  month('December 2025', [['visits', 'silver'], ['newcustomer', 'gold'], ['system', 'gold']]),
+  month('November 2025', [['sales', 'silver']]),
+]
+
+/** Last month's medals for the card footer: September in the history above. */
+export const PREVIEW_LAST_MONTH = { name: 'September', medals: PREVIEW_HISTORY[1].medals }
