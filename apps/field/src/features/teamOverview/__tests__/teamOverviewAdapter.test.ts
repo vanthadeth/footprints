@@ -77,29 +77,41 @@ describe('buildOverview', () => {
 
 describe('buildPerformance', () => {
   const overview = buildOverview(base({ snapshots: [snap('a', 'A', [['08:00', null]]), snap('b', 'B', [['08:00', null]]), snap('c', 'C')], leave: { c: 'annual' } }))
+  const v = (id: string, amount: number | null = null) => ({ id, checked_in_at: at('09:00'), checked_out_at: at('09:30'), cancelled_at: null, order_amount_usd: amount })
   const facts = {
     overview,
-    visits: [{ id: 'v1' }, { id: 'v2' }, { id: 'v3' }],
-    orderStates: { v1: 'synced', v2: 'pending', v3: 'unmatched' } as const,
-    orderTotals: { v1: { totalUsd: 300 }, v2: { totalUsd: null }, v3: { totalUsd: 900 } },
-    orderTargets: { a: 400, b: null },
+    visits: [v('v1'), v('v2'), v('v3', 80)],
+    orderStates: { v1: 'synced', v2: 'pending', v3: 'unmatched' } as Record<string, 'synced' | 'pending' | 'unmatched' | 'confirmed' | 'none'>,
+    orderTotals: { v1: { orderNo: 'SO-1', totalUsd: 300 }, v3: { orderNo: 'SO-3', totalUsd: 900 } } as Record<string, { orderNo: string; totalUsd: number | null }>,
+    orderTargets: { a: 400, b: null } as Record<string, number | null>,
     dailyOrderTargetUsd: 300,
     dailyVisitTarget: 10,
     newCustomers: 2,
   }
-  it('adds up synced orders only, targets over the people expected to work, and visits against their target', () => {
-    const p = buildPerformance({ ...facts, orderStates: { ...facts.orderStates } })
+  it('adds up the order value, targets over the people expected to work, and visits against their target', () => {
+    const p = buildPerformance(facts)
     expect(p.sales).toMatchObject({ value: 300, target: 700, percent: 43 })
     expect(p.visits).toMatchObject({ value: 3, target: 20, percent: 15 })
     expect(p.newCustomers).toMatchObject({ value: 2, target: null, percent: null })
   })
+  it('counts a sale order once when two people visited the same customer', () => {
+    const twice = { ...facts, visits: [v('v1'), v('v4')], orderStates: { v1: 'synced', v4: 'synced' } as typeof facts.orderStates, orderTotals: { v1: { orderNo: 'SO-1', totalUsd: 300 }, v4: { orderNo: 'SO-1', totalUsd: 300 } } }
+    expect(buildPerformance(twice).sales.value).toBe(300)
+    const other = { ...twice, orderTotals: { v1: { orderNo: 'SO-1', totalUsd: 300 }, v4: { orderNo: 'SO-2', totalUsd: 120 } } }
+    expect(buildPerformance(other).sales.value).toBe(420)
+    expect(buildPerformance(twice).visits.value).toBe(2)
+  })
+  it('counts the amount entered on a visit still waiting for its sale order, and nothing for one whose window closed', () => {
+    const f = { ...facts, visits: [v('p', 150), v('u', 80)], orderStates: { p: 'pending', u: 'unmatched' } as typeof facts.orderStates, orderTotals: {} }
+    expect(buildPerformance(f).sales.value).toBe(150)
+  })
   it('puts the pace tick where the working day has got to', () => {
-    const p = buildPerformance({ ...facts, orderStates: { ...facts.orderStates } })
+    const p = buildPerformance(facts)
     expect(p.sales.pace).toBeCloseTo((820 - 480) / 540 * 100, 5)
   })
   it('has no targets when nobody is expected to work', () => {
     const none = buildOverview(base({ snapshots: [snap('c', 'C')], leave: { c: 'annual' } }))
-    const p = buildPerformance({ ...facts, overview: none, orderStates: { ...facts.orderStates } })
+    const p = buildPerformance({ ...facts, overview: none })
     expect(p.sales.target).toBeNull()
     expect(p.visits.target).toBeNull()
   })

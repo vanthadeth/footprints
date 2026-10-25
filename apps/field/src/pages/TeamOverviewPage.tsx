@@ -53,7 +53,7 @@ export function TeamOverviewPage() {
       <TeamPerformance performance={performance} />
       <TeamOverview people={overview.people} loading={loading} onOpenPerson={(id) => navigate(`/team/footprints/${id}`)} />
       <p className="px-1 text-xs text-neutral-500">
-        Sales count orders synced from the sales system; targets add up over the people working today. Late is minutes after start time plus grace, as in the attendance roster.
+        Sales count each synced sale order once, even when two people visited the same customer, plus amounts entered on visits still waiting for the sync; targets add up over the people working today. Late is minutes after start time plus grace, as in the attendance roster.
       </p>
     </div>
   )

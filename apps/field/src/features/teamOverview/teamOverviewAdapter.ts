@@ -7,7 +7,8 @@ import { firstClockIn, lastClockOut } from '@/features/attendance/sessions'
 import { visitSpan } from '@/features/attendance/flagRules'
 import type { FleetMemberSnapshot } from '@/features/fleet/types'
 import type { LeaveType } from '@/features/leave/types'
-import { countsAsOrdered, type OrderState } from '@/features/orders/orderReconcile'
+import { orderValueUsd } from '@/features/attendance/effectivenessScore'
+import type { OrderState } from '@/features/orders/orderReconcile'
 
 const LEAVE_CODE: Record<LeaveType, LeaveCode> = { annual: 'AL', unpaid: 'UL', sick: 'SL', flex: 'FD' }
 
@@ -109,10 +110,10 @@ export function buildOverview(i: OverviewInput): Overview {
 export interface PerformanceFacts {
   overview: Overview
   /** Today's visits of the team, not cancelled. */
-  visits: { id: string }[]
+  visits: { id: string; cancelled_at?: string | null; order_amount_usd?: number | null; checked_in_at: string; checked_out_at: string | null }[]
   orderStates: Record<string, OrderState>
   /** The synced sale order's total per visit. */
-  orderTotals: Record<string, { totalUsd: number | null }>
+  orderTotals: Record<string, { orderNo: string; totalUsd: number | null }>
   /** Each person's own daily order target in USD (null: the company default). */
   orderTargets: Record<string, number | null>
   dailyOrderTargetUsd: number
@@ -120,9 +121,12 @@ export interface PerformanceFacts {
   newCustomers: number
 }
 
-/** The team's day against its targets. Only synced sale orders add to sales; targets add up over the people expected to work. */
+/**
+ * The team's day against its targets. Sales are counted as the score counts them: a synced sale order once, however many visits
+ * matched it (two people can visit the same customer), else the amount entered on a visit marked ordered. Targets add up over the people expected to work.
+ */
 export function buildPerformance(f: PerformanceFacts): Performance {
-  const sales = f.visits.reduce((n, v) => n + (countsAsOrdered(f.orderStates[v.id]) ? f.orderTotals[v.id]?.totalUsd ?? 0 : 0), 0)
+  const sales = orderValueUsd(f.visits, f.orderStates, f.orderTotals)
   const ids = f.overview.expectedIds
   const salesTarget = ids.reduce((n, id) => n + (f.orderTargets[id] ?? f.dailyOrderTargetUsd), 0)
   const span = f.overview.shiftEnd - f.overview.shiftStart
