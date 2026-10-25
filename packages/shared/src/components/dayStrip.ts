@@ -24,6 +24,8 @@ export interface StripDay {
   clockOut: Minute
   /** Visits in time order. */
   visits: StripVisit[]
+  /** A day still in progress: nothing is drawn after this minute. */
+  now?: Minute
 }
 
 export interface StripSegment {
@@ -68,7 +70,7 @@ export function buildStrip(day: StripDay, axisStart: Minute, axisEnd: Minute): S
   const out: StripSegment[] = []
   const add = (kind: StripKind, start: Minute, end: Minute, flagged = false) => {
     const a = Math.max(start, axisStart)
-    const b = Math.min(end, axisEnd)
+    const b = Math.min(end, axisEnd, day.now ?? Infinity)
     if (b <= a) return
     out.push({ kind, flagged, start, end, left: ((a - axisStart) / span) * 100, width: ((b - a) / span) * 100 })
   }

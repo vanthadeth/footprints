@@ -8,9 +8,12 @@ import { SHORTCUT_OPTIONS, tabsForRole } from '../components/bottomNav'
 import type { AttendanceRecord } from '../components/attendance'
 import { Calendar } from '../components/Calendar'
 import { TeamAttendanceCalendar, TeamCalendar } from '../components/TeamCalendar'
+import { TeamOverview } from '../components/TeamOverview'
+import { TeamPerformance } from '../components/TeamPerformance'
+import { performance } from '../components/teamOverview'
 import { NextUnlocksSheet, TrophyCard, TrophyDetailsSheet, TrophyHistorySheet, TrophyTiles } from '../components/Trophies'
 import type { Lang, TrophyId } from '../components/trophies'
-import { PREVIEW_HISTORY, PREVIEW_LAST_MONTH, PREVIEW_TROPHIES, previewRoster } from './componentsPreviewData'
+import { PREVIEW_HISTORY, PREVIEW_LAST_MONTH, PREVIEW_OVERVIEW, PREVIEW_PERFORMANCE, PREVIEW_TROPHIES, previewRoster } from './componentsPreviewData'
 import type { DayMarks } from '../components/calendar'
 import { DayStrip } from '../components/DayStrip'
 import { hm, type StripDay } from '../components/dayStrip'
@@ -155,6 +158,7 @@ function TilesDemo() {
 
 const TEAM = previewRoster()
 const teamView = (node: ReactNode) => <div className="w-full">{node}</div>
+const phone = (node: ReactNode) => <div className="w-full max-w-[390px]">{node}</div>
 
 interface Entry {
   id: string
@@ -220,6 +224,28 @@ const ENTRIES: Entry[] = [
     variants: [
       { label: 'Month: one row per person, marks in every cell, totals at the end of the row. Tap a date for the day list', node: teamView(<TeamAttendanceCalendar data={TEAM} value="2026-10-16" subtitle="Sales team Phnom Penh" />) },
       { label: 'Week', node: teamView(<TeamAttendanceCalendar data={TEAM} defaultView="week" value="2026-10-16" subtitle="Sales team Phnom Penh" />) },
+    ],
+  },
+  {
+    id: 'team-performance',
+    name: 'Team performance (managers)',
+    board: 'TeamPerformance.dc.html',
+    source: 'packages/shared/src/components/TeamPerformance.tsx',
+    variants: [
+      { label: 'Sales vs target with a pace tick (green on or ahead of pace, amber slightly behind, red well behind), then visits and new customers', node: phone(<TeamPerformance performance={performance(PREVIEW_PERFORMANCE)} />) },
+      { label: 'Behind pace', node: phone(<TeamPerformance performance={performance({ ...PREVIEW_PERFORMANCE, sales: 1900, visits: 12, newCustomers: 1 })} />) },
+      { label: 'No targets set: the numbers only', node: phone(<TeamPerformance performance={performance({ ...PREVIEW_PERFORMANCE, salesTarget: null, visitTarget: null, newTarget: null })} />) },
+    ],
+  },
+  {
+    id: 'team-overview',
+    name: 'Team overview (managers)',
+    board: 'ManagerTeam.dc.html',
+    source: 'packages/shared/src/components/TeamOverview.tsx',
+    variants: [
+      { label: 'Four numbers that filter the list, then each person with their day strip. Sorted: absent, late, clocked in, on leave', node: phone(<TeamOverview people={PREVIEW_OVERVIEW} />) },
+      { label: 'Late selected as a filter', node: phone(<TeamOverview people={PREVIEW_OVERVIEW} defaultFilter="late" />) },
+      { label: 'Nobody reports to this manager yet', node: phone(<TeamOverview people={[]} />) },
     ],
   },
   {
