@@ -47,9 +47,10 @@ export function DayStrip({ day, axisStart = 7 * 60, axisEnd = 19 * 60, shiftLine
         </div>
       )}
       <div className={`day-strip ${thin ? 'h-[15px]' : indicators ? 'h-[22px]' : 'h-[33px]'}`} role="img" aria-label="Day timeline">
-        {/* Travel colour outside working hours. */}
-        <div className="day-strip-seg day-strip-travel" style={{ left: 0, width: `${startPct}%` }} />
-        <div className="day-strip-seg day-strip-travel" style={{ left: `${endPct}%`, right: 0 }} />
+        {/* Working hours have a light background for the time nothing fills; outside them the bar is striped, with no background. */}
+        <div className="day-strip-work" style={{ left: `${startPct}%`, width: `${endPct - startPct}%` }} />
+        <div className="day-strip-seg day-strip-outside" style={{ left: 0, width: `${startPct}%` }} />
+        <div className="day-strip-seg day-strip-outside" style={{ left: `${endPct}%`, right: 0 }} />
         {segments.map((s, i) => (
           <div
             key={i}

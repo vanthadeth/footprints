@@ -289,6 +289,7 @@
   --strip-long: #006acc;
   --strip-travel: #c9ccd1;
   --strip-track: #e8e8e8;
+  --strip-hatch: #ececee;
   --strip-amber: #e8a22a;
   --strip-bad: #ba2323;
   --strip-line: #666666;
@@ -303,6 +304,7 @@ html.dark {
   --strip-long: #339dff;
   --strip-travel: #4a4d52;
   --strip-track: #333333;
+  --strip-hatch: #2f3135;
   --strip-amber: #f2a54a;
   --strip-bad: #ff8f8f;
   --strip-line: #a8a8a8;
@@ -348,9 +350,11 @@ html.dark {
 .day-strip-good { background-color: var(--strip-good); }
 .day-strip-long { background-color: var(--strip-long); }
 .day-strip-travel { background-color: var(--strip-travel); }
-.day-strip-idle { background-color: var(--strip-travel); box-shadow: inset 0 3px 0 var(--strip-amber); }
+.day-strip-idle { background-color: var(--strip-amber); }
 .day-strip-missed { background-color: var(--strip-track); box-shadow: inset 0 3px 0 var(--strip-amber); }
 .day-strip-flag { box-shadow: inset 0 3px 0 var(--strip-bad); }
+.day-strip-work { position: absolute; top: 1px; bottom: 1px; background-color: var(--strip-track); }
+.day-strip-outside { border: 0; background: repeating-linear-gradient(135deg, var(--strip-card) 0 4px, var(--strip-hatch) 4px 8px); }
 .day-strip-shift {
   position: absolute;
   top: -4px;
