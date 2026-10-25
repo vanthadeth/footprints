@@ -75,6 +75,16 @@ describe('<DayStrip>', () => {
     expect(renderToStaticMarkup(<DayStrip day={d} shiftLines />).match(/day-strip-shift/g)?.length).toBe(2)
     expect(renderToStaticMarkup(<DayStrip day={d} thin />)).toContain('h-[15px]')
   })
+  it('gives working hours a light background and stripes the time outside them, with no travel colour', () => {
+    const d = day({ shiftStart: hm('08:00'), shiftEnd: hm('17:00'), visits: [{ start: hm('09:00'), end: hm('10:00') }] })
+    const html = renderToStaticMarkup(<DayStrip day={d} />)
+    expect(html.match(/day-strip-work/g)).toHaveLength(1)
+    const work = html.match(/class="day-strip-work" style="left:([\d.]+)%;width:([\d.]+)%"/)!
+    expect(Number(work[1])).toBeCloseTo(((8 - 7) / 12) * 100, 5)
+    expect(Number(work[2])).toBeCloseTo((9 / 12) * 100, 5)
+    expect(html.match(/day-strip-outside/g)).toHaveLength(2)
+    expect(html).not.toContain('day-strip-travel')
+  })
 })
 
 describe('buildMarks / buildPins', () => {
