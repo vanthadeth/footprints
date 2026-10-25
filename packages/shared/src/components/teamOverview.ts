@@ -6,9 +6,20 @@ import { money } from './roster'
 export type PersonState = 'in' | 'leave' | 'absent' | 'waiting'
 export type OverviewFilter = 'all' | 'in' | 'leave' | 'absent' | 'late'
 
+export const NO_DEPARTMENT = 'No department'
+
+export interface PersonInfo {
+  /** Different customers visited today. */
+  uniqueVisits: number
+  /** Orders today; a synced sale order counts once however many visits matched it. */
+  orders: number
+  amountUsd: number
+}
+
 export interface OverviewPerson {
   id: string
   name: string
+  department: string
   state: PersonState
   /** Minutes late in; only for someone clocked in. */
   lateMinutes: number
@@ -21,6 +32,8 @@ export interface OverviewPerson {
   /** The day so far, for someone clocked in. */
   strip?: StripDay
   visits?: number
+  /** The day's numbers, for someone clocked in. */
+  info?: PersonInfo
 }
 
 export const initials = (name: string): string => {
@@ -72,9 +85,45 @@ export function sortPeople(people: OverviewPerson[]): OverviewPerson[] {
   return [...people].sort((a, b) => rank(a) - rank(b) || (rank(a) === 1 ? b.lateMinutes - a.lateMinutes : 0) || a.name.localeCompare(b.name))
 }
 
-export const leaveSplitText = (k: OverviewKpis) => k.leaveSplit.map((x) => `${x.code} ${x.count}`).join(' · ')
+export interface OverviewGroup {
+  name: string
+  people: OverviewPerson[]
+}
 
-export type Tone = 'ok' | 'warn' | 'bad'
+/** People by department, alphabetical with "No department" last; inside a department, absent first, then late, clocked in, waiting, on leave. */
+export function groupByDepartment(people: OverviewPerson[]): OverviewGroup[] {
+  const names = [...new Set(people.map((p) => p.department || NO_DEPARTMENT))].sort((a, b) => (a === NO_DEPARTMENT ? 1 : b === NO_DEPARTMENT ? -1 : a.localeCompare(b)))
+  return names.map((name) => ({ name, people: sortPeople(people.filter((p) => (p.department || NO_DEPARTMENT) === name)) }))
+}
+
+export type ChipTone = 'ok' | 'amb' | 'bad' | 'mu'
+
+const LEAVE_NAME: Record<LeaveCode, string> = { AL: 'Annual leave', SL: 'Sick leave', UL: 'Unpaid leave', FD: 'Flexible day off' }
+
+/** The line under the name on a person's card. */
+export function statusLine(p: OverviewPerson): string {
+  if (p.state === 'in') return p.clockIn ? `Clocked in ${p.clockIn}` : 'Clocked in'
+  if (p.state === 'leave') return p.leaveCode ? LEAVE_NAME[p.leaveCode] : 'On leave'
+  if (p.state === 'absent') return 'No clock-in yet'
+  return p.note ?? 'Not clocked in yet'
+}
+
+/** The chip on the right of a person's card. */
+export function statusChip(p: OverviewPerson): { text: string; tone: ChipTone } {
+  if (p.state === 'in') return isLate(p) ? { text: `Late ${p.lateMinutes}m`, tone: 'amb' } : { text: 'On time', tone: 'ok' }
+  if (p.state === 'leave') return { text: p.leaveCode ? `On leave · ${p.leaveCode}` : 'On leave', tone: 'mu' }
+  if (p.state === 'absent') return { text: 'Absent', tone: 'bad' }
+  return { text: p.note === 'Day off' ? 'Day off' : 'Not due yet', tone: 'mu' }
+}
+
+/** "5 unique visits", "1 order", "3 orders". */
+export const infoPills = (i: PersonInfo): { text: string; amount?: boolean }[] => [
+  { text: `${i.uniqueVisits} unique ${i.uniqueVisits === 1 ? 'visit' : 'visits'}` },
+  { text: `${i.orders} ${i.orders === 1 ? 'order' : 'orders'}` },
+  { text: money(i.amountUsd), amount: true },
+]
+
+export const leaveSplitText = (k: OverviewKpis) => k.leaveSplit.map((x) => `${x.code} ${x.count}`).join(' · ')
 
 export interface Measure {
   value: number
@@ -85,21 +134,31 @@ export interface Measure {
   fill: number
 }
 
-export interface PerformanceInput {
+export type Tone = 'ok' | 'warn' | 'bad'
+
+/** Today's numbers against their targets. */
+export interface DayInput {
   sales: number
   salesTarget: number | null
   visits: number
   visitTarget: number | null
   newCustomers: number
   newTarget: number | null
-  /** How much of the working day has passed, 0-1; where the pace tick sits on the sales bar. */
-  paceFraction: number
 }
 
-export interface Performance {
+/** The month so far, with how many of its working days (person-days, summed over the team) have gone. */
+export interface MonthInput extends DayInput {
+  doneDays: number
+  totalDays: number
+}
+
+export type PerformanceInput = DayInput & { month?: MonthInput }
+
+export interface MonthPerformance {
   sales: Measure & {
-    /** Where the person should be by now, percent of the bar. Null without a target. */
+    /** Where the team should be by now, percent of the bar. Null without working days. */
     pace: number | null
+    /** Colour follows pace, not the raw percent. Null without a target. */
     tone: Tone | null
     /** Money ahead of (positive) or behind (negative) the pace. */
     diff: number | null
@@ -107,6 +166,16 @@ export interface Performance {
   }
   visits: Measure
   newCustomers: Measure
+  /** Working days still to come. */
+  daysLeft: number
+}
+
+export interface Performance {
+  /** Today. Pace is left to the month. */
+  sales: Measure
+  visits: Measure
+  newCustomers: Measure
+  month: MonthPerformance | null
 }
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n))
@@ -117,28 +186,38 @@ export function measure(value: number, target: number | null): Measure {
   return { value, target, percent, fill: clamp(percent, 0, 100) }
 }
 
-/** Colour follows pace, not the raw percent: on or ahead of pace is ok, within 15% behind is warn, further behind is bad. */
+/** On or ahead of pace is ok, within 15% behind is warn, further behind is bad. */
 export function paceTone(value: number, target: number, paceFraction: number): Tone {
   const expected = target * clamp(paceFraction, 0, 1)
   if (expected <= 0 || value >= expected) return 'ok'
   return value / expected >= 0.85 ? 'warn' : 'bad'
 }
 
-export function performance(i: PerformanceInput): Performance {
-  const sales = measure(i.sales, i.salesTarget)
-  const pace = clamp(i.paceFraction, 0, 1)
-  const hasTarget = sales.target != null
-  const expected = hasTarget ? sales.target! * pace : 0
-  const diff = hasTarget ? Math.round(i.sales - expected) : null
+function monthPerformance(m: MonthInput): MonthPerformance {
+  const sales = measure(m.sales, m.salesTarget)
+  const pace = m.totalDays > 0 ? clamp(m.doneDays / m.totalDays, 0, 1) : null
+  const judged = sales.target != null && pace != null
+  const diff = judged ? Math.round(m.sales - sales.target! * pace!) : null
   return {
     sales: {
       ...sales,
-      pace: hasTarget ? pace * 100 : null,
-      tone: hasTarget ? paceTone(i.sales, sales.target!, pace) : null,
+      pace: pace == null ? null : pace * 100,
+      tone: judged ? paceTone(m.sales, sales.target!, pace!) : null,
       diff,
-      chip: diff == null ? 'No sales target set' : `${money(Math.abs(diff))} ${diff >= 0 ? 'ahead of pace' : 'behind pace'}`,
+      chip: diff == null ? 'No target set' : `${money(Math.abs(diff))} ${diff >= 0 ? 'ahead of pace' : 'behind pace'}`,
     },
+    visits: measure(m.visits, m.visitTarget),
+    newCustomers: measure(m.newCustomers, m.newTarget),
+    daysLeft: Math.max(0, m.totalDays - m.doneDays),
+  }
+}
+
+/** The team's day against its targets, and the month so far when given. Pace belongs to the month, not the day. */
+export function performance(i: PerformanceInput): Performance {
+  return {
+    sales: measure(i.sales, i.salesTarget),
     visits: measure(i.visits, i.visitTarget),
     newCustomers: measure(i.newCustomers, i.newTarget),
+    month: i.month ? monthPerformance(i.month) : null,
   }
 }

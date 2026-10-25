@@ -2,12 +2,12 @@ import { displayName } from '@footprints/shared/lib/displayName'
 import { formatTime } from '@footprints/shared/lib/datetime'
 import type { LeaveCode } from '@footprints/shared/components/attendance'
 import type { StripDay } from '@footprints/shared/components/dayStrip'
-import { performance, type OverviewPerson, type Performance } from '@footprints/shared/components/teamOverview'
+import { NO_DEPARTMENT, performance, type MonthInput, type OverviewPerson, type Performance } from '@footprints/shared/components/teamOverview'
 import { firstClockIn, lastClockOut } from '@/features/attendance/sessions'
 import { visitSpan } from '@/features/attendance/flagRules'
 import type { FleetMemberSnapshot } from '@/features/fleet/types'
 import type { LeaveType } from '@/features/leave/types'
-import { orderValueUsd } from '@/features/attendance/effectivenessScore'
+import { orderSummary, orderValueUsd } from '@/features/attendance/effectivenessScore'
 import type { OrderState } from '@/features/orders/orderReconcile'
 
 const LEAVE_CODE: Record<LeaveType, LeaveCode> = { annual: 'AL', unpaid: 'UL', sick: 'SL', flex: 'FD' }
@@ -31,16 +31,15 @@ export interface OverviewInput {
   forgottenCapMin: number
   /** Epoch ms. */
   now: number
+  /** The order state and synced sale order of each visit, for each person's orders and amount. */
+  orderStates?: Record<string, OrderState>
+  orderTotals?: Record<string, { orderNo: string; totalUsd: number | null }>
 }
 
 export interface Overview {
   people: OverviewPerson[]
   /** People expected to work today: not on leave, not on a day off. Targets are summed over them. */
   expectedIds: string[]
-  /** The earliest start and latest end among them, as minutes of the day. */
-  shiftStart: number
-  shiftEnd: number
-  nowMinute: number
 }
 
 /** "HH:MM" or "HH:MM:SS" as minutes after midnight. */
@@ -60,10 +59,10 @@ export const minuteOf = (ms: number): number => minutesOfText(formatTime(new Dat
 export function buildOverview(i: OverviewInput): Overview {
   const nowMinute = minuteOf(i.now)
   const expectedIds: string[] = []
-  const shifts: [number, number][] = []
   const people = i.snapshots.map((s): OverviewPerson => {
     const id = s.member.id
     const name = displayName(s.member.fullName, s.member.nickname)
+    const department = s.member.departmentName?.trim() || NO_DEPARTMENT
     const wd = i.workDays[id]
     const startText = (wd?.start ?? i.defaults.start).slice(0, 5)
     const start = minutesOfText(startText)
@@ -72,7 +71,6 @@ export function buildOverview(i: OverviewInput): Overview {
     const visits = s.visitsToday.filter((v) => !v.cancelled_at)
     if (firstIn) {
       expectedIds.push(id)
-      shifts.push([start, end])
       const clockIn = minuteOf(Date.parse(firstIn))
       const behind = clockIn - start
       const out = lastClockOut(s.sessions)
@@ -87,23 +85,58 @@ export function buildOverview(i: OverviewInput): Overview {
           return { start: minuteOf(a), end: minuteOf(b) }
         }),
       }
-      return { id, name, state: 'in', lateMinutes: behind > i.graceMin ? behind : 0, clockIn: formatTime(firstIn), strip, visits: visits.length }
+      const orders = orderSummary(visits, i.orderStates, i.orderTotals)
+      const info = { uniqueVisits: new Set(visits.map((v) => v.customer_id ?? v.id)).size, orders: orders.count, amountUsd: orders.valueUsd }
+      return { id, name, department, state: 'in', lateMinutes: behind > i.graceMin ? behind : 0, clockIn: formatTime(firstIn), strip, visits: visits.length, info }
     }
     const leave = i.leave[id]
-    if (leave) return { id, name, state: 'leave', lateMinutes: 0, leaveCode: LEAVE_CODE[leave] }
-    if (wd && !wd.isWorking) return { id, name, state: 'waiting', lateMinutes: 0, note: 'Day off' }
+    if (leave) return { id, name, department, state: 'leave', lateMinutes: 0, leaveCode: LEAVE_CODE[leave] }
+    if (wd && !wd.isWorking) return { id, name, department, state: 'waiting', lateMinutes: 0, note: 'Day off' }
     expectedIds.push(id)
-    shifts.push([start, end])
-    if (nowMinute > start + i.graceMin) return { id, name, state: 'absent', lateMinutes: 0 }
-    return { id, name, state: 'waiting', lateMinutes: 0, note: `Starts at ${startText}` }
+    if (nowMinute > start + i.graceMin) return { id, name, department, state: 'absent', lateMinutes: 0 }
+    return { id, name, department, state: 'waiting', lateMinutes: 0, note: `Starts at ${startText}` }
   })
-  const fallback: [number, number] = [minutesOfText(i.defaults.start), minutesOfText(i.defaults.end)]
+  return { people, expectedIds }
+}
+
+/** Days the person is expected to work: not leave, holiday or a day off. `upcoming` is a working day still to come. */
+const EXPECTED_STATUS = new Set(['present', 'late', 'absent', 'upcoming'])
+
+export interface MonthFacts {
+  /** attendance_days rows of the team for the whole month. */
+  rows: { userId: string; day: string; status: string }[]
+  /** "YYYY-MM-DD", the app's today. */
+  today: string
+  /** The month's visits so far, not cancelled. */
+  visits: { id: string; cancelled_at?: string | null; order_amount_usd?: number | null; checked_in_at: string; checked_out_at: string | null }[]
+  orderStates: Record<string, OrderState>
+  orderTotals: Record<string, { orderNo: string; totalUsd: number | null }>
+  orderTargets: Record<string, number | null>
+  dailyOrderTargetUsd: number
+  dailyVisitTarget: number
+  newCustomers: number
+}
+
+/**
+ * The month so far. Targets add up over every working day of every person (their own daily order target, else the company
+ * default; the daily visit target). Pace counts the team's working days: a day is one if anyone is expected to work it,
+ * and today is counted as gone.
+ */
+export function buildMonth(f: MonthFacts): MonthInput | null {
+  const expected = f.rows.filter((r) => EXPECTED_STATUS.has(r.status))
+  if (!expected.length) return null
+  const salesTarget = expected.reduce((n, r) => n + (f.orderTargets[r.userId] ?? f.dailyOrderTargetUsd), 0)
+  const days = new Set(expected.map((r) => r.day))
+  const done = [...days].filter((d) => d <= f.today).length
   return {
-    people,
-    expectedIds,
-    shiftStart: shifts.length ? Math.min(...shifts.map((x) => x[0])) : fallback[0],
-    shiftEnd: shifts.length ? Math.max(...shifts.map((x) => x[1])) : fallback[1],
-    nowMinute,
+    sales: orderSummary(f.visits, f.orderStates, f.orderTotals).valueUsd,
+    salesTarget: salesTarget > 0 ? salesTarget : null,
+    visits: f.visits.filter((v) => !v.cancelled_at).length,
+    visitTarget: f.dailyVisitTarget > 0 ? expected.length * f.dailyVisitTarget : null,
+    newCustomers: f.newCustomers,
+    newTarget: null,
+    doneDays: done,
+    totalDays: days.size,
   }
 }
 
@@ -119,6 +152,8 @@ export interface PerformanceFacts {
   dailyOrderTargetUsd: number
   dailyVisitTarget: number
   newCustomers: number
+  /** The month so far, when it has loaded. */
+  month?: MonthInput | null
 }
 
 /**
@@ -129,8 +164,6 @@ export function buildPerformance(f: PerformanceFacts): Performance {
   const sales = orderValueUsd(f.visits, f.orderStates, f.orderTotals)
   const ids = f.overview.expectedIds
   const salesTarget = ids.reduce((n, id) => n + (f.orderTargets[id] ?? f.dailyOrderTargetUsd), 0)
-  const span = f.overview.shiftEnd - f.overview.shiftStart
-  const pace = span > 0 ? Math.min(1, Math.max(0, (f.overview.nowMinute - f.overview.shiftStart) / span)) : 1
   return performance({
     sales,
     salesTarget: salesTarget > 0 ? salesTarget : null,
@@ -138,6 +171,6 @@ export function buildPerformance(f: PerformanceFacts): Performance {
     visitTarget: ids.length && f.dailyVisitTarget > 0 ? ids.length * f.dailyVisitTarget : null,
     newCustomers: f.newCustomers,
     newTarget: null,
-    paceFraction: pace,
+    month: f.month ?? undefined,
   })
 }

@@ -7,10 +7,13 @@ import { useTeamWorkDays } from '@/features/schedule/useTeamWorkDays'
 import { useApprovedLeaveOnDate } from '@/features/leave/useApprovedLeaveOnDate'
 import { useVisitOrders, useVisitOrderTotals } from '@/features/orders/useVisitOrders'
 import { useOrderTargets } from '@/features/orders/useOrderTargets'
-import { buildOverview, buildPerformance } from '@/features/teamOverview/teamOverviewAdapter'
-import { useNewCustomersToday } from '@/features/teamOverview/useNewCustomersToday'
+import { addDays } from '@/features/attendanceSummary/attendanceCycle'
+import { useAttendanceDays } from '@/features/attendanceSummary/useAttendanceDays'
+import { buildMonth, buildOverview, buildPerformance } from '@/features/teamOverview/teamOverviewAdapter'
+import { useMonthVisits } from '@/features/teamOverview/useMonthVisits'
+import { useNewCustomersSince } from '@/features/teamOverview/useNewCustomersSince'
 import { useAppSettings } from '@/hooks/useAppSettings'
-import { getPresetRange, todayDateString } from '@/lib/dateRange'
+import { getPresetRange, localDateKey, todayDateString } from '@/lib/dateRange'
 
 /**
  * Team (manager view): the team's day against its targets, four numbers that filter the list, then each person with their day strip.
@@ -27,7 +30,16 @@ export function TeamOverviewPage() {
   const workDays = useTeamWorkDays(today)
   const orderTargets = useOrderTargets()
   const startOfToday = useMemo(() => getPresetRange('today').startIso, [])
-  const newCustomers = useNewCustomersToday(ids, startOfToday)
+  const newCustomers = useNewCustomersSince(ids, startOfToday)
+  // The month so far: its first day, and its last (the range ends at the start of next month).
+  const monthRange = useMemo(() => getPresetRange('this_month'), [])
+  const monthFrom = localDateKey(monthRange.startIso)
+  const monthTo = addDays(localDateKey(monthRange.endIso), -1)
+  const newCustomersMonth = useNewCustomersSince(ids, monthRange.startIso)
+  const monthDays = useAttendanceDays(monthFrom, monthTo, ids)
+  const { visits: monthVisits } = useMonthVisits(ids, monthRange.startIso, monthRange.endIso)
+  const monthOrderStates = useVisitOrders(monthVisits)
+  const monthOrderTotals = useVisitOrderTotals(monthVisits)
   // The strips and "absent" move with the clock.
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
@@ -35,16 +47,23 @@ export function TeamOverviewPage() {
     return () => clearInterval(t)
   }, [])
 
-  const overview = useMemo(
-    () => buildOverview({ snapshots: field, leave, workDays, defaults: { start: settings.workStartTime, end: settings.workEndTime }, graceMin: settings.flagRules.lateGraceMin, forgottenCapMin: settings.flagRules.forgottenCapMin, now }),
-    [field, leave, workDays, settings.workStartTime, settings.workEndTime, settings.flagRules.lateGraceMin, settings.flagRules.forgottenCapMin, now],
-  )
   const visits = useMemo(() => field.flatMap((s) => s.visitsToday.filter((v) => !v.cancelled_at)), [field])
   const orderStates = useVisitOrders(visits)
   const orderTotals = useVisitOrderTotals(visits)
+  const overview = useMemo(
+    () => buildOverview({ snapshots: field, leave, workDays, defaults: { start: settings.workStartTime, end: settings.workEndTime }, graceMin: settings.flagRules.lateGraceMin, forgottenCapMin: settings.flagRules.forgottenCapMin, now, orderStates, orderTotals }),
+    [field, leave, workDays, settings.workStartTime, settings.workEndTime, settings.flagRules.lateGraceMin, settings.flagRules.forgottenCapMin, now, orderStates, orderTotals],
+  )
+  const month = useMemo(
+    () =>
+      monthDays.loading
+        ? null
+        : buildMonth({ rows: monthDays.rows, today, visits: monthVisits, orderStates: monthOrderStates, orderTotals: monthOrderTotals, orderTargets, dailyOrderTargetUsd: settings.dailyOrderTargetUsd, dailyVisitTarget: settings.dailyVisitTarget, newCustomers: newCustomersMonth }),
+    [monthDays.loading, monthDays.rows, today, monthVisits, monthOrderStates, monthOrderTotals, orderTargets, settings.dailyOrderTargetUsd, settings.dailyVisitTarget, newCustomersMonth],
+  )
   const performance = useMemo(
-    () => buildPerformance({ overview, visits, orderStates, orderTotals, orderTargets, dailyOrderTargetUsd: settings.dailyOrderTargetUsd, dailyVisitTarget: settings.dailyVisitTarget, newCustomers }),
-    [overview, visits, orderStates, orderTotals, orderTargets, settings.dailyOrderTargetUsd, settings.dailyVisitTarget, newCustomers],
+    () => buildPerformance({ overview, visits, orderStates, orderTotals, orderTargets, dailyOrderTargetUsd: settings.dailyOrderTargetUsd, dailyVisitTarget: settings.dailyVisitTarget, newCustomers, month }),
+    [overview, visits, orderStates, orderTotals, orderTargets, settings.dailyOrderTargetUsd, settings.dailyVisitTarget, newCustomers, month],
   )
 
   return (
@@ -53,7 +72,7 @@ export function TeamOverviewPage() {
       <TeamPerformance performance={performance} />
       <TeamOverview people={overview.people} loading={loading} onOpenPerson={(id) => navigate(`/team/footprints/${id}`)} />
       <p className="px-1 text-xs text-neutral-500">
-        Sales count each synced sale order once, even when two people visited the same customer, plus amounts entered on visits still waiting for the sync; targets add up over the people working today. Late is minutes after start time plus grace, as in the attendance roster.
+        Sales count each synced sale order once, even when two people visited the same customer, plus amounts entered on visits still waiting for the sync; targets add up over the people working today. Late is minutes after start time plus grace, as in the attendance roster. A person's orders and amount are their own visits'; a shared order shows on both cards. The month counts working days from the attendance records: targets add up over each person's working days, and pace is the share of the month's working days gone.
       </p>
     </div>
   )

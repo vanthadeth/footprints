@@ -308,15 +308,16 @@ export interface ScoreDayOptions {
 }
 
 /**
- * The value in USD of the visits that count as ordered: a synced sale order's total when one
- * matched (counted once however many visits matched it), else the amount the person entered.
+ * The orders among these visits, and their value in USD. A visit that counts as ordered adds a synced sale order's
+ * total when one matched (counted once however many visits matched it), else the amount the person entered.
  */
-export function orderValueUsd(
+export function orderSummary(
   visits: VisitLike[],
   orders: Record<string, OrderState> | undefined,
   totals: Record<string, { orderNo: string; totalUsd: number | null }> | undefined
-): number {
+): { count: number; valueUsd: number } {
   const seen = new Set<string>()
+  let count = 0
   let sum = 0
   for (const v of visits) {
     if (v.cancelled_at) continue
@@ -326,12 +327,23 @@ export function orderValueUsd(
     if (match) {
       if (seen.has(match.orderNo)) continue
       seen.add(match.orderNo)
+      count++
       sum += match.totalUsd ?? v.order_amount_usd ?? 0
     } else {
+      count++
       sum += v.order_amount_usd ?? 0
     }
   }
-  return sum
+  return { count, valueUsd: sum }
+}
+
+/** The value in USD of the visits that count as ordered (see orderSummary). */
+export function orderValueUsd(
+  visits: VisitLike[],
+  orders: Record<string, OrderState> | undefined,
+  totals: Record<string, { orderNo: string; totalUsd: number | null }> | undefined
+): number {
+  return orderSummary(visits, orders, totals).valueUsd
 }
 
 /**

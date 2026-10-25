@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { BAND_LABEL, BAND_STYLE, computeScore, formatScore, inputsOf, lateFirstVisit, meanScore, nextBand, nextSteps, orderValueUsd, scoreBand, scoreDay, scoreTextClass, travelDeductionMs, travelMeters } from '../effectivenessScore'
+import { BAND_LABEL, BAND_STYLE, computeScore, formatScore, inputsOf, lateFirstVisit, meanScore, nextBand, nextSteps, orderSummary, orderValueUsd, scoreBand, scoreDay, scoreTextClass, travelDeductionMs, travelMeters } from '../effectivenessScore'
 import { DEFAULT_FLAG_RULES } from '../flagRules'
 
 const HOUR = 3_600_000
@@ -271,6 +271,12 @@ describe('orderValueUsd', () => {
   it('leaves out cancelled visits and orders that no longer count (unmatched)', () => {
     const states = { a: 'confirmed', b: 'unmatched', c: 'pending' } as const
     expect(orderValueUsd([v('a', 100), v('b', 100), v('c', 50, { cancelled_at: at('03:00') })], states, undefined)).toBe(100)
+  })
+
+  it('counts the orders the same way: a synced order once, entered ones one each', () => {
+    const totals = { a: { orderNo: 'SO-1', totalUsd: 500 }, b: { orderNo: 'SO-1', totalUsd: 500 } }
+    expect(orderSummary([v('a', 120), v('b', 80), v('c', 40), v('d', null)], undefined, totals)).toEqual({ count: 2, valueUsd: 540 })
+    expect(orderSummary([], undefined, undefined)).toEqual({ count: 0, valueUsd: 0 })
   })
 })
 

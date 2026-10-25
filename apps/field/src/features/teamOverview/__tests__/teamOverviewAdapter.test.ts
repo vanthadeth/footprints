@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildOverview, buildPerformance, minutesOfText, type OverviewInput } from '../teamOverviewAdapter'
+import { buildMonth, buildOverview, buildPerformance, minutesOfText, type MonthFacts, type OverviewInput } from '../teamOverviewAdapter'
 import type { FleetMemberSnapshot } from '@/features/fleet/types'
 
 const at = (hhmm: string) => `2026-10-23T${hhmm}:00+07:00`
@@ -69,9 +69,24 @@ describe('buildOverview', () => {
     expect(on.strip!.visits).toEqual([{ start: 540, end: 585 }, { start: 600, end: 13 * 60 + 40 }])
     expect(o.people[1].strip).toMatchObject({ clockOut: 720 })
   })
-  it('takes the widest shift among the people expected to work', () => {
-    const o = buildOverview(base({ snapshots: [snap('a', 'A', [['08:00', null]]), snap('b', 'B', [['10:00', null]])], workDays: { b: { isWorking: true, start: '10:00', end: '19:00' } } }))
-    expect([o.shiftStart, o.shiftEnd, o.nowMinute]).toEqual([480, 1140, 820])
+  it('puts each person in their department, and people without one under "No department"', () => {
+    const withDept = { ...snap('a', 'A', [['08:00', null]]), member: { ...member('a', 'A'), departmentName: ' Sales ' } }
+    const o = buildOverview(base({ snapshots: [withDept, snap('b', 'B')] }))
+    expect(o.people.map((p) => p.department)).toEqual(['Sales', 'No department'])
+  })
+  it("gives each person's unique customers, orders and amount, and counts a shared order on both cards", () => {
+    const cv = (id: string, customer: string | null, a: string, b: string, amount: number | null = null) => ({ id, checked_in_at: at(a), checked_out_at: at(b), cancelled_at: null, flags: null, customer_id: customer, order_amount_usd: amount }) as never
+    const one = snap('a', 'A', [['08:00', null]], [cv('v1', 'c1', '09:00', '09:30'), cv('v2', 'c1', '10:00', '10:30'), cv('v3', 'c2', '11:00', '11:30', 80)])
+    const two = snap('b', 'B', [['08:00', null]], [cv('v4', 'c1', '09:00', '09:30')])
+    const o = buildOverview(
+      base({
+        snapshots: [one, two],
+        orderStates: { v1: 'synced', v2: 'synced', v3: 'pending', v4: 'synced' },
+        orderTotals: { v1: { orderNo: 'SO-1', totalUsd: 300 }, v2: { orderNo: 'SO-1', totalUsd: 300 }, v4: { orderNo: 'SO-1', totalUsd: 300 } },
+      }),
+    )
+    expect(o.people[0].info).toEqual({ uniqueVisits: 2, orders: 2, amountUsd: 380 })
+    expect(o.people[1].info).toEqual({ uniqueVisits: 1, orders: 1, amountUsd: 300 })
   })
 })
 
@@ -105,14 +120,59 @@ describe('buildPerformance', () => {
     const f = { ...facts, visits: [v('p', 150), v('u', 80)], orderStates: { p: 'pending', u: 'unmatched' } as typeof facts.orderStates, orderTotals: {} }
     expect(buildPerformance(f).sales.value).toBe(150)
   })
-  it('puts the pace tick where the working day has got to', () => {
-    const p = buildPerformance(facts)
-    expect(p.sales.pace).toBeCloseTo((820 - 480) / 540 * 100, 5)
-  })
   it('has no targets when nobody is expected to work', () => {
     const none = buildOverview(base({ snapshots: [snap('c', 'C')], leave: { c: 'annual' } }))
     const p = buildPerformance({ ...facts, overview: none })
     expect(p.sales.target).toBeNull()
     expect(p.visits.target).toBeNull()
+  })
+})
+
+describe('buildMonth', () => {
+  const row = (userId: string, day: string, status: string) => ({ userId, day, status })
+  const mv = (id: string, amount: number | null = null) => ({ id, checked_in_at: at('09:00'), checked_out_at: at('09:30'), cancelled_at: null, order_amount_usd: amount })
+  const facts = (over: Partial<MonthFacts> = {}): MonthFacts => ({
+    rows: [
+      // two people, four days: Mon and Tue gone, Wed is today, Thu to come; b is on leave on Tuesday and off on Thursday
+      row('a', '2026-10-19', 'present'), row('a', '2026-10-20', 'late'), row('a', '2026-10-21', 'upcoming'), row('a', '2026-10-22', 'upcoming'),
+      row('b', '2026-10-19', 'absent'), row('b', '2026-10-20', 'leave'), row('b', '2026-10-21', 'upcoming'), row('b', '2026-10-22', 'dayoff'),
+    ],
+    today: '2026-10-21',
+    visits: [mv('v1'), mv('v2'), mv('v3', 40)],
+    orderStates: { v1: 'synced', v2: 'synced', v3: 'pending' },
+    orderTotals: { v1: { orderNo: 'SO-1', totalUsd: 500 }, v2: { orderNo: 'SO-1', totalUsd: 500 } },
+    orderTargets: { a: 400, b: null },
+    dailyOrderTargetUsd: 300,
+    dailyVisitTarget: 10,
+    newCustomers: 7,
+    ...over,
+  })
+  it("adds the month's sales once per order, counts visits and takes the new customers", () => {
+    const m = buildMonth(facts())!
+    expect(m.sales).toBe(540)
+    expect(m.visits).toBe(3)
+    expect(m.newCustomers).toBe(7)
+    expect(m.newTarget).toBeNull()
+  })
+  it("sums the targets over each person's working days only: leave, holidays and days off do not count", () => {
+    const m = buildMonth(facts())!
+    // a: 4 days x 400; b: 2 days (absent, upcoming) x 300 default
+    expect(m.salesTarget).toBe(4 * 400 + 2 * 300)
+    expect(m.visitTarget).toBe(6 * 10)
+  })
+  it('counts the team working days: a day is one if anyone works it, and today is gone', () => {
+    const m = buildMonth(facts())!
+    expect([m.doneDays, m.totalDays]).toEqual([3, 4])
+  })
+  it('has no month without working days, and no targets when they are zero', () => {
+    expect(buildMonth(facts({ rows: [row('a', '2026-10-19', 'off'), row('a', '2026-10-20', 'holiday')] }))).toBeNull()
+    expect(buildMonth(facts({ orderTargets: {}, dailyOrderTargetUsd: 0, dailyVisitTarget: 0 }))).toMatchObject({ salesTarget: null, visitTarget: null })
+  })
+  it('reaches the performance as its month', () => {
+    const overview = buildOverview(base({ snapshots: [snap('a', 'A', [['08:00', null]])] }))
+    const p = buildPerformance({ overview, visits: [], orderStates: {}, orderTotals: {}, orderTargets: {}, dailyOrderTargetUsd: 300, dailyVisitTarget: 10, newCustomers: 0, month: buildMonth(facts()) })
+    expect(p.month?.sales).toMatchObject({ value: 540, target: 2200 })
+    expect(p.month?.daysLeft).toBe(1)
+    expect(buildPerformance({ overview, visits: [], orderStates: {}, orderTotals: {}, orderTargets: {}, dailyOrderTargetUsd: 300, dailyVisitTarget: 10, newCustomers: 0 }).month).toBeNull()
   })
 })

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { filterPeople, initials, leaveSplitText, measure, overviewKpis, paceTone, performance, sortPeople, type OverviewPerson } from '../teamOverview'
+import { filterPeople, groupByDepartment, infoPills, initials, leaveSplitText, measure, overviewKpis, paceTone, performance, sortPeople, statusChip, statusLine, type OverviewPerson } from '../teamOverview'
 import { buildStrip, hm } from '../dayStrip'
 import { PREVIEW_OVERVIEW, PREVIEW_PERFORMANCE } from '../../pages/componentsPreviewData'
 
-const p = (o: Partial<OverviewPerson> & { name: string }): OverviewPerson => ({ id: o.name, state: 'in', lateMinutes: 0, ...o })
+const p = (o: Partial<OverviewPerson> & { name: string }): OverviewPerson => ({ id: o.name, department: 'Sales', state: 'in', lateMinutes: 0, ...o })
 
 describe('overviewKpis', () => {
   const k = overviewKpis(PREVIEW_OVERVIEW)
@@ -61,23 +61,72 @@ describe('measure and performance', () => {
     expect(measure(3, null)).toEqual({ value: 3, target: null, percent: null, fill: 0 })
     expect(measure(3, 0).target).toBeNull()
   })
+  it('gives the sample day: 86% of target, 68% of the visit target, half of the new customers', () => {
+    const perf = performance(PREVIEW_PERFORMANCE)
+    expect(perf.sales).toMatchObject({ value: 4300, target: 5000, percent: 86, fill: 86 })
+    expect(perf.visits.percent).toBe(68)
+    expect(perf.newCustomers.percent).toBe(50)
+  })
+  it('has no pace on the day: pace belongs to the month', () => {
+    expect(Object.keys(performance(PREVIEW_PERFORMANCE).sales).sort()).toEqual(['fill', 'percent', 'target', 'value'])
+  })
   it('colours by pace, not by percent', () => {
     expect(paceTone(2000, 5000, 0.4)).toBe('ok')
     expect(paceTone(1800, 5000, 0.4)).toBe('warn')
     expect(paceTone(1000, 5000, 0.4)).toBe('bad')
     expect(paceTone(0, 5000, 0)).toBe('ok')
   })
-  it('gives the sample day: 86% of target, ahead of pace', () => {
-    const perf = performance(PREVIEW_PERFORMANCE)
-    expect(perf.sales).toMatchObject({ percent: 86, tone: 'ok', diff: 1152, chip: '$1,152 ahead of pace' })
-    expect(perf.sales.pace).toBeCloseTo(62.96, 1)
-    expect(perf.visits.percent).toBe(68)
-    expect(perf.newCustomers.percent).toBe(50)
+  it('gives the month: 68% of target, 17 of 22 working days gone, amber, behind pace by money', () => {
+    const m = performance(PREVIEW_PERFORMANCE).month!
+    expect(m.sales).toMatchObject({ value: 74300, target: 110000, percent: 68, tone: 'warn', diff: -10700, chip: '$10,700 behind pace' })
+    expect(m.sales.pace).toBeCloseTo((17 / 22) * 100, 5)
+    expect(m.visits).toMatchObject({ value: 482, target: 880, percent: 55 })
+    expect(m.newCustomers).toMatchObject({ value: 11, target: 24, percent: 46 })
+    expect(m.daysLeft).toBe(5)
   })
-  it('says behind pace in money, and no target plainly', () => {
-    expect(performance({ ...PREVIEW_PERFORMANCE, sales: 1900 }).sales).toMatchObject({ tone: 'bad', chip: '$1,248 behind pace' })
-    const none = performance({ ...PREVIEW_PERFORMANCE, salesTarget: null })
-    expect(none.sales).toMatchObject({ tone: null, pace: null, diff: null, chip: 'No sales target set' })
+  it('turns red when well behind, green when ahead', () => {
+    const at = (sales: number) => performance({ ...PREVIEW_PERFORMANCE, month: { ...PREVIEW_PERFORMANCE.month!, sales } }).month!.sales
+    expect(at(52000)).toMatchObject({ tone: 'bad', chip: '$33,000 behind pace' })
+    expect(at(96000)).toMatchObject({ tone: 'ok', chip: '$11,000 ahead of pace' })
+  })
+  it('has no month when none is given, and no judgement without a target or working days', () => {
+    expect(performance({ ...PREVIEW_PERFORMANCE, month: undefined }).month).toBeNull()
+    const none = performance({ ...PREVIEW_PERFORMANCE, month: { ...PREVIEW_PERFORMANCE.month!, salesTarget: null } }).month!
+    expect(none.sales).toMatchObject({ target: null, tone: null, diff: null, chip: 'No target set' })
+    const noDays = performance({ ...PREVIEW_PERFORMANCE, month: { ...PREVIEW_PERFORMANCE.month!, doneDays: 0, totalDays: 0 } }).month!
+    expect(noDays.sales).toMatchObject({ pace: null, tone: null })
+    expect(noDays.daysLeft).toBe(0)
+  })
+  it('shows only the numbers when there is no target', () => {
+    expect(performance({ ...PREVIEW_PERFORMANCE, salesTarget: null }).sales).toEqual({ value: 4300, target: null, percent: null, fill: 0 })
+  })
+})
+
+describe('groupByDepartment', () => {
+  it('groups by department alphabetically with "No department" last, and sorts inside each group', () => {
+    const people = [p({ name: 'Zed', department: 'No department' }), p({ name: 'Bo', department: 'Sales' }), p({ name: 'Al', department: 'Distribution', state: 'leave', leaveCode: 'AL' }), p({ name: 'Cy', department: 'Distribution' }), p({ name: 'Di', department: 'Sales', state: 'absent' })]
+    expect(groupByDepartment(people).map((g) => [g.name, g.people.map((x) => x.name)])).toEqual([['Distribution', ['Cy', 'Al']], ['Sales', ['Di', 'Bo']], ['No department', ['Zed']]])
+  })
+  it('treats an empty department as none', () => {
+    expect(groupByDepartment([p({ name: 'A', department: '' })])[0].name).toBe('No department')
+  })
+  it('has no groups for no people', () => {
+    expect(groupByDepartment([])).toEqual([])
+  })
+})
+
+describe('statusLine, statusChip and infoPills', () => {
+  it('words every state', () => {
+    expect([statusLine(p({ name: 'A', clockIn: '08:25', lateMinutes: 25 })), statusChip(p({ name: 'A', lateMinutes: 25 }))]).toEqual(['Clocked in 08:25', { text: 'Late 25m', tone: 'amb' }])
+    expect(statusChip(p({ name: 'A' }))).toEqual({ text: 'On time', tone: 'ok' })
+    expect([statusLine(p({ name: 'A', state: 'leave', leaveCode: 'SL' })), statusChip(p({ name: 'A', state: 'leave', leaveCode: 'SL' }))]).toEqual(['Sick leave', { text: 'On leave · SL', tone: 'mu' }])
+    expect([statusLine(p({ name: 'A', state: 'absent' })), statusChip(p({ name: 'A', state: 'absent' }))]).toEqual(['No clock-in yet', { text: 'Absent', tone: 'bad' }])
+    expect([statusLine(p({ name: 'A', state: 'waiting', note: 'Starts at 08:00' })), statusChip(p({ name: 'A', state: 'waiting', note: 'Starts at 08:00' })).text]).toEqual(['Starts at 08:00', 'Not due yet'])
+    expect(statusChip(p({ name: 'A', state: 'waiting', note: 'Day off' }))).toEqual({ text: 'Day off', tone: 'mu' })
+  })
+  it('writes the three pills, singular for one', () => {
+    expect(infoPills({ uniqueVisits: 5, orders: 3, amountUsd: 820 })).toEqual([{ text: '5 unique visits' }, { text: '3 orders' }, { text: '$820', amount: true }])
+    expect(infoPills({ uniqueVisits: 1, orders: 1, amountUsd: 0 }).map((x) => x.text)).toEqual(['1 unique visit', '1 order', '$0'])
   })
 })
 
