@@ -788,3 +788,89 @@ details[open] .tr-chev { transform: rotate(90deg); }
 .tr-togo { font-size: 12px; font-weight: 700; white-space: nowrap; text-align: right; color: var(--ab-muted); }
 .tr-line { margin: 10px 0 0; font-size: 13px; line-height: 19px; font-weight: 600; }
 .tr-how { margin: 6px 0 0; font-size: 12px; line-height: 18px; color: var(--ab-muted); }
+
+/* Team performance (components/TeamPerformance.tsx) and the manager Team body (components/TeamOverview.tsx). */
+:root {
+  --tov-sh: 0 1px 2px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.05);
+  --tov-line: none;
+  --tov-warn-t: rgba(149, 80, 0, 0.12);
+  --tov-ok-t: rgba(0, 112, 31, 0.1);
+  --tov-bad-t: rgba(186, 35, 35, 0.1);
+}
+html.dark {
+  --tov-sh: none;
+  --tov-line: 1px solid #2e2e2e;
+  --tov-warn-t: rgba(242, 165, 74, 0.16);
+  --tov-ok-t: rgba(95, 211, 138, 0.16);
+  --tov-bad-t: rgba(255, 143, 143, 0.16);
+}
+.tpf { box-sizing: border-box; width: 100%; padding: 6px 16px 16px; border: var(--tov-line); border-radius: 20px; background: var(--cal-card); box-shadow: var(--tov-sh); color: var(--cal-text); }
+.tpf-h { display: flex; align-items: center; justify-content: space-between; min-height: 48px; }
+.tpf-t { font-size: 16px; font-weight: 700; }
+.tpf-s { font-size: 12.5px; font-weight: 600; color: var(--cal-muted); }
+.tpf-sec { display: flex; align-items: baseline; justify-content: space-between; margin-top: 2px; }
+.tpf-sl { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; }
+.tpf-big { display: flex; align-items: baseline; gap: 8px; margin-top: 4px; }
+.tpf-n { font-size: 32px; line-height: 38px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.tpf-pc { font-size: 14px; color: var(--cal-muted); }
+.tpf-bar { position: relative; height: 10px; border-radius: 999px; background: var(--strip-track); margin: 10px 0 8px; }
+.tpf-fill { height: 10px; border-radius: 999px; background: var(--att-ok); }
+.tpf-fill.tpf-warn { background: var(--att-amber); }
+.tpf-fill.tpf-bad { background: var(--att-absent); }
+.tpf-mark { position: absolute; top: -3px; width: 2px; height: 16px; border-radius: 1px; background: var(--cal-text); }
+.tpf-chip { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+.tpf-chip.ok { color: var(--att-ok); background: var(--tov-ok-t); }
+.tpf-chip.warn { color: var(--att-amber); background: var(--tov-warn-t); }
+.tpf-chip.bad { color: var(--att-absent); background: var(--tov-bad-t); }
+.tpf-chip.plain { color: var(--cal-muted); background: var(--att-tile); }
+.tpf-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
+.tpf-m { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 12px; border-radius: 16px; background: var(--att-tile); }
+.tpf-mh { display: flex; align-items: center; gap: 8px; }
+.tpf-ic { flex: none; width: 28px; height: 28px; border-radius: 9px; display: flex; align-items: center; justify-content: center; color: var(--cal-brand); background: color-mix(in srgb, var(--cal-brand) 14%, transparent); }
+.tpf-mt { flex: 1; font-size: 13px; font-weight: 700; white-space: nowrap; }
+.tpf-mp { font-size: 13px; font-weight: 700; color: var(--cal-brand); font-variant-numeric: tabular-nums; }
+.tpf-mv { display: flex; align-items: baseline; gap: 6px; }
+.tpf-mv b { font-size: 24px; line-height: 28px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.tpf-mv span, .tpf-m small { font-size: 12px; font-weight: 600; color: var(--cal-muted); }
+.tpf-pb { display: block; height: 8px; border-radius: 4px; background: var(--strip-track); overflow: hidden; margin: 2px 0; }
+.tpf-pb i { display: block; height: 100%; border-radius: 4px; background: var(--cal-brand); }
+
+.tov { display: flex; flex-direction: column; gap: 10px; color: var(--cal-text); }
+.tov-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.tov-tile { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 2px; min-height: 68px; box-sizing: border-box; padding: 10px 12px; text-align: left; border: var(--tov-line); border-radius: 18px; background: var(--cal-card); box-shadow: var(--tov-sh); color: var(--cal-text); font-family: inherit; cursor: pointer; }
+.tov-tile.tov-on { box-shadow: inset 0 0 0 2px var(--cal-brand); }
+.tov-th { display: flex; align-items: center; gap: 8px; width: 100%; }
+.tov-ti { flex: none; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.tov-ti.tov-ok { background: var(--tov-ok-t); color: var(--att-ok); }
+.tov-ti.tov-lv { background: var(--cal-leave); color: var(--att-leave); }
+.tov-ti.tov-bad { background: var(--tov-bad-t); color: var(--att-absent); }
+.tov-ti.tov-amb { background: var(--tov-warn-t); color: var(--att-amber); }
+.tov-tlb { font-size: 13px; font-weight: 700; }
+.tov-tn { margin-left: auto; font-size: 24px; line-height: 28px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.tov-tsb { font-size: 12px; line-height: 16px; color: var(--cal-muted); }
+.tov-card { background: var(--cal-card); border: var(--tov-line); border-radius: 20px; box-shadow: var(--tov-sh); padding: 6px 16px 8px; }
+.tov-lh { display: flex; align-items: center; justify-content: space-between; min-height: 48px; }
+.tov-lt { font-size: 16px; font-weight: 700; }
+.tov-lt span { font-size: 13px; font-weight: 600; color: var(--cal-muted); }
+.tov-lr { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--cal-muted); }
+.tov-clr { border: 0; background: transparent; min-height: 44px; padding: 0 4px; font-family: inherit; font-size: 13px; font-weight: 700; color: var(--cal-brand); cursor: pointer; }
+.tov-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 62px; padding: 8px 0; box-sizing: border-box; border: 0; border-top: 1px solid var(--cal-line); background: transparent; color: var(--cal-text); font-family: inherit; text-align: left; cursor: pointer; }
+.tov-av { position: relative; flex: none; width: 36px; height: 36px; border-radius: 50%; background: color-mix(in srgb, var(--cal-brand) 14%, transparent); color: var(--cal-brand); font-size: 12.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.tov-dot { position: absolute; right: -2px; bottom: -2px; width: 12px; height: 12px; border-radius: 50%; box-shadow: 0 0 0 2px var(--cal-card); }
+.tov-d-ok { background: var(--att-ok); }
+.tov-d-amb { background: var(--strip-amber); }
+.tov-d-bad { background: var(--att-absent); }
+.tov-d-mu { background: var(--cal-muted); }
+.tov-rc { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.tov-nm { font-size: 14px; line-height: 19px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tov-nm i { font-style: normal; font-weight: 700; color: var(--att-amber); }
+.tov-nm i.tov-bad { color: var(--att-absent); }
+.tov-track { position: relative; display: block; height: 15px; border-radius: 3px; }
+.tov-hatch { background: repeating-linear-gradient(135deg, var(--cal-card) 0 4px, var(--cal-stripe) 4px 8px); }
+.tov-abs { background: var(--strip-track); box-shadow: inset 0 3px 0 var(--att-absent); }
+.tov-tl { position: absolute; inset: 0; display: flex; align-items: center; padding-left: 8px; font-size: 10.5px; line-height: 15px; font-weight: 700; color: var(--cal-muted); }
+.tov-skel { height: 96px; margin-bottom: 8px; border-radius: 14px; background: var(--att-tile); }
+.tov-emp { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 36px 20px 40px; border-top: 1px solid var(--cal-line); }
+.tov-ec { width: 48px; height: 48px; border-radius: 50%; background: var(--att-tile); color: var(--cal-muted); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+.tov-emp b { font-size: 15px; }
+.tov-emp p { margin: 4px 0 0; font-size: 13px; line-height: 19px; color: var(--cal-muted); max-width: 260px; }

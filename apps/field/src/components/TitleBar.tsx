@@ -40,6 +40,7 @@ const TITLE_KEYS: Record<string, string> = {
   '/translations': 'nav.translations',
   '/today': 'nav.today',
   '/team': 'nav.team',
+  '/team/overview': 'nav.team',
   '/people': 'nav.people',
   '/attendance': 'nav.attendanceAll',
   '/attendance/roster': 'nav.attendanceRoster',

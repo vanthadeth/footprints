@@ -57,6 +57,7 @@ const FlexTeamPage = lazyPage(() => import('@/pages/FlexTeamPage').then((m) => (
 const DaysOffPage = lazyPage(() => import('@/pages/DaysOffPage').then((m) => ({ default: m.DaysOffPage })))
 const FlexSettlementPage = lazyPage(() => import('@/pages/FlexSettlementPage').then((m) => ({ default: m.FlexSettlementPage })))
 const SheetSyncPage = lazyPage(() => import('@/pages/SheetSyncPage').then((m) => ({ default: m.SheetSyncPage })))
+const TeamOverviewPage = lazyPage(() => import('@/pages/TeamOverviewPage').then((m) => ({ default: m.TeamOverviewPage })))
 const AttendanceRosterPage = lazyPage(() => import('@/pages/AttendanceRosterPage').then((m) => ({ default: m.AttendanceRosterPage })))
 const AdminAttendancePage = lazyPage(() => import('@/pages/AdminAttendancePage').then((m) => ({ default: m.AdminAttendancePage })))
 const GeofencePage = lazyPage(() => import('@/pages/GeofencePage').then((m) => ({ default: m.GeofencePage })))
@@ -203,6 +204,17 @@ export const router = createBrowserRouter([
           <RequirePermission module="footprints">
             <Suspense fallback={<PageFallback />}>
               <FootprintsPage />
+            </Suspense>
+          </RequirePermission>
+        ),
+      },
+      {
+        // New manager Team page, reached from Hub > New features; the Team tab above is unchanged for now.
+        path: '/team/overview',
+        element: (
+          <RequirePermission module="team_map">
+            <Suspense fallback={<PageFallback />}>
+              <TeamOverviewPage />
             </Suspense>
           </RequirePermission>
         ),
