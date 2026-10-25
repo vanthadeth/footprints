@@ -232,8 +232,8 @@ const ENTRIES: Entry[] = [
     board: 'TeamPerformance.dc.html',
     source: 'packages/shared/src/components/TeamPerformance.tsx',
     variants: [
-      { label: 'Sales vs target with a pace tick (green on or ahead of pace, amber slightly behind, red well behind), then visits and new customers', node: phone(<TeamPerformance performance={performance(PREVIEW_PERFORMANCE)} />) },
-      { label: 'Behind pace', node: phone(<TeamPerformance performance={performance({ ...PREVIEW_PERFORMANCE, sales: 1900, visits: 12, newCustomers: 1 })} />) },
+      { label: 'Sales against the target, then visits and new customers. No pace: that is for the monthly report', node: phone(<TeamPerformance performance={performance(PREVIEW_PERFORMANCE)} />) },
+      { label: 'Early in the day', node: phone(<TeamPerformance performance={performance({ ...PREVIEW_PERFORMANCE, sales: 1900, visits: 12, newCustomers: 1 })} />) },
       { label: 'No targets set: the numbers only', node: phone(<TeamPerformance performance={performance({ ...PREVIEW_PERFORMANCE, salesTarget: null, visitTarget: null, newTarget: null })} />) },
     ],
   },
@@ -243,7 +243,7 @@ const ENTRIES: Entry[] = [
     board: 'ManagerTeam.dc.html',
     source: 'packages/shared/src/components/TeamOverview.tsx',
     variants: [
-      { label: 'Four numbers that filter the list, then each person with their day strip. Sorted: absent, late, clocked in, on leave', node: phone(<TeamOverview people={PREVIEW_OVERVIEW} />) },
+      { label: 'Four numbers that filter the list, then one card per person grouped by department: status chip, day strip, unique visits, orders and amount. Sorted: absent, late, clocked in, on leave', node: phone(<TeamOverview people={PREVIEW_OVERVIEW} />) },
       { label: 'Late selected as a filter', node: phone(<TeamOverview people={PREVIEW_OVERVIEW} defaultFilter="late" />) },
       { label: 'Nobody reports to this manager yet', node: phone(<TeamOverview people={[]} />) },
     ],

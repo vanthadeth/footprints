@@ -35,13 +35,13 @@ export function TeamOverviewPage() {
     return () => clearInterval(t)
   }, [])
 
-  const overview = useMemo(
-    () => buildOverview({ snapshots: field, leave, workDays, defaults: { start: settings.workStartTime, end: settings.workEndTime }, graceMin: settings.flagRules.lateGraceMin, forgottenCapMin: settings.flagRules.forgottenCapMin, now }),
-    [field, leave, workDays, settings.workStartTime, settings.workEndTime, settings.flagRules.lateGraceMin, settings.flagRules.forgottenCapMin, now],
-  )
   const visits = useMemo(() => field.flatMap((s) => s.visitsToday.filter((v) => !v.cancelled_at)), [field])
   const orderStates = useVisitOrders(visits)
   const orderTotals = useVisitOrderTotals(visits)
+  const overview = useMemo(
+    () => buildOverview({ snapshots: field, leave, workDays, defaults: { start: settings.workStartTime, end: settings.workEndTime }, graceMin: settings.flagRules.lateGraceMin, forgottenCapMin: settings.flagRules.forgottenCapMin, now, orderStates, orderTotals }),
+    [field, leave, workDays, settings.workStartTime, settings.workEndTime, settings.flagRules.lateGraceMin, settings.flagRules.forgottenCapMin, now, orderStates, orderTotals],
+  )
   const performance = useMemo(
     () => buildPerformance({ overview, visits, orderStates, orderTotals, orderTargets, dailyOrderTargetUsd: settings.dailyOrderTargetUsd, dailyVisitTarget: settings.dailyVisitTarget, newCustomers }),
     [overview, visits, orderStates, orderTotals, orderTargets, settings.dailyOrderTargetUsd, settings.dailyVisitTarget, newCustomers],
@@ -53,7 +53,7 @@ export function TeamOverviewPage() {
       <TeamPerformance performance={performance} />
       <TeamOverview people={overview.people} loading={loading} onOpenPerson={(id) => navigate(`/team/footprints/${id}`)} />
       <p className="px-1 text-xs text-neutral-500">
-        Sales count each synced sale order once, even when two people visited the same customer, plus amounts entered on visits still waiting for the sync; targets add up over the people working today. Late is minutes after start time plus grace, as in the attendance roster.
+        Sales count each synced sale order once, even when two people visited the same customer, plus amounts entered on visits still waiting for the sync; targets add up over the people working today. Late is minutes after start time plus grace, as in the attendance roster. A person's orders and amount are their own visits'; a shared order shows on both cards.
       </p>
     </div>
   )

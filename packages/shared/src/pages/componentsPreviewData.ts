@@ -100,16 +100,15 @@ const stripOf = (cin: string, visits: [string, string, boolean?][]): StripDay =>
 
 /** The manager Team screen's sample: nine people at 13:40 on 23 October, shift 08:00-17:00. */
 export const PREVIEW_OVERVIEW: OverviewPerson[] = [
-  { id: 'p1', name: 'Sok Dara', state: 'in', lateMinutes: 0, clockIn: '07:52', strip: stripOf('07:52', [['08:10', '08:14'], ['08:40', '09:25'], ['09:50', '11:05'], ['11:30', '12:05'], ['13:00', '13:35', true]]) },
-  { id: 'p2', name: 'Chan Sreyneang', state: 'in', lateMinutes: 25, clockIn: '08:25', strip: stripOf('08:25', [['08:50', '09:30'], ['10:00', '10:04'], ['10:40', '11:35'], ['12:10', '13:20']]) },
-  { id: 'p3', name: 'Heng Vuthy', state: 'absent', lateMinutes: 0 },
-  { id: 'p4', name: 'Kim Lyna', state: 'leave', lateMinutes: 0, leaveCode: 'SL' },
-  { id: 'p5', name: 'Pich Rithy', state: 'in', lateMinutes: 40, clockIn: '08:40', strip: stripOf('08:40', [['09:10', '09:55'], ['10:20', '10:25'], ['11:00', '11:50'], ['12:30', '13:10']]) },
-  { id: 'p6', name: 'Meas Sophea', state: 'in', lateMinutes: 0, clockIn: '07:58', strip: stripOf('07:58', [['08:20', '09:05'], ['09:30', '10:15'], ['10:40', '11:20'], ['11:50', '12:30'], ['13:00', '13:30']]) },
-  { id: 'p7', name: 'Ly Bunna', state: 'leave', lateMinutes: 0, leaveCode: 'AL' },
-  { id: 'p8', name: 'Noun Chenda', state: 'in', lateMinutes: 2, clockIn: '08:02', strip: stripOf('08:02', [['08:30', '09:15'], ['10:45', '11:30'], ['12:00', '12:40']]) },
-  { id: 'p9', name: 'Srey Pov', state: 'in', lateMinutes: 0, clockIn: '07:45', strip: stripOf('07:45', [['08:05', '08:09'], ['08:30', '09:20'], ['09:45', '10:40'], ['11:05', '11:55'], ['12:15', '13:00'], ['13:25', '13:40']]) },
+  { id: 'p1', name: 'Sok Dara', department: 'Sales', state: 'in', lateMinutes: 0, clockIn: '07:52', info: { uniqueVisits: 5, orders: 3, amountUsd: 820 }, strip: stripOf('07:52', [['08:10', '08:14'], ['08:40', '09:25'], ['09:50', '11:05'], ['11:30', '12:05'], ['13:00', '13:35', true]]) },
+  { id: 'p2', name: 'Chan Sreyneang', department: 'Sales', state: 'in', lateMinutes: 25, clockIn: '08:25', info: { uniqueVisits: 4, orders: 2, amountUsd: 640 }, strip: stripOf('08:25', [['08:50', '09:30'], ['10:00', '10:04'], ['10:40', '11:35'], ['12:10', '13:20']]) },
+  { id: 'p3', name: 'Heng Vuthy', department: 'Sales', state: 'absent', lateMinutes: 0 },
+  { id: 'p4', name: 'Kim Lyna', department: 'Merchandising', state: 'leave', lateMinutes: 0, leaveCode: 'SL' },
+  { id: 'p5', name: 'Pich Rithy', department: 'Merchandising', state: 'in', lateMinutes: 40, clockIn: '08:40', info: { uniqueVisits: 4, orders: 2, amountUsd: 510 }, strip: stripOf('08:40', [['09:10', '09:55'], ['10:20', '10:25'], ['11:00', '11:50'], ['12:30', '13:10']]) },
+  { id: 'p6', name: 'Meas Sophea', department: 'Merchandising', state: 'in', lateMinutes: 0, clockIn: '07:58', info: { uniqueVisits: 5, orders: 4, amountUsd: 1180 }, strip: stripOf('07:58', [['08:20', '09:05'], ['09:30', '10:15'], ['10:40', '11:20'], ['11:50', '12:30'], ['13:00', '13:30']]) },
+  { id: 'p7', name: 'Ly Bunna', department: 'Distribution', state: 'leave', lateMinutes: 0, leaveCode: 'AL' },
+  { id: 'p8', name: 'Noun Chenda', department: 'Distribution', state: 'in', lateMinutes: 2, clockIn: '08:02', info: { uniqueVisits: 3, orders: 1, amountUsd: 390 }, strip: stripOf('08:02', [['08:30', '09:15'], ['10:45', '11:30'], ['12:00', '12:40']]) },
+  { id: 'p9', name: 'Srey Pov', department: 'Distribution', state: 'in', lateMinutes: 0, clockIn: '07:45', info: { uniqueVisits: 6, orders: 3, amountUsd: 760 }, strip: stripOf('07:45', [['08:05', '08:09'], ['08:30', '09:20'], ['09:45', '10:40'], ['11:05', '11:55'], ['12:15', '13:00'], ['13:25', '13:40']]) },
 ]
 
-/** 13:40 of a 08:00-17:00 day: 340 of 540 minutes. */
-export const PREVIEW_PERFORMANCE: PerformanceInput = { sales: 4300, salesTarget: 5000, visits: 27, visitTarget: 40, newCustomers: 3, newTarget: 6, paceFraction: 340 / 540 }
+export const PREVIEW_PERFORMANCE: PerformanceInput = { sales: 4300, salesTarget: 5000, visits: 27, visitTarget: 40, newCustomers: 3, newTarget: 6 }

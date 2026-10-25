@@ -32,8 +32,7 @@ function Tile({ icon, label, m, note, aria }: { icon: React.ReactNode; label: st
 }
 
 /**
- * Team performance for the day: sales against the target with a pace tick, then visits and new customers.
- * Colour of the sales bar follows pace (green on or ahead, amber slightly behind, red well behind).
+ * Team performance for the day: sales against the target, then visits and new customers. Pace is left to the monthly report.
  */
 export function TeamPerformance({ performance: p, period = 'Today', className = '' }: Props) {
   const s = p.sales
@@ -55,11 +54,9 @@ export function TeamPerformance({ performance: p, period = 'Today', className = 
       </div>
       {s.target != null && (
         <div className="tpf-bar" role="img" aria-label={`Team sales ${s.percent} percent of target`}>
-          <div className={`tpf-fill tpf-${s.tone}`} style={{ width: `${s.fill}%` }} />
-          {s.pace != null && <div className="tpf-mark" style={{ left: `${s.pace}%` }} />}
+          <div className="tpf-fill" style={{ width: `${s.fill}%` }} />
         </div>
       )}
-      <span className={`tpf-chip ${s.tone ?? 'plain'}`}>{s.chip}</span>
       <div className="tpf-pair">
         <Tile icon={<Users size={18} strokeWidth={2} />} label="Visits" m={p.visits} note="Visits today" aria={`Team visits ${p.visits.percent} percent of target`} />
         <Tile icon={<UserPlus size={18} strokeWidth={2} />} label="New" m={p.newCustomers} note="Opened today" aria={`New customers ${p.newCustomers.percent} percent of target`} />

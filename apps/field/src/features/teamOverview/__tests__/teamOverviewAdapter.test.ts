@@ -69,9 +69,24 @@ describe('buildOverview', () => {
     expect(on.strip!.visits).toEqual([{ start: 540, end: 585 }, { start: 600, end: 13 * 60 + 40 }])
     expect(o.people[1].strip).toMatchObject({ clockOut: 720 })
   })
-  it('takes the widest shift among the people expected to work', () => {
-    const o = buildOverview(base({ snapshots: [snap('a', 'A', [['08:00', null]]), snap('b', 'B', [['10:00', null]])], workDays: { b: { isWorking: true, start: '10:00', end: '19:00' } } }))
-    expect([o.shiftStart, o.shiftEnd, o.nowMinute]).toEqual([480, 1140, 820])
+  it('puts each person in their department, and people without one under "No department"', () => {
+    const withDept = { ...snap('a', 'A', [['08:00', null]]), member: { ...member('a', 'A'), departmentName: ' Sales ' } }
+    const o = buildOverview(base({ snapshots: [withDept, snap('b', 'B')] }))
+    expect(o.people.map((p) => p.department)).toEqual(['Sales', 'No department'])
+  })
+  it("gives each person's unique customers, orders and amount, and counts a shared order on both cards", () => {
+    const cv = (id: string, customer: string | null, a: string, b: string, amount: number | null = null) => ({ id, checked_in_at: at(a), checked_out_at: at(b), cancelled_at: null, flags: null, customer_id: customer, order_amount_usd: amount }) as never
+    const one = snap('a', 'A', [['08:00', null]], [cv('v1', 'c1', '09:00', '09:30'), cv('v2', 'c1', '10:00', '10:30'), cv('v3', 'c2', '11:00', '11:30', 80)])
+    const two = snap('b', 'B', [['08:00', null]], [cv('v4', 'c1', '09:00', '09:30')])
+    const o = buildOverview(
+      base({
+        snapshots: [one, two],
+        orderStates: { v1: 'synced', v2: 'synced', v3: 'pending', v4: 'synced' },
+        orderTotals: { v1: { orderNo: 'SO-1', totalUsd: 300 }, v2: { orderNo: 'SO-1', totalUsd: 300 }, v4: { orderNo: 'SO-1', totalUsd: 300 } },
+      }),
+    )
+    expect(o.people[0].info).toEqual({ uniqueVisits: 2, orders: 2, amountUsd: 380 })
+    expect(o.people[1].info).toEqual({ uniqueVisits: 1, orders: 1, amountUsd: 300 })
   })
 })
 
@@ -104,10 +119,6 @@ describe('buildPerformance', () => {
   it('counts the amount entered on a visit still waiting for its sale order, and nothing for one whose window closed', () => {
     const f = { ...facts, visits: [v('p', 150), v('u', 80)], orderStates: { p: 'pending', u: 'unmatched' } as typeof facts.orderStates, orderTotals: {} }
     expect(buildPerformance(f).sales.value).toBe(150)
-  })
-  it('puts the pace tick where the working day has got to', () => {
-    const p = buildPerformance(facts)
-    expect(p.sales.pace).toBeCloseTo((820 - 480) / 540 * 100, 5)
   })
   it('has no targets when nobody is expected to work', () => {
     const none = buildOverview(base({ snapshots: [snap('c', 'C')], leave: { c: 'annual' } }))
