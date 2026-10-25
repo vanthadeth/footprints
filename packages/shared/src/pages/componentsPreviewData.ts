@@ -111,4 +111,13 @@ export const PREVIEW_OVERVIEW: OverviewPerson[] = [
   { id: 'p9', name: 'Srey Pov', department: 'Distribution', state: 'in', lateMinutes: 0, clockIn: '07:45', info: { uniqueVisits: 6, orders: 3, amountUsd: 760 }, strip: stripOf('07:45', [['08:05', '08:09'], ['08:30', '09:20'], ['09:45', '10:40'], ['11:05', '11:55'], ['12:15', '13:00'], ['13:25', '13:40']]) },
 ]
 
-export const PREVIEW_PERFORMANCE: PerformanceInput = { sales: 4300, salesTarget: 5000, visits: 27, visitTarget: 40, newCustomers: 3, newTarget: 6 }
+export const PREVIEW_PERFORMANCE: PerformanceInput = {
+  sales: 4300,
+  salesTarget: 5000,
+  visits: 27,
+  visitTarget: 40,
+  newCustomers: 3,
+  newTarget: 6,
+  // 17 of 22 working days gone
+  month: { sales: 74300, salesTarget: 110000, visits: 482, visitTarget: 880, newCustomers: 11, newTarget: 24, doneDays: 17, totalDays: 22 },
+}

@@ -232,9 +232,11 @@ const ENTRIES: Entry[] = [
     board: 'TeamPerformance.dc.html',
     source: 'packages/shared/src/components/TeamPerformance.tsx',
     variants: [
-      { label: 'Sales against the target, then visits and new customers. No pace: that is for the monthly report', node: phone(<TeamPerformance performance={performance(PREVIEW_PERFORMANCE)} />) },
-      { label: 'Early in the day', node: phone(<TeamPerformance performance={performance({ ...PREVIEW_PERFORMANCE, sales: 1900, visits: 12, newCustomers: 1 })} />) },
-      { label: 'No targets set: the numbers only', node: phone(<TeamPerformance performance={performance({ ...PREVIEW_PERFORMANCE, salesTarget: null, visitTarget: null, newTarget: null })} />) },
+      { label: 'Today\'s sales against the target, then the month with its pace tick, then visits and new customers with their month underneath. Pace is for the month only', node: phone(<TeamPerformance performance={performance(PREVIEW_PERFORMANCE)} />) },
+      { label: 'Well behind pace for the month (red)', node: phone(<TeamPerformance performance={performance({ ...PREVIEW_PERFORMANCE, sales: 1900, visits: 12, newCustomers: 1, month: { ...PREVIEW_PERFORMANCE.month!, sales: 52000 } })} />) },
+      { label: 'Ahead of pace (green)', node: phone(<TeamPerformance performance={performance({ ...PREVIEW_PERFORMANCE, month: { ...PREVIEW_PERFORMANCE.month!, sales: 96000 } })} />) },
+      { label: 'No targets set: the numbers only', node: phone(<TeamPerformance performance={performance({ ...PREVIEW_PERFORMANCE, salesTarget: null, visitTarget: null, newTarget: null, month: { ...PREVIEW_PERFORMANCE.month!, salesTarget: null, visitTarget: null, newTarget: null } })} />) },
+      { label: 'Today only (month not loaded)', node: phone(<TeamPerformance performance={performance({ ...PREVIEW_PERFORMANCE, month: undefined })} />) },
     ],
   },
   {

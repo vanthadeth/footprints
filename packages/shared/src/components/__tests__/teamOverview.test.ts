@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { filterPeople, groupByDepartment, infoPills, initials, leaveSplitText, measure, overviewKpis, performance, sortPeople, statusChip, statusLine, type OverviewPerson } from '../teamOverview'
+import { filterPeople, groupByDepartment, infoPills, initials, leaveSplitText, measure, overviewKpis, paceTone, performance, sortPeople, statusChip, statusLine, type OverviewPerson } from '../teamOverview'
 import { buildStrip, hm } from '../dayStrip'
 import { PREVIEW_OVERVIEW, PREVIEW_PERFORMANCE } from '../../pages/componentsPreviewData'
 
@@ -67,8 +67,35 @@ describe('measure and performance', () => {
     expect(perf.visits.percent).toBe(68)
     expect(perf.newCustomers.percent).toBe(50)
   })
-  it('has no pace, tone or chip: that belongs to the monthly report', () => {
+  it('has no pace on the day: pace belongs to the month', () => {
     expect(Object.keys(performance(PREVIEW_PERFORMANCE).sales).sort()).toEqual(['fill', 'percent', 'target', 'value'])
+  })
+  it('colours by pace, not by percent', () => {
+    expect(paceTone(2000, 5000, 0.4)).toBe('ok')
+    expect(paceTone(1800, 5000, 0.4)).toBe('warn')
+    expect(paceTone(1000, 5000, 0.4)).toBe('bad')
+    expect(paceTone(0, 5000, 0)).toBe('ok')
+  })
+  it('gives the month: 68% of target, 17 of 22 working days gone, amber, behind pace by money', () => {
+    const m = performance(PREVIEW_PERFORMANCE).month!
+    expect(m.sales).toMatchObject({ value: 74300, target: 110000, percent: 68, tone: 'warn', diff: -10700, chip: '$10,700 behind pace' })
+    expect(m.sales.pace).toBeCloseTo((17 / 22) * 100, 5)
+    expect(m.visits).toMatchObject({ value: 482, target: 880, percent: 55 })
+    expect(m.newCustomers).toMatchObject({ value: 11, target: 24, percent: 46 })
+    expect(m.daysLeft).toBe(5)
+  })
+  it('turns red when well behind, green when ahead', () => {
+    const at = (sales: number) => performance({ ...PREVIEW_PERFORMANCE, month: { ...PREVIEW_PERFORMANCE.month!, sales } }).month!.sales
+    expect(at(52000)).toMatchObject({ tone: 'bad', chip: '$33,000 behind pace' })
+    expect(at(96000)).toMatchObject({ tone: 'ok', chip: '$11,000 ahead of pace' })
+  })
+  it('has no month when none is given, and no judgement without a target or working days', () => {
+    expect(performance({ ...PREVIEW_PERFORMANCE, month: undefined }).month).toBeNull()
+    const none = performance({ ...PREVIEW_PERFORMANCE, month: { ...PREVIEW_PERFORMANCE.month!, salesTarget: null } }).month!
+    expect(none.sales).toMatchObject({ target: null, tone: null, diff: null, chip: 'No target set' })
+    const noDays = performance({ ...PREVIEW_PERFORMANCE, month: { ...PREVIEW_PERFORMANCE.month!, doneDays: 0, totalDays: 0 } }).month!
+    expect(noDays.sales).toMatchObject({ pace: null, tone: null })
+    expect(noDays.daysLeft).toBe(0)
   })
   it('shows only the numbers when there is no target', () => {
     expect(performance({ ...PREVIEW_PERFORMANCE, salesTarget: null }).sales).toEqual({ value: 4300, target: null, percent: null, fill: 0 })

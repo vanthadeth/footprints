@@ -2,7 +2,7 @@ import { displayName } from '@footprints/shared/lib/displayName'
 import { formatTime } from '@footprints/shared/lib/datetime'
 import type { LeaveCode } from '@footprints/shared/components/attendance'
 import type { StripDay } from '@footprints/shared/components/dayStrip'
-import { NO_DEPARTMENT, performance, type OverviewPerson, type Performance } from '@footprints/shared/components/teamOverview'
+import { NO_DEPARTMENT, performance, type MonthInput, type OverviewPerson, type Performance } from '@footprints/shared/components/teamOverview'
 import { firstClockIn, lastClockOut } from '@/features/attendance/sessions'
 import { visitSpan } from '@/features/attendance/flagRules'
 import type { FleetMemberSnapshot } from '@/features/fleet/types'
@@ -99,6 +99,47 @@ export function buildOverview(i: OverviewInput): Overview {
   return { people, expectedIds }
 }
 
+/** Days the person is expected to work: not leave, holiday or a day off. `upcoming` is a working day still to come. */
+const EXPECTED_STATUS = new Set(['present', 'late', 'absent', 'upcoming'])
+
+export interface MonthFacts {
+  /** attendance_days rows of the team for the whole month. */
+  rows: { userId: string; day: string; status: string }[]
+  /** "YYYY-MM-DD", the app's today. */
+  today: string
+  /** The month's visits so far, not cancelled. */
+  visits: { id: string; cancelled_at?: string | null; order_amount_usd?: number | null; checked_in_at: string; checked_out_at: string | null }[]
+  orderStates: Record<string, OrderState>
+  orderTotals: Record<string, { orderNo: string; totalUsd: number | null }>
+  orderTargets: Record<string, number | null>
+  dailyOrderTargetUsd: number
+  dailyVisitTarget: number
+  newCustomers: number
+}
+
+/**
+ * The month so far. Targets add up over every working day of every person (their own daily order target, else the company
+ * default; the daily visit target). Pace counts the team's working days: a day is one if anyone is expected to work it,
+ * and today is counted as gone.
+ */
+export function buildMonth(f: MonthFacts): MonthInput | null {
+  const expected = f.rows.filter((r) => EXPECTED_STATUS.has(r.status))
+  if (!expected.length) return null
+  const salesTarget = expected.reduce((n, r) => n + (f.orderTargets[r.userId] ?? f.dailyOrderTargetUsd), 0)
+  const days = new Set(expected.map((r) => r.day))
+  const done = [...days].filter((d) => d <= f.today).length
+  return {
+    sales: orderSummary(f.visits, f.orderStates, f.orderTotals).valueUsd,
+    salesTarget: salesTarget > 0 ? salesTarget : null,
+    visits: f.visits.filter((v) => !v.cancelled_at).length,
+    visitTarget: f.dailyVisitTarget > 0 ? expected.length * f.dailyVisitTarget : null,
+    newCustomers: f.newCustomers,
+    newTarget: null,
+    doneDays: done,
+    totalDays: days.size,
+  }
+}
+
 export interface PerformanceFacts {
   overview: Overview
   /** Today's visits of the team, not cancelled. */
@@ -111,6 +152,8 @@ export interface PerformanceFacts {
   dailyOrderTargetUsd: number
   dailyVisitTarget: number
   newCustomers: number
+  /** The month so far, when it has loaded. */
+  month?: MonthInput | null
 }
 
 /**
@@ -128,5 +171,6 @@ export function buildPerformance(f: PerformanceFacts): Performance {
     visitTarget: ids.length && f.dailyVisitTarget > 0 ? ids.length * f.dailyVisitTarget : null,
     newCustomers: f.newCustomers,
     newTarget: null,
+    month: f.month ?? undefined,
   })
 }

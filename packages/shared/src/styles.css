@@ -819,6 +819,28 @@ html.dark {
 .tpf-pc { font-size: 14px; color: var(--cal-muted); }
 .tpf-bar { position: relative; height: 10px; border-radius: 999px; background: var(--strip-track); margin: 10px 0 0; }
 .tpf-fill { height: 10px; border-radius: 999px; background: var(--cal-brand); }
+.tpf-fill.tpf-ok { background: var(--att-ok); }
+.tpf-fill.tpf-warn { background: var(--att-amber); }
+.tpf-fill.tpf-bad { background: var(--att-absent); }
+.tpf-mark { position: absolute; top: -4px; width: 2px; height: 16px; border-radius: 1px; background: var(--cal-text); }
+.tpf-chip { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+.tpf-chip.ok { color: var(--att-ok); background: var(--tov-ok-t); }
+.tpf-chip.warn { color: var(--att-amber); background: var(--tov-warn-t); }
+.tpf-chip.bad { color: var(--att-absent); background: var(--tov-bad-t); }
+.tpf-chip.plain { color: var(--cal-muted); background: var(--att-tile); }
+.tpf-mo { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--cal-line); }
+.tpf-mo .tpf-sec { align-items: center; }
+.tpf-mn { font-size: 20px; line-height: 24px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.tpf-mn span { font-size: 12.5px; font-weight: 600; letter-spacing: 0; color: var(--cal-muted); }
+.tpf-mb, .tpf-mb .tpf-fill { height: 8px; }
+.tpf-mb { margin-top: 8px; }
+.tpf-cap { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; }
+.tpf-note { font-size: 12px; font-weight: 600; color: var(--cal-muted); }
+.tpf-tm { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; margin-top: 6px; padding-top: 8px; border-top: 1px solid var(--cal-line); }
+.tpf-tm span { font-size: 12px; font-weight: 600; color: var(--cal-muted); white-space: nowrap; }
+.tpf-tm b { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tpf-tm b em { font-style: normal; font-weight: 600; color: var(--cal-muted); }
+.tpf-pb.tpf-sm { height: 6px; border-radius: 3px; margin: 0; }
 .tpf-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
 .tpf-m { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 12px; border-radius: 16px; background: var(--att-tile); }
 .tpf-mh { display: flex; align-items: center; gap: 8px; }
