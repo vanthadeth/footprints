@@ -239,9 +239,9 @@ function Geofence() {
             />
             <AdminRow
               icon={Store}
-              label="Orders expected per full day"
-              sub="The score's orders part, in USD, for people without their own target (set on their user); a shorter day is scaled by its hours"
-              control={<Stepper label="Daily order target" value={settings.dailyOrderTargetUsd} step={50} min={0} max={20000} format={(v) => (v === 0 ? 'None' : `$${v}`)} onChange={(v) => patch({ dailyOrderTargetUsd: v })} />}
+              label="Monthly sales target"
+              sub="The company's monthly sales target in USD for people without their own (set on their user, where it can also be switched off). Each day's score uses that day's share of it: the target divided by the person's working days in the month, scaled by the day's hours"
+              control={<Stepper label="Monthly sales target" value={settings.monthlyOrderTargetUsd} step={500} min={0} max={500000} format={(v) => (v === 0 ? 'None' : `$${v.toLocaleString('en-US')}`)} onChange={(v) => patch({ monthlyOrderTargetUsd: v })} />}
             />
             <AdminRow
               icon={Store}

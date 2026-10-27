@@ -55,8 +55,10 @@ export interface EditUserInput {
   roleId: string | null
   status: UserStatus
   isFieldSales: boolean
-  /** This person's daily order target in USD (null: the company default). Left alone when undefined. */
-  dailyOrderTargetUsd?: number | null
+  /** This person's monthly sales target in USD (null: the company default). Left alone when undefined. */
+  monthlyOrderTargetUsd?: number | null
+  /** False: this person does not have to achieve a sales target. Left alone when undefined. */
+  salesTargetRequired?: boolean
   /** Required by a DB check constraint when status is 'suspended'; ignored otherwise. */
   suspendedFrom?: string | null
   suspendedTo?: string | null
@@ -143,11 +145,11 @@ export const usersService = {
     return (data ?? []).map(fromRow)
   },
 
-  /** The person's own daily order target in USD, or null when they use the company default (not part of manageable_users). */
-  async orderTarget(userId: string): Promise<number | null> {
-    const { data, error } = await supabase.from('users').select('daily_order_target_usd').eq('id', userId).maybeSingle()
+  /** The person's own monthly sales target in USD (null: the company default) and whether they have to achieve one (not part of manageable_users). */
+  async salesTarget(userId: string): Promise<{ monthlyUsd: number | null; required: boolean }> {
+    const { data, error } = await supabase.from('users').select('monthly_order_target_usd, sales_target_required').eq('id', userId).maybeSingle()
     if (error) throw error
-    return data?.daily_order_target_usd != null ? Number(data.daily_order_target_usd) : null
+    return { monthlyUsd: data?.monthly_order_target_usd != null ? Number(data.monthly_order_target_usd) : null, required: data?.sales_target_required !== false }
   },
 
   async listRoles(): Promise<Option[]> {
@@ -175,7 +177,8 @@ export const usersService = {
         role_id: input.roleId,
         status: input.status,
         is_field_sales: input.isFieldSales,
-        ...(input.dailyOrderTargetUsd !== undefined ? { daily_order_target_usd: input.dailyOrderTargetUsd } : {}),
+        ...(input.monthlyOrderTargetUsd !== undefined ? { monthly_order_target_usd: input.monthlyOrderTargetUsd } : {}),
+        ...(input.salesTargetRequired !== undefined ? { sales_target_required: input.salesTargetRequired } : {}),
         // Only sent when relevant -- DB check constraints require these
         // exact fields when status is suspended/discharged, and don't care
         // about stale values from a previous suspension otherwise.

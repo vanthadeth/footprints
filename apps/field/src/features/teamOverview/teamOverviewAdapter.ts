@@ -8,6 +8,7 @@ import { visitSpan } from '@/features/attendance/flagRules'
 import type { FleetMemberSnapshot } from '@/features/fleet/types'
 import type { LeaveType } from '@/features/leave/types'
 import { orderSummary, orderValueUsd } from '@/features/attendance/effectivenessScore'
+import { WORKING_STATUS } from '@/features/orders/orderTargets'
 import type { OrderState } from '@/features/orders/orderReconcile'
 
 const LEAVE_CODE: Record<LeaveType, LeaveCode> = { annual: 'AL', unpaid: 'UL', sick: 'SL', flex: 'FD' }
@@ -99,8 +100,15 @@ export function buildOverview(i: OverviewInput): Overview {
   return { people, expectedIds }
 }
 
-/** Days the person is expected to work: not leave, holiday or a day off. `upcoming` is a working day still to come. */
-const EXPECTED_STATUS = new Set(['present', 'late', 'absent', 'upcoming'])
+/** A visit of the team, for the sales and visit counts. */
+export interface TeamVisit {
+  id: string
+  user_id: string
+  cancelled_at?: string | null
+  order_amount_usd?: number | null
+  checked_in_at: string
+  checked_out_at: string | null
+}
 
 export interface MonthFacts {
   /** attendance_days rows of the team for the whole month. */
@@ -108,28 +116,33 @@ export interface MonthFacts {
   /** "YYYY-MM-DD", the app's today. */
   today: string
   /** The month's visits so far, not cancelled. */
-  visits: { id: string; cancelled_at?: string | null; order_amount_usd?: number | null; checked_in_at: string; checked_out_at: string | null }[]
+  visits: TeamVisit[]
   orderStates: Record<string, OrderState>
   orderTotals: Record<string, { orderNo: string; totalUsd: number | null }>
-  orderTargets: Record<string, number | null>
-  dailyOrderTargetUsd: number
+  /** Each person's monthly sales target; null or missing: they have none (switched off, or none set). */
+  monthlyTargets: Record<string, number | null>
   dailyVisitTarget: number
   newCustomers: number
 }
 
+/** The visits of people who have a sales target: only their sales count against the team's target. */
+const targeted = (visits: TeamVisit[], has: (userId: string) => boolean) => visits.filter((v) => has(v.user_id))
+
 /**
- * The month so far. Targets add up over every working day of every person (their own daily order target, else the company
- * default; the daily visit target). Pace counts the team's working days: a day is one if anyone is expected to work it,
- * and today is counted as gone.
+ * The month so far. The sales target is the sum of each person's monthly target; people with none (switched off, or none
+ * set) add nothing to it, and their sales are left out of the team's sales. The visit target adds up over each person's
+ * working days. Pace counts the team's working days: a day is one if anyone is expected to work it, and today is gone.
  */
 export function buildMonth(f: MonthFacts): MonthInput | null {
-  const expected = f.rows.filter((r) => EXPECTED_STATUS.has(r.status))
+  const expected = f.rows.filter((r) => WORKING_STATUS.has(r.status))
   if (!expected.length) return null
-  const salesTarget = expected.reduce((n, r) => n + (f.orderTargets[r.userId] ?? f.dailyOrderTargetUsd), 0)
+  const people = new Set(f.rows.map((r) => r.userId))
+  const has = (id: string) => (f.monthlyTargets[id] ?? 0) > 0
+  const salesTarget = [...people].reduce((n, id) => n + (has(id) ? (f.monthlyTargets[id] as number) : 0), 0)
   const days = new Set(expected.map((r) => r.day))
   const done = [...days].filter((d) => d <= f.today).length
   return {
-    sales: orderSummary(f.visits, f.orderStates, f.orderTotals).valueUsd,
+    sales: orderSummary(targeted(f.visits, has), f.orderStates, f.orderTotals).valueUsd,
     salesTarget: salesTarget > 0 ? salesTarget : null,
     visits: f.visits.filter((v) => !v.cancelled_at).length,
     visitTarget: f.dailyVisitTarget > 0 ? expected.length * f.dailyVisitTarget : null,
@@ -143,13 +156,12 @@ export function buildMonth(f: MonthFacts): MonthInput | null {
 export interface PerformanceFacts {
   overview: Overview
   /** Today's visits of the team, not cancelled. */
-  visits: { id: string; cancelled_at?: string | null; order_amount_usd?: number | null; checked_in_at: string; checked_out_at: string | null }[]
+  visits: TeamVisit[]
   orderStates: Record<string, OrderState>
   /** The synced sale order's total per visit. */
   orderTotals: Record<string, { orderNo: string; totalUsd: number | null }>
-  /** Each person's own daily order target in USD (null: the company default). */
-  orderTargets: Record<string, number | null>
-  dailyOrderTargetUsd: number
+  /** Each person's daily share of their monthly sales target; 0 or missing: they have none. */
+  dailyTargets: Record<string, number>
   dailyVisitTarget: number
   newCustomers: number
   /** The month so far, when it has loaded. */
@@ -157,15 +169,16 @@ export interface PerformanceFacts {
 }
 
 /**
- * The team's day against its targets. Sales are counted as the score counts them: a synced sale order once, however many visits
- * matched it (two people can visit the same customer), else the amount entered on a visit marked ordered. Targets add up over the people expected to work.
+ * The team's day against its targets. Sales are counted as the score counts them (a synced sale order once, however many
+ * visits matched it, else the amount entered on a visit marked ordered) and only for people who have a sales target; the
+ * target adds up their daily shares over the people expected to work today.
  */
 export function buildPerformance(f: PerformanceFacts): Performance {
-  const sales = orderValueUsd(f.visits, f.orderStates, f.orderTotals)
   const ids = f.overview.expectedIds
-  const salesTarget = ids.reduce((n, id) => n + (f.orderTargets[id] ?? f.dailyOrderTargetUsd), 0)
+  const has = (id: string) => (f.dailyTargets[id] ?? 0) > 0
+  const salesTarget = ids.reduce((n, id) => n + (has(id) ? f.dailyTargets[id] : 0), 0)
   return performance({
-    sales,
+    sales: orderValueUsd(targeted(f.visits, has), f.orderStates, f.orderTotals),
     salesTarget: salesTarget > 0 ? salesTarget : null,
     visits: f.visits.length,
     visitTarget: ids.length && f.dailyVisitTarget > 0 ? ids.length * f.dailyVisitTarget : null,

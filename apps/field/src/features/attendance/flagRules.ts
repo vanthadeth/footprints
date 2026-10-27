@@ -1,6 +1,7 @@
 import {
   APP_TIMEZONE,
-  DEFAULT_DAILY_ORDER_TARGET_USD,
+  DEFAULT_MONTHLY_ORDER_TARGET_USD,
+  TARGET_WORKING_DAYS_PER_MONTH,
   DEFAULT_DAILY_UNIQUE_CUSTOMER_TARGET,
   DEFAULT_DAILY_VISIT_TARGET,
   DEFAULT_FIRST_VISIT_DEADLINE,
@@ -115,7 +116,7 @@ export const DEFAULT_FLAG_RULES: FlagRules = {
   shortVisitMin: DEFAULT_SHORT_VISIT_THRESHOLD_MINUTES,
   visitCreditCapMin: DEFAULT_VISIT_CREDIT_CAP_MINUTES,
   visitTarget: DEFAULT_DAILY_VISIT_TARGET,
-  orderTargetUsd: DEFAULT_DAILY_ORDER_TARGET_USD,
+  orderTargetUsd: DEFAULT_MONTHLY_ORDER_TARGET_USD / TARGET_WORKING_DAYS_PER_MONTH,
   uniqueTarget: DEFAULT_DAILY_UNIQUE_CUSTOMER_TARGET,
   fullDayHours: DEFAULT_FULL_DAY_HOURS,
 }
@@ -224,7 +225,7 @@ export interface FlagRuleSettings {
   visitCreditCapMinutes: number
   dailyVisitTarget: number
   /** Optional so older callers keep the default. */
-  dailyOrderTargetUsd?: number
+  monthlyOrderTargetUsd?: number
   dailyUniqueCustomerTarget: number
   dailyWorkingHours: number
 }
@@ -241,7 +242,7 @@ export function flagRulesOf(s: FlagRuleSettings): FlagRules {
     shortVisitMin: s.shortVisitThresholdMinutes,
     visitCreditCapMin: s.visitCreditCapMinutes,
     visitTarget: s.dailyVisitTarget,
-    orderTargetUsd: s.dailyOrderTargetUsd ?? DEFAULT_DAILY_ORDER_TARGET_USD,
+    orderTargetUsd: (s.monthlyOrderTargetUsd ?? DEFAULT_MONTHLY_ORDER_TARGET_USD) / TARGET_WORKING_DAYS_PER_MONTH,
     uniqueTarget: s.dailyUniqueCustomerTarget,
     fullDayHours: s.dailyWorkingHours,
   }

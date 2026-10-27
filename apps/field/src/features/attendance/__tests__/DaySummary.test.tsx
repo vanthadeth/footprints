@@ -8,7 +8,8 @@ import type { AttendanceRow, VisitRow } from '../types'
 const visit = (o: Partial<VisitRow>) => ({ id: Math.random().toString(), customer_id: 'c1', flags: [], auto_closed: false, ...o }) as VisitRow
 
 describe('DaySummary', () => {
-  const rules = { ...DEFAULT_FLAG_RULES, shortVisitMin: 5 }
+  // a monthly sales target of $6,600 over 22 working days: $300 a day
+  const rules = { ...DEFAULT_FLAG_RULES, shortVisitMin: 5, orderTargetUsd: 300 }
   const render = (visits: VisitRow[], extra: Partial<AttendanceRow> = {}) => {
     const attendance = [{ clock_in_at: '2026-01-01T01:00:00Z', clock_out_at: '2026-01-01T10:00:00Z', ...extra }] as AttendanceRow[]
     const stats = computeJourneyStats([{ date: '2026-01-01', attendance, visits }], 0, { breakMinutes: 0, breakPaid: true, start: '08:00', end: '17:00' }, rules)
@@ -33,7 +34,7 @@ describe('DaySummary', () => {
     expect(html).not.toContain('How the score works') // the explanation lives in the popup, closed until asked for
     expect(html).toContain('Active time')
     expect(html).toContain('Orders')
-    expect(html).toContain('$50 of $300 order target')
+    expect(html).toContain('$50 of $300 daily share of the monthly target')
     expect(html).toContain('Long idle gaps') // 57 min between the visits, and 6 h after the last
   })
 
@@ -54,7 +55,7 @@ describe('DaySummary', () => {
     const visits = ['a', 'b', 'c'].map((id, i) => visit({ id, customer_id: id, checked_in_at: `2026-01-01T0${2 + i}:00:00Z`, checked_out_at: `2026-01-01T0${2 + i}:30:00Z` }))
     const stats = computeJourneyStats([{ date: '2026-01-01', attendance, visits }], 0, null, rules, { a: 'confirmed', b: 'pending', c: 'unmatched' })
     const html = renderToStaticMarkup(<DaySummary stats={stats} rules={rules} firstVisit={{ kind: 'ok' }} paidVisits={0} appointments={0} language="en" />)
-    expect(html).toContain('$0 of $300 order target')
+    expect(html).toContain('$0 of $300 daily share of the monthly target')
     expect(html).toContain('1 confirmed · 1 pending')
     expect(html).toContain('Order not found')
   })
@@ -69,5 +70,13 @@ describe('DaySummary', () => {
     expect(html).toContain('53%')
     expect(html).toContain('3 effective + 5 × ¼')
   })
-})
 
+  it('says there is no target, and that the score is visits and active time, when the person has none', () => {
+    const noTarget = { ...rules, orderTargetUsd: 0 }
+    const attendance = [{ clock_in_at: '2026-01-01T01:00:00Z', clock_out_at: '2026-01-01T10:00:00Z' }] as AttendanceRow[]
+    const stats = computeJourneyStats([{ date: '2026-01-01', attendance, visits: [visit({ checked_in_at: '2026-01-01T02:00:00Z', checked_out_at: '2026-01-01T02:30:00Z', order_amount_usd: 50 })] }], 0, { breakMinutes: 0, breakPaid: true, start: '08:00', end: '17:00' }, noTarget)
+    const html = renderToStaticMarkup(<DaySummary stats={stats} rules={noTarget} firstVisit={{ kind: 'ok' }} paidVisits={0} appointments={0} language="en" />)
+    expect(html).toContain('$50 in orders')
+    expect(html).not.toContain('daily share of the monthly target')
+  })
+})

@@ -27,6 +27,7 @@ import { useAttendanceDays } from '@/features/attendanceSummary/useAttendanceDay
 import { useAppSettings } from '@/hooks/useAppSettings'
 import { formatDuration } from '@footprints/shared/lib/datetime'
 import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
+import { useOrderTargets } from '@/features/orders/useOrderTargets'
 
 const RANGES = {
   today: { current: 'today', previous: 'yesterday', chart: 'Visits by hour', unit: 'hour' },
@@ -46,6 +47,7 @@ const PREV_SHORT: Record<ReportPeriod, string> = { today: 'Yesterday', week: 'La
  */
 export function ReportPage() {
   const { profile } = useProfile()
+  const orderTargets = useOrderTargets()
   const { language } = useLanguage()
   const [period, setPeriod] = useState<ReportPeriod>('week')
   const cfg = RANGES[period]
@@ -58,7 +60,7 @@ export function ReportPage() {
   const bothPeriods = useMemo(() => [...current.allVisits, ...previous.allVisits], [current.allVisits, previous.allVisits])
   const orderStates = useVisitOrders(bothPeriods)
   const orderTotals = useVisitOrderTotals(bothPeriods)
-  const scoring = { orderTargetUsd: profile?.daily_order_target_usd ?? null, orderTotals }
+  const scoring = { orderTargetUsd: orderTargets[profile?.id ?? ''] ?? null, orderTotals }
   // Compare against the same stretch of the previous period (Mon–Thu vs Mon–Thu), not all of it.
   const { cutoff, prevDays, prevEndMs } = useMemo(() => {
     const cut = comparableCutoff(range.startIso, prevRange.startIso, new Date().toISOString(), prevRange.endIso)
@@ -80,15 +82,15 @@ export function ReportPage() {
   const stats = useMemo(
     () => computeJourneyStats(current.days, undefined, rule, settings.flagRules, orderStates, dayContextFrom(curServer.rows, today, rule), scoring),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the rule's fields are the real inputs
-    [current.days, curServer.rows, today, settings.breakMinutes, settings.breakPaid, settings.workStartTime, settings.workEndTime, settings.flagRules, orderTotals, profile?.daily_order_target_usd]
+    [current.days, curServer.rows, today, settings.breakMinutes, settings.breakPaid, settings.workStartTime, settings.workEndTime, settings.flagRules, orderTotals, orderTargets[profile?.id ?? '']]
   )
   const prevStats = useMemo(
     () => computeJourneyStats(prevDays, prevEndMs, rule, settings.flagRules, orderStates, dayContextFrom(prevServer.rows, localDateKey(cutoff), rule), scoring),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the rule's fields are the real inputs
-    [prevDays, prevServer.rows, cutoff, prevEndMs, settings.breakMinutes, settings.breakPaid, settings.workStartTime, settings.workEndTime, settings.flagRules, orderTotals, profile?.daily_order_target_usd]
+    [prevDays, prevServer.rows, cutoff, prevEndMs, settings.breakMinutes, settings.breakPaid, settings.workStartTime, settings.workEndTime, settings.flagRules, orderTotals, orderTargets[profile?.id ?? '']]
   )
   // Momentum: eight weeks of daily scores (streak, best week) and the customers worth a visit.
-  const history = useScoreHistory(profile?.id ?? null, profile?.daily_order_target_usd ?? null)
+  const history = useScoreHistory(profile?.id ?? null, orderTargets[profile?.id ?? ''] ?? null)
   const progress = useMemo(() => scoreProgress(history.days, today), [history.days, today])
   const priorityCustomers = useMyPriorityCustomers(profile?.id ?? null)
   const coverage = useMemo(() => priorityCoverage(priorityCustomers, history.visits, Date.now()), [priorityCustomers, history.visits])

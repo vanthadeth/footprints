@@ -33,7 +33,7 @@ interface Props {
 export function UserPanel({ open, mode, user, users, roles, departments, onClose, onSaved }: Props) {
   const [f, setF] = useState({
     fullName: '', nickname: '', email: '', password: '', phone: '', position: '',
-    departmentId: '', managerId: '', roleId: '', isFieldSales: false, orderTarget: '',
+    departmentId: '', managerId: '', roleId: '', isFieldSales: false, orderTarget: '', targetRequired: true,
     status: 'active' as UserStatus, suspendedFrom: '', suspendedTo: '', dischargedDate: '',
   })
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((s) => ({ ...s, [k]: v }))
@@ -57,7 +57,7 @@ export function UserPanel({ open, mode, user, users, roles, departments, onClose
       fullName: u?.fullName ?? '', nickname: u?.nickname ?? '', email: '',
       password: u ? '' : generateSuggestedPassword(), phone: u?.phonePrimary ?? '', position: u?.position ?? '',
       departmentId: u?.departmentId ?? '', managerId: u?.managerId ?? '', roleId: u?.roleId ?? '',
-      isFieldSales: u?.isFieldSales ?? false, orderTarget: '', status: u?.status ?? 'active',
+      isFieldSales: u?.isFieldSales ?? false, orderTarget: '', targetRequired: true, status: u?.status ?? 'active',
       suspendedFrom: '', suspendedTo: '', dischargedDate: '',
     })
     setNewPassword(null)
@@ -68,7 +68,7 @@ export function UserPanel({ open, mode, user, users, roles, departments, onClose
     setSheetIdsMsg(null)
     if (!u) return
     let cancelled = false
-    usersService.orderTarget(u.id).then((t) => !cancelled && set('orderTarget', t == null ? '' : String(t))).catch(() => {})
+    usersService.salesTarget(u.id).then((t) => { if (!cancelled) { set('orderTarget', t.monthlyUsd == null ? '' : String(t.monthlyUsd)); set('targetRequired', t.required) } }).catch(() => {})
     usersService.sheetIds(u.id).then((ids) => !cancelled && setSheetIds(formatSheetIds(ids))).catch((e) => !cancelled && setSheetIdsMsg({ ok: false, text: e instanceof Error ? e.message : 'Couldn’t load the Google Sheet IDs.' }))
     return () => {
       cancelled = true
@@ -100,7 +100,8 @@ export function UserPanel({ open, mode, user, users, roles, departments, onClose
           ...common,
           roleId: f.roleId || null,
           status: f.status,
-          dailyOrderTargetUsd: f.orderTarget.trim() === '' ? null : Math.max(0, Number(f.orderTarget) || 0),
+          monthlyOrderTargetUsd: f.orderTarget.trim() === '' ? null : Math.max(0, Number(f.orderTarget) || 0),
+          salesTargetRequired: f.targetRequired,
           suspendedFrom: f.suspendedFrom || null,
           suspendedTo: f.suspendedTo || null,
           dischargedDate: f.dischargedDate || null,
@@ -175,9 +176,14 @@ export function UserPanel({ open, mode, user, users, roles, departments, onClose
           </Field>
           <Toggle checked={f.isFieldSales} onChange={(v) => set('isFieldSales', v)} label="Field salesperson (tracks attendance and customer visits)" />
           {editing && (
-            <Field label="Daily order target (USD)" hint="Empty uses the company default; 0 leaves orders out of their score.">
-              <TextInput value={f.orderTarget} onChange={(v) => set('orderTarget', v)} type="number" placeholder="Company default" />
-            </Field>
+            <>
+              <Toggle checked={f.targetRequired} onChange={(v) => set('targetRequired', v)} label="Has to achieve a sales target (off: no orders part in their score, left out of the team's target)" />
+              {f.targetRequired && (
+                <Field label="Monthly sales target (USD)" hint="Each day's score uses a share of it. Empty uses the company default; 0 means no target.">
+                  <TextInput value={f.orderTarget} onChange={(v) => set('orderTarget', v)} type="number" placeholder="Company default" />
+                </Field>
+              )}
+            </>
           )}
         </Section>
 
