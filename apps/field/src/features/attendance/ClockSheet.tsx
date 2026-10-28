@@ -9,6 +9,7 @@ import type { DayJourney } from './useJourneyHistory'
 import { clockBlock, type ClockBlock } from '@footprints/shared/features/permissions/clockRules'
 import type { RequiredLocation } from '@footprints/shared/features/permissions/permissionsService'
 import { locationService } from '@/features/location/locationService'
+import { GPS_LEVEL_COPY, gpsLevel } from '@/features/location/gpsLevel'
 import { useAppSettings } from '@/hooks/useAppSettings'
 import { DayBar } from '@/features/fleet/DayBar'
 import { atLocal, segmentsFor } from '@/features/fleet/dayBar'
@@ -176,8 +177,8 @@ export function ClockSheet({ open, direction, required, onClose }: { open: boole
               </span>
               <span className={`block text-xs ${loc.status === 'ok' ? 'text-status-working' : loc.status === 'checking' ? 'text-neutral-500' : 'text-status-warn'}`}>
                 {loc.status === 'checking' && t('checkIn.locationChecking')}
-                {loc.status === 'ok' && t('checkIn.insideArea')}
-                {loc.status === 'low' && t('checkIn.locationLow')}
+                {loc.status === 'ok' && `${t('checkIn.insideArea')} · ${t(GPS_LEVEL_COPY[gpsLevel(loc.accuracy)].title)}`}
+                {loc.status === 'low' && `${t(GPS_LEVEL_COPY[gpsLevel(loc.accuracy)].title)} · ${t(GPS_LEVEL_COPY[gpsLevel(loc.accuracy)].hint)}`}
                 {loc.status === 'error' && t('checkIn.locationError')}
                 {loc.status === 'blocked' && t('checkIn.locationBlocked', { places: loc.block.names, nearest: loc.block.nearest, distance: loc.block.distance })}
               </span>
