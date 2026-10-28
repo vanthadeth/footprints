@@ -1,7 +1,7 @@
 import { useVisitOrders, useVisitOrderTotals } from '@/features/orders/useVisitOrders'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { AlertTriangle, CalendarDays, CalendarPlus, Check, ChevronDown, ChevronRight, Clock, LogOut, MapPin, Moon, Store, X } from 'lucide-react'
+import { AlertTriangle, CalendarDays, Check, ChevronDown, ChevronRight, Clock, LogOut, MapPin, Moon, Store, X } from 'lucide-react'
 import { useJourneyContext } from '@/features/attendance/JourneyContext'
 import type { AttendanceRow, VisitRow } from '@/features/attendance/types'
 import { ClockSheet } from '@/features/attendance/ClockSheet'
@@ -328,21 +328,10 @@ export function CheckInPage() {
                 onConfirm={() => setClockSheet('in')}
               />
             </div>
-            {journey.todaysAttendance.length === 0 && (
-              <Link to="/leave" className="flex h-12 items-center gap-3 rounded-[14px] border border-neutral-100 bg-white px-3.5 text-sm font-bold text-neutral-900 shadow-card">
-                <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[9px] bg-brand-50 text-brand-500">
-                  <CalendarPlus className="h-[17px] w-[17px]" aria-hidden />
-                </span>
-                <span className="flex-1">
-                  {t('checkIn.notWorkingToday')} <span className="text-brand-500">{t('checkIn.requestLeave')}</span>
-                </span>
-                <ChevronRight className="h-4 w-4 text-neutral-500" aria-hidden />
-              </Link>
-            )}
           </>
         )}
 
-        <TripTodayCard />
+        {isClockedIn && <TripTodayCard />}
         {isClockedIn ? (
           /* On shift: the next stop and the plan (or a nudge to build one), then today as a timeline. */
           <>
@@ -357,10 +346,8 @@ export function CheckInPage() {
             />
           </>
         ) : (
-          /* Before clock-in (or on leave): what today holds, and this week's attendance. */
-          <>
-            <WeekStrip />
-          </>
+          /* Before clock-in: nothing below the slide, as on the canvas. */
+          leaveToday ? <WeekStrip /> : null
         )}
       </div>
 
