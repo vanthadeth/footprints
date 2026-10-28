@@ -182,6 +182,7 @@ export const en = {
     locationBlocked: 'You need to be at {{places}}. Nearest is {{nearest}}, {{distance}} away.',
     refresh: 'Refresh',
     gpsAcc: 'GPS ±{{n}} m',
+    stepOf: 'Step {{n}} of {{total}}',
     gpsGood: 'Locked on!',
     gpsGoodHint: 'Good signal',
     gpsModerate: 'Almost there',

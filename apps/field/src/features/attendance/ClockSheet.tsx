@@ -84,11 +84,8 @@ export function ClockSheet({ open, direction, required, onClose }: { open: boole
   // A failed reading doesn't block: the clock-in RPC re-reads the location and reports the real problem.
   const locReady = loc.status === 'ok' || loc.status === 'error'
   const ready = locReady && !!selfie
-  const steps = [
-    { label: t('checkIn.stepLocation'), done: locReady },
-    { label: t('checkIn.stepSelfie'), done: !!selfie },
-    { label: t('checkIn.stepConfirm'), done: false },
-  ]
+  // Two steps on the canvas: 1 selfie (with the GPS check running beside it), 2 slide to confirm.
+  const step = selfie ? 2 : 1
   const today: DayJourney = { date: '', attendance: journey.todaysAttendance, visits: journey.todaysVisits }
   const stats = computeJourneyStats([today], undefined, null, settings.flagRules)
   const shift = t('checkIn.shift', { start: settings.workStartTime.slice(0, 5), end: settings.workEndTime.slice(0, 5) })
@@ -124,21 +121,9 @@ export function ClockSheet({ open, direction, required, onClose }: { open: boole
             </p>
           </div>
 
-          <ol aria-label="Steps" className="flex items-center justify-center gap-2">
-            {steps.map((s, i) => (
-              <li key={s.label} className="flex items-center gap-1.5 text-[13px] font-semibold text-neutral-600">
-                {i > 0 && <span aria-hidden className="mr-0.5 h-px w-4 bg-neutral-300" />}
-                <span
-                  className={`flex h-[22px] w-[22px] items-center justify-center rounded-full text-[11px] font-extrabold ${
-                    s.done ? 'bg-status-working text-white' : 'border-[1.5px] border-neutral-300 text-neutral-500'
-                  }`}
-                >
-                  {s.done ? <Check className="h-3 w-3" strokeWidth={3} /> : i + 1}
-                </span>
-                {s.label}
-              </li>
-            ))}
-          </ol>
+          <p aria-live="polite" className="text-center text-[13px] font-bold text-neutral-600">
+            {t('checkIn.stepOf', { n: step, total: 2 })} · {step === 1 ? t('checkIn.stepSelfie') : t('checkIn.stepConfirm')}
+          </p>
 
           {!isIn && (
             <section aria-label={t('checkIn.yourDay')} className="rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card">

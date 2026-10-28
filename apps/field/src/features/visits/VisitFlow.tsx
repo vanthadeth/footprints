@@ -20,6 +20,7 @@ import { visitsService, type NearbyCustomer, type VisitOutcomeDetails } from './
 import { AmountFields } from './AmountFields'
 import { VisitPhotoStrip } from './VisitPhotoStrip'
 import { outcomeFields, parseAmount } from './visitOutcome'
+import { GPS_LEVEL_COPY, gpsLevel } from '@/features/location/gpsLevel'
 import { CustomerInsightsSheet } from './CustomerInsightsSheet'
 import { insightsTeaser, useCustomerInsights } from './customerInsights'
 
@@ -69,6 +70,7 @@ export function VisitFlow({
   const plannedIds = new Set(planItems.filter((i) => i.status === 'planned').map((i) => i.customer_id))
   const settings = useAppSettings()
 
+  const { t } = useLanguage()
   const [step, setStep] = useState<Step>(journey.openVisit ? 'record' : presetCustomer ? 'confirm' : 'picker')
   const [locState, setLocState] = useState<'loading' | 'ready' | 'error'>('loading')
   const [accuracy, setAccuracy] = useState<number | null>(null)
@@ -329,12 +331,12 @@ export function VisitFlow({
               <span className="min-w-0 flex-1">
                 <span className={`block text-sm font-bold ${accuracyTooLow || locState === 'error' ? 'text-status-warn' : 'text-neutral-900'}`}>
                   {locState === 'loading' && 'Finding your location…'}
-                  {locState === 'ready' && (accuracyTooLow ? 'GPS is too weak to check in' : 'Current location')}
+                  {locState === 'ready' && (accuracy != null ? t(GPS_LEVEL_COPY[gpsLevel(accuracy)].title) : 'Current location')}
                   {locState === 'error' && (locError ?? 'Location unavailable')}
                 </span>
                 {locState === 'ready' && accuracy != null && (
                   <span className="mt-px block text-xs text-neutral-500">
-                    {accuracyTooLow ? 'Move to an open area and refresh · ' : ''}accuracy ±{Math.round(accuracy)} m
+                    {t(GPS_LEVEL_COPY[gpsLevel(accuracy)].hint)} · {t('checkIn.gpsAcc', { n: Math.round(accuracy) })}
                   </span>
                 )}
               </span>
@@ -371,7 +373,9 @@ export function VisitFlow({
                   </label>
                 )}
                 <section aria-label="Nearest customers">
-                  <p className="px-0.5 pb-2 pt-0.5 text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">Nearest customers</p>
+                  <p className="px-0.5 pb-2 pt-0.5 text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">
+                    Nearest customers{locState === 'ready' && customers.length > 0 ? ` · ${customers.length} nearby` : ''}
+                  </p>
                   {locState === 'loading' && (
                     <div className="space-y-2">
                       <div className="h-16 animate-pulse rounded-2xl bg-neutral-100" />
@@ -467,7 +471,7 @@ export function VisitFlow({
           ) : (
             <>
               <SlideToConfirm
-                label={journey.busy ? 'Checking in…' : 'Slide to check in'}
+                label={journey.busy ? 'Checking in…' : pickTarget ? `Slide to check in at ${pickTarget.name}` : 'Slide to check in'}
                 busy={journey.busy}
                 disabled={pickBlocked || !pickTarget}
                 onConfirm={() => {

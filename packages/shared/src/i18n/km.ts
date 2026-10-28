@@ -189,6 +189,7 @@ export const km: TranslationKey = {
     locationBlocked: 'អ្នកត្រូវនៅ {{places}}។ ទីតាំងជិតបំផុតគឺ {{nearest}} ចម្ងាយ {{distance}}។',
     refresh: 'ផ្ទុកឡើងវិញ',
     gpsAcc: 'GPS ±{{n}} ម',
+    stepOf: 'ជំហាន {{n}} នៃ {{total}}',
     gpsGood: 'ចាក់សោរួច!',
     gpsGoodHint: 'សញ្ញាល្អ',
     gpsModerate: 'ជិតហើយ',
