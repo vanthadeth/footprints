@@ -29,12 +29,14 @@ import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 import { useCan } from '@footprints/shared/features/permissions/PermissionsContext'
 import { useClockRules } from '@footprints/shared/features/permissions/clockRules'
 import { useOrderTargets } from '@/features/orders/useOrderTargets'
+import { useMyQuota } from '@/features/attendance/useMyQuota'
 
 
 export function CheckInPage() {
   const journey = useJourneyContext()
   const { profile } = useProfile()
   const orderTargets = useOrderTargets()
+  const quota = useMyQuota(profile?.id ?? null)
   const { t, language } = useLanguage()
   const settings = useAppSettings()
   const [clockSheet, setClockSheet] = useState<'in' | 'out' | null>(null)
@@ -108,6 +110,8 @@ export function CheckInPage() {
         ? { text: t('checkIn.lateBy', { n: formatDuration(-untilStart * 60_000, language) }), tone: 'text-[#FFB257]' }
         : null
   const leaveLabel = leaveToday === 'annual' ? t('profile.annual') : leaveToday === 'sick' ? t('profile.sick') : leaveToday ? LEAVE_TYPE_LABEL[leaveToday] : ''
+  const visitTarget = quota.dailyVisitTarget ?? settings.dailyVisitTarget
+  const salesTarget = orderTargets[profile?.id ?? ''] ?? 0
   const salesToday = Object.values(orderTotals).reduce((sum, o) => sum + (o.totalUsd ?? 0), 0)
   const visitsLine = stats.totalVisits === 0 ? t('checkIn.noVisitsYet') : t('checkIn.visitsSoFar', { n: stats.totalVisits })
 
@@ -170,8 +174,16 @@ export function CheckInPage() {
             <HeroDayBar attendance={journey.todaysAttendance} visits={journey.todaysVisits} workStart={settings.workStartTime} workEnd={settings.workEndTime} flagRules={settings.flagRules} customerNames={customerNames} />
             <div className="mt-3 grid grid-cols-3 gap-2">
               <HeroTile label={t('checkIn.statActive')} value={formatDuration(stats.totalVisitingMs, language)} />
-              <HeroTile label={t('nav.visits')} value={String(stats.totalVisits)} />
-              <HeroTile label={t('checkIn.sales')} value={`$${Math.round(salesToday).toLocaleString('en-US')}`} />
+              <HeroTile
+                label={t('nav.visits')}
+                value={String(stats.totalVisits)}
+                sub={visitTarget > 0 ? `${t('checkIn.ofVisits', { n: visitTarget })} · ${t('checkIn.left', { n: Math.max(0, visitTarget - stats.totalVisits) })}` : undefined}
+              />
+              <HeroTile
+                label={t('checkIn.sales')}
+                value={`$${Math.round(salesToday).toLocaleString('en-US')}`}
+                sub={salesTarget > 0 ? (salesToday >= salesTarget ? t('checkIn.targetReached') : t('checkIn.toGo', { n: `$${Math.round(salesTarget - salesToday).toLocaleString('en-US')}` })) : undefined}
+              />
             </div>
             <p className="mt-2 text-[13px] text-white/60">{visitsLine}</p>
 
@@ -373,11 +385,12 @@ function HeroRings() {
   )
 }
 
-function HeroTile({ label, value }: { label: string; value: string }) {
+function HeroTile({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div className="rounded-xl bg-white/[.07] px-2.5 py-2">
       <p className="truncate text-[11px] font-bold uppercase tracking-[0.04em] text-white/60">{label}</p>
       <p className="mt-0.5 truncate text-[17px] font-extrabold tabular-nums">{value}</p>
+      {sub && <p className="text-[11px] leading-[14px] text-white/60">{sub}</p>}
     </div>
   )
 }
