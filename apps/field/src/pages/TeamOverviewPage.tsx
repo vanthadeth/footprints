@@ -6,7 +6,7 @@ import { useFleet } from '@/features/fleet/useFleet'
 import { useTeamWorkDays } from '@/features/schedule/useTeamWorkDays'
 import { useApprovedLeaveOnDate } from '@/features/leave/useApprovedLeaveOnDate'
 import { useVisitOrders, useVisitOrderTotals } from '@/features/orders/useVisitOrders'
-import { useOrderTargets } from '@/features/orders/useOrderTargets'
+import { useOrderTargetDetails } from '@/features/orders/useOrderTargets'
 import { addDays } from '@/features/attendanceSummary/attendanceCycle'
 import { useAttendanceDays } from '@/features/attendanceSummary/useAttendanceDays'
 import { buildMonth, buildOverview, buildPerformance } from '@/features/teamOverview/teamOverviewAdapter'
@@ -28,7 +28,9 @@ export function TeamOverviewPage() {
   const ids = useMemo(() => field.map((s) => s.member.id), [field])
   const leave = useApprovedLeaveOnDate(ids, today)
   const workDays = useTeamWorkDays(today)
-  const orderTargets = useOrderTargets()
+  const targetDetails = useOrderTargetDetails()
+  const monthlyTargets = useMemo(() => Object.fromEntries(Object.entries(targetDetails).map(([id, t]) => [id, t.monthly])), [targetDetails])
+  const dailyTargets = useMemo(() => Object.fromEntries(Object.entries(targetDetails).map(([id, t]) => [id, t.daily])), [targetDetails])
   const startOfToday = useMemo(() => getPresetRange('today').startIso, [])
   const newCustomers = useNewCustomersSince(ids, startOfToday)
   // The month so far: its first day, and its last (the range ends at the start of next month).
@@ -58,12 +60,12 @@ export function TeamOverviewPage() {
     () =>
       monthDays.loading
         ? null
-        : buildMonth({ rows: monthDays.rows, today, visits: monthVisits, orderStates: monthOrderStates, orderTotals: monthOrderTotals, orderTargets, dailyOrderTargetUsd: settings.dailyOrderTargetUsd, dailyVisitTarget: settings.dailyVisitTarget, newCustomers: newCustomersMonth }),
-    [monthDays.loading, monthDays.rows, today, monthVisits, monthOrderStates, monthOrderTotals, orderTargets, settings.dailyOrderTargetUsd, settings.dailyVisitTarget, newCustomersMonth],
+        : buildMonth({ rows: monthDays.rows, today, visits: monthVisits, orderStates: monthOrderStates, orderTotals: monthOrderTotals, monthlyTargets, dailyVisitTarget: settings.dailyVisitTarget, newCustomers: newCustomersMonth }),
+    [monthDays.loading, monthDays.rows, today, monthVisits, monthOrderStates, monthOrderTotals, monthlyTargets, settings.dailyVisitTarget, newCustomersMonth],
   )
   const performance = useMemo(
-    () => buildPerformance({ overview, visits, orderStates, orderTotals, orderTargets, dailyOrderTargetUsd: settings.dailyOrderTargetUsd, dailyVisitTarget: settings.dailyVisitTarget, newCustomers, month }),
-    [overview, visits, orderStates, orderTotals, orderTargets, settings.dailyOrderTargetUsd, settings.dailyVisitTarget, newCustomers, month],
+    () => buildPerformance({ overview, visits, orderStates, orderTotals, dailyTargets, dailyVisitTarget: settings.dailyVisitTarget, newCustomers, month }),
+    [overview, visits, orderStates, orderTotals, dailyTargets, settings.dailyVisitTarget, newCustomers, month],
   )
 
   return (
@@ -72,7 +74,7 @@ export function TeamOverviewPage() {
       <TeamPerformance performance={performance} />
       <TeamOverview people={overview.people} loading={loading} onOpenPerson={(id) => navigate(`/team/footprints/${id}`)} />
       <p className="px-1 text-xs text-neutral-500">
-        Sales count each synced sale order once, even when two people visited the same customer, plus amounts entered on visits still waiting for the sync; targets add up over the people working today. Late is minutes after start time plus grace, as in the attendance roster. A person's orders and amount are their own visits'; a shared order shows on both cards. The month counts working days from the attendance records: targets add up over each person's working days, and pace is the share of the month's working days gone.
+        Sales count each synced sale order once, even when two people visited the same customer, plus amounts entered on visits still waiting for the sync, and only for people who have a sales target. The month's target is the sum of their monthly targets; today's is their share of it for the people working today. Late is minutes after start time plus grace, as in the attendance roster. A person's orders and amount are their own visits'; a shared order shows on both cards. Pace is the share of the month's working days gone, from the attendance records.
       </p>
     </div>
   )

@@ -54,7 +54,8 @@ export interface RosterGroup {
   rows: RosterRow[]
 }
 
-export const money = (n: number) => `$${n.toLocaleString('en-US')}`
+/** Whole dollars: targets that are a share of a monthly target can have cents. */
+export const money = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`
 
 const attended = (k: MarkKind) => k === 'present' || k === 'late'
 

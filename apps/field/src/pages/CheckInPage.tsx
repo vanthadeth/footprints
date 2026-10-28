@@ -27,11 +27,13 @@ import { useProfile } from '@footprints/shared/features/auth/useProfile'
 import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 import { useCan } from '@footprints/shared/features/permissions/PermissionsContext'
 import { useClockRules } from '@footprints/shared/features/permissions/clockRules'
+import { useOrderTargets } from '@/features/orders/useOrderTargets'
 
 
 export function CheckInPage() {
   const journey = useJourneyContext()
   const { profile } = useProfile()
+  const orderTargets = useOrderTargets()
   const { t, language } = useLanguage()
   const settings = useAppSettings()
   const [clockSheet, setClockSheet] = useState<'in' | 'out' | null>(null)
@@ -82,7 +84,7 @@ export function CheckInPage() {
   // break, a split shift) -- stats and the hero times below are summed
   // across every session today, not just whichever one is currently open.
   const today: DayJourney = { date: todayDateString(), attendance: journey.todaysAttendance, visits: journey.todaysVisits }
-  const stats = computeJourneyStats([today], undefined, { breakMinutes: settings.breakMinutes, breakPaid: settings.breakPaid, start: settings.workStartTime, end: settings.workEndTime }, settings.flagRules, orderStates, undefined, { orderTargetUsd: profile?.daily_order_target_usd ?? null, orderTotals })
+  const stats = computeJourneyStats([today], undefined, { breakMinutes: settings.breakMinutes, breakPaid: settings.breakPaid, start: settings.workStartTime, end: settings.workEndTime }, settings.flagRules, orderStates, undefined, { orderTargetUsd: orderTargets[profile?.id ?? ''] ?? null, orderTotals })
 
   const minutesNow = (() => {
     const [h, m] = formatTime(new Date().toISOString()).split(':').map(Number)

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildRoster, dayList, monthDays, teamKpis, teamSummary, weekDays, type RosterData } from '../roster'
+import { buildRoster, dayList, money, monthDays, teamKpis, teamSummary, weekDays, type RosterData } from '../roster'
 
 const days = ['2026-10-05', '2026-10-06', '2026-10-07', '2026-10-08'] // Mon-Thu
 const act = (visits: number, amount: number) => ({ visits, orders: { count: 1, amount }, collection: { count: 0, amount: 0 }, appointments: 1 })
@@ -127,5 +127,13 @@ describe('new record kinds in the roster', () => {
     expect(chip('2026-10-07')).toBe('On time ½')
     expect(chip('2026-10-08')).toBe('Day off')
     expect(dayList(live, '2026-10-08', { visits: 8, orders: 300 }).counts).toEqual({ present: 0, late: 0, leave: 0, absent: 0 })
+  })
+})
+
+describe('money', () => {
+  it('writes whole dollars with thousands separators, rounding a share of a monthly target', () => {
+    expect(money(1181.818)).toBe('$1,182')
+    expect(money(74300)).toBe('$74,300')
+    expect(money(0)).toBe('$0')
   })
 })

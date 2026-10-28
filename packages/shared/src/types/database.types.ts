@@ -26,6 +26,7 @@ export type Database = {
           daily_active_hours: number | null
           daily_visit_target: number | null
           daily_order_target_usd: number
+          monthly_order_target_usd: number
           daily_working_hours: number | null
           default_annual_leave_days: number
           default_sick_leave_days: number
@@ -91,6 +92,7 @@ export type Database = {
           daily_active_hours?: number | null
           daily_visit_target?: number | null
           daily_order_target_usd?: number
+          monthly_order_target_usd?: number
           daily_working_hours?: number | null
           default_annual_leave_days?: number
           default_sick_leave_days?: number
@@ -156,6 +158,7 @@ export type Database = {
           daily_active_hours?: number | null
           daily_visit_target?: number | null
           daily_order_target_usd?: number
+          monthly_order_target_usd?: number
           daily_working_hours?: number | null
           default_annual_leave_days?: number
           default_sick_leave_days?: number
@@ -3669,6 +3672,8 @@ export type Database = {
           created_at: string
           date_of_birth: string | null
           daily_order_target_usd: number | null
+          monthly_order_target_usd: number | null
+          sales_target_required: boolean
           department_id: string | null
           discharged_date: string | null
           email: string | null
@@ -3701,6 +3706,8 @@ export type Database = {
           created_at?: string
           date_of_birth?: string | null
           daily_order_target_usd?: number | null
+          monthly_order_target_usd?: number | null
+          sales_target_required?: boolean
           department_id?: string | null
           discharged_date?: string | null
           email?: string | null
@@ -3733,6 +3740,8 @@ export type Database = {
           created_at?: string
           date_of_birth?: string | null
           daily_order_target_usd?: number | null
+          monthly_order_target_usd?: number | null
+          sales_target_required?: boolean
           department_id?: string | null
           discharged_date?: string | null
           email?: string | null

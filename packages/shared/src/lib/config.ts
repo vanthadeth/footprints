@@ -85,8 +85,10 @@ export const PRIORITY_VISIT_DAYS = 14
 export const DEFAULT_VISIT_CREDIT_CAP_MINUTES = 45
 /** Visits expected on a full working day, for the effectiveness score (app_settings.daily_visit_target). */
 export const DEFAULT_DAILY_VISIT_TARGET = 8
-/** Orders expected on a full working day, in USD, for people without their own target (app_settings.daily_order_target_usd). */
-export const DEFAULT_DAILY_ORDER_TARGET_USD = 300
+/** The monthly sales target in USD for people without their own (app_settings.monthly_order_target_usd); 0 means none until an admin sets one. */
+export const DEFAULT_MONTHLY_ORDER_TARGET_USD = 0
+/** Working days in a month, for screens that do not know a person's actual working days. */
+export const TARGET_WORKING_DAYS_PER_MONTH = 22
 /** The effectiveness score: a visit that doesn't count (under the short-visit limit) earns this share of a counted one. */
 export const INEFFECTIVE_VISIT_WEIGHT = 0.25
 /** The score takes the day's late first visit off by this factor (a late first visit, after the far window, costs 10%). */

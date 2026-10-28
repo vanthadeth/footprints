@@ -20,6 +20,7 @@ import { displayName } from '@footprints/shared/lib/displayName'
 import { formatDuration, formatLongDate, formatTime, greeting, isPastTimeOfDay, isWithinClockInWindow, shiftTimeOfDay } from '@footprints/shared/lib/datetime'
 import { BottomSheet } from '@/components/BottomSheet'
 import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
+import { useOrderTargets } from '@/features/orders/useOrderTargets'
 
 /**
  * The field-sales landing screen (spec's "My Day"): today's progress at a
@@ -31,6 +32,7 @@ import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 export function HomePage() {
   const journey = useJourneyContext()
   const { profile } = useProfile()
+  const orderTargets = useOrderTargets()
   const { t, language } = useLanguage()
   const settings = useAppSettings()
   const quota = useMyQuota(profile?.id ?? null)
@@ -52,7 +54,7 @@ export function HomePage() {
   const today: DayJourney = { date: todayDateString(), attendance: journey.todaysAttendance, visits: journey.todaysVisits }
   const orderStates = useVisitOrders(journey.todaysVisits)
   const orderTotals = useVisitOrderTotals(journey.todaysVisits)
-  const stats = computeJourneyStats([today], undefined, { breakMinutes: settings.breakMinutes, breakPaid: settings.breakPaid, start: settings.workStartTime, end: settings.workEndTime }, settings.flagRules, orderStates, undefined, { orderTargetUsd: profile?.daily_order_target_usd ?? null, orderTotals })
+  const stats = computeJourneyStats([today], undefined, { breakMinutes: settings.breakMinutes, breakPaid: settings.breakPaid, start: settings.workStartTime, end: settings.workEndTime }, settings.flagRules, orderStates, undefined, { orderTargetUsd: orderTargets[profile?.id ?? ''] ?? null, orderTotals })
 
   const completedVisits = [...journey.todaysVisits]
     .filter((v) => v.checked_out_at && !v.cancelled_at)

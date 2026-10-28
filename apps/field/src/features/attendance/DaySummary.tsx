@@ -253,7 +253,7 @@ export function DaySummary({
             <Contributor
               label="Orders"
               share={day ? day.orderShare : null}
-              figure={day && day.orderTargetUsd > 0 ? `${money(day.orderValueUsd)} of ${money(day.orderTargetUsd)} order target` : `${money(day?.orderValueUsd ?? 0)} in orders`}
+              figure={day && day.orderTargetUsd > 0 ? `${money(day.orderValueUsd)} of ${money(day.orderTargetUsd)} daily share of the monthly target` : `${money(day?.orderValueUsd ?? 0)} in orders`}
               detail={day ? [`${stats.orderedVisits} ${stats.orderedVisits === 1 ? 'order' : 'orders'} in ${stats.totalVisits} visits`, orderExtra].filter(Boolean).join(' · ') : ''}
             />
           </div>
@@ -264,7 +264,7 @@ export function DaySummary({
       <InfoSheet open={infoOpen} onClose={() => setInfoOpen(false)} title="How the score works">
         <p>
           The score is the average of three parts, times 10. Each part is measured against its own goal and stops counting at 100% of it: visits {pct(SCORE_GOAL_VISITS)} of the target, active time {pct(SCORE_GOAL_ACTIVE)} of working hours,
-          and orders {pct(1)} of your daily order target{day && day.orderTargetUsd > 0 ? ` (${money(day.orderTargetUsd)} today)` : ''}. A big order counts for more than a small one.
+          and orders {pct(1)} of the day's share of your monthly sales target{day && day.orderTargetUsd > 0 ? ` (${money(day.orderTargetUsd)} today)` : ''}. Without a sales target the score is visits and active time only. A big order counts for more than a small one.
         </p>
         <ul className="list-disc space-y-1.5 pl-5">
           <li>A visit under {rules.shortVisitMin} min is not credited and earns a quarter of an effective visit.</li>
