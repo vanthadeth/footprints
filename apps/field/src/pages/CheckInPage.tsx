@@ -11,7 +11,7 @@ import type { FlagRules } from '@/features/attendance/flagRules'
 import type { DayJourney } from '@/features/attendance/useJourneyHistory'
 import { SlideToConfirm } from '@/components/SlideToConfirm'
 import { VisitFlow, type PresetCustomer } from '@/features/visits/VisitFlow'
-import { HeroLocationCard, PlanSection, TodayCard, TodaysTimeline, WeekStrip } from '@/features/checkin/CheckInSections'
+import { HeroLocationCard, PlanSection, TodayCard, TodaySummaryCards, TodaysTimeline, WeekStrip } from '@/features/checkin/CheckInSections'
 import { TripTodayCard } from '@/features/trips/TripTodayCard'
 import { useCustomerNames } from '@/features/customers/useCustomerNames'
 import { DayBar } from '@/features/fleet/DayBar'
@@ -349,6 +349,7 @@ export function CheckInPage() {
         ) : (
           /* Before clock-in (or on leave): what today holds, and this week's attendance. */
           <>
+            <TodaySummaryCards canPlan={canPlan} />
             <TodayCard canPlan={canPlan} />
             <WeekStrip />
           </>

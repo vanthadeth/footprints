@@ -157,6 +157,47 @@ function TodayRow({ icon: Icon, tone, title, sub, value, to }: { icon: LucideIco
   )
 }
 
+/**
+ * The two summary cards under the clock card (canvas Check in, before shift):
+ * Appointments (count and the next one) and Plan (planned stops, or a nudge to make one).
+ */
+export function TodaySummaryCards({ canPlan }: { canPlan: boolean }) {
+  const { t } = useLanguage()
+  const { profile } = useProfile()
+  const today = todayDateString()
+  const { items } = usePlan(today)
+  const [appts, setAppts] = useState<CalendarItem[]>([])
+
+  useEffect(() => {
+    if (!profile) return
+    let cancelled = false
+    calendarService
+      .items(profile.id, today, today)
+      .then((r) => !cancelled && setAppts(sortDay(r.filter((i) => i.day === today && !i.done && i.kind === 'appt'))))
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [profile, today])
+
+  const planned = items.filter((i) => i.status === 'planned').length
+  const next = appts[0]
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <Link to="/calendar" className={`${CARD} block px-3.5 py-3`}>
+        <p className={SECTION}>{t('checkIn.summaryAppointments')}</p>
+        <p className="mt-1 text-[22px] font-extrabold leading-7 text-neutral-900">{appts.length}</p>
+        <p className="truncate text-xs text-neutral-500">{next ? `${next.at_time ? `${hhmm(next.at_time)} · ` : ''}${itemTitle(next)}` : t('checkIn.nothingScheduled')}</p>
+      </Link>
+      <Link to={canPlan ? '/plan' : '/calendar'} className={`${CARD} block px-3.5 py-3`}>
+        <p className={SECTION}>{t('checkIn.summaryPlan')}</p>
+        <p className="mt-1 text-[22px] font-extrabold leading-7 text-neutral-900">{planned}</p>
+        <p className="text-xs font-semibold text-brand-500">{planned > 0 ? t('checkIn.plannedCount', { n: planned }) : `${t('checkIn.nothingPlanned')} · ${t('checkIn.makePlan')} ›`}</p>
+      </Link>
+    </div>
+  )
+}
+
 /** Before clock-in: what today holds -- planned stops, appointments, tasks and who owes money. */
 export function TodayCard({ canPlan }: { canPlan: boolean }) {
   const { t } = useLanguage()
