@@ -10,7 +10,7 @@
 // we deliberately ignore. A map with a reference_table carries the parent
 // row's sheet ID; the database turns it into that row's id.
 
-import { normHeader, parseBool, parseDate, parseDateTime, parseLatLong, parseMoney, type DateOrder, type RowProblem } from './parse.ts'
+import { normHeader, parseBool, parseDate, parseDateTime, parseLatLong, parseMoney, sheetIdsIn, type DateOrder, type RowProblem } from './parse.ts'
 
 export type ValueKind = 'text' | 'number' | 'integer' | 'boolean' | 'date' | 'timestamp'
 export type Transform = 'none' | 'latitude' | 'longitude' | 'suffix' | 'fallback' | 'drive_image' | 'reference_name_prefix'
@@ -150,4 +150,37 @@ export function buildRows(table: string[][], plan: MappingPlan, headerRow: numbe
   }
   if (repeated) note(0, `${repeated} ${repeated === 1 ? 'row repeats' : 'rows repeat'} an ID already seen; the last one was used`)
   return { rows: [...byKey.values()], problems, missing, skipped }
+}
+
+/** What an invoices tab shows beyond the counts; the same shape the app reads (sourceSync.ts InvoiceInsights). */
+export interface InvoiceInsights {
+  status: Record<string, number>
+  unassigned: { id: string; count: number }[]
+  unassignedTotal: number
+  noSaleOrder: number
+}
+
+/**
+ * Notes on converted invoice rows: how many are draft (0), submitted (5), void (9) or something else;
+ * which ASSIGN_TO cells name no active user's Google Sheet ID (the commonest five, and how many invoices in all);
+ * and how many have no SO_ID. activeSheetIds are the lower-case sheet IDs of active users.
+ */
+export function invoiceInsights(rows: Record<string, string | number | boolean | null>[], activeSheetIds: ReadonlySet<string>): InvoiceInsights {
+  const status: Record<string, number> = {}
+  const cells = new Map<string, number>()
+  let unassignedTotal = 0
+  let noSaleOrder = 0
+  for (const r of rows) {
+    const st = r.status === 0 || r.status === 5 || r.status === 9 ? String(r.status) : 'other'
+    status[st] = (status[st] ?? 0) + 1
+    if (!r.so_sheet_id) noSaleOrder++
+    const cell = String(r.assign_to ?? '').trim()
+    if (!sheetIdsIn(cell).some((id) => activeSheetIds.has(id))) {
+      unassignedTotal++
+      const key = cell || '(blank)'
+      cells.set(key, (cells.get(key) ?? 0) + 1)
+    }
+  }
+  const unassigned = [...cells.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 5).map(([id, count]) => ({ id, count }))
+  return { status, unassigned, unassignedTotal, noSaleOrder }
 }
