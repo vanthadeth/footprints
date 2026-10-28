@@ -319,7 +319,9 @@ export function VisitFlow({
           onClose={onClose}
           title={t('checkIn.checkInAt')}
           header={
-            <div className="flex items-start justify-between gap-3 px-5 pb-3 pt-5">
+            <div className="px-5 pb-3 pt-2.5">
+          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-neutral-200" aria-hidden />
+          <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 className="text-[22px] font-extrabold leading-7 text-neutral-900">{t('checkIn.checkInAt')}</h2>
                 <p aria-live="polite" className="mt-1 text-[13px] font-semibold text-neutral-500">
@@ -329,6 +331,7 @@ export function VisitFlow({
               <button type="button" onClick={onClose} aria-label={t('common.cancel')} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-900">
                 <X className="h-5 w-5" />
               </button>
+              </div>
             </div>
           }
         >
@@ -376,7 +379,7 @@ export function VisitFlow({
                           <span className="block truncate text-xs text-neutral-500">{[c.business_type, c.street_address].filter(Boolean).join(' · ')}</span>
                           <span className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold ${tag.cls}`}>{tag.text}</span>
                         </span>
-                        <span className={`shrink-0 text-sm font-extrabold ${c.distance_m > settings.checkinRadiusM ? 'text-status-warn' : 'text-neutral-900'}`}>{formatDistance(c.distance_m)}</span>
+                        <span className="shrink-0 text-sm font-extrabold text-neutral-900">{formatDistance(c.distance_m)}</span>
                       </button>
                     )
                   })}

@@ -219,7 +219,7 @@ export function TodaySummaryCards({ canPlan }: { canPlan: boolean }) {
           {next ? (
             <>
               <p className="text-xs font-bold text-brand-500">{t('checkIn.next')}{next.at_time ? ` · ${hhmm(next.at_time)}` : ''}</p>
-              <p className="truncate text-sm font-bold text-neutral-900">{itemTitle(next)}</p>
+              <p className="truncate text-sm font-bold text-neutral-900">{next.customer_name ?? itemTitle(next)}</p>
             </>
           ) : (
             <p className="text-xs text-neutral-500">{t('checkIn.nothingScheduled')}</p>
@@ -244,7 +244,7 @@ export function TodaySummaryCards({ canPlan }: { canPlan: boolean }) {
           {total > 0 ? (
             <>
               <p className="text-xs font-bold text-brand-500">{t('checkIn.routeDone', { done, total })}</p>
-              <p className="truncate text-sm font-bold text-neutral-900">{firstStop?.shop_name ?? ''}</p>
+              <p className="truncate text-sm font-bold text-neutral-900">{firstStop?.address ?? firstStop?.shop_name ?? ''}</p>
             </>
           ) : (
             <p className="text-xs font-semibold text-brand-500">{t('checkIn.nothingPlanned')} · {t('checkIn.makePlan')} ›</p>

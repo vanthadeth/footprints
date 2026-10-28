@@ -134,7 +134,7 @@ export function CheckInPage() {
         />
       )}
 
-      <div className="space-y-3.5 px-4 pt-1.5 md:px-8 md:pt-4">
+      <div className="flex min-h-[calc(100dvh-11rem)] flex-col gap-3.5 px-4 pt-1.5 md:px-8 md:pt-4">
         {isClockedIn ? (
           /* On shift: the day so far (canvas Check in, clocked in), then Check in or the open visit. */
           <section aria-label={t('checkIn.onShift')} className="rounded-[22px] border border-neutral-100 bg-white p-4 shadow-card">
@@ -296,7 +296,7 @@ export function CheckInPage() {
             </section>
             {canClockIn && <HeroLocationCard required={clockRules.in} light />}
             <TodaySummaryCards canPlan={canPlan} />
-            <div className="sticky bottom-24 z-10 pt-2">
+            <div className="sticky bottom-24 z-10 mt-auto pt-2">
               <SlideToConfirm
                 label={journey.todaysAttendance.length > 0 ? t('checkIn.clockInAgain') : t('checkIn.slideToClockIn')}
                 disabled={!canClockIn || journey.busy}

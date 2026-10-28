@@ -50,7 +50,7 @@ export function InlineSelfieCamera({ onCapture }: { onCapture: (blob: Blob) => v
   }
 
   return (
-    <div className="relative h-[330px] overflow-hidden rounded-[22px] bg-[#0e0f12]">
+    <div className="relative aspect-[358/480] overflow-hidden rounded-[22px] bg-[#0e0f12]">
       {!error && <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 h-full w-full -scale-x-100 object-cover" />}
       <span className="absolute left-3 top-3 inline-flex h-8 items-center gap-1.5 rounded-full bg-white/15 px-3 text-xs font-bold text-white backdrop-blur">
         <Camera className="h-3.5 w-3.5" aria-hidden />

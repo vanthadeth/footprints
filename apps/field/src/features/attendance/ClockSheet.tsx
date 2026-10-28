@@ -110,7 +110,9 @@ export function ClockSheet({ open, direction, required, onClose }: { open: boole
       onClose={onClose}
       title={title}
       header={
-        <div className="flex items-start justify-between gap-3 px-5 pb-3 pt-5">
+        <div className="px-5 pb-3 pt-2.5">
+          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-neutral-200" aria-hidden />
+          <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="text-[22px] font-extrabold leading-7 text-neutral-900">{title}</h2>
             <p aria-live="polite" className="mt-1 text-[13px] font-semibold text-neutral-500">
@@ -120,6 +122,7 @@ export function ClockSheet({ open, direction, required, onClose }: { open: boole
           <button type="button" onClick={onClose} aria-label={t('common.cancel')} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-900">
             <X className="h-5 w-5" />
           </button>
+          </div>
         </div>
       }
     >
@@ -162,7 +165,7 @@ export function ClockSheet({ open, direction, required, onClose }: { open: boole
           return { blob, url: URL.createObjectURL(blob) }
         })} />}
         {stage === 'confirm' && selfie && (
-          <div className="relative h-[330px] overflow-hidden rounded-[22px] bg-[#0e0f12]">
+          <div className="relative aspect-[358/480] overflow-hidden rounded-[22px] bg-[#0e0f12]">
             <img src={selfie.url} alt="" className="h-full w-full object-cover" />
             <span className="absolute bottom-3 left-3 inline-flex h-9 items-center gap-1.5 rounded-full bg-status-working px-3.5 text-[13px] font-bold text-white">
               <Check className="h-4 w-4" strokeWidth={3} aria-hidden />
@@ -192,7 +195,7 @@ export function ClockSheet({ open, direction, required, onClose }: { open: boole
               {loc.status === 'ok' && <Check className="h-3 w-3 shrink-0" strokeWidth={3} aria-hidden />}
               <span className="truncate">
                 {loc.status === 'checking' && t('checkIn.locationChecking')}
-                {loc.status === 'ok' && `${t('checkIn.insideArea')} · ${t('checkIn.gpsAcc', { n: Math.round(loc.accuracy) })}`}
+                {loc.status === 'ok' && t('checkIn.insideWork').replace(/^./, (c) => c.toUpperCase())}
                 {loc.status === 'low' && t(GPS_LEVEL_COPY[gpsLevel(loc.accuracy)].title)}
                 {loc.status === 'error' && t('checkIn.locationError')}
                 {loc.status === 'blocked' && t('checkIn.locationBlocked', { places: loc.block.names, nearest: loc.block.nearest, distance: loc.block.distance })}

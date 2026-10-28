@@ -256,7 +256,7 @@ export const km: TranslationKey = {
     notClockedIn: 'មិនទាន់ចូលម៉ោង',
     clockedOutAt: 'បានចេញម៉ោងនៅ {{time}}',
     clockInAgain: 'ចូលម៉ោងម្តងទៀត',
-    startsIn: 'ចាប់ផ្តើមក្នុង {{n}}',
+    startsIn: 'ម៉ោងធ្វើការចាប់ផ្តើមក្នុង {{n}}',
     lateBy: 'យឺត {{n}}',
     clockInClosedShort: 'ការចូលម៉ោងបានបិទសម្រាប់ថ្ងៃនេះ',
     clockInOpensShort: 'ការចូលម៉ោងបើកនៅម៉ោង {{time}}',

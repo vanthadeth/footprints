@@ -249,7 +249,7 @@ export const en = {
     notClockedIn: 'Not clocked in',
     clockedOutAt: 'Clocked out at {{time}}',
     clockInAgain: 'Clock in again',
-    startsIn: 'starts in {{n}}',
+    startsIn: 'Working hours start in {{n}}',
     lateBy: '{{n}} late',
     clockInClosedShort: 'Clock-in has closed for today',
     clockInOpensShort: 'Clock-in opens at {{time}}',
