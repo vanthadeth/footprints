@@ -38,7 +38,7 @@ type Loc =
  * clock-in): where you are against the clock-in locations, the GPS
  * accuracy, and whether you're ready. Only a hint -- app.clock_in decides.
  */
-export function HeroLocationCard({ required }: { required: RequiredLocation[] }) {
+export function HeroLocationCard({ required, light = false }: { required: RequiredLocation[]; light?: boolean }) {
   const { t } = useLanguage()
   const settings = useAppSettings()
   const { locations } = useLocations()
@@ -89,13 +89,13 @@ export function HeroLocationCard({ required }: { required: RequiredLocation[] })
   const ready = loc.status === 'ok'
 
   return (
-    <div className="relative mt-3.5 flex items-center gap-2.5 rounded-[14px] bg-white/[.07] px-3 py-2.5">
-      <span className={`flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[9px] ${ready ? 'bg-[rgba(23,203,73,.2)] text-[#74E092]' : 'bg-white/10'}`}>
+    <div className={`relative mt-3.5 flex items-center gap-2.5 rounded-[14px] px-3 py-2.5 ${light ? 'bg-neutral-50' : 'bg-white/[.07]'}`}>
+      <span className={`flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[9px] ${ready ? (light ? 'bg-status-working/10 text-status-working' : 'bg-[rgba(23,203,73,.2)] text-[#74E092]') : light ? 'bg-neutral-100 text-neutral-500' : 'bg-white/10'}`}>
         {loc.status === 'checking' ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Building2 className="h-4 w-4" aria-hidden />}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-bold">{title}</span>
-        <span className={`block truncate text-xs ${loc.status === 'outside' || loc.status === 'low' ? 'text-[#FFB257]' : 'text-white/60'}`}>{sub}</span>
+        <span className={`block truncate text-sm font-bold ${light ? 'text-neutral-900' : ''}`}>{title}</span>
+        <span className={`block truncate text-xs ${loc.status === 'outside' || loc.status === 'low' ? (light ? 'text-status-warn' : 'text-[#FFB257]') : light ? 'text-neutral-500' : 'text-white/60'}`}>{sub}</span>
       </span>
       {ready ? (
         <span className="inline-flex h-[22px] shrink-0 items-center gap-1 rounded-full bg-[rgba(23,203,73,.2)] px-2 text-[11px] font-bold text-[#74E092]">
@@ -104,7 +104,7 @@ export function HeroLocationCard({ required }: { required: RequiredLocation[] })
         </span>
       ) : (
         loc.status !== 'checking' && (
-          <button type="button" onClick={() => setNonce((n) => n + 1)} className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full bg-white/10 px-2.5 text-xs font-bold">
+          <button type="button" onClick={() => setNonce((n) => n + 1)} className={`inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-2.5 text-xs font-bold ${light ? 'bg-neutral-100 text-neutral-900' : 'bg-white/10'}`}>
             <RefreshCw className="h-3.5 w-3.5" aria-hidden />
             {t('checkInFlow.refresh')}
           </button>

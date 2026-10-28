@@ -190,6 +190,7 @@ export const km: TranslationKey = {
     refresh: 'ផ្ទុកឡើងវិញ',
     gpsAcc: 'GPS ±{{n}} ម',
     stepOf: 'ជំហាន {{n}} នៃ {{total}}',
+    sales: 'ការលក់',
     gpsGood: 'ចាក់សោរួច!',
     gpsGoodHint: 'សញ្ញាល្អ',
     gpsModerate: 'ជិតហើយ',

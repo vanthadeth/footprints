@@ -9,6 +9,7 @@ import { computeJourneyStats } from '@/features/attendance/journeyStats'
 import { formatScore } from '@/features/attendance/effectivenessScore'
 import type { FlagRules } from '@/features/attendance/flagRules'
 import type { DayJourney } from '@/features/attendance/useJourneyHistory'
+import { SlideToConfirm } from '@/components/SlideToConfirm'
 import { VisitFlow, type PresetCustomer } from '@/features/visits/VisitFlow'
 import { HeroLocationCard, PlanSection, TodayCard, TodaysTimeline, WeekStrip } from '@/features/checkin/CheckInSections'
 import { TripTodayCard } from '@/features/trips/TripTodayCard'
@@ -107,6 +108,7 @@ export function CheckInPage() {
         ? { text: t('checkIn.lateBy', { n: formatDuration(-untilStart * 60_000, language) }), tone: 'text-[#FFB257]' }
         : null
   const leaveLabel = leaveToday === 'annual' ? t('profile.annual') : leaveToday === 'sick' ? t('profile.sick') : leaveToday ? LEAVE_TYPE_LABEL[leaveToday] : ''
+  const salesToday = Object.values(orderTotals).reduce((sum, o) => sum + (o.totalUsd ?? 0), 0)
   const visitsLine = stats.totalVisits === 0 ? t('checkIn.noVisitsYet') : t('checkIn.visitsSoFar', { n: stats.totalVisits })
 
   return (
@@ -166,6 +168,11 @@ export function CheckInPage() {
               </button>
             </div>
             <HeroDayBar attendance={journey.todaysAttendance} visits={journey.todaysVisits} workStart={settings.workStartTime} workEnd={settings.workEndTime} flagRules={settings.flagRules} customerNames={customerNames} />
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              <HeroTile label={t('checkIn.statActive')} value={formatDuration(stats.totalVisitingMs, language)} />
+              <HeroTile label={t('nav.visits')} value={String(stats.totalVisits)} />
+              <HeroTile label={t('checkIn.sales')} value={`$${Math.round(salesToday).toLocaleString('en-US')}`} />
+            </div>
             <p className="mt-2 text-[13px] text-white/60">{visitsLine}</p>
 
             {isVisiting && journey.openVisit ? (
@@ -272,28 +279,27 @@ export function CheckInPage() {
         ) : (
           /* Before clock-in: the time, the shift, and one big Clock in. */
           <>
-            <section aria-label={t('checkIn.clockInTitle')} className="relative overflow-hidden rounded-[22px] bg-brand-900 px-[18px] pb-4 pt-[18px] text-white">
-              <HeroRings />
-              <span className="relative inline-flex h-[26px] items-center gap-[7px] rounded-full bg-white/[.08] px-2.5 text-xs font-bold text-white/70">
-                <span className="h-2 w-2 rounded-full border-2 border-white/70" />
+            <section aria-label={t('checkIn.clockInTitle')} className="rounded-[22px] border border-neutral-100 bg-white px-[18px] pb-4 pt-[18px] shadow-card">
+              <span className="inline-flex h-[26px] items-center gap-[7px] rounded-full bg-neutral-100 px-2.5 text-xs font-bold text-neutral-600">
+                <span className="h-2 w-2 rounded-full border-2 border-neutral-500" />
                 {clockOutTime ? t('checkIn.clockedOutAt', { time: formatTime(clockOutTime) }) : t('checkIn.notClockedIn')}
               </span>
-              <p className="relative mt-3.5 text-[15px] font-semibold text-white/60">
+              <p className="mt-3.5 text-[15px] font-semibold text-neutral-500">
                 {greeting(undefined, language)}
                 {firstName ? `, ${firstName}` : ''}
               </p>
-              <p className="relative mt-0.5 text-[48px] font-extrabold leading-[54px] tracking-tight tabular-nums">{formatTime(new Date().toISOString())}</p>
-              <p className="relative mt-0.5 text-sm text-white/60">
+              <p className="mt-0.5 text-[48px] font-extrabold leading-[54px] tracking-tight tabular-nums text-neutral-900">{formatTime(new Date().toISOString())}</p>
+              <p className="mt-0.5 text-sm text-neutral-500">
                 {shiftLabel}
                 {shiftNote && (
                   <>
                     {' · '}
-                    <span className={`font-bold ${shiftNote.tone === 'text-heroMuted' ? '' : shiftNote.tone}`}>{shiftNote.text}</span>
+                    <span className={`font-bold ${shiftNote.tone === 'text-heroMuted' ? '' : shiftNote.tone === 'text-[#74E092]' ? 'text-status-working' : 'text-status-warn'}`}>{shiftNote.text}</span>
                   </>
                 )}
               </p>
               {journey.todaysAttendance.length > 0 && (
-                <p className="relative mt-2 text-[13px] text-white/60">
+                <p className="mt-2 text-[13px] text-neutral-500">
                   {t('checkIn.clockedInTimes', {
                     count: journey.todaysAttendance.length,
                     plural: journey.todaysAttendance.length > 1 ? 's' : '',
@@ -301,17 +307,16 @@ export function CheckInPage() {
                   })}
                 </p>
               )}
-              {canClockIn && <HeroLocationCard required={clockRules.in} />}
-              <button
-                type="button"
-                onClick={() => setClockSheet('in')}
-                disabled={!canClockIn || journey.busy}
-                className="relative mt-3.5 flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-[#ffffff] text-[17px] font-extrabold text-[#2b2b2b] disabled:opacity-50"
-              >
-                <Clock className="h-[22px] w-[22px]" aria-hidden />
-                {journey.todaysAttendance.length > 0 ? t('checkIn.clockInAgain') : t('checkIn.clockInButton')}
-              </button>
-              <p className="relative mt-2.5 text-center text-xs text-white/60">{t('checkIn.confirmInNote')}</p>
+              {canClockIn && <HeroLocationCard required={clockRules.in} light />}
+              <div className="mt-3.5">
+                <SlideToConfirm
+                  label={journey.todaysAttendance.length > 0 ? t('checkIn.clockInAgain') : t('checkIn.slideToClockIn')}
+                  disabled={!canClockIn || journey.busy}
+                  busy={journey.busy}
+                  onConfirm={() => setClockSheet('in')}
+                />
+              </div>
+              <p className="mt-2.5 text-center text-xs text-neutral-500">{t('checkIn.confirmInNote')}</p>
             </section>
             {journey.todaysAttendance.length === 0 && (
               <Link to="/leave" className="flex h-12 items-center gap-3 rounded-[14px] border border-neutral-100 bg-white px-3.5 text-sm font-bold text-neutral-900 shadow-card">
@@ -364,6 +369,15 @@ function HeroRings() {
       <circle cx="95" cy="95" r="90" fill="none" stroke="rgba(255,255,255,.1)" strokeWidth="1" />
       <circle cx="95" cy="95" r="64" fill="none" stroke="rgba(255,255,255,.1)" strokeWidth="1" />
     </svg>
+  )
+}
+
+function HeroTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-white/[.07] px-2.5 py-2">
+      <p className="truncate text-[11px] font-bold uppercase tracking-[0.04em] text-white/60">{label}</p>
+      <p className="mt-0.5 truncate text-[17px] font-extrabold tabular-nums">{value}</p>
+    </div>
   )
 }
 

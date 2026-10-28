@@ -183,6 +183,7 @@ export const en = {
     refresh: 'Refresh',
     gpsAcc: 'GPS ±{{n}} m',
     stepOf: 'Step {{n}} of {{total}}',
+    sales: 'Sales',
     gpsGood: 'Locked on!',
     gpsGoodHint: 'Good signal',
     gpsModerate: 'Almost there',
