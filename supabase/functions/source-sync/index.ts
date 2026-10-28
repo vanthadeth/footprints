@@ -135,7 +135,7 @@ interface MappingResult {
 }
 
 async function syncSource(admin: SupabaseClient, userId: string, sourceId: string, onlySync: string | null, dry: boolean) {
-  const { data: source } = await admin.from('sync_sources').select('id, spreadsheet_id, tab_name, header_row').eq('id', sourceId).maybeSingle()
+  const { data: source } = await admin.from('sync_sources').select('id, spreadsheet_id, tab_name, header_row, date_order').eq('id', sourceId).maybeSingle()
   if (!source) return json({ ok: false, error: 'That source doesn’t exist.' })
   let query = admin.from('sync_definitions').select(DEFINITION_SELECT).eq('source_id', sourceId).eq('engine', 'footprints')
   if (onlySync) query = query.eq('id', onlySync)
@@ -146,7 +146,8 @@ async function syncSource(admin: SupabaseClient, userId: string, sourceId: strin
 
   const keyOf = await targetKeys(admin)
   const { data: settings } = await admin.from('sheet_sync_settings').select('date_order').maybeSingle()
-  const order: DateOrder = settings?.date_order === 'mdy' ? 'mdy' : 'dmy'
+  // A sheet that says how it writes its dates wins over the global setting.
+  const order: DateOrder = (source.date_order ?? settings?.date_order) === 'mdy' ? 'mdy' : 'dmy'
 
   const results: MappingResult[] = []
   const problems: RowProblem[] = []
@@ -181,6 +182,11 @@ async function syncSource(admin: SupabaseClient, userId: string, sourceId: strin
         result.inserted += c.inserted
         result.updated += c.updated
         result.unchanged += c.unchanged
+      }
+      // Invoices find their salesperson, customer and sale order by sheet ID; rows the engine left unchanged may have had a link arrive since.
+      if (!dry && d.target_table === 'invoices') {
+        const { error } = await admin.rpc('invoices_relink')
+        if (error) throw new SyncError(error.message)
       }
       if (runId) {
         await admin.from('sync_runs').update({ status: 'ok', finished_at: new Date().toISOString(), rows_read: result.read, rows_written: result.inserted + result.updated, rows_skipped: result.skipped }).eq('id', runId)

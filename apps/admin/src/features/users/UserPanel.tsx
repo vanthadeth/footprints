@@ -13,6 +13,13 @@ const STATUSES: [UserStatus, string][] = [
 ]
 const MIN_PASSWORD_LENGTH = 8
 
+type Tab = 'personal' | 'credential' | 'settings'
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  return ((parts[0]?.[0] ?? '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase() || '?'
+}
+
 /** An inactive role/department the person already has stays selectable, so saving other fields doesn't drop it. */
 function withCurrent(options: Option[], id: string | null | undefined, name: string | null | undefined): Option[] {
   return id && !options.some((o) => o.id === id) ? [...options, { id, name: name ?? 'Current' }] : options
@@ -37,6 +44,7 @@ export function UserPanel({ open, mode, user, users, roles, departments, onClose
     status: 'active' as UserStatus, suspendedFrom: '', suspendedTo: '', dischargedDate: '',
   })
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((s) => ({ ...s, [k]: v }))
+  const [tab, setTab] = useState<Tab>('personal')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -53,6 +61,7 @@ export function UserPanel({ open, mode, user, users, roles, departments, onClose
     if (!open) return
     const u = editing ? user : null
     setError(null)
+    setTab('personal')
     setF({
       fullName: u?.fullName ?? '', nickname: u?.nickname ?? '', email: '',
       password: u ? '' : generateSuggestedPassword(), phone: u?.phonePrimary ?? '', position: u?.position ?? '',
@@ -127,6 +136,9 @@ export function UserPanel({ open, mode, user, users, roles, departments, onClose
     }
   }
 
+  // Settings only exists for people who already exist.
+  const tabs: [Tab, string][] = [['personal', 'Personal'], ['credential', 'Credential'], ...(editing ? ([['settings', 'Settings']] as [Tab, string][]) : [])]
+
   const managers = users.filter((u) => u.id !== user?.id)
 
   return (
@@ -134,6 +146,38 @@ export function UserPanel({ open, mode, user, users, roles, departments, onClose
       <div className="space-y-6 p-6">
         {error && <Notice tone="error">{error}</Notice>}
 
+        {editing && (
+          <div className="flex items-center gap-4">
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-brand-50 text-lg font-bold text-brand-700 dark:bg-brand-500/15 dark:text-brand-300" aria-hidden="true">
+              {initials(displayName(user.fullName, user.nickname))}
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-lg font-bold text-neutral-900 dark:text-neutral-50">{displayName(user.fullName, user.nickname)}</p>
+              <p className="truncate text-sm text-neutral-500">{[user.position, user.departmentName].filter(Boolean).join(' · ') || '—'}</p>
+              <span className={`mt-1.5 inline-flex h-6 items-center gap-1.5 rounded-full px-2.5 text-xs font-bold ${f.status === 'active' ? 'bg-status-working/10 text-status-working' : f.status === 'suspended' ? 'bg-status-warn/10 text-status-warn' : 'bg-status-danger/10 text-status-danger'}`}>
+                <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                {STATUSES.find(([v]) => v === f.status)?.[1]}
+              </span>
+            </div>
+          </div>
+        )}
+
+        <div role="tablist" aria-label="User sections" className="flex gap-1 border-b border-neutral-200 dark:border-neutral-800">
+          {tabs.map(([key, label]) => (
+            <button
+              key={key}
+              role="tab"
+              aria-selected={tab === key}
+              onClick={() => setTab(key)}
+              className={`-mb-px border-b-2 px-4 py-2 text-sm font-semibold ${tab === key ? 'border-brand-500 text-brand-500' : 'border-transparent text-neutral-500 hover:text-neutral-800'}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'personal' && (
+          <>
         <Section title="Profile">
           <Field label="Full name"><TextInput value={f.fullName} onChange={(v) => set('fullName', v)} /></Field>
           <Field label="Nickname" hint="Shown instead of the full name throughout the app, when set."><TextInput value={f.nickname} onChange={(v) => set('nickname', v)} placeholder="Optional" /></Field>
@@ -141,19 +185,6 @@ export function UserPanel({ open, mode, user, users, roles, departments, onClose
             <Field label="Position"><TextInput value={f.position} onChange={(v) => set('position', v)} placeholder="e.g. Sales Executive" /></Field>
             <Field label="Phone"><TextInput value={f.phone} onChange={(v) => set('phone', v)} type="tel" placeholder="012 345 678" /></Field>
           </div>
-        </Section>
-
-        <Section title="Sign-in">
-          {editing ? (
-            <Field label="Email"><TextInput value={user.email ?? ''} onChange={() => {}} disabled /></Field>
-          ) : (
-            <>
-              <Field label="Email"><TextInput value={f.email} onChange={(v) => set('email', v)} type="email" placeholder="name@company.com" /></Field>
-              <Field label="Password" hint="At least 8 characters. Keep the suggestion, edit it, or type your own, then share it securely.">
-                <PasswordBox value={f.password} onChange={(v) => set('password', v)} />
-              </Field>
-            </>
-          )}
         </Section>
 
         <Section title="Organisation">
@@ -175,39 +206,24 @@ export function UserPanel({ open, mode, user, users, roles, departments, onClose
             </Select>
           </Field>
           <Toggle checked={f.isFieldSales} onChange={(v) => set('isFieldSales', v)} label="Field salesperson (tracks attendance and customer visits)" />
-          {editing && (
+        </Section>
+          </>
+        )}
+
+        {tab === 'credential' && (
+          <>
+        <Section title="Sign-in">
+          {editing ? (
+            <Field label="Email"><TextInput value={user.email ?? ''} onChange={() => {}} disabled /></Field>
+          ) : (
             <>
-              <Toggle checked={f.targetRequired} onChange={(v) => set('targetRequired', v)} label="Has to achieve a sales target (off: no orders part in their score, left out of the team's target)" />
-              {f.targetRequired && (
-                <Field label="Monthly sales target (USD)" hint="Each day's score uses a share of it. Empty uses the company default; 0 means no target.">
-                  <TextInput value={f.orderTarget} onChange={(v) => set('orderTarget', v)} type="number" placeholder="Company default" />
-                </Field>
-              )}
+              <Field label="Email"><TextInput value={f.email} onChange={(v) => set('email', v)} type="email" placeholder="name@company.com" /></Field>
+              <Field label="Password" hint="At least 8 characters. Keep the suggestion, edit it, or type your own, then share it securely.">
+                <PasswordBox value={f.password} onChange={(v) => set('password', v)} />
+              </Field>
             </>
           )}
         </Section>
-
-        {editing && (
-          <Section title="Status">
-            <Field label="Account status">
-              <Select value={f.status} onChange={(v) => set('status', v as UserStatus)}>
-                {STATUSES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-              </Select>
-            </Field>
-            {f.status === 'suspended' && (
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Suspended from"><TextInput type="date" value={f.suspendedFrom} onChange={(v) => set('suspendedFrom', v)} /></Field>
-                <Field label="Suspended to"><TextInput type="date" value={f.suspendedTo} onChange={(v) => set('suspendedTo', v)} /></Field>
-              </div>
-            )}
-            {f.status === 'discharged' && <Field label="Last day"><TextInput type="date" value={f.dischargedDate} onChange={(v) => set('dischargedDate', v)} /></Field>}
-          </Section>
-        )}
-
-        <div className="flex justify-end gap-2 border-t border-neutral-100 pt-4 dark:border-neutral-800">
-          <SecondaryButton onClick={onClose}>Cancel</SecondaryButton>
-          <PrimaryButton onClick={save} disabled={!canSave || saving}>{saving ? 'Saving…' : editing ? 'Save changes' : 'Create user'}</PrimaryButton>
-        </div>
 
         {editing && (
           <>
@@ -250,6 +266,43 @@ export function UserPanel({ open, mode, user, users, roles, departments, onClose
             </Section>
           </>
         )}
+          </>
+        )}
+
+        {editing && tab === 'settings' && (
+          <>
+          <Section title="Sales target">
+            <Toggle checked={f.targetRequired} onChange={(v) => set('targetRequired', v)} label="Has to achieve a sales target (off: no orders part in their score, left out of the team's target)" />
+            {f.targetRequired && (
+              <Field label="Monthly sales target (USD)" hint="Each day's score uses a share of it. Empty uses the company default; 0 means no target.">
+                <TextInput value={f.orderTarget} onChange={(v) => set('orderTarget', v)} type="number" placeholder="Company default" />
+              </Field>
+            )}
+          </Section>
+
+        {editing && (
+          <Section title="Status">
+            <Field label="Account status">
+              <Select value={f.status} onChange={(v) => set('status', v as UserStatus)}>
+                {STATUSES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              </Select>
+            </Field>
+            {f.status === 'suspended' && (
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Suspended from"><TextInput type="date" value={f.suspendedFrom} onChange={(v) => set('suspendedFrom', v)} /></Field>
+                <Field label="Suspended to"><TextInput type="date" value={f.suspendedTo} onChange={(v) => set('suspendedTo', v)} /></Field>
+              </div>
+            )}
+            {f.status === 'discharged' && <Field label="Last day"><TextInput type="date" value={f.dischargedDate} onChange={(v) => set('dischargedDate', v)} /></Field>}
+          </Section>
+        )}
+          </>
+        )}
+
+        <div className="flex justify-end gap-2 border-t border-neutral-100 pt-4 dark:border-neutral-800">
+          <SecondaryButton onClick={onClose}>Cancel</SecondaryButton>
+          <PrimaryButton onClick={save} disabled={!canSave || saving}>{saving ? 'Saving…' : editing ? 'Save changes' : 'Create user'}</PrimaryButton>
+        </div>
       </div>
     </SidePanel>
   )
