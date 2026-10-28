@@ -88,3 +88,58 @@ describe('planProblem', () => {
     expect(planProblem({ ...brand, columns: [col('ID', 'sheet_id'), col('PICTURE', null, { transform: 'drive_image' })] })).toBeNull()
   })
 })
+
+describe('invoice and payment term tabs', () => {
+  const terms: MappingPlan = {
+    name: 'Payment terms', targetTable: 'payment_terms', keyColumn: 'sheet_id', requireColumn: null,
+    columns: [
+      col('ID', 'sheet_id'), col('PERIOD_1', 'period_1', { valueKind: 'integer' }), col('TERM_1', 'term_1', { valueKind: 'number' }),
+      col('PERIOD_2', 'period_2', { valueKind: 'integer' }), col('TERM_2', 'term_2', { valueKind: 'number' }),
+      col('IS_DEFAULT', 'is_default', { valueKind: 'boolean' }), col('ACTIVE', 'active', { valueKind: 'boolean' }),
+    ],
+  }
+
+  it('reads percentages as percent points', () => {
+    const out = buildRows([
+      ['ID', 'PERIOD_1', 'TERM_1', 'PERIOD_2', 'TERM_2', 'IS_DEFAULT', 'ACTIVE'],
+      ['2bb2020f', '0', '0.00%', '', '', 'TRUE', 'TRUE'],
+      ['636c5bae', '0', '7.00%', '30', '2.00%', 'FALSE', 'TRUE'],
+    ], terms, 1, 'dmy')
+    expect(out.problems).toEqual([])
+    expect(out.rows).toEqual([
+      { sheet_id: '2bb2020f', period_1: 0, term_1: 0, period_2: null, term_2: null, is_default: true, active: true },
+      { sheet_id: '636c5bae', period_1: 0, term_1: 7, period_2: 30, term_2: 2, is_default: false, active: true },
+    ])
+  })
+
+  const invoices: MappingPlan = {
+    name: 'Invoices', targetTable: 'invoices', keyColumn: 'sheet_id', requireColumn: null,
+    columns: [
+      col('ID', 'sheet_id'), col('CRTS', 'sheet_created_at', { valueKind: 'timestamp' }), col('ASSIGN_TO', 'assign_to'),
+      col('SO_ID', 'so_sheet_id'), col('INV_NO', 'inv_no'), col('INV_DATE', 'inv_date', { valueKind: 'date' }),
+      col('DL_REQ', 'dl_req', { valueKind: 'boolean' }), col('DL_STATUS', 'dl_status', { valueKind: 'integer' }),
+      col('STATUS', 'status', { valueKind: 'integer' }), col('PAYMENT_TERM', 'payment_term'), col('DUE_DATE', null),
+      col('PDF_PATH', null), col('INV_VALUE', 'inv_value', { valueKind: 'number' }),
+    ],
+  }
+  const header = ['ID', 'CRTS', 'ASSIGN_TO', 'SO_ID', 'INV_NO', 'INV_DATE', 'DL_REQ', 'DL_STATUS', 'STATUS', 'PAYMENT_TERM', 'DUE_DATE', 'PDF_PATH', 'INV_VALUE']
+
+  it('reads the invoice sheet month first: a date like 9/1/2021 is 1 September, not 9 January', () => {
+    const table = [
+      header,
+      ['1211dfb5', '8/27/2021 21:52:00', 'pheakdey', '9C8AC9AA-413C-4ADE', '2021-0181', '8/18/2021', 'FALSE', '', '5', '2bb2020f', '17/09/2021', 'PDF/1.pdf', '337.92'],
+      ['184cf038', '8/28/2021 14:25:00', 'pheakdey', '', '2021-0187', '9/1/2021', 'TRUE', '9', '9', '2bb2020f', '01/10/2021', '', '63.62'],
+    ]
+    const out = buildRows(table, invoices, 1, 'mdy')
+    expect(out.problems).toEqual([])
+    expect(out.rows.map((r) => [r.sheet_id, r.inv_date, r.status, r.dl_status, r.so_sheet_id, r.inv_value])).toEqual([
+      ['1211dfb5', '2021-08-18', 5, null, '9C8AC9AA-413C-4ADE', 337.92],
+      ['184cf038', '2021-09-01', 9, 9, null, 63.62],
+    ])
+    expect(out.rows[0]).not.toHaveProperty('due_date')
+    expect(out.rows[0]).not.toHaveProperty('pdf_path')
+    // Read day first, the same cell would be wrong, and 8/18/2021 would not read at all.
+    expect(buildRows(table, invoices, 1, 'dmy').rows[1].inv_date).toBe('2021-01-09')
+    expect(buildRows(table, invoices, 1, 'dmy').problems.length).toBeGreaterThan(0)
+  })
+})

@@ -69,7 +69,8 @@ function convert(raw: string, map: ColumnMap, order: DateOrder): Converted {
       return { ok: true, value: text || null }
     case 'number':
     case 'integer': {
-      const n = parseMoney(text)
+      // A percentage cell ("7.00%") is read as its number of percent points (7).
+      const n = parseMoney(text.replace(/\s*%$/, ''))
       if (n !== null && (Number.isNaN(n) || (map.valueKind === 'integer' && !Number.isInteger(n)))) return bad(map.valueKind === 'integer' ? 'a number that isn’t whole:' : 'a number that can’t be read:')
       return { ok: true, value: n }
     }
