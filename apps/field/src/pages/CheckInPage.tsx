@@ -11,7 +11,7 @@ import type { FlagRules } from '@/features/attendance/flagRules'
 import type { DayJourney } from '@/features/attendance/useJourneyHistory'
 import { SlideToConfirm } from '@/components/SlideToConfirm'
 import { VisitFlow, type PresetCustomer } from '@/features/visits/VisitFlow'
-import { HeroLocationCard, PlanSection, TodayCard, TodaySummaryCards, TodaysTimeline, WeekStrip } from '@/features/checkin/CheckInSections'
+import { HeroLocationCard, PlanSection, TodaySummaryCards, TodaysTimeline, WeekStrip } from '@/features/checkin/CheckInSections'
 import { TripTodayCard } from '@/features/trips/TripTodayCard'
 import { useCustomerNames } from '@/features/customers/useCustomerNames'
 import { DayBar } from '@/features/fleet/DayBar'
@@ -22,7 +22,7 @@ import { LEAVE_TYPE_LABEL, type LeaveType } from '@/features/leave/types'
 import { displayName } from '@footprints/shared/lib/displayName'
 import { useAppSettings } from '@/hooks/useAppSettings'
 import { summarizeAttendanceTimes } from '@/features/attendance/stateMachine'
-import { greeting, formatDuration, formatTime, isPastTimeOfDay, isWithinClockInWindow, shiftTimeOfDay } from '@footprints/shared/lib/datetime'
+import { formatDuration, formatTime, isPastTimeOfDay, isWithinClockInWindow, shiftTimeOfDay } from '@footprints/shared/lib/datetime'
 import { todayDateString } from '@/lib/dateRange'
 import { useProfile } from '@footprints/shared/features/auth/useProfile'
 import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
@@ -291,27 +291,25 @@ export function CheckInPage() {
         ) : (
           /* Before clock-in: the time, the shift, and one big Clock in. */
           <>
-            <section aria-label={t('checkIn.clockInTitle')} className="rounded-[22px] border border-neutral-100 bg-white px-[18px] pb-4 pt-[18px] shadow-card">
-              <span className="inline-flex h-[26px] items-center gap-[7px] rounded-full bg-neutral-100 px-2.5 text-xs font-bold text-neutral-600">
-                <span className="h-2 w-2 rounded-full border-2 border-neutral-500" />
+            <section aria-label={t('checkIn.clockInTitle')} className="pb-1 pt-1 text-center">
+              <span className="inline-flex h-7 items-center gap-2 rounded-full bg-white px-3 text-[13px] font-bold text-neutral-600 shadow-card">
+                <span className="h-2 w-2 rounded-full bg-neutral-500" />
                 {clockOutTime ? t('checkIn.clockedOutAt', { time: formatTime(clockOutTime) }) : t('checkIn.notClockedIn')}
               </span>
-              <p className="mt-3.5 text-[15px] font-semibold text-neutral-500">
-                {greeting(undefined, language)}
-                {firstName ? `, ${firstName}` : ''}
-              </p>
-              <p className="mt-0.5 text-[48px] font-extrabold leading-[54px] tracking-tight tabular-nums text-neutral-900">{formatTime(new Date().toISOString())}</p>
-              <p className="mt-0.5 text-sm text-neutral-500">
-                {shiftLabel}
-                {shiftNote && (
-                  <>
-                    {' · '}
-                    <span className={`font-bold ${shiftNote.tone === 'text-heroMuted' ? '' : shiftNote.tone === 'text-[#74E092]' ? 'text-status-working' : 'text-status-warn'}`}>{shiftNote.text}</span>
-                  </>
-                )}
-              </p>
+              <p className="mt-3 text-[88px] font-extrabold leading-[92px] tracking-tight tabular-nums text-neutral-900">{formatTime(new Date().toISOString())}</p>
+              {shiftNote && (
+                <p
+                  className={`mt-3 inline-flex h-9 items-center gap-2 rounded-full px-4 text-[15px] font-bold ${
+                    shiftNote.tone === 'text-[#74E092]' ? 'bg-status-working/10 text-status-working' : shiftNote.tone === 'text-[#FFB257]' ? 'bg-status-warn/10 text-status-warn' : 'bg-neutral-100 text-neutral-600'
+                  }`}
+                >
+                  <Clock className="h-[17px] w-[17px]" aria-hidden />
+                  {shiftNote.text}
+                </p>
+              )}
+              <p className="mt-2 text-[13px] font-semibold text-neutral-500">{shiftLabel}</p>
               {journey.todaysAttendance.length > 0 && (
-                <p className="mt-2 text-[13px] text-neutral-500">
+                <p className="mt-1 text-[13px] text-neutral-500">
                   {t('checkIn.clockedInTimes', {
                     count: journey.todaysAttendance.length,
                     plural: journey.todaysAttendance.length > 1 ? 's' : '',
@@ -319,17 +317,17 @@ export function CheckInPage() {
                   })}
                 </p>
               )}
-              {canClockIn && <HeroLocationCard required={clockRules.in} light />}
-              <div className="mt-3.5">
-                <SlideToConfirm
-                  label={journey.todaysAttendance.length > 0 ? t('checkIn.clockInAgain') : t('checkIn.slideToClockIn')}
-                  disabled={!canClockIn || journey.busy}
-                  busy={journey.busy}
-                  onConfirm={() => setClockSheet('in')}
-                />
-              </div>
-              <p className="mt-2.5 text-center text-xs text-neutral-500">{t('checkIn.confirmInNote')}</p>
             </section>
+            {canClockIn && <HeroLocationCard required={clockRules.in} light />}
+            <TodaySummaryCards canPlan={canPlan} />
+            <div className="sticky bottom-24 z-10 pt-2">
+              <SlideToConfirm
+                label={journey.todaysAttendance.length > 0 ? t('checkIn.clockInAgain') : t('checkIn.slideToClockIn')}
+                disabled={!canClockIn || journey.busy}
+                busy={journey.busy}
+                onConfirm={() => setClockSheet('in')}
+              />
+            </div>
             {journey.todaysAttendance.length === 0 && (
               <Link to="/leave" className="flex h-12 items-center gap-3 rounded-[14px] border border-neutral-100 bg-white px-3.5 text-sm font-bold text-neutral-900 shadow-card">
                 <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[9px] bg-brand-50 text-brand-500">
@@ -361,8 +359,6 @@ export function CheckInPage() {
         ) : (
           /* Before clock-in (or on leave): what today holds, and this week's attendance. */
           <>
-            <TodaySummaryCards canPlan={canPlan} />
-            <TodayCard canPlan={canPlan} />
             <WeekStrip />
           </>
         )}

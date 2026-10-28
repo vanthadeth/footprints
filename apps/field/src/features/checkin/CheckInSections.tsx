@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Banknote, Building2, CalendarDays, Check, ChevronDown, ChevronRight, ListTodo, Loader2, MapPin, RefreshCw, Route, type LucideIcon } from 'lucide-react'
+import { Banknote, Building2, CalendarDays, Flag, Check, ChevronDown, ChevronRight, ListTodo, Loader2, MapPin, RefreshCw, Route, type LucideIcon } from 'lucide-react'
 import { useJourneyContext } from '@/features/attendance/JourneyContext'
 import type { VisitRow } from '@/features/attendance/types'
 import { clockBlock } from '@footprints/shared/features/permissions/clockRules'
@@ -87,6 +87,26 @@ export function HeroLocationCard({ required, light = false }: { required: Requir
             ? t('checkInFlow.turnOnLocation')
             : t('checkInFlow.checkingGps')
   const ready = loc.status === 'ok'
+
+  if (light) {
+    return (
+      <div className={`${CARD} flex items-center gap-3 px-3.5 py-3`}>
+        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] ${ready ? 'bg-status-working/10 text-status-working' : 'bg-neutral-100 text-neutral-500'}`}>
+          {loc.status === 'checking' ? <Loader2 className="h-[18px] w-[18px] animate-spin" aria-hidden /> : <MapPin className="h-[18px] w-[18px]" aria-hidden />}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[15px] font-bold text-neutral-900">{title}</span>
+          <span className={`flex items-center gap-1 truncate text-xs font-bold ${ready ? 'text-status-working' : loc.status === 'checking' ? 'text-neutral-500' : 'text-status-warn'}`}>
+            {ready && <Check className="h-3 w-3 shrink-0" strokeWidth={3} aria-hidden />}
+            <span className="truncate">{sub}</span>
+          </span>
+        </span>
+        <button type="button" onClick={() => setNonce((n) => n + 1)} disabled={loc.status === 'checking'} aria-label={t('checkInFlow.refresh')} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-brand-500 disabled:opacity-40">
+          <RefreshCw className="h-[18px] w-[18px]" aria-hidden />
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className={`relative mt-3.5 flex items-center gap-2.5 rounded-[14px] px-3 py-2.5 ${light ? 'bg-neutral-50' : 'bg-white/[.07]'}`}>
@@ -180,19 +200,56 @@ export function TodaySummaryCards({ canPlan }: { canPlan: boolean }) {
     }
   }, [profile, today])
 
-  const planned = items.filter((i) => i.status === 'planned').length
+  const total = items.length
+  const done = items.filter((i) => i.status !== 'planned').length
+  const firstStop = items.find((i) => i.status === 'planned')
   const next = appts[0]
   return (
     <div className="grid grid-cols-2 gap-3">
-      <Link to="/calendar" className={`${CARD} block px-3.5 py-3`}>
-        <p className={SECTION}>{t('checkIn.summaryAppointments')}</p>
-        <p className="mt-1 text-[22px] font-extrabold leading-7 text-neutral-900">{appts.length}</p>
-        <p className="truncate text-xs text-neutral-500">{next ? `${next.at_time ? `${hhmm(next.at_time)} · ` : ''}${itemTitle(next)}` : t('checkIn.nothingScheduled')}</p>
+      <Link to="/calendar" className={`${CARD} flex flex-col px-3.5 py-3`}>
+        <p className="flex items-center gap-1.5 text-[13px] font-bold text-neutral-600">
+          <CalendarDays className="h-4 w-4" aria-hidden />
+          {t('checkIn.summaryAppointments')}
+        </p>
+        <p className="mt-1.5 flex items-baseline gap-1.5 text-neutral-900">
+          <span className="text-[28px] font-extrabold leading-8">{appts.length}</span>
+          <span className="text-sm font-semibold text-neutral-500">{t('checkIn.today')}</span>
+        </p>
+        <div className="mt-auto border-t border-neutral-100 pt-2.5">
+          {next ? (
+            <>
+              <p className="text-xs font-bold text-brand-500">{t('checkIn.next')}{next.at_time ? ` · ${hhmm(next.at_time)}` : ''}</p>
+              <p className="truncate text-sm font-bold text-neutral-900">{itemTitle(next)}</p>
+            </>
+          ) : (
+            <p className="text-xs text-neutral-500">{t('checkIn.nothingScheduled')}</p>
+          )}
+        </div>
       </Link>
-      <Link to={canPlan ? '/plan' : '/calendar'} className={`${CARD} block px-3.5 py-3`}>
-        <p className={SECTION}>{t('checkIn.summaryPlan')}</p>
-        <p className="mt-1 text-[22px] font-extrabold leading-7 text-neutral-900">{planned}</p>
-        <p className="text-xs font-semibold text-brand-500">{planned > 0 ? t('checkIn.plannedCount', { n: planned }) : `${t('checkIn.nothingPlanned')} · ${t('checkIn.makePlan')} ›`}</p>
+      <Link to={canPlan ? '/plan' : '/calendar'} className={`${CARD} flex flex-col px-3.5 py-3`}>
+        <p className="flex items-center gap-1.5 text-[13px] font-bold text-neutral-600">
+          <Flag className="h-4 w-4" aria-hidden />
+          {t('checkIn.summaryPlan')}
+        </p>
+        <p className="mt-1.5 flex items-baseline gap-1.5 text-neutral-900">
+          <span className="text-[28px] font-extrabold leading-8">{total}</span>
+          <span className="text-sm font-semibold text-neutral-500">{t('checkIn.planned')}</span>
+        </p>
+        <div className="mt-1.5 flex gap-1" aria-hidden>
+          {Array.from({ length: Math.min(total, 8) }, (_, i) => (
+            <span key={i} className={`h-1 flex-1 rounded-full ${i < done ? 'bg-status-working' : 'bg-neutral-200'}`} />
+          ))}
+        </div>
+        <div className="mt-auto border-t border-neutral-100 pt-2.5">
+          {total > 0 ? (
+            <>
+              <p className="text-xs font-bold text-brand-500">{t('checkIn.routeDone', { done, total })}</p>
+              <p className="truncate text-sm font-bold text-neutral-900">{firstStop?.shop_name ?? ''}</p>
+            </>
+          ) : (
+            <p className="text-xs font-semibold text-brand-500">{t('checkIn.nothingPlanned')} · {t('checkIn.makePlan')} ›</p>
+          )}
+        </div>
       </Link>
     </div>
   )
