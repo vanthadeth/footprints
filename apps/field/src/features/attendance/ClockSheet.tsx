@@ -10,6 +10,7 @@ import { clockBlock, type ClockBlock } from '@footprints/shared/features/permiss
 import type { RequiredLocation } from '@footprints/shared/features/permissions/permissionsService'
 import { locationService } from '@/features/location/locationService'
 import { GPS_LEVEL_COPY, gpsLevel } from '@/features/location/gpsLevel'
+import { GpsRadar } from '@/features/location/GpsRadar'
 import { useAppSettings } from '@/hooks/useAppSettings'
 import { DayBar } from '@/features/fleet/DayBar'
 import { atLocal, segmentsFor } from '@/features/fleet/dayBar'
@@ -138,7 +139,24 @@ export function ClockSheet({ open, direction, required, onClose }: { open: boole
           </section>
         )}
 
-        {stage === 'gps' && <GpsRadar loc={loc} onRefresh={() => void checkLocation()} />}
+        {stage === 'gps' && (
+          <GpsRadar
+            checking={loc.status === 'checking'}
+            accuracy={'accuracy' in loc ? loc.accuracy : null}
+            warn={loc.status === 'low' || loc.status === 'blocked'}
+            title={loc.status === 'checking' ? t('checkInFlow.findingYou') : loc.status === 'low' ? t(GPS_LEVEL_COPY[gpsLevel(loc.accuracy)].title) : t('checkIn.currentLocation')}
+            hint={
+              loc.status === 'checking'
+                ? t('checkInFlow.checkingGps')
+                : loc.status === 'low'
+                  ? t(GPS_LEVEL_COPY[gpsLevel(loc.accuracy)].hint)
+                  : loc.status === 'blocked'
+                    ? t('checkIn.locationBlocked', { places: loc.block.names, nearest: loc.block.nearest, distance: loc.block.distance })
+                    : ''
+            }
+            onRefresh={() => void checkLocation()}
+          />
+        )}
         {stage === 'camera' && open && <InlineSelfieCamera onCapture={(blob) => setSelfie((cur) => {
           if (cur) URL.revokeObjectURL(cur.url)
           return { blob, url: URL.createObjectURL(blob) }
@@ -199,50 +217,6 @@ export function ClockSheet({ open, direction, required, onClose }: { open: boole
         />
       </div>
     </BottomSheet>
-  )
-}
-
-/** Step 0 of the sheet while GPS settles (canvas Clock in, GPS states): rings, the accuracy pill and what it means. */
-function GpsRadar({ loc, onRefresh }: { loc: LocState; onRefresh: () => void }) {
-  const { t } = useLanguage()
-  const accuracy = 'accuracy' in loc ? loc.accuracy : null
-  const copy = accuracy != null && loc.status === 'low' ? GPS_LEVEL_COPY[gpsLevel(accuracy)] : null
-  const warn = loc.status === 'low' || loc.status === 'blocked'
-  const ring = warn ? 'border-status-warn' : 'border-brand-500'
-  const fill = warn ? 'bg-status-warn/10' : 'bg-brand-50'
-  const title = loc.status === 'checking' ? t('checkInFlow.findingYou') : copy ? t(copy.title) : t('checkIn.currentLocation')
-  const hint =
-    loc.status === 'checking'
-      ? t('checkInFlow.checkingGps')
-      : copy
-        ? t(copy.hint)
-        : loc.status === 'blocked'
-          ? t('checkIn.locationBlocked', { places: loc.block.names, nearest: loc.block.nearest, distance: loc.block.distance })
-          : ''
-  return (
-    <div className="flex flex-col items-center py-3">
-      <div className="relative flex h-[230px] w-[230px] items-center justify-center rounded-full border-2 border-neutral-200">
-        <div className={`flex h-[172px] w-[172px] items-center justify-center rounded-full border-[3px] ${ring} ${fill} ${loc.status === 'checking' ? 'animate-pulse' : ''}`}>
-          <div className="flex h-[108px] w-[108px] items-center justify-center rounded-full border-2 border-brand-500/30">
-            <span className={`flex h-14 w-14 items-center justify-center rounded-full text-white ${warn ? 'bg-status-warn' : 'bg-brand-500'}`}>
-              <MapPin className="h-7 w-7" aria-hidden />
-            </span>
-          </div>
-        </div>
-        {accuracy != null && (
-          <span className={`absolute bottom-[58px] inline-flex h-8 items-center gap-1.5 rounded-full bg-white px-3 text-[13px] font-bold shadow-card ${warn ? 'text-status-warn' : 'text-brand-500'}`}>
-            <span className="h-1.5 w-1.5 rounded-full bg-current" />±{Math.round(accuracy).toLocaleString('en-US')} m
-          </span>
-        )}
-      </div>
-      <p className="mt-4 text-[19px] font-extrabold text-neutral-900">{title}</p>
-      <p className="mt-1 max-w-[280px] text-center text-[13px] font-semibold text-neutral-500">{hint}</p>
-      {loc.status !== 'checking' && (
-        <button type="button" onClick={onRefresh} className="mt-3 text-[13px] font-bold text-brand-500">
-          {t('checkIn.refresh')}
-        </button>
-      )}
-    </div>
   )
 }
 
