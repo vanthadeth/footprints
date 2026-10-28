@@ -14,6 +14,13 @@ import { scheduleService, type UserClockWindow } from '@/features/schedule/sched
 import { Stepper } from '@/components/Stepper'
 
 const STATUSES: UserStatus[] = ['active', 'suspended', 'discharged']
+
+type Tab = 'personal' | 'credential' | 'settings'
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  return ((parts[0]?.[0] ?? '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase() || '?'
+}
 const MIN_PASSWORD_LENGTH = 8
 
 interface Props {
@@ -60,6 +67,7 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
   const [clockWindow, setClockWindow] = useState<UserClockWindow | null>(null)
   const [earlyMinutes, setEarlyMinutes] = useState<number | null>(null)
   const [graceMinutes, setGraceMinutes] = useState<number | null>(null)
+  const [tab, setTab] = useState<Tab>('personal')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -91,6 +99,7 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
   useEffect(() => {
     if (!open) return
     setError(null)
+    setTab('personal')
     setFullName(mode === 'edit' && user ? user.fullName : '')
     setNickname((mode === 'edit' && user?.nickname) || '')
     setEmail('')
@@ -297,6 +306,13 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
     }
   }
 
+  // The Settings tab (target, days off, clock-in window, status) only exists for people who already exist.
+  const tabs: { id: Tab; label: string }[] = [
+    { id: 'personal', label: 'Personal' },
+    { id: 'credential', label: 'Credential' },
+    ...(mode === 'edit' ? [{ id: 'settings' as Tab, label: 'Settings' }] : []),
+  ]
+
   const managerOptions = users.filter((u) => u.id !== user?.id)
 
   return (
@@ -304,6 +320,38 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
       <div className="space-y-5 p-4">
         {error && <p className="rounded-lg bg-status-danger/10 px-3 py-2 text-sm text-status-danger">{error}</p>}
 
+        {mode === 'edit' && user && (
+          <div className="flex items-center gap-3.5 px-0.5">
+            <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-brand-50 text-xl font-bold text-brand-700 dark:bg-brand-500/15 dark:text-brand-300" aria-hidden="true">
+              {initials(displayName(user.fullName, user.nickname))}
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-xl font-bold leading-6 text-neutral-900">{displayName(user.fullName, user.nickname)}</p>
+              <p className="truncate text-sm text-neutral-500">{[user.position, user.departmentName].filter(Boolean).join(' · ') || '—'}</p>
+              <span className={`mt-1.5 inline-flex h-6 items-center gap-1.5 rounded-full px-2.5 text-xs font-bold ${status === 'active' ? 'bg-status-working/10 text-status-working' : status === 'suspended' ? 'bg-status-warn/10 text-status-warn' : 'bg-status-danger/10 text-status-danger'}`}>
+                <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                {status[0].toUpperCase() + status.slice(1)}
+              </span>
+            </div>
+          </div>
+        )}
+
+        <div role="tablist" aria-label="User settings sections" className="-mx-4 flex border-b border-neutral-200 px-4 dark:border-neutral-700">
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              role="tab"
+              aria-selected={tab === t.id}
+              onClick={() => setTab(t.id)}
+              className={`-mb-px h-12 flex-1 border-b-[3px] text-[15px] tap-target ${tab === t.id ? 'border-brand-500 font-bold text-brand-600' : 'border-transparent font-semibold text-neutral-500'}`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'personal' && (
+          <>
         <Section title="Profile">
           <Field label="Full Name">
             <TextInput value={fullName} onChange={setFullName} placeholder="Full name" />
@@ -317,23 +365,6 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
           <Field label="Phone">
             <TextInput value={phonePrimary} onChange={setPhonePrimary} placeholder="012 345 678" type="tel" />
           </Field>
-        </Section>
-
-        <Section title="Sign-in">
-          {mode === 'create' ? (
-            <>
-              <Field label="Email">
-                <TextInput value={email} onChange={setEmail} placeholder="name@company.com" type="email" />
-              </Field>
-              <Field label="Password" hint="At least 8 characters -- keep the suggestion, edit it, or type your own. Share it with them securely.">
-                <PasswordBox value={password} onChange={setPassword} />
-              </Field>
-            </>
-          ) : (
-            <Field label="Email">
-              <p className="rounded-xl bg-neutral-50 px-3.5 py-2.5 text-sm text-neutral-500 dark:bg-neutral-800">{user?.email ?? '—'}</p>
-            </Field>
-          )}
         </Section>
 
         <Section title="Organisation">
@@ -367,19 +398,149 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
           <Field label="Field Salesperson" hint="Tracks their attendance and customer visits (Check In, Team)." inline>
             <Switch checked={isFieldSales} onChange={setIsFieldSales} />
           </Field>
-          {mode === 'edit' && (
+        </Section>
+          </>
+        )}
+
+        {tab === 'credential' && (
+          <>
+        <Section title="Sign-in">
+          {mode === 'create' ? (
             <>
-              <Field label="Has to achieve a sales target" hint="Off: no sales target for this person, their score has no orders part and they are left out of the team's sales target." inline>
-                <Switch checked={targetRequired} onChange={setTargetRequired} />
+              <Field label="Email">
+                <TextInput value={email} onChange={setEmail} placeholder="name@company.com" type="email" />
               </Field>
-              {targetRequired && (
-                <Field label="Monthly sales target (USD)" hint="Each day's score uses a share of it. Empty uses the company default; 0 means no target.">
-                  <TextInput value={orderTarget} onChange={setOrderTarget} placeholder="Company default" type="number" />
-                </Field>
-              )}
+              <Field label="Password" hint="At least 8 characters -- keep the suggestion, edit it, or type your own. Share it with them securely.">
+                <PasswordBox value={password} onChange={setPassword} />
+              </Field>
             </>
+          ) : (
+            <Field label="Email">
+              <p className="rounded-xl bg-neutral-50 px-3.5 py-2.5 text-sm text-neutral-500 dark:bg-neutral-800">{user?.email ?? '—'}</p>
+            </Field>
           )}
         </Section>
+
+        {mode === 'edit' &&
+          (showPasswordBox ? (
+            <div className="rounded-xl2 border border-neutral-200 p-3.5 dark:border-neutral-700">
+              <div className="mb-1.5 flex items-center justify-between gap-3">
+                <p className="text-sm font-medium text-neutral-800">New Password</p>
+                <button
+                  onClick={() => setShowPasswordBox(false)}
+                  aria-label="Cancel"
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-neutral-400 tap-target"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <p className="mb-2 text-xs text-neutral-400">At least 8 characters. Takes effect immediately -- share it with them securely.</p>
+              <PasswordBox value={newPassword} onChange={setNewPassword} />
+              {passwordSet ? (
+                <p className="mt-2.5 text-xs font-medium text-status-working">Password updated.</p>
+              ) : (
+                <button
+                  onClick={handleSetPassword}
+                  disabled={newPassword.length < MIN_PASSWORD_LENGTH || settingPassword}
+                  className="mt-2.5 w-full rounded-xl bg-neutral-900 py-2.5 text-sm font-semibold text-white tap-target disabled:opacity-40"
+                >
+                  {settingPassword ? 'Setting…' : 'Set Password'}
+                </button>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={openPasswordBox}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-neutral-200 py-3.5 text-sm font-semibold text-neutral-700 tap-target dark:border-neutral-700 dark:text-neutral-200"
+            >
+              <KeyRound className="h-4 w-4" />
+              Generate New Password
+            </button>
+          ))}
+
+        {mode === 'edit' && isSuperAdmin && (
+          <div className="rounded-xl2 border border-neutral-200 p-3.5 dark:border-neutral-700">
+            <p className="mb-1.5 text-sm font-medium text-neutral-800">Google Sheet IDs</p>
+            <p className="mb-2 text-xs text-neutral-400">
+              What this person is called in the Google Sheet: the names or IDs in its ASSIGN_TO and salesperson cells, for example seyha or 9af927a9.
+              Separate several with commas. The sync uses them to link their customers and orders to them. Super admin only.
+            </p>
+            {sheetIdsError && <p className="mb-2 rounded-lg bg-status-danger/10 px-3 py-2 text-xs text-status-danger">{sheetIdsError}</p>}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={sheetIdsText}
+                disabled={sheetIdsLoading}
+                onChange={(e) => {
+                  setSheetIdsText(e.target.value)
+                  setSheetIdsSaved(false)
+                }}
+                placeholder={sheetIdsLoading ? 'Loading…' : 'e.g. seyha, 9af927a9'}
+                aria-label="Google Sheet IDs"
+                className="w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400"
+              />
+              <button
+                onClick={handleSetSheetIds}
+                disabled={savingSheetIds || sheetIdsLoading}
+                className="flex shrink-0 items-center gap-1.5 rounded-xl bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white tap-target disabled:opacity-40"
+              >
+                <Sheet className="h-4 w-4" />
+                {savingSheetIds ? 'Saving…' : 'Set'}
+              </button>
+            </div>
+            {sheetIdsSaved && <p className="mt-2 text-xs font-medium text-status-working">Saved. The next sync links their customers and orders.</p>}
+          </div>
+        )}
+
+        {mode === 'edit' && isSuperAdmin && (
+          <div className="rounded-xl2 border border-neutral-200 p-3.5 dark:border-neutral-700">
+            <p className="mb-1.5 text-sm font-medium text-neutral-800">Telegram ID</p>
+            <p className="mb-2 text-xs text-neutral-400">
+              Numeric Telegram chat ID -- ask them to message the bot, then check its logs for their chat ID. Used to send
+              attendance alerts. Super admin only.
+            </p>
+            {telegramError && <p className="mb-2 rounded-lg bg-status-danger/10 px-3 py-2 text-xs text-status-danger">{telegramError}</p>}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                inputMode="numeric"
+                value={telegramId}
+                onChange={(e) => {
+                  setTelegramId(e.target.value)
+                  setTelegramIdSet(false)
+                }}
+                placeholder="e.g. 123456789"
+                className="w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400"
+              />
+              <button
+                onClick={handleSetTelegramId}
+                disabled={settingTelegramId}
+                className="flex shrink-0 items-center gap-1.5 rounded-xl bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white tap-target disabled:opacity-40"
+              >
+                <Send className="h-4 w-4" />
+                {settingTelegramId ? 'Saving…' : 'Set'}
+              </button>
+            </div>
+            {telegramIdSet && <p className="mt-2 text-xs font-medium text-status-working">Telegram ID updated.</p>}
+          </div>
+        )}
+          </>
+        )}
+
+        {mode === 'edit' && tab === 'settings' && (
+          <>
+        {mode === 'edit' && (
+          <Section title="Sales target">
+            <Field label="Has to achieve a sales target" hint="Off: no sales target for this person, their score has no orders part and they are left out of the team's sales target." inline>
+              <Switch checked={targetRequired} onChange={setTargetRequired} />
+            </Field>
+            {targetRequired && (
+              <Field label="Monthly sales target (USD)" hint="Each day's score uses a share of it. Empty uses the company default; 0 means no target.">
+                <TextInput value={orderTarget} onChange={setOrderTarget} placeholder="Company default" type="number" />
+              </Field>
+            )}
+          </Section>
+        )}
 
         {mode === 'edit' && modeInfo && (
           <Section title="Days off">
@@ -495,16 +656,8 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
             )}
           </Section>
         )}
-
-
-
-
-
-
-
-
-
-
+          </>
+        )}
 
         <button
           onClick={handleSave}
@@ -514,109 +667,6 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
           {saving ? 'Saving…' : mode === 'create' ? 'Create User' : 'Save Changes'}
         </button>
 
-        {mode === 'edit' &&
-          (showPasswordBox ? (
-            <div className="rounded-xl2 border border-neutral-200 p-3.5 dark:border-neutral-700">
-              <div className="mb-1.5 flex items-center justify-between gap-3">
-                <p className="text-sm font-medium text-neutral-800">New Password</p>
-                <button
-                  onClick={() => setShowPasswordBox(false)}
-                  aria-label="Cancel"
-                  className="flex h-7 w-7 items-center justify-center rounded-full text-neutral-400 tap-target"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-              <p className="mb-2 text-xs text-neutral-400">At least 8 characters. Takes effect immediately -- share it with them securely.</p>
-              <PasswordBox value={newPassword} onChange={setNewPassword} />
-              {passwordSet ? (
-                <p className="mt-2.5 text-xs font-medium text-status-working">Password updated.</p>
-              ) : (
-                <button
-                  onClick={handleSetPassword}
-                  disabled={newPassword.length < MIN_PASSWORD_LENGTH || settingPassword}
-                  className="mt-2.5 w-full rounded-xl bg-neutral-900 py-2.5 text-sm font-semibold text-white tap-target disabled:opacity-40"
-                >
-                  {settingPassword ? 'Setting…' : 'Set Password'}
-                </button>
-              )}
-            </div>
-          ) : (
-            <button
-              onClick={openPasswordBox}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-neutral-200 py-3.5 text-sm font-semibold text-neutral-700 tap-target dark:border-neutral-700 dark:text-neutral-200"
-            >
-              <KeyRound className="h-4 w-4" />
-              Generate New Password
-            </button>
-          ))}
-
-        {mode === 'edit' && isSuperAdmin && (
-          <div className="rounded-xl2 border border-neutral-200 p-3.5 dark:border-neutral-700">
-            <p className="mb-1.5 text-sm font-medium text-neutral-800">Google Sheet IDs</p>
-            <p className="mb-2 text-xs text-neutral-400">
-              What this person is called in the Google Sheet: the names or IDs in its ASSIGN_TO and salesperson cells, for example seyha or 9af927a9.
-              Separate several with commas. The sync uses them to link their customers and orders to them. Super admin only.
-            </p>
-            {sheetIdsError && <p className="mb-2 rounded-lg bg-status-danger/10 px-3 py-2 text-xs text-status-danger">{sheetIdsError}</p>}
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={sheetIdsText}
-                disabled={sheetIdsLoading}
-                onChange={(e) => {
-                  setSheetIdsText(e.target.value)
-                  setSheetIdsSaved(false)
-                }}
-                placeholder={sheetIdsLoading ? 'Loading…' : 'e.g. seyha, 9af927a9'}
-                aria-label="Google Sheet IDs"
-                className="w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400"
-              />
-              <button
-                onClick={handleSetSheetIds}
-                disabled={savingSheetIds || sheetIdsLoading}
-                className="flex shrink-0 items-center gap-1.5 rounded-xl bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white tap-target disabled:opacity-40"
-              >
-                <Sheet className="h-4 w-4" />
-                {savingSheetIds ? 'Saving…' : 'Set'}
-              </button>
-            </div>
-            {sheetIdsSaved && <p className="mt-2 text-xs font-medium text-status-working">Saved. The next sync links their customers and orders.</p>}
-          </div>
-        )}
-
-        {mode === 'edit' && isSuperAdmin && (
-          <div className="rounded-xl2 border border-neutral-200 p-3.5 dark:border-neutral-700">
-            <p className="mb-1.5 text-sm font-medium text-neutral-800">Telegram ID</p>
-            <p className="mb-2 text-xs text-neutral-400">
-              Numeric Telegram chat ID -- ask them to message the bot, then check its logs for their chat ID. Used to send
-              attendance alerts. Super admin only.
-            </p>
-            {telegramError && <p className="mb-2 rounded-lg bg-status-danger/10 px-3 py-2 text-xs text-status-danger">{telegramError}</p>}
-            <div className="flex gap-2">
-              <input
-                type="text"
-                inputMode="numeric"
-                value={telegramId}
-                onChange={(e) => {
-                  setTelegramId(e.target.value)
-                  setTelegramIdSet(false)
-                }}
-                placeholder="e.g. 123456789"
-                className="w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400"
-              />
-              <button
-                onClick={handleSetTelegramId}
-                disabled={settingTelegramId}
-                className="flex shrink-0 items-center gap-1.5 rounded-xl bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white tap-target disabled:opacity-40"
-              >
-                <Send className="h-4 w-4" />
-                {settingTelegramId ? 'Saving…' : 'Set'}
-              </button>
-            </div>
-            {telegramIdSet && <p className="mt-2 text-xs font-medium text-status-working">Telegram ID updated.</p>}
-          </div>
-        )}
       </div>
     </BottomSheet>
   )
