@@ -2,51 +2,20 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@footprints/shared/lib/supabase'
 import { toRow, type DraftColumn } from './columnMapDiff'
 import { diffColumns } from './columnMapDiff'
+import { invokeSourceSync, sourceSync, type SourceSyncResult } from '@footprints/shared/features/sourceSync/sourceSync'
 import type { ColumnMap } from './sources'
 
 // The sync_* tables aren't in the generated database types (see sources.ts).
 const db = supabase as unknown as SupabaseClient
 
-export interface MappingResult {
-  sync_id: string
-  name: string
-  table: string
-  read: number
-  inserted: number
-  updated: number
-  unchanged: number
-  skipped: number
-  error?: string
-}
+export type { MappingResult, SourceSyncResult } from '@footprints/shared/features/sourceSync/sourceSync'
 
-export interface SourceSyncResult {
-  ok: boolean
-  dry?: boolean
-  error?: string
-  results?: MappingResult[]
-  errors?: { tab: number; row: number; reason: string }[]
-  more_errors?: number
-}
-
-/** Calls the source-sync Edge Function; business errors come back as { ok: false, error }. */
-async function invoke<T>(body: Record<string, unknown>): Promise<T> {
-  const { data, error } = await supabase.functions.invoke('source-sync', { body })
-  if (error) {
-    let message = error.message
-    const context = (error as { context?: Response }).context
-    if (context) {
-      const parsed = await context.clone().json().catch(() => null)
-      if (parsed && typeof parsed.error === 'string') message = parsed.error
-    }
-    throw new Error(message)
-  }
-  return data as T
-}
+const invoke = invokeSourceSync
 
 export const sourceSyncService = {
   /** Preview changes nothing; run writes. syncId limits it to one mapping, otherwise every mapping on the Footprints engine. */
   sync(action: 'preview' | 'run', sourceId: string, syncId?: string): Promise<SourceSyncResult> {
-    return invoke<SourceSyncResult>({ action, source_id: sourceId, sync_id: syncId })
+    return sourceSync.sync(action, sourceId, syncId)
   },
 
   switchEngine(syncId: string, engine: 'footprints' | 'legacy'): Promise<{ ok: boolean; error?: string }> {

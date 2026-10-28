@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Eye, FileSpreadsheet, Loader2, ReceiptText, RefreshCw, ShieldAlert } from 'lucide-react'
+import { Eye, FileSpreadsheet, Loader2, RefreshCw, ShieldAlert } from 'lucide-react'
 import { AdminFrame, AdminGroup, AdminRow } from '@footprints/shared/components/AdminKit'
 import { useProfile } from '@footprints/shared/features/auth/useProfile'
 import { sheetSyncService } from '@footprints/shared/features/sheetSync/sheetSyncService'
 import { countsText, orderCountsText, SCHEDULES, type SheetSyncRun, type SheetSyncSettings } from '@footprints/shared/features/sheetSync/sheetSync'
-import { formatTime, timeAgo } from '@footprints/shared/lib/datetime'
-import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
+import { groupSources, sourceChip, targetsText, type ChipTone } from '@footprints/shared/features/sourceSync/sourceGroups'
+import { listSources, type Source } from '@footprints/shared/features/sourceSync/sources'
+import { formatTime } from '@footprints/shared/lib/datetime'
 
 /**
  * Data & sync (Admin), laid out like the canvas (Polish › Admin › Data &
@@ -28,10 +29,12 @@ export function DataSyncPage() {
   return <DataSync />
 }
 
+const CHIP_TONE: Record<ChipTone, 'ok' | 'warn' | 'plain'> = { ok: 'ok', warn: 'warn', neutral: 'plain' }
+
 function DataSync() {
-  const { language } = useLanguage()
   const [settings, setSettings] = useState<SheetSyncSettings | null>(null)
   const [runs, setRuns] = useState<SheetSyncRun[]>([])
+  const [sources, setSources] = useState<Source[] | null>(null)
   const [busy, setBusy] = useState<'preview' | 'run' | null>(null)
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
 
@@ -39,6 +42,7 @@ function DataSync() {
     const [s, r] = await Promise.all([sheetSyncService.get().catch(() => null), sheetSyncService.runs().catch(() => [] as SheetSyncRun[])])
     setSettings(s)
     setRuns(r)
+    setSources(await listSources().catch(() => []))
   }, [])
   useEffect(() => {
     void load()
@@ -65,30 +69,21 @@ function DataSync() {
 
   return (
     <AdminFrame sub="Where data comes from and goes to">
-      <AdminGroup title={`Syncs · ${configured ? (settings!.orders ? 2 : 1) : 0}`}>
-        <AdminRow
-          icon={FileSpreadsheet}
-          label="Customers & contacts"
-          sub={configured ? `Google Sheet · ${settings!.tabs.length} ${settings!.tabs.length === 1 ? 'tab' : 'tabs'} · ${schedule.toLowerCase()}` : 'Not set up yet'}
-          value={settings?.last_synced_at ? timeAgo(settings.last_synced_at, Date.now(), language) : undefined}
-          pill={configured ? (failed ? { text: 'Failed', tone: 'danger' } : lastReal ? { text: 'OK', tone: 'ok' } : undefined) : { text: 'Set up', tone: 'brand' }}
-          to="/settings/sheet-sync"
-        />
-        {settings?.orders && (
-          <AdminRow
-            icon={ReceiptText}
-            label="Sale orders"
-            sub={`Google Sheet · ${settings.orders.tab ?? 'tab'} · valid orders only · ${schedule.toLowerCase()}`}
-            value={lastReal?.orders?.valid !== undefined ? `${lastReal.orders.valid.toLocaleString('en-US')} valid` : undefined}
-            to="/settings/sheet-sync"
-          />
-        )}
-      </AdminGroup>
-
       {configured && (
         <section aria-label="Customers & contacts" className="rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card">
-          <p className="text-[15px] font-bold text-neutral-900">Customers &amp; contacts</p>
-          <p className="text-xs text-neutral-500">Google Sheet · every {schedule.toLowerCase() === 'hourly' ? 'hour' : schedule.toLowerCase()}</p>
+          <div className="flex items-start gap-3">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-brand-50 text-brand-700"><FileSpreadsheet className="h-[22px] w-[22px]" aria-hidden /></span>
+            <div className="min-w-0 flex-1">
+              <p className="text-base font-bold leading-[21px] text-neutral-900">Customers, contacts &amp; sale orders</p>
+              <p className="text-[13px] text-neutral-500">
+                {schedule === 'Hourly' ? 'Every hour' : schedule}
+                {settings?.last_synced_at ? ` · last synced ${formatTime(settings.last_synced_at)} on ${new Date(settings.last_synced_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : ''}
+              </p>
+            </div>
+            {lastReal && (
+              <span className={`inline-flex h-6 shrink-0 items-center rounded-full px-2.5 text-[11.5px] font-bold ${failed ? 'bg-status-danger/10 text-status-danger' : 'bg-status-working/10 text-status-working'}`}>{failed ? 'Failed' : 'OK'}</span>
+            )}
+          </div>
           {lastReal && (
             <div className="mt-3 grid grid-cols-4 border-t border-neutral-100 pt-3 dark:border-neutral-800">
               {[
@@ -118,6 +113,16 @@ function DataSync() {
           </Link>
         </section>
       )}
+
+      {sources === null && <div className="h-24 animate-pulse rounded-2xl bg-neutral-100" />}
+      {sources && groupSources(sources).map((g) => (
+        <AdminGroup key={g.key} title={g.title} note={g.key === 'engine' ? 'New' : undefined}>
+          {g.sources.map((s) => {
+            const chip = sourceChip(s)
+            return <AdminRow key={s.id} icon={FileSpreadsheet} label={s.tabName} sub={targetsText(s)} pill={{ text: chip.text, tone: CHIP_TONE[chip.tone] }} to={`/admin/sync/${s.id}`} />
+          })}
+        </AdminGroup>
+      ))}
 
       {runs.length > 0 && (
         <AdminGroup title="Recent runs">

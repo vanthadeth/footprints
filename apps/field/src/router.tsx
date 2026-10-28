@@ -62,6 +62,7 @@ const AttendanceRosterPage = lazyPage(() => import('@/pages/AttendanceRosterPage
 const AdminAttendancePage = lazyPage(() => import('@/pages/AdminAttendancePage').then((m) => ({ default: m.AdminAttendancePage })))
 const GeofencePage = lazyPage(() => import('@/pages/GeofencePage').then((m) => ({ default: m.GeofencePage })))
 const DataSyncPage = lazyPage(() => import('@/pages/DataSyncPage').then((m) => ({ default: m.DataSyncPage })))
+const SyncDetailsPage = lazyPage(() => import('@/pages/SyncDetailsPage').then((m) => ({ default: m.SyncDetailsPage })))
 const AccountPage = lazyPage(() => import('@/pages/AccountPage').then((m) => ({ default: m.AccountPage })))
 const HubFunctionPage = lazyPage(() => import('@/pages/HubFunctionPage').then((m) => ({ default: m.HubFunctionPage })))
 const LeavePage = lazyPage(() => import('@/pages/LeavePage').then((m) => ({ default: m.LeavePage })))
@@ -382,6 +383,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageFallback />}>
             <DataSyncPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/admin/sync/:sourceId',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <SyncDetailsPage />
           </Suspense>
         ),
       },

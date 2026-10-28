@@ -79,6 +79,8 @@ export function useScreenTitle(): string {
             ? t('nav.footprints')
           : pathname.startsWith('/trips/') && !TITLE_KEYS[pathname]
             ? t(pathname.endsWith('/edit') ? 'nav.editTrip' : 'nav.trip')
+          : pathname.startsWith('/admin/sync/')
+            ? t('nav.dataSync')
           : t(TITLE_KEYS[pathname] ?? 'nav.footprints')
   )
 }

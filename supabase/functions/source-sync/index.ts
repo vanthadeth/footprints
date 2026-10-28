@@ -16,7 +16,7 @@
 //
 // Deployed with verify_jwt = true.
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
-import { buildRows, planProblem, type ColumnMap, type MappingPlan } from './engine.ts'
+import { buildRows, invoiceInsights, planProblem, type ColumnMap, type InvoiceInsights, type MappingPlan } from './engine.ts'
 import { gidForTab, linkGid, parseCsv, sheetCsvUrl, sheetId, type DateOrder, type RowProblem } from './parse.ts'
 
 const CORS = {
@@ -132,6 +132,7 @@ interface MappingResult {
   unchanged: number
   skipped: number
   error?: string
+  insights?: InvoiceInsights
 }
 
 async function syncSource(admin: SupabaseClient, userId: string, sourceId: string, onlySync: string | null, dry: boolean) {
@@ -173,6 +174,12 @@ async function syncSource(admin: SupabaseClient, userId: string, sourceId: strin
       const built = buildRows(table, plan, source.header_row, order)
       if (built.missing.length) throw new SyncError(`The sheet has no column named ${built.missing.map((m) => `“${m}”`).join(', ')}. Check the sheet or the mapping.`)
       problems.push(...built.problems)
+      if (d.target_table === 'invoices') {
+        // Only active users' sheet IDs count, the same rule the link uses.
+        const [{ data: ids }, { data: active }] = await Promise.all([admin.from('user_sheet_ids').select('sheet_id, user_id'), admin.from('users').select('id').eq('status', 'active')])
+        const activeIds = new Set((active ?? []).map((u: { id: string }) => u.id))
+        result.insights = invoiceInsights(built.rows, new Set((ids ?? []).filter((r: { user_id: string }) => activeIds.has(r.user_id)).map((r: { sheet_id: string }) => r.sheet_id)))
+      }
       result.read = built.rows.length + built.skipped
       result.skipped = built.skipped
       for (let i = 0; i < built.rows.length; i += BATCH) {

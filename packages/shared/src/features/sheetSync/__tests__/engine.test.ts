@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildRows, planProblem, type ColumnMap, type MappingPlan } from '../../../../../../supabase/functions/sheet-sync/engine'
+import { buildRows, invoiceInsights, planProblem, type ColumnMap, type MappingPlan } from '../../../../../../supabase/functions/sheet-sync/engine'
 
 const col = (sheetColumn: string, targetColumn: string | null, over: Partial<ColumnMap> = {}): ColumnMap => ({
   sheetColumn, targetColumn, valueKind: 'text', transform: 'none', transformArg: null, referenceTable: null, ...over,
@@ -142,4 +142,23 @@ describe('invoice and payment term tabs', () => {
     expect(buildRows(table, invoices, 1, 'dmy').rows[1].inv_date).toBe('2021-01-09')
     expect(buildRows(table, invoices, 1, 'dmy').problems.length).toBeGreaterThan(0)
   })
+})
+
+describe('invoiceInsights', () => {
+  const rows = [
+    { status: 5, assign_to: 'pheakdey', so_sheet_id: 'so1' },
+    { status: 5, assign_to: 'other , Seyha', so_sheet_id: null },
+    { status: 9, assign_to: '9af927a9', so_sheet_id: 'so2' },
+    { status: 5, assign_to: '9af927a9', so_sheet_id: null },
+    { status: 0, assign_to: '', so_sheet_id: null },
+    { status: null, assign_to: 'cbe84092', so_sheet_id: 'so3' },
+  ]
+  const out = invoiceInsights(rows, new Set(['pheakdey', 'seyha']))
+
+  it('counts statuses, with anything else as other', () => expect(out.status).toEqual({ '5': 3, '9': 1, '0': 1, other: 1 }))
+  it('finds invoices whose ASSIGN_TO names no active sheet ID, commonest first, the first matching ID in a cell is enough', () => {
+    expect(out.unassignedTotal).toBe(4)
+    expect(out.unassigned).toEqual([{ id: '9af927a9', count: 2 }, { id: '(blank)', count: 1 }, { id: 'cbe84092', count: 1 }])
+  })
+  it('counts invoices without a sale order', () => expect(out.noSaleOrder).toBe(3))
 })
