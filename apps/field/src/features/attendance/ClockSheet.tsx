@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { AlertTriangle, Camera, Check, Loader2, MapPin, RotateCcw, X } from 'lucide-react'
-import { FullScreenSheet } from '@/components/FullScreenSheet'
+import { AlertTriangle, Check, Loader2, MapPin, RotateCcw, X } from 'lucide-react'
+import { BottomSheet } from '@/components/BottomSheet'
 import { SlideToConfirm } from '@/components/SlideToConfirm'
-import { SelfieCaptureSheet } from './SelfieCaptureSheet'
+import { InlineSelfieCamera } from './InlineSelfieCamera'
 import { useJourneyContext } from './JourneyContext'
 import { computeJourneyStats } from './journeyStats'
 import type { DayJourney } from './useJourneyHistory'
@@ -17,7 +17,7 @@ import { todayDateString } from '@/lib/dateRange'
 import { useLocations } from '@/features/locations/useLocations'
 import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 import { distanceInMeters } from '@footprints/shared/lib/geo'
-import { formatDuration, formatLongDate, formatTime } from '@footprints/shared/lib/datetime'
+import { formatDuration, formatTime } from '@footprints/shared/lib/datetime'
 
 type Direction = 'in' | 'out'
 type LocState =
@@ -46,7 +46,6 @@ export function ClockSheet({ open, direction, required, onClose }: { open: boole
   const { t, language } = useLanguage()
   const [loc, setLoc] = useState<LocState>({ status: 'checking' })
   const [selfie, setSelfie] = useState<{ blob: Blob; url: string } | null>(null)
-  const [camera, setCamera] = useState(false)
   const [now, setNow] = useState(() => new Date())
   const [submitting, setSubmitting] = useState(false)
 
@@ -84,11 +83,8 @@ export function ClockSheet({ open, direction, required, onClose }: { open: boole
   // A failed reading doesn't block: the clock-in RPC re-reads the location and reports the real problem.
   const locReady = loc.status === 'ok' || loc.status === 'error'
   const ready = locReady && !!selfie
-  // Two steps on the canvas: 1 selfie (with the GPS check running beside it), 2 slide to confirm.
-  const step = selfie ? 2 : 1
   const today: DayJourney = { date: '', attendance: journey.todaysAttendance, visits: journey.todaysVisits }
   const stats = computeJourneyStats([today], undefined, null, settings.flagRules)
-  const shift = t('checkIn.shift', { start: settings.workStartTime.slice(0, 5), end: settings.workEndTime.slice(0, 5) })
 
   async function confirm() {
     if (!selfie || submitting) return
@@ -102,139 +98,151 @@ export function ClockSheet({ open, direction, required, onClose }: { open: boole
     }
   }
 
-  return (
-    <FullScreenSheet open={open} onClose={onClose} label={isIn ? t('checkIn.clockInTitle') : t('checkIn.clockOutTitle')} showClose={false}>
-      <div className="flex h-full flex-col overflow-y-auto bg-neutral-50 safe-top">
-        <header className="grid grid-cols-[44px_1fr_44px] items-center px-3 pb-1.5 pt-2.5">
-          <button type="button" onClick={onClose} aria-label={t('common.cancel')} className="flex h-10 w-10 items-center justify-center rounded-full text-neutral-900">
-            <X className="h-[22px] w-[22px]" />
-          </button>
-          <h1 className="text-center text-[17px] font-bold text-neutral-900">{isIn ? t('checkIn.clockInTitle') : t('checkIn.clockOutTitle')}</h1>
-          <span />
-        </header>
+  const stage: 'gps' | 'camera' | 'confirm' = !locReady ? 'gps' : selfie ? 'confirm' : 'camera'
+  const sub =
+    stage === 'gps' ? t('checkIn.gpsCheck') : `${t('checkIn.stepOf', { n: stage === 'camera' ? 1 : 2, total: 2 })} · ${stage === 'camera' ? t('checkIn.tapShutter') : t('checkIn.stepConfirm')}`
+  const title = isIn ? t('checkIn.clockInTitle') : t('checkIn.clockOutTitle')
 
-        <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-3.5 px-4 pb-44 pt-2">
-          <div className="text-center">
-            <p className="text-[52px] font-extrabold leading-[58px] tracking-tight tabular-nums text-neutral-900">{formatTime(now.toISOString())}</p>
-            <p className="text-sm text-neutral-500">
-              {formatLongDate(now.toISOString(), undefined, language)} · {shift}
+  return (
+    <BottomSheet
+      open={open}
+      onClose={onClose}
+      title={title}
+      header={
+        <div className="flex items-start justify-between gap-3 px-5 pb-3 pt-5">
+          <div>
+            <h2 className="text-[22px] font-extrabold leading-7 text-neutral-900">{title}</h2>
+            <p aria-live="polite" className="mt-1 text-[13px] font-semibold text-neutral-500">
+              {sub}
             </p>
           </div>
+          <button type="button" onClick={onClose} aria-label={t('common.cancel')} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-900">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+      }
+    >
+      <div className="flex flex-col gap-3 px-5 pb-5">
+        {!isIn && (
+          <section aria-label={t('checkIn.yourDay')} className="rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card">
+            <div className="flex items-baseline justify-between">
+              <p className="text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">{t('checkIn.yourDay')}</p>
+              <p className={`text-xs font-semibold ${journey.openVisit ? 'text-status-warn' : 'text-neutral-500'}`}>{journey.openVisit ? t('checkIn.visitOpen') : t('checkIn.noOpenVisit')}</p>
+            </div>
+            <div className="mt-2.5 grid grid-cols-3">
+              <DayStat label={t('checkIn.worked')} value={formatDuration(stats.totalWorkingMs, language)} />
+              <DayStat label={t('nav.visits')} value={String(stats.totalVisits)} border />
+              <DayStat label={t('checkIn.statActive')} value={formatDuration(stats.totalVisitingMs, language)} border />
+            </div>
+            {journey.openAttendance && <ClockOutDayBar attendance={journey.todaysAttendance} visits={journey.todaysVisits} now={now.getTime()} />}
+          </section>
+        )}
 
-          <p aria-live="polite" className="text-center text-[13px] font-bold text-neutral-600">
-            {t('checkIn.stepOf', { n: step, total: 2 })} · {step === 1 ? t('checkIn.stepSelfie') : t('checkIn.stepConfirm')}
-          </p>
-
-          {!isIn && (
-            <section aria-label={t('checkIn.yourDay')} className="rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card">
-              <div className="flex items-baseline justify-between">
-                <p className="text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">{t('checkIn.yourDay')}</p>
-                <p className={`text-xs font-semibold ${journey.openVisit ? 'text-status-warn' : 'text-neutral-500'}`}>
-                  {journey.openVisit ? t('checkIn.visitOpen') : t('checkIn.noOpenVisit')}
-                </p>
-              </div>
-              <div className="mt-2.5 grid grid-cols-3">
-                <DayStat label={t('checkIn.worked')} value={formatDuration(stats.totalWorkingMs, language)} />
-                <DayStat label={t('nav.visits')} value={String(stats.totalVisits)} border />
-                <DayStat label={t('checkIn.statActive')} value={formatDuration(stats.totalVisitingMs, language)} border />
-              </div>
-              {journey.openAttendance && <ClockOutDayBar attendance={journey.todaysAttendance} visits={journey.todaysVisits} now={now.getTime()} />}
-            </section>
-          )}
-
-          <section aria-label={t('checkIn.stepLocation')} className="flex items-center gap-3 rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card">
-            <span
-              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
-                loc.status === 'ok' ? 'bg-status-working/10 text-status-working' : loc.status === 'checking' ? 'bg-brand-50 text-brand-500' : 'bg-status-warn/10 text-status-warn'
-              }`}
-            >
-              {loc.status === 'checking' ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : loc.status === 'ok' ? (
-                <MapPin className="h-5 w-5" />
-              ) : (
-                <AlertTriangle className="h-5 w-5" />
-              )}
+        {stage === 'gps' && <GpsRadar loc={loc} onRefresh={() => void checkLocation()} />}
+        {stage === 'camera' && open && <InlineSelfieCamera onCapture={(blob) => setSelfie((cur) => {
+          if (cur) URL.revokeObjectURL(cur.url)
+          return { blob, url: URL.createObjectURL(blob) }
+        })} />}
+        {stage === 'confirm' && selfie && (
+          <div className="relative h-[330px] overflow-hidden rounded-[22px] bg-[#0e0f12]">
+            <img src={selfie.url} alt="" className="h-full w-full object-cover" />
+            <span className="absolute bottom-3 left-3 inline-flex h-9 items-center gap-1.5 rounded-full bg-status-working px-3.5 text-[13px] font-bold text-white">
+              <Check className="h-4 w-4" strokeWidth={3} aria-hidden />
+              {t('checkIn.selfieTaken')}
             </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-[15px] font-bold text-neutral-900">
-                {loc.status === 'ok' && loc.place ? loc.place : t('checkIn.currentLocation')}
-              </span>
-              <span className={`block text-xs ${loc.status === 'ok' ? 'text-status-working' : loc.status === 'checking' ? 'text-neutral-500' : 'text-status-warn'}`}>
+            <button
+              type="button"
+              onClick={() => {
+                URL.revokeObjectURL(selfie.url)
+                setSelfie(null)
+              }}
+              className="absolute bottom-3 right-3 inline-flex h-9 items-center gap-1.5 rounded-full bg-black/45 px-3.5 text-[13px] font-bold text-white backdrop-blur"
+            >
+              <RotateCcw className="h-4 w-4" aria-hidden />
+              {t('checkIn.retake')}
+            </button>
+          </div>
+        )}
+
+        <section aria-label={t('checkIn.stepLocation')} className="flex items-center gap-3 rounded-2xl bg-neutral-100 px-3.5 py-3">
+          <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] ${loc.status === 'ok' ? 'bg-status-working/10 text-status-working' : 'bg-white text-neutral-500'}`}>
+            {loc.status === 'checking' ? <Loader2 className="h-[18px] w-[18px] animate-spin" /> : loc.status === 'ok' ? <MapPin className="h-[18px] w-[18px]" /> : <AlertTriangle className="h-[18px] w-[18px] text-status-warn" />}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[15px] font-bold text-neutral-900">{loc.status === 'ok' && loc.place ? loc.place : t('checkIn.currentLocation')}</span>
+            <span className={`flex items-center gap-1 text-xs font-bold ${loc.status === 'ok' ? 'text-status-working' : loc.status === 'checking' ? 'text-neutral-500' : 'text-status-warn'}`}>
+              {loc.status === 'ok' && <Check className="h-3 w-3 shrink-0" strokeWidth={3} aria-hidden />}
+              <span className="truncate">
                 {loc.status === 'checking' && t('checkIn.locationChecking')}
-                {loc.status === 'ok' && `${t('checkIn.insideArea')} · ${t(GPS_LEVEL_COPY[gpsLevel(loc.accuracy)].title)}`}
-                {loc.status === 'low' && `${t(GPS_LEVEL_COPY[gpsLevel(loc.accuracy)].title)} · ${t(GPS_LEVEL_COPY[gpsLevel(loc.accuracy)].hint)}`}
+                {loc.status === 'ok' && `${t('checkIn.insideArea')} · ${t('checkIn.gpsAcc', { n: Math.round(loc.accuracy) })}`}
+                {loc.status === 'low' && t(GPS_LEVEL_COPY[gpsLevel(loc.accuracy)].title)}
                 {loc.status === 'error' && t('checkIn.locationError')}
                 {loc.status === 'blocked' && t('checkIn.locationBlocked', { places: loc.block.names, nearest: loc.block.nearest, distance: loc.block.distance })}
               </span>
             </span>
-            <span className="flex shrink-0 flex-col items-end gap-0.5">
-              {'accuracy' in loc && <span className="text-[11px] font-semibold text-neutral-500">{t('checkIn.gpsAcc', { n: Math.round(loc.accuracy) })}</span>}
-              <button type="button" onClick={() => void checkLocation()} disabled={loc.status === 'checking'} className="text-[13px] font-bold text-brand-500 disabled:opacity-50">
-                {t('checkIn.refresh')}
-              </button>
-            </span>
-          </section>
+          </span>
+          <span className="shrink-0 text-sm font-bold tabular-nums text-neutral-600">{formatTime(now.toISOString())}</span>
+        </section>
 
-          <section aria-label={t('checkIn.stepSelfie')} className="flex items-center gap-3.5 rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card">
-            <span className="relative flex h-[72px] w-[72px] shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-neutral-100 text-neutral-500">
-              {selfie ? <img src={selfie.url} alt="" className="h-full w-full object-cover" /> : <Camera className="h-7 w-7" aria-hidden />}
-              {selfie && (
-                <span className="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-status-working text-white">
-                  <Check className="h-3 w-3" strokeWidth={3} />
-                </span>
-              )}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-[15px] font-bold text-neutral-900">{selfie ? t('checkIn.selfieDone') : t('checkIn.stepSelfie')}</span>
-              <span className="block text-xs text-neutral-500">{t('checkIn.selfieTodo')}</span>
-              <button
-                type="button"
-                onClick={() => setCamera(true)}
-                className={`mt-2 inline-flex h-9 items-center gap-1.5 rounded-[10px] px-3 text-[13px] font-bold ${selfie ? 'border border-neutral-200 text-neutral-900' : 'bg-brand-500 text-white'}`}
-              >
-                {selfie ? <RotateCcw className="h-4 w-4" aria-hidden /> : <Camera className="h-4 w-4" aria-hidden />}
-                {selfie ? t('checkIn.retake') : t('checkIn.takeSelfie')}
-              </button>
-            </span>
-          </section>
+        {journey.error && (
+          <p role="alert" className="rounded-xl bg-status-danger/10 px-3 py-2.5 text-[13px] font-semibold text-status-danger">
+            {journey.error}
+          </p>
+        )}
 
-          {journey.error && (
-            <p role="alert" className="rounded-xl bg-status-danger/10 px-3 py-2.5 text-[13px] font-semibold text-status-danger">
-              {journey.error}
-            </p>
-          )}
-        </main>
+        <SlideToConfirm
+          label={stage === 'confirm' ? (isIn ? t('checkIn.slideConfirmIn') : t('checkIn.slideConfirmOut')) : isIn ? t('checkIn.slideToClockIn') : t('checkIn.slideToClockOut')}
+          variant={isIn ? 'soft' : 'danger'}
+          disabled={!ready}
+          busy={submitting || journey.busy}
+          onConfirm={() => void confirm()}
+        />
+      </div>
+    </BottomSheet>
+  )
+}
 
-        <div className="fixed inset-x-0 bottom-0 bg-neutral-50/95 px-4 pb-6 pt-3 backdrop-blur safe-bottom">
-          <div className="mx-auto max-w-md">
-            <SlideToConfirm
-              label={isIn ? t('checkIn.slideToClockIn') : t('checkIn.slideToClockOut')}
-              variant={isIn ? 'primary' : 'danger'}
-              disabled={!ready}
-              busy={submitting || journey.busy}
-              onConfirm={() => void confirm()}
-            />
-            <p className="mt-2 text-center text-xs text-neutral-500">
-              {!ready ? t('checkIn.needLocationSelfie') : isIn ? t('checkIn.confirmInNote') : journey.openVisit ? t('checkIn.alsoCheckOut') : t('checkIn.confirmOutNote')}
-            </p>
+/** Step 0 of the sheet while GPS settles (canvas Clock in, GPS states): rings, the accuracy pill and what it means. */
+function GpsRadar({ loc, onRefresh }: { loc: LocState; onRefresh: () => void }) {
+  const { t } = useLanguage()
+  const accuracy = 'accuracy' in loc ? loc.accuracy : null
+  const copy = accuracy != null && loc.status === 'low' ? GPS_LEVEL_COPY[gpsLevel(accuracy)] : null
+  const warn = loc.status === 'low' || loc.status === 'blocked'
+  const ring = warn ? 'border-status-warn' : 'border-brand-500'
+  const fill = warn ? 'bg-status-warn/10' : 'bg-brand-50'
+  const title = loc.status === 'checking' ? t('checkInFlow.findingYou') : copy ? t(copy.title) : t('checkIn.currentLocation')
+  const hint =
+    loc.status === 'checking'
+      ? t('checkInFlow.checkingGps')
+      : copy
+        ? t(copy.hint)
+        : loc.status === 'blocked'
+          ? t('checkIn.locationBlocked', { places: loc.block.names, nearest: loc.block.nearest, distance: loc.block.distance })
+          : ''
+  return (
+    <div className="flex flex-col items-center py-3">
+      <div className="relative flex h-[230px] w-[230px] items-center justify-center rounded-full border-2 border-neutral-200">
+        <div className={`flex h-[172px] w-[172px] items-center justify-center rounded-full border-[3px] ${ring} ${fill} ${loc.status === 'checking' ? 'animate-pulse' : ''}`}>
+          <div className="flex h-[108px] w-[108px] items-center justify-center rounded-full border-2 border-brand-500/30">
+            <span className={`flex h-14 w-14 items-center justify-center rounded-full text-white ${warn ? 'bg-status-warn' : 'bg-brand-500'}`}>
+              <MapPin className="h-7 w-7" aria-hidden />
+            </span>
           </div>
         </div>
+        {accuracy != null && (
+          <span className={`absolute bottom-[58px] inline-flex h-8 items-center gap-1.5 rounded-full bg-white px-3 text-[13px] font-bold shadow-card ${warn ? 'text-status-warn' : 'text-brand-500'}`}>
+            <span className="h-1.5 w-1.5 rounded-full bg-current" />±{Math.round(accuracy).toLocaleString('en-US')} m
+          </span>
+        )}
       </div>
-
-      <SelfieCaptureSheet
-        open={camera}
-        title={isIn ? t('checkIn.clockInSelfieTitle') : t('checkIn.clockOutSelfieTitle')}
-        onCancel={() => setCamera(false)}
-        onCapture={(blob) => {
-          setSelfie((s) => {
-            if (s) URL.revokeObjectURL(s.url)
-            return { blob, url: URL.createObjectURL(blob) }
-          })
-          setCamera(false)
-        }}
-      />
-    </FullScreenSheet>
+      <p className="mt-4 text-[19px] font-extrabold text-neutral-900">{title}</p>
+      <p className="mt-1 max-w-[280px] text-center text-[13px] font-semibold text-neutral-500">{hint}</p>
+      {loc.status !== 'checking' && (
+        <button type="button" onClick={onRefresh} className="mt-3 text-[13px] font-bold text-brand-500">
+          {t('checkIn.refresh')}
+        </button>
+      )}
+    </div>
   )
 }
 

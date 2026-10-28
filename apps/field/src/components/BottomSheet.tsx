@@ -12,6 +12,8 @@ interface SheetProps {
   children: ReactNode
   /** On desktop (1024px and up) show this as a right-hand side panel instead of a centred dialog -- for forms. */
   side?: boolean
+  /** Replaces the default title bar (the sheet still labels itself with `title`). */
+  header?: ReactNode
 }
 
 /** Shared bottom-sheet shell for selection/confirmation flows (spec: "Bottom sheets for selection where useful"). */
@@ -21,7 +23,7 @@ export function BottomSheet({ side, ...props }: SheetProps) {
   return <BottomSheetInner {...props} />
 }
 
-function BottomSheetInner({ open, onClose, title, children }: SheetProps) {
+function BottomSheetInner({ open, onClose, title, children, header }: SheetProps) {
   // Stays mounted slightly past `open` going false, so the close animation
   // (translate/opacity back to their starting values) has time to play
   // before the sheet actually leaves the DOM -- otherwise it would just
@@ -83,13 +85,15 @@ function BottomSheetInner({ open, onClose, title, children }: SheetProps) {
           visible ? 'translate-y-0 md:scale-100' : 'translate-y-full md:translate-y-0 md:scale-95'
         }`}
       >
-        <div className="flex items-center justify-between border-b border-neutral-100 px-5 py-4">
-          <h2 className="text-base font-semibold text-neutral-900">{title}</h2>
-          <button onClick={onClose} aria-label="Close" className="flex h-9 w-9 items-center justify-center rounded-full text-neutral-400 tap-target">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        <div className="max-h-[75vh] overflow-y-auto">{children}</div>
+        {header ?? (
+          <div className="flex items-center justify-between border-b border-neutral-100 px-5 py-4">
+            <h2 className="text-base font-semibold text-neutral-900">{title}</h2>
+            <button onClick={onClose} aria-label="Close" className="flex h-9 w-9 items-center justify-center rounded-full text-neutral-400 tap-target">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        )}
+        <div className={`${header ? 'max-h-[92vh]' : 'max-h-[75vh]'} overflow-y-auto`}>{children}</div>
       </div>
     </div>,
     document.body
