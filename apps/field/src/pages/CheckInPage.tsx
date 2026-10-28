@@ -1,17 +1,17 @@
 import { useVisitOrders, useVisitOrderTotals } from '@/features/orders/useVisitOrders'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { AlertTriangle, CalendarDays, Check, ChevronDown, ChevronRight, Clock, LogOut, MapPin, Moon, Store, X } from 'lucide-react'
+import { AlertTriangle, CalendarDays, Check, ChevronRight, Clock, LogOut, MapPin, Moon, Store, X } from 'lucide-react'
 import { useJourneyContext } from '@/features/attendance/JourneyContext'
 import type { AttendanceRow, VisitRow } from '@/features/attendance/types'
 import { ClockSheet } from '@/features/attendance/ClockSheet'
 import { computeJourneyStats } from '@/features/attendance/journeyStats'
-import { formatScore } from '@/features/attendance/effectivenessScore'
 import type { FlagRules } from '@/features/attendance/flagRules'
 import type { DayJourney } from '@/features/attendance/useJourneyHistory'
 import { SlideToConfirm } from '@/components/SlideToConfirm'
 import { VisitFlow, type PresetCustomer } from '@/features/visits/VisitFlow'
-import { HeroLocationCard, PlanSection, TodaySummaryCards, TodaysTimeline, WeekStrip } from '@/features/checkin/CheckInSections'
+import { HeroLocationCard, TodaySummaryCards, WeekStrip } from '@/features/checkin/CheckInSections'
+import { AppointmentsCard, Donut, GoalTile, PlanListCard } from '@/features/checkin/OnShiftCards'
 import { TripTodayCard } from '@/features/trips/TripTodayCard'
 import { useCustomerNames } from '@/features/customers/useCustomerNames'
 import { DayBar } from '@/features/fleet/DayBar'
@@ -42,10 +42,8 @@ export function CheckInPage() {
   const [clockSheet, setClockSheet] = useState<'in' | 'out' | null>(null)
   const [flowOpen, setFlowOpen] = useState(false)
   const [preset, setPreset] = useState<PresetCustomer | null>(null)
-  const [detailsOpen, setDetailsOpen] = useState(false)
   const clockRules = useClockRules()
   const canPlan = useCan('plan')
-  const canFootprints = useCan('footprints')
   const leaveToday = useApprovedLeaveOnDate(profile ? [profile.id] : [], todayDateString())[profile?.id ?? ''] as LeaveType | undefined
 
   const autoCheckoutCustomerId = journey.lastAutoCheckout?.visit.customer_id ?? null
@@ -113,7 +111,7 @@ export function CheckInPage() {
   const visitTarget = quota.dailyVisitTarget ?? settings.dailyVisitTarget
   const salesTarget = orderTargets[profile?.id ?? ''] ?? 0
   const salesToday = Object.values(orderTotals).reduce((sum, o) => sum + (o.totalUsd ?? 0), 0)
-  const visitsLine = stats.totalVisits === 0 ? t('checkIn.noVisitsYet') : t('checkIn.visitsSoFar', { n: stats.totalVisits })
+  const orderCount = Object.keys(orderTotals).length
 
   return (
     <div className="mx-auto max-w-lg pb-6 md:max-w-2xl">
@@ -138,114 +136,92 @@ export function CheckInPage() {
 
       <div className="space-y-3.5 px-4 pt-1.5 md:px-8 md:pt-4">
         {isClockedIn ? (
-          /* On shift: time worked, clock out, the day so far, then Check in (or the open visit). */
-          <section aria-label={t('checkIn.onShift')} className="relative overflow-hidden rounded-[22px] bg-brand-900 px-[18px] py-4 text-white">
+          /* On shift: the day so far (canvas Check in, clocked in), then Check in or the open visit. */
+          <section aria-label={t('checkIn.onShift')} className="rounded-[22px] border border-neutral-100 bg-white p-4 shadow-card">
             <div className="flex items-center justify-between gap-2">
-              <span className="inline-flex items-center gap-[7px] text-[13px] font-bold text-[#74E092]">
-                <span className="h-2 w-2 rounded-full bg-[#17CB49]" />
-                {t('checkIn.onShift')}
-                {clockInTime ? ` · ${t('checkIn.since', { time: formatTime(clockInTime) }).toLowerCase()}` : ''}
+              <span className="inline-flex h-7 items-center gap-2 rounded-full bg-status-working/10 px-3 text-[13px] font-bold text-status-working">
+                <span className="h-2 w-2 rounded-full bg-status-working" />
+                {t('checkIn.clockedInPill', { time: clockInTime ? formatTime(clockInTime) : '—' })}
               </span>
-              <button
-                type="button"
-                onClick={() => setDetailsOpen((v) => !v)}
-                aria-expanded={detailsOpen}
-                className="inline-flex h-[30px] items-center gap-1 rounded-full bg-white/10 px-2.5 text-[13px] font-bold"
-              >
-                {detailsOpen ? t('checkIn.hideDetails') : t('checkIn.shiftDetails')}
-                <ChevronDown className={`h-4 w-4 transition-transform ${detailsOpen ? 'rotate-180' : ''}`} aria-hidden />
-              </button>
+              <span className="text-[13px] font-semibold text-neutral-500">{shiftLabel}</span>
             </div>
-            <div className="mt-3 flex items-end justify-between gap-3">
-              <div>
-                <p className="text-[32px] font-extrabold leading-[38px] tracking-tight tabular-nums">{formatDuration(stats.totalWorkingMs, language)}</p>
-                <p className="mt-0.5 text-[13px] text-white/60">{t('checkIn.workedLabel')}</p>
+            <div className="mt-4 flex items-center gap-4">
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-neutral-500">{t('checkIn.withCustomers')}</p>
+                <p className="mt-1 text-[34px] font-extrabold leading-[40px] tracking-tight text-brand-500 tabular-nums">{formatDuration(stats.totalVisitingMs, language)}</p>
+                <p className="mt-0.5 text-[13px] text-neutral-500">
+                  {t('checkIn.visitsAvg', { n: stats.totalVisits, avg: formatDuration(stats.averageVisitMs, language) })}
+                </p>
               </div>
+              <span className="h-[84px] w-px shrink-0 bg-neutral-100" aria-hidden />
+              <div className="flex shrink-0 flex-col items-center">
+                <Donut ratio={stats.totalWorkingMs > 0 ? stats.totalVisitingMs / stats.totalWorkingMs : 0} />
+                <p className="mt-1 text-xs text-neutral-500">{t('checkIn.ofWorked', { n: formatDuration(stats.totalWorkingMs, language) })}</p>
+              </div>
+            </div>
+            <HeroDayBar attendance={journey.todaysAttendance} visits={journey.todaysVisits} workStart={settings.workStartTime} workEnd={settings.workEndTime} flagRules={settings.flagRules} customerNames={customerNames} />
+            <div className="mt-4 flex gap-4">
+              <GoalTile
+                label={t('nav.visits')}
+                value={String(stats.totalVisits)}
+                unit={visitTarget > 0 ? t('checkIn.ofVisits', { n: visitTarget }) : undefined}
+                ratio={visitTarget > 0 ? stats.totalVisits / visitTarget : null}
+                caption={visitTarget > 0 ? t('checkIn.left', { n: Math.max(0, visitTarget - stats.totalVisits) }) : undefined}
+              />
+              <span className="w-px shrink-0 bg-neutral-100" aria-hidden />
+              <GoalTile
+                label={t('checkIn.sales')}
+                value={`$${Math.round(salesToday).toLocaleString('en-US')}`}
+                unit={orderCount > 0 ? `(${orderCount})` : undefined}
+                ratio={salesTarget > 0 ? salesToday / salesTarget : null}
+                caption={salesTarget > 0 ? (salesToday >= salesTarget ? t('checkIn.targetReached') : t('checkIn.toGo', { n: `$${Math.round(salesTarget - salesToday).toLocaleString('en-US')}` })) : undefined}
+              />
+            </div>
+            {clockInLocationId && locationNames[clockInLocationId] && (
+              <p className="mt-3.5 flex items-center gap-1.5 text-[13px] font-semibold text-neutral-600">
+                <MapPin className="h-3.5 w-3.5 text-status-working" aria-hidden />
+                {locationNames[clockInLocationId]} · {t('checkIn.insideWork')}
+              </p>
+            )}
+
+            <div className="mt-3.5 flex gap-2.5">
+              {isVisiting && journey.openVisit ? (
+                <button type="button" onClick={() => openFlow()} className="flex min-h-[52px] min-w-0 flex-1 items-center gap-3 rounded-2xl bg-brand-50 p-2.5 text-left">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white">
+                    <Store className="h-5 w-5" aria-hidden />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-1.5 text-xs font-bold text-status-working">
+                      <span className="h-2 w-2 rounded-full bg-status-working" />
+                      {t('checkIn.visitInProgress', { duration: formatDuration(Date.now() - new Date(journey.openVisit.checked_in_at).getTime(), language) })}
+                    </span>
+                    <span className="block truncate text-[15px] font-bold text-neutral-900">
+                      {journey.openVisit.customer_id ? (customerNames[journey.openVisit.customer_id] ?? t('common.loading')) : t('common.unassignedVisit')}
+                    </span>
+                  </span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-brand-500" aria-hidden />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => openFlow()}
+                  disabled={journey.busy}
+                  className="flex h-[52px] min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl bg-brand-500 text-base font-extrabold text-white disabled:opacity-60"
+                >
+                  <MapPin className="h-5 w-5" aria-hidden />
+                  {t('checkIn.checkInButton')}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setClockSheet('out')}
                 disabled={journey.busy}
-                className="flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-white/30 bg-white/[.08] px-3.5 text-sm font-bold text-[#ffb8b8] disabled:opacity-50"
+                aria-label={t('checkIn.clockOutTitle')}
+                className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl border border-neutral-200 bg-white text-status-danger disabled:opacity-50"
               >
-                <LogOut className="h-[17px] w-[17px]" aria-hidden />
-                {t('checkIn.clockOutTitle')}
+                <LogOut className="h-5 w-5" aria-hidden />
               </button>
             </div>
-            <HeroDayBar attendance={journey.todaysAttendance} visits={journey.todaysVisits} workStart={settings.workStartTime} workEnd={settings.workEndTime} flagRules={settings.flagRules} customerNames={customerNames} />
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              <HeroTile label={t('checkIn.statActive')} value={formatDuration(stats.totalVisitingMs, language)} />
-              <HeroTile
-                label={t('nav.visits')}
-                value={String(stats.totalVisits)}
-                sub={visitTarget > 0 ? `${t('checkIn.ofVisits', { n: visitTarget })} · ${t('checkIn.left', { n: Math.max(0, visitTarget - stats.totalVisits) })}` : undefined}
-              />
-              <HeroTile
-                label={t('checkIn.sales')}
-                value={`$${Math.round(salesToday).toLocaleString('en-US')}`}
-                sub={salesTarget > 0 ? (salesToday >= salesTarget ? t('checkIn.targetReached') : t('checkIn.toGo', { n: `$${Math.round(salesTarget - salesToday).toLocaleString('en-US')}` })) : undefined}
-              />
-            </div>
-            <p className="mt-2 text-[13px] text-white/60">{visitsLine}</p>
-
-            {isVisiting && journey.openVisit ? (
-              <button
-                type="button"
-                onClick={() => openFlow()}
-                className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-[#ffffff] p-3 text-left"
-              >
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white">
-                  <Store className="h-5 w-5" aria-hidden />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-1.5 text-xs font-bold text-status-working">
-                    <span className="h-2 w-2 rounded-full bg-status-working" />
-                    {t('checkIn.visitInProgress', { duration: formatDuration(Date.now() - new Date(journey.openVisit.checked_in_at).getTime(), language) })}
-                  </span>
-                  <span className="block truncate text-[15px] font-bold text-[#232323]">
-                    {journey.openVisit.customer_id ? (customerNames[journey.openVisit.customer_id] ?? t('common.loading')) : t('common.unassignedVisit')}
-                  </span>
-                  <span className="block text-xs text-[#666666]">{t('checkIn.checkedInAt', { time: formatTime(journey.openVisit.checked_in_at) })}</span>
-                </span>
-                <span className="inline-flex shrink-0 items-center gap-0.5 text-[13px] font-bold text-[#006ACC]">
-                  {t('checkIn.goToVisit')}
-                  <ChevronRight className="h-4 w-4" aria-hidden />
-                </span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => openFlow()}
-                disabled={journey.busy}
-                className="mt-3 flex h-[50px] w-full items-center justify-center gap-2 rounded-[14px] bg-[#ffffff] text-base font-extrabold text-[#2b2b2b] disabled:opacity-60"
-              >
-                <MapPin className="h-5 w-5" aria-hidden />
-                {t('checkIn.checkInButton')}
-              </button>
-            )}
-
-            {detailsOpen && (
-              <div className="mt-3 flex flex-col gap-3 border-t border-white/10 pt-3">
-                <div className="grid grid-cols-3">
-                  <HeroFact label={t('nav.visits')} value={String(stats.totalVisits)} />
-                  <HeroFact label={t('checkIn.statActive')} value={formatDuration(stats.totalVisitingMs, language)} />
-                  <HeroFact label={t('checkIn.effectiveness')} value={formatScore(stats.score)} />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="rounded-xl bg-white/[.06] px-3 py-2.5">
-                    <p className="text-xs text-white/60">{t('checkIn.clockedIn')}</p>
-                    <p className="mt-0.5 truncate text-sm font-bold">
-                      {clockInTime ? formatTime(clockInTime) : '—'}
-                      {clockInLocationId && locationNames[clockInLocationId] ? ` · ${locationNames[clockInLocationId]}` : ''}
-                    </p>
-                  </div>
-                  <div className="rounded-xl bg-white/[.06] px-3 py-2.5">
-                    <p className="text-xs text-white/60">{t('checkIn.shiftLabel')}</p>
-                    <p className="mt-0.5 truncate text-sm font-bold">{shiftLabel}</p>
-                  </div>
-                </div>
-                <p className="text-[12.5px] text-white/60">{isVisiting ? t('checkIn.alsoCheckOut') : t('checkIn.confirmOutNote')}</p>
-              </div>
-            )}
           </section>
         ) : leaveToday ? (
           /* Approved leave today: no clock-in needed, but working anyway is still possible. */
@@ -333,17 +309,10 @@ export function CheckInPage() {
 
         {isClockedIn && <TripTodayCard />}
         {isClockedIn ? (
-          /* On shift: the next stop and the plan (or a nudge to build one), then today as a timeline. */
+          /* On shift: the plan, then today's appointments. */
           <>
-            {canPlan && <PlanSection onCheckIn={(stop) => openFlow({ id: stop.customer_id, shopName: stop.shop_name })} busy={journey.busy || isVisiting} />}
-            <TodaysTimeline
-              visits={journey.todaysVisits}
-              customerNames={customerNames}
-              clockInAt={clockInTime}
-              clockInPlace={clockInLocationId ? (locationNames[clockInLocationId] ?? null) : null}
-              shiftStart={settings.workStartTime}
-              showJourney={canFootprints}
-            />
+            {canPlan && <PlanListCard onCheckIn={(stop) => openFlow({ id: stop.customer_id, shopName: stop.shop_name })} busy={journey.busy || isVisiting} />}
+            <AppointmentsCard />
           </>
         ) : (
           /* Before clock-in: nothing below the slide, as on the canvas. */
@@ -365,25 +334,6 @@ function HeroRings() {
       <circle cx="95" cy="95" r="90" fill="none" stroke="rgba(255,255,255,.1)" strokeWidth="1" />
       <circle cx="95" cy="95" r="64" fill="none" stroke="rgba(255,255,255,.1)" strokeWidth="1" />
     </svg>
-  )
-}
-
-function HeroTile({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <div className="rounded-xl bg-white/[.07] px-2.5 py-2">
-      <p className="truncate text-[11px] font-bold uppercase tracking-[0.04em] text-white/60">{label}</p>
-      <p className="mt-0.5 truncate text-[17px] font-extrabold tabular-nums">{value}</p>
-      {sub && <p className="text-[11px] leading-[14px] text-white/60">{sub}</p>}
-    </div>
-  )
-}
-
-function HeroFact({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-xs text-white/60">{label}</p>
-      <p className="mt-0.5 text-lg font-extrabold">{value}</p>
-    </div>
   )
 }
 
@@ -424,8 +374,8 @@ function HeroDayBar({
       from={from}
       to={to}
       size="lg"
-      tone="hero"
-      className="mt-3"
+      tone="card"
+      className="mt-4"
       label={`${live.length} ${live.length === 1 ? 'visit' : 'visits'} since ${formatTime(new Date(from).toISOString())}`}
       describe={(g) => segText(g, name(g))}
     />
