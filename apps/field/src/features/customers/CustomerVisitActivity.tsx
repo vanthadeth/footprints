@@ -23,8 +23,8 @@ function hashIndex(id: string, n: number): number {
 }
 
 /**
- * The detail page's visit picture: four metric tiles (last visit, visits in
- * 90 days, frequency, last outcome), the next planned visit, and everyone's
+ * The detail page's visit picture: two compact tiles (last visit, last
+ * outcome), the next planned visit, and everyone's
  * visits with date, who and outcome. Voided visits are listed but faded and
  * never counted.
  */
@@ -36,9 +36,9 @@ export function CustomerVisitActivity({ rows, loading }: { rows: ActivityRow[]; 
 
   if (loading) {
     return (
-      <div className="mt-3 grid grid-cols-2 gap-2.5">
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="h-[84px] animate-pulse rounded-2xl bg-neutral-100" />
+      <div className="grid grid-cols-2 gap-2">
+        {[0, 1].map((i) => (
+          <div key={i} className="h-[62px] animate-pulse rounded-2xl bg-neutral-100" />
         ))}
       </div>
     )
@@ -53,18 +53,6 @@ export function CustomerVisitActivity({ rows, loading }: { rows: ActivityRow[]; 
       tone: 'text-neutral-900',
     },
     {
-      label: 'Visits · 90 days',
-      value: String(m.visits90),
-      sub: m.visits90 ? `by ${m.people90} ${m.people90 === 1 ? 'person' : 'people'}` : 'none yet',
-      tone: 'text-neutral-900',
-    },
-    {
-      label: 'Visit frequency',
-      value: m.freqDays ? `~${m.freqDays} days` : '—',
-      sub: m.freqDays ? 'average gap, last 90 days' : 'needs 2 visits in 90 days',
-      tone: m.freqDays == null ? 'text-neutral-900' : m.freqDays <= 14 ? 'text-status-working' : 'text-status-warn',
-    },
-    {
       label: 'Last outcome',
       value: last?.order_status ?? last?.visit_status ?? '—',
       sub: last ? [last.order_amount ? formatUsd0(last.order_amount) : null, last.payment_status].filter(Boolean).join(' · ') || (last.visit_status ?? '') : '',
@@ -75,12 +63,12 @@ export function CustomerVisitActivity({ rows, loading }: { rows: ActivityRow[]; 
 
   return (
     <>
-      <div className="mt-3 grid grid-cols-2 gap-2.5">
+      <div className="grid grid-cols-2 gap-2">
         {tiles.map((t) => (
-          <div key={t.label} className="flex flex-col gap-0.5 rounded-2xl bg-white px-3.5 py-3 shadow-card">
-            <span className="text-[11.5px] font-bold uppercase tracking-wide text-neutral-500">{t.label}</span>
-            <span className={`truncate text-[22px] font-extrabold tabular-nums ${t.tone}`}>{t.value}</span>
-            <span className="truncate text-xs text-neutral-600">{t.sub}</span>
+          <div key={t.label} className="flex min-w-0 flex-col rounded-2xl bg-white px-3 py-2 shadow-card">
+            <span className="text-[11px] font-bold uppercase tracking-wide text-neutral-500">{t.label}</span>
+            <span className={`truncate text-[17px] font-extrabold leading-6 tabular-nums ${t.tone}`}>{t.value}</span>
+            <span className="truncate text-[11.5px] text-neutral-600">{t.sub}</span>
           </div>
         ))}
       </div>
@@ -92,7 +80,7 @@ export function CustomerVisitActivity({ rows, loading }: { rows: ActivityRow[]; 
         </p>
       )}
 
-      <div className="mt-3 rounded-2xl bg-white px-3.5 py-1 shadow-card">
+      <div className="mt-2 rounded-2xl bg-white px-3.5 py-1 shadow-card">
         <p className="mb-0.5 mt-2.5 flex justify-between text-[11.5px] font-extrabold uppercase tracking-wide text-neutral-500">
           <span>Visit activity</span>
           <span>{m.visits90} in 90 days</span>
