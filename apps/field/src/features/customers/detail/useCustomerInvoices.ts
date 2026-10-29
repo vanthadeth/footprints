@@ -12,7 +12,7 @@ export function useCustomerInvoices(customerId: string | undefined) {
     let cancelled = false
     setLoading(true)
     ;(supabase.from('invoice_details' as never) as unknown as { select: (c: string) => { eq: (k: string, v: string) => { order: (c: string, o: { ascending: boolean }) => { limit: (n: number) => PromiseLike<{ data: unknown; error: { message: string } | null }> } } } })
-      .select('id, inv_no, inv_date, inv_value, is_khr, status, sent_date, received_date, so_sheet_id, due_date')
+      .select('id, inv_no, inv_date, inv_value, is_khr, status, sent_date, received_date, so_sheet_id, sale_order_id, user_id, due_date')
       .eq('customer_id', customerId)
       .order('inv_date', { ascending: false })
       .limit(200)
