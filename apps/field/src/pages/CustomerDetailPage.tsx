@@ -1,20 +1,21 @@
 import { useEffect, useState } from 'react'
 import { useTab } from '@/hooks/useTab'
-import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, ChevronRight, Construction, MapPin, Navigation, NotebookPen, Phone, ReceiptText, Store } from 'lucide-react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { ArrowLeft, Construction, MapPin, Navigation, NotebookPen, Phone, Store } from 'lucide-react'
 import { customersService, type CustomerDirectoryRow } from '@/features/customers/customersService'
 import { VisitFlow, type PresetCustomer } from '@/features/visits/VisitFlow'
 import { TierCard } from '@/features/customers/TierCard'
+import { OrdersTab } from '@/features/customers/detail/OrdersTab'
+import { PaymentsTab } from '@/features/customers/detail/PaymentsTab'
+import { agoText } from '@/features/customers/detail/timeline'
+import { todayDateString } from '@/lib/dateRange'
 import { CustomerVisitActivity } from '@/features/customers/CustomerVisitActivity'
-import { CustomerCalendar } from '@/features/customers/CustomerCalendar'
 import { useCustomerActivity } from '@/features/customers/useCustomerBook'
 import { CUSTOMER_MANAGEMENT_ENABLED } from '@/lib/featureFlags'
 import { useProfile } from '@footprints/shared/features/auth/useProfile'
 import { ConversationSection } from '@/features/conversations/ConversationSection'
-import { sheetSyncService } from '@footprints/shared/features/sheetSync/sheetSyncService'
 import { LogCallSheet } from '@/features/conversations/LogCallSheet'
 import { conversationsService } from '@/features/conversations/conversationsService'
-import { ordersService } from '@/features/orders/ordersService'
 import type { ConversationKind } from '@/features/conversations/conversationMeta'
 
 const usd = (n: number) => (n < 0 ? '-' : '') + '$' + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -53,24 +54,15 @@ function CustomerDetail() {
   const [canLog, setCanLog] = useState(false)
   const [logKind, setLogKind] = useState<ConversationKind | null>(null)
   const [conversationKey, setConversationKey] = useState(0)
-  const [tab, setTab] = useTab(['info', 'cal', 'conv'] as const, 'info')
-  // When balances last came from the Google Sheet sync ("as of" next to the balance).
-  const [balanceAsOf, setBalanceAsOf] = useState<string | null>(null)
-  const [orders, setOrders] = useState<{ total: number; latest: string | null } | null>(null)
-
-  useEffect(() => {
-    sheetSyncService.balanceAsOf().then(setBalanceAsOf).catch(() => {})
-  }, [])
+  const [tab, setTab] = useTab(['info', 'orders', 'payments', 'conv'] as const, 'info')
+  const [interFilter, setInterFilter] = useState<'all' | 'visits' | 'notes'>('all')
+  const today = todayDateString()
 
   useEffect(() => {
     if (!id) return
     let cancelled = false
     setLoading(true)
     setError(null)
-    ordersService
-      .summary(id)
-      .then((o) => !cancelled && setOrders(o))
-      .catch(() => !cancelled && setOrders(null))
     conversationsService
       .canLog(id)
       .then((ok) => {
@@ -121,7 +113,6 @@ function CustomerDetail() {
       : (customer.street_address ?? customer.shop_name ?? '')
 
   const sub = [customer.business_type, customer.district_name, customer.province_name].filter(Boolean).join(' · ')
-  const owes = customer.balance_usd ?? 0
 
   return (
     <div className="mx-auto max-w-lg pb-6 md:max-w-2xl lg:max-w-6xl">
@@ -161,14 +152,19 @@ function CustomerDetail() {
               <MapPin className="h-4 w-4" aria-hidden /> Visit
             </button>
           </div>
+          <div className="mt-3.5 grid grid-cols-2 gap-3 border-t border-neutral-100 pt-3">
+            <KeyFigure label="Last purchase" date={customer.last_purchase_date} today={today} />
+            <KeyFigure label="Last visit" date={customer.last_visit_date} today={today} />
+          </div>
         </section>
 
         <div role="tablist" aria-label="Customer" className="flex gap-0.5 rounded-xl bg-neutral-100 p-[3px] lg:max-w-xl">
           {(
             [
-              ['info', 'Information'],
-              ['cal', 'Calendar'],
-              ['conv', 'Conversation'],
+              ['info', 'Info'],
+              ['orders', 'Orders'],
+              ['payments', 'Payments'],
+              ['conv', 'Interactions'],
             ] as const
           ).map(([k, label]) => (
             <button
@@ -185,57 +181,69 @@ function CustomerDetail() {
         </div>
 
         {tab === 'info' && (
-          <div className="flex flex-col gap-3.5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
-            <div className="flex flex-col gap-3.5">
-            <div className="overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-card">
-              <InfoRow label="Owes" value={customer.balance_usd != null ? usd(customer.balance_usd) : '—'} note={customer.balance_usd != null && balanceAsOf ? `as of ${shortDate(balanceAsOf)}` : undefined} tone={owes > 0 ? 'text-status-danger' : undefined} />
-              {customer.credit_limit_usd != null && <InfoRow label="Credit limit" value={usd(customer.credit_limit_usd)} />}
-              <InfoRow label="Last purchase" value={customer.last_purchase_date ? shortDate(customer.last_purchase_date) : '—'} />
-              <InfoRow label="Last visit" value={customer.last_visit_date ? shortDate(customer.last_visit_date) : '—'} />
-              <InfoRow label="Contact" value={[customer.primary_contact_name, customer.primary_contact_phone].filter(Boolean).join(' · ') || '—'} />
+          <div className="flex flex-col gap-3.5 lg:max-w-xl">
+            <TierCard customerId={customer.id!} />
+            <InfoGroup title="Contact">
+              <InfoRow label={customer.primary_contact_name ?? 'Contact'} value={customer.primary_contact_phone ?? '—'} />
               <InfoRow label="Address" value={[customer.street_address, customer.commune_name, customer.district_name, customer.province_name].filter(Boolean).join(', ') || '—'} />
               {customer.owner_name && <InfoRow label="Salesperson" value={customer.owner_name} />}
-            </div>
-            <Link
-              to={`/customers/${customer.id}/orders`}
-              state={{ name: customer.shop_name }}
-              className="flex items-center gap-3 rounded-2xl border border-neutral-100 bg-white px-3.5 py-3 shadow-card"
-            >
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-200">
-                <ReceiptText className="h-5 w-5" aria-hidden />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-[15px] font-bold text-neutral-900">Order history</span>
-                <span className="block truncate text-[12.5px] text-neutral-500">
-                  {orders == null ? 'Status and approval of each order' : orders.total === 0 ? 'No orders yet' : `${orders.total.toLocaleString('en-US')} ${orders.total === 1 ? 'order' : 'orders'}${orders.latest ? ` · latest ${shortDate(orders.latest)}` : ''}`}
-                </span>
-              </span>
-              <ChevronRight className="h-5 w-5 shrink-0 text-neutral-400" aria-hidden />
-            </Link>
-            <TierCard customerId={customer.id!} />
-            </div>
-            <div className="flex flex-col gap-3.5">
-            {activity.error && <p className="rounded-xl bg-status-danger/10 px-3 py-2 text-sm text-status-danger">{activity.error}</p>}
-            <CustomerVisitActivity rows={activity.data} loading={activity.loading} />
-            </div>
+            </InfoGroup>
+            {customer.credit_limit_usd != null && (
+              <InfoGroup title="Account">
+                <InfoRow
+                  label="Credit limit"
+                  value={usd(customer.credit_limit_usd)}
+                  note={customer.balance_usd != null ? `${usd(Math.max(0, customer.credit_limit_usd - customer.balance_usd))} left` : undefined}
+                />
+              </InfoGroup>
+            )}
           </div>
         )}
 
-        {tab === 'cal' && <CustomerCalendar rows={activity.data} />}
+        {tab === 'orders' && <OrdersTab customerId={customer.id!} today={today} />}
+
+        {tab === 'payments' && <PaymentsTab customerId={customer.id!} balance={customer.balance_usd ?? null} today={today} />}
 
         {tab === 'conv' && (
-          <>
+          <div className="flex flex-col gap-3">
             {canLog && (
-              <button
-                type="button"
-                onClick={() => setLogKind('note')}
-                className="flex h-11 items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white text-sm font-bold text-neutral-900"
-              >
-                <NotebookPen className="h-4 w-4" aria-hidden /> Add a note
-              </button>
+              <div className="grid grid-cols-2 gap-2">
+                <button type="button" onClick={() => setLogKind('note')} className="flex h-11 items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white text-sm font-bold text-neutral-900">
+                  <NotebookPen className="h-4 w-4" aria-hidden /> Add a note
+                </button>
+                <button type="button" onClick={() => setLogKind('call')} className="flex h-11 items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white text-sm font-bold text-neutral-900">
+                  <Phone className="h-4 w-4" aria-hidden /> Log a call
+                </button>
+              </div>
             )}
-            <ConversationSection customerId={customer.id!} meId={profile?.id ?? null} refreshKey={conversationKey} onLogCall={canLog ? () => setLogKind('call') : undefined} />
-          </>
+            <div role="radiogroup" aria-label="Filter" className="flex gap-1.5">
+              {(
+                [
+                  ['all', 'All'],
+                  ['visits', 'Visits'],
+                  ['notes', 'Notes & calls'],
+                ] as const
+              ).map(([k, label]) => (
+                <button
+                  key={k}
+                  type="button"
+                  role="radio"
+                  aria-checked={interFilter === k}
+                  onClick={() => setInterFilter(k)}
+                  className={`h-8 rounded-full border px-3 text-xs font-bold ${interFilter === k ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-neutral-200 bg-white text-neutral-600'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {interFilter !== 'notes' && (
+              <>
+                {activity.error && <p className="rounded-xl bg-status-danger/10 px-3 py-2 text-sm text-status-danger">{activity.error}</p>}
+                <CustomerVisitActivity rows={activity.data} loading={activity.loading} />
+              </>
+            )}
+            {interFilter !== 'visits' && <ConversationSection customerId={customer.id!} meId={profile?.id ?? null} refreshKey={conversationKey} onLogCall={undefined} />}
+          </div>
         )}
       </div>
 
@@ -278,5 +286,24 @@ function InfoRow({ label, value, note, tone = 'text-neutral-900' }: { label: str
         {note && <span className="block text-xs text-neutral-500">{note}</span>}
       </span>
     </div>
+  )
+}
+
+function KeyFigure({ label, date, today }: { label: string; date: string | null | undefined; today: string }) {
+  return (
+    <div>
+      <p className="text-xs text-neutral-500">{label}</p>
+      <p className="text-[17px] font-extrabold text-neutral-900">{agoText(date ?? null, today)}</p>
+      {date && <p className="text-xs text-neutral-500">{shortDate(date)}</p>}
+    </div>
+  )
+}
+
+function InfoGroup({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section aria-label={title}>
+      <p className="px-0.5 pb-1.5 text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">{title}</p>
+      <div className="overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-card">{children}</div>
+    </section>
   )
 }
