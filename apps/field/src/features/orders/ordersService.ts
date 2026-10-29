@@ -19,11 +19,12 @@ export interface CustomerOrder {
   so_type: string | null
   note: string | null
   assign_to: string | null
+  user_id: string | null
   sheet_created_at: string | null
 }
 
 const COLUMNS =
-  'id, order_no, status, order_date, delivery_date, total_usd, total_khr, is_khr, sheet_status, approved, approved_by, approved_at, stock_checked, payment_term, so_type, note, assign_to, sheet_created_at'
+  'id, order_no, status, order_date, delivery_date, total_usd, total_khr, is_khr, sheet_status, approved, approved_by, approved_at, stock_checked, payment_term, so_type, note, assign_to, user_id, sheet_created_at'
 
 export const PAGE = 30
 

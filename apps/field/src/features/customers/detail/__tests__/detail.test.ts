@@ -33,13 +33,21 @@ describe('timeline', () => {
     expect(agoText('2026-09-28', '2026-10-28')).toBe('4 weeks ago')
     expect(agoText(null, '2026-10-28')).toBe('—')
   })
-  it('merges orders and invoices newest first', () => {
-    const rows = orderEntries(
-      [{ id: 'o1', order_no: 'SO-1', status: 'new', order_date: '2026-10-01', total_usd: 100, total_khr: null, is_khr: false, approved: true } as never],
-      [{ id: 'i1', inv_no: '2026-1', inv_date: '2026-10-05', inv_value: 100, is_khr: false, status: 5, sent_date: '2026-10-06', received_date: null, so_sheet_id: null, due_date: null }]
-    )
-    expect(rows.map((r) => r.key)).toEqual(['inv-i1', 'so-o1'])
-    expect(rows[0].chip.label).toBe('Submitted')
-    expect(rows[0].sub).toBe('Invoice · Sent')
+  it('shows a sale order under its invoice, and alone when not invoiced', () => {
+    const so = (id: string, no: string, date: string) => ({ id, order_no: no, status: 'new', order_date: date, total_usd: 100, total_khr: null, is_khr: false, approved: true, user_id: 'u1' }) as never
+    const inv = { id: 'i1', inv_no: '2026-1', inv_date: '2026-10-05', inv_value: 90, is_khr: false, status: 5, sent_date: '2026-10-06', received_date: null, so_sheet_id: null, sale_order_id: 'o1', user_id: 'u2', due_date: null }
+    const rows = orderEntries([so('o1', 'SO-1', '2026-10-01'), so('o2', 'SO-2', '2026-10-08')], [inv])
+    expect(rows.map((r) => r.key)).toEqual(['so-o2', 'inv-i1'])
+    expect(rows[0].kind).toBe('so')
+    expect(rows[1].ref).toEqual({ no: 'SO-1', amount: '$100.00' })
+    expect(rows[1].chip.label).toBe('Sent')
+    expect(rows[1].userId).toBe('u2')
+  })
+  it('keeps an invoice whose sale order is not loaded', () => {
+    const inv = { id: 'i1', inv_no: '2026-1', inv_date: '2026-10-05', inv_value: 90, is_khr: false, status: 9, sent_date: null, received_date: null, so_sheet_id: null, sale_order_id: 'gone', user_id: null, due_date: null }
+    const rows = orderEntries([], [inv])
+    expect(rows).toHaveLength(1)
+    expect(rows[0].ref).toBeNull()
+    expect(rows[0].chip.label).toBe('Void')
   })
 })
