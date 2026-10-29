@@ -1,16 +1,17 @@
 import { useVisitOrders, useVisitOrderTotals } from '@/features/orders/useVisitOrders'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { AlertTriangle, CalendarDays, CalendarPlus, Check, ChevronDown, ChevronRight, Clock, LogOut, MapPin, Moon, Store, X } from 'lucide-react'
+import { AlertTriangle, CalendarDays, Check, ChevronRight, Clock, LogOut, MapPin, Moon, Store, X } from 'lucide-react'
 import { useJourneyContext } from '@/features/attendance/JourneyContext'
 import type { AttendanceRow, VisitRow } from '@/features/attendance/types'
 import { ClockSheet } from '@/features/attendance/ClockSheet'
 import { computeJourneyStats } from '@/features/attendance/journeyStats'
-import { formatScore } from '@/features/attendance/effectivenessScore'
 import type { FlagRules } from '@/features/attendance/flagRules'
 import type { DayJourney } from '@/features/attendance/useJourneyHistory'
+import { SlideToConfirm } from '@/components/SlideToConfirm'
 import { VisitFlow, type PresetCustomer } from '@/features/visits/VisitFlow'
-import { HeroLocationCard, PlanSection, TodayCard, TodaysTimeline, WeekStrip } from '@/features/checkin/CheckInSections'
+import { HeroLocationCard, TodaySummaryCards, WeekStrip } from '@/features/checkin/CheckInSections'
+import { AppointmentsCard, Donut, GoalTile, PlanListCard } from '@/features/checkin/OnShiftCards'
 import { TripTodayCard } from '@/features/trips/TripTodayCard'
 import { useCustomerNames } from '@/features/customers/useCustomerNames'
 import { DayBar } from '@/features/fleet/DayBar'
@@ -21,28 +22,28 @@ import { LEAVE_TYPE_LABEL, type LeaveType } from '@/features/leave/types'
 import { displayName } from '@footprints/shared/lib/displayName'
 import { useAppSettings } from '@/hooks/useAppSettings'
 import { summarizeAttendanceTimes } from '@/features/attendance/stateMachine'
-import { greeting, formatDuration, formatTime, isPastTimeOfDay, isWithinClockInWindow, shiftTimeOfDay } from '@footprints/shared/lib/datetime'
+import { formatDuration, formatTime, isPastTimeOfDay, isWithinClockInWindow, shiftTimeOfDay } from '@footprints/shared/lib/datetime'
 import { todayDateString } from '@/lib/dateRange'
 import { useProfile } from '@footprints/shared/features/auth/useProfile'
 import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 import { useCan } from '@footprints/shared/features/permissions/PermissionsContext'
 import { useClockRules } from '@footprints/shared/features/permissions/clockRules'
 import { useOrderTargets } from '@/features/orders/useOrderTargets'
+import { useMyQuota } from '@/features/attendance/useMyQuota'
 
 
 export function CheckInPage() {
   const journey = useJourneyContext()
   const { profile } = useProfile()
   const orderTargets = useOrderTargets()
+  const quota = useMyQuota(profile?.id ?? null)
   const { t, language } = useLanguage()
   const settings = useAppSettings()
   const [clockSheet, setClockSheet] = useState<'in' | 'out' | null>(null)
   const [flowOpen, setFlowOpen] = useState(false)
   const [preset, setPreset] = useState<PresetCustomer | null>(null)
-  const [detailsOpen, setDetailsOpen] = useState(false)
   const clockRules = useClockRules()
   const canPlan = useCan('plan')
-  const canFootprints = useCan('footprints')
   const leaveToday = useApprovedLeaveOnDate(profile ? [profile.id] : [], todayDateString())[profile?.id ?? ''] as LeaveType | undefined
 
   const autoCheckoutCustomerId = journey.lastAutoCheckout?.visit.customer_id ?? null
@@ -107,7 +108,10 @@ export function CheckInPage() {
         ? { text: t('checkIn.lateBy', { n: formatDuration(-untilStart * 60_000, language) }), tone: 'text-[#FFB257]' }
         : null
   const leaveLabel = leaveToday === 'annual' ? t('profile.annual') : leaveToday === 'sick' ? t('profile.sick') : leaveToday ? LEAVE_TYPE_LABEL[leaveToday] : ''
-  const visitsLine = stats.totalVisits === 0 ? t('checkIn.noVisitsYet') : t('checkIn.visitsSoFar', { n: stats.totalVisits })
+  const visitTarget = quota.dailyVisitTarget ?? settings.dailyVisitTarget
+  const salesTarget = orderTargets[profile?.id ?? ''] ?? 0
+  const salesToday = Object.values(orderTotals).reduce((sum, o) => sum + (o.totalUsd ?? 0), 0)
+  const orderCount = Object.keys(orderTotals).length
 
   return (
     <div className="mx-auto max-w-lg pb-6 md:max-w-2xl">
@@ -130,103 +134,94 @@ export function CheckInPage() {
         />
       )}
 
-      <div className="space-y-3.5 px-4 pt-1.5 md:px-8 md:pt-4">
+      <div className="flex min-h-[calc(100dvh-11rem)] flex-col gap-3.5 px-4 pt-1.5 md:px-8 md:pt-4">
         {isClockedIn ? (
-          /* On shift: time worked, clock out, the day so far, then Check in (or the open visit). */
-          <section aria-label={t('checkIn.onShift')} className="relative overflow-hidden rounded-[22px] bg-brand-900 px-[18px] py-4 text-white">
+          /* On shift: the day so far (canvas Check in, clocked in), then Check in or the open visit. */
+          <section aria-label={t('checkIn.onShift')} className="rounded-[22px] border border-neutral-100 bg-white p-4 shadow-card">
             <div className="flex items-center justify-between gap-2">
-              <span className="inline-flex items-center gap-[7px] text-[13px] font-bold text-[#74E092]">
-                <span className="h-2 w-2 rounded-full bg-[#17CB49]" />
-                {t('checkIn.onShift')}
-                {clockInTime ? ` · ${t('checkIn.since', { time: formatTime(clockInTime) }).toLowerCase()}` : ''}
+              <span className="inline-flex h-7 items-center gap-2 rounded-full bg-status-working/10 px-3 text-[13px] font-bold text-status-working">
+                <span className="h-2 w-2 rounded-full bg-status-working" />
+                {t('checkIn.clockedInPill', { time: clockInTime ? formatTime(clockInTime) : '—' })}
               </span>
-              <button
-                type="button"
-                onClick={() => setDetailsOpen((v) => !v)}
-                aria-expanded={detailsOpen}
-                className="inline-flex h-[30px] items-center gap-1 rounded-full bg-white/10 px-2.5 text-[13px] font-bold"
-              >
-                {detailsOpen ? t('checkIn.hideDetails') : t('checkIn.shiftDetails')}
-                <ChevronDown className={`h-4 w-4 transition-transform ${detailsOpen ? 'rotate-180' : ''}`} aria-hidden />
-              </button>
+              <span className="text-[13px] font-semibold text-neutral-500">{shiftLabel}</span>
             </div>
-            <div className="mt-3 flex items-end justify-between gap-3">
-              <div>
-                <p className="text-[32px] font-extrabold leading-[38px] tracking-tight tabular-nums">{formatDuration(stats.totalWorkingMs, language)}</p>
-                <p className="mt-0.5 text-[13px] text-white/60">{t('checkIn.workedLabel')}</p>
+            <div className="mt-4 flex items-center gap-4">
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-neutral-500">{t('checkIn.withCustomers')}</p>
+                <p className="mt-1 text-[34px] font-extrabold leading-[40px] tracking-tight text-brand-500 tabular-nums">{formatDuration(stats.totalVisitingMs, language)}</p>
+                <p className="mt-0.5 text-[13px] text-neutral-500">
+                  {t('checkIn.visitsAvg', { n: stats.totalVisits, avg: formatDuration(stats.averageVisitMs, language) })}
+                </p>
               </div>
+              <span className="h-[84px] w-px shrink-0 bg-neutral-100" aria-hidden />
+              <div className="flex shrink-0 flex-col items-center">
+                <Donut ratio={stats.totalWorkingMs > 0 ? stats.totalVisitingMs / stats.totalWorkingMs : 0} />
+                <p className="mt-1 text-xs text-neutral-500">{t('checkIn.ofWorked', { n: formatDuration(stats.totalWorkingMs, language) })}</p>
+              </div>
+            </div>
+            <HeroDayBar attendance={journey.todaysAttendance} visits={journey.todaysVisits} workStart={settings.workStartTime} workEnd={settings.workEndTime} flagRules={settings.flagRules} customerNames={customerNames} />
+            <div className="mt-4 flex gap-4">
+              <GoalTile
+                label={t('nav.visits')}
+                value={String(stats.totalVisits)}
+                unit={visitTarget > 0 ? t('checkIn.ofVisits', { n: visitTarget }) : undefined}
+                ratio={visitTarget > 0 ? stats.totalVisits / visitTarget : null}
+                caption={visitTarget > 0 ? t('checkIn.left', { n: Math.max(0, visitTarget - stats.totalVisits) }) : undefined}
+              />
+              <span className="w-px shrink-0 bg-neutral-100" aria-hidden />
+              <GoalTile
+                label={t('checkIn.sales')}
+                value={`$${Math.round(salesToday).toLocaleString('en-US')}`}
+                unit={orderCount > 0 ? `(${orderCount})` : undefined}
+                ratio={salesTarget > 0 ? salesToday / salesTarget : null}
+                caption={salesTarget > 0 ? (salesToday >= salesTarget ? t('checkIn.targetReached') : t('checkIn.toGo', { n: `$${Math.round(salesTarget - salesToday).toLocaleString('en-US')}` })) : undefined}
+              />
+            </div>
+            {clockInLocationId && locationNames[clockInLocationId] && (
+              <p className="mt-3.5 flex items-center gap-1.5 text-[13px] font-semibold text-neutral-600">
+                <MapPin className="h-3.5 w-3.5 text-status-working" aria-hidden />
+                {locationNames[clockInLocationId]} · {t('checkIn.insideWork')}
+              </p>
+            )}
+
+            <div className="mt-3.5 flex gap-2.5">
+              {isVisiting && journey.openVisit ? (
+                <button type="button" onClick={() => openFlow()} className="flex min-h-[52px] min-w-0 flex-1 items-center gap-3 rounded-2xl bg-brand-50 p-2.5 text-left">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white">
+                    <Store className="h-5 w-5" aria-hidden />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-1.5 text-xs font-bold text-status-working">
+                      <span className="h-2 w-2 rounded-full bg-status-working" />
+                      {t('checkIn.visitInProgress', { duration: formatDuration(Date.now() - new Date(journey.openVisit.checked_in_at).getTime(), language) })}
+                    </span>
+                    <span className="block truncate text-[15px] font-bold text-neutral-900">
+                      {journey.openVisit.customer_id ? (customerNames[journey.openVisit.customer_id] ?? t('common.loading')) : t('common.unassignedVisit')}
+                    </span>
+                  </span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-brand-500" aria-hidden />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => openFlow()}
+                  disabled={journey.busy}
+                  className="flex h-[52px] min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl bg-brand-500 text-base font-extrabold text-white disabled:opacity-60"
+                >
+                  <MapPin className="h-5 w-5" aria-hidden />
+                  {t('checkIn.checkInButton')}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setClockSheet('out')}
                 disabled={journey.busy}
-                className="flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-white/30 bg-white/[.08] px-3.5 text-sm font-bold text-[#ffb8b8] disabled:opacity-50"
+                aria-label={t('checkIn.clockOutTitle')}
+                className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl border border-neutral-200 bg-white text-status-danger disabled:opacity-50"
               >
-                <LogOut className="h-[17px] w-[17px]" aria-hidden />
-                {t('checkIn.clockOutTitle')}
+                <LogOut className="h-5 w-5" aria-hidden />
               </button>
             </div>
-            <HeroDayBar attendance={journey.todaysAttendance} visits={journey.todaysVisits} workStart={settings.workStartTime} workEnd={settings.workEndTime} flagRules={settings.flagRules} customerNames={customerNames} />
-            <p className="mt-2 text-[13px] text-white/60">{visitsLine}</p>
-
-            {isVisiting && journey.openVisit ? (
-              <button
-                type="button"
-                onClick={() => openFlow()}
-                className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-[#ffffff] p-3 text-left"
-              >
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white">
-                  <Store className="h-5 w-5" aria-hidden />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-1.5 text-xs font-bold text-status-working">
-                    <span className="h-2 w-2 rounded-full bg-status-working" />
-                    {t('checkIn.visitInProgress', { duration: formatDuration(Date.now() - new Date(journey.openVisit.checked_in_at).getTime(), language) })}
-                  </span>
-                  <span className="block truncate text-[15px] font-bold text-[#232323]">
-                    {journey.openVisit.customer_id ? (customerNames[journey.openVisit.customer_id] ?? t('common.loading')) : t('common.unassignedVisit')}
-                  </span>
-                  <span className="block text-xs text-[#666666]">{t('checkIn.checkedInAt', { time: formatTime(journey.openVisit.checked_in_at) })}</span>
-                </span>
-                <span className="inline-flex shrink-0 items-center gap-0.5 text-[13px] font-bold text-[#006ACC]">
-                  {t('checkIn.goToVisit')}
-                  <ChevronRight className="h-4 w-4" aria-hidden />
-                </span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => openFlow()}
-                disabled={journey.busy}
-                className="mt-3 flex h-[50px] w-full items-center justify-center gap-2 rounded-[14px] bg-[#ffffff] text-base font-extrabold text-[#2b2b2b] disabled:opacity-60"
-              >
-                <MapPin className="h-5 w-5" aria-hidden />
-                {t('checkIn.checkInButton')}
-              </button>
-            )}
-
-            {detailsOpen && (
-              <div className="mt-3 flex flex-col gap-3 border-t border-white/10 pt-3">
-                <div className="grid grid-cols-3">
-                  <HeroFact label={t('nav.visits')} value={String(stats.totalVisits)} />
-                  <HeroFact label={t('checkIn.statActive')} value={formatDuration(stats.totalVisitingMs, language)} />
-                  <HeroFact label={t('checkIn.effectiveness')} value={formatScore(stats.score)} />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="rounded-xl bg-white/[.06] px-3 py-2.5">
-                    <p className="text-xs text-white/60">{t('checkIn.clockedIn')}</p>
-                    <p className="mt-0.5 truncate text-sm font-bold">
-                      {clockInTime ? formatTime(clockInTime) : '—'}
-                      {clockInLocationId && locationNames[clockInLocationId] ? ` · ${locationNames[clockInLocationId]}` : ''}
-                    </p>
-                  </div>
-                  <div className="rounded-xl bg-white/[.06] px-3 py-2.5">
-                    <p className="text-xs text-white/60">{t('checkIn.shiftLabel')}</p>
-                    <p className="mt-0.5 truncate text-sm font-bold">{shiftLabel}</p>
-                  </div>
-                </div>
-                <p className="text-[12.5px] text-white/60">{isVisiting ? t('checkIn.alsoCheckOut') : t('checkIn.confirmOutNote')}</p>
-              </div>
-            )}
           </section>
         ) : leaveToday ? (
           /* Approved leave today: no clock-in needed, but working anyway is still possible. */
@@ -272,28 +267,25 @@ export function CheckInPage() {
         ) : (
           /* Before clock-in: the time, the shift, and one big Clock in. */
           <>
-            <section aria-label={t('checkIn.clockInTitle')} className="relative overflow-hidden rounded-[22px] bg-brand-900 px-[18px] pb-4 pt-[18px] text-white">
-              <HeroRings />
-              <span className="relative inline-flex h-[26px] items-center gap-[7px] rounded-full bg-white/[.08] px-2.5 text-xs font-bold text-white/70">
-                <span className="h-2 w-2 rounded-full border-2 border-white/70" />
+            <section aria-label={t('checkIn.clockInTitle')} className="pb-1 pt-1 text-center">
+              <span className="inline-flex h-7 items-center gap-2 rounded-full bg-white px-3 text-[13px] font-bold text-neutral-600 shadow-card">
+                <span className="h-2 w-2 rounded-full bg-neutral-500" />
                 {clockOutTime ? t('checkIn.clockedOutAt', { time: formatTime(clockOutTime) }) : t('checkIn.notClockedIn')}
               </span>
-              <p className="relative mt-3.5 text-[15px] font-semibold text-white/60">
-                {greeting(undefined, language)}
-                {firstName ? `, ${firstName}` : ''}
-              </p>
-              <p className="relative mt-0.5 text-[48px] font-extrabold leading-[54px] tracking-tight tabular-nums">{formatTime(new Date().toISOString())}</p>
-              <p className="relative mt-0.5 text-sm text-white/60">
-                {shiftLabel}
-                {shiftNote && (
-                  <>
-                    {' · '}
-                    <span className={`font-bold ${shiftNote.tone === 'text-heroMuted' ? '' : shiftNote.tone}`}>{shiftNote.text}</span>
-                  </>
-                )}
-              </p>
+              <p className="mt-3 text-[88px] font-extrabold leading-[92px] tracking-tight tabular-nums text-neutral-900">{formatTime(new Date().toISOString())}</p>
+              {shiftNote && (
+                <p
+                  className={`mt-3 inline-flex h-9 items-center gap-2 rounded-full px-4 text-[15px] font-bold ${
+                    shiftNote.tone === 'text-[#74E092]' ? 'bg-status-working/10 text-status-working' : shiftNote.tone === 'text-[#FFB257]' ? 'bg-status-warn/10 text-status-warn' : 'bg-neutral-100 text-neutral-600'
+                  }`}
+                >
+                  <Clock className="h-[17px] w-[17px]" aria-hidden />
+                  {shiftNote.text}
+                </p>
+              )}
+              <p className="mt-2 text-[13px] font-semibold text-neutral-500">{shiftLabel}</p>
               {journey.todaysAttendance.length > 0 && (
-                <p className="relative mt-2 text-[13px] text-white/60">
+                <p className="mt-1 text-[13px] text-neutral-500">
                   {t('checkIn.clockedInTimes', {
                     count: journey.todaysAttendance.length,
                     plural: journey.todaysAttendance.length > 1 ? 's' : '',
@@ -301,52 +293,30 @@ export function CheckInPage() {
                   })}
                 </p>
               )}
-              {canClockIn && <HeroLocationCard required={clockRules.in} />}
-              <button
-                type="button"
-                onClick={() => setClockSheet('in')}
-                disabled={!canClockIn || journey.busy}
-                className="relative mt-3.5 flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-[#ffffff] text-[17px] font-extrabold text-[#2b2b2b] disabled:opacity-50"
-              >
-                <Clock className="h-[22px] w-[22px]" aria-hidden />
-                {journey.todaysAttendance.length > 0 ? t('checkIn.clockInAgain') : t('checkIn.clockInButton')}
-              </button>
-              <p className="relative mt-2.5 text-center text-xs text-white/60">{t('checkIn.confirmInNote')}</p>
             </section>
-            {journey.todaysAttendance.length === 0 && (
-              <Link to="/leave" className="flex h-12 items-center gap-3 rounded-[14px] border border-neutral-100 bg-white px-3.5 text-sm font-bold text-neutral-900 shadow-card">
-                <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[9px] bg-brand-50 text-brand-500">
-                  <CalendarPlus className="h-[17px] w-[17px]" aria-hidden />
-                </span>
-                <span className="flex-1">
-                  {t('checkIn.notWorkingToday')} <span className="text-brand-500">{t('checkIn.requestLeave')}</span>
-                </span>
-                <ChevronRight className="h-4 w-4 text-neutral-500" aria-hidden />
-              </Link>
-            )}
+            {canClockIn && <HeroLocationCard required={clockRules.in} light />}
+            <TodaySummaryCards canPlan={canPlan} />
+            <div className="sticky bottom-24 z-10 mt-auto pt-2">
+              <SlideToConfirm
+                label={journey.todaysAttendance.length > 0 ? t('checkIn.clockInAgain') : t('checkIn.slideToClockIn')}
+                disabled={!canClockIn || journey.busy}
+                busy={journey.busy}
+                onConfirm={() => setClockSheet('in')}
+              />
+            </div>
           </>
         )}
 
-        <TripTodayCard />
+        {isClockedIn && <TripTodayCard />}
         {isClockedIn ? (
-          /* On shift: the next stop and the plan (or a nudge to build one), then today as a timeline. */
+          /* On shift: the plan, then today's appointments. */
           <>
-            {canPlan && <PlanSection onCheckIn={(stop) => openFlow({ id: stop.customer_id, shopName: stop.shop_name })} busy={journey.busy || isVisiting} />}
-            <TodaysTimeline
-              visits={journey.todaysVisits}
-              customerNames={customerNames}
-              clockInAt={clockInTime}
-              clockInPlace={clockInLocationId ? (locationNames[clockInLocationId] ?? null) : null}
-              shiftStart={settings.workStartTime}
-              showJourney={canFootprints}
-            />
+            {canPlan && <PlanListCard onCheckIn={(stop) => openFlow({ id: stop.customer_id, shopName: stop.shop_name })} busy={journey.busy || isVisiting} />}
+            <AppointmentsCard />
           </>
         ) : (
-          /* Before clock-in (or on leave): what today holds, and this week's attendance. */
-          <>
-            <TodayCard canPlan={canPlan} />
-            <WeekStrip />
-          </>
+          /* Before clock-in: nothing below the slide, as on the canvas. */
+          leaveToday ? <WeekStrip /> : null
         )}
       </div>
 
@@ -364,15 +334,6 @@ function HeroRings() {
       <circle cx="95" cy="95" r="90" fill="none" stroke="rgba(255,255,255,.1)" strokeWidth="1" />
       <circle cx="95" cy="95" r="64" fill="none" stroke="rgba(255,255,255,.1)" strokeWidth="1" />
     </svg>
-  )
-}
-
-function HeroFact({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-xs text-white/60">{label}</p>
-      <p className="mt-0.5 text-lg font-extrabold">{value}</p>
-    </div>
   )
 }
 
@@ -413,8 +374,8 @@ function HeroDayBar({
       from={from}
       to={to}
       size="lg"
-      tone="hero"
-      className="mt-3"
+      tone="card"
+      className="mt-4"
       label={`${live.length} ${live.length === 1 ? 'visit' : 'visits'} since ${formatTime(new Date(from).toISOString())}`}
       describe={(g) => segText(g, name(g))}
     />

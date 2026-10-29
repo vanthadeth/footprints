@@ -6,7 +6,7 @@ import { isSlideConfirmed, slideProgress } from './slideToConfirm'
 interface Props {
   label: string
   onConfirm: () => void
-  variant?: 'primary' | 'danger'
+  variant?: 'primary' | 'danger' | 'soft'
   disabled?: boolean
   busy?: boolean
 }
@@ -69,16 +69,17 @@ export function SlideToConfirm({ label, onConfirm, variant = 'primary', disabled
   }
 
   const danger = variant === 'danger'
+  const soft = variant === 'soft'
   return (
     <div
       ref={trackRef}
       className={`relative flex h-16 select-none items-center rounded-full p-1 ${
-        danger ? 'bg-status-danger/10 dark:bg-status-danger/20' : 'bg-brand-500'
-      } ${inactive ? 'opacity-60' : ''}`}
+        danger ? 'bg-status-danger/10 dark:bg-status-danger/20' : soft ? (inactive ? 'bg-neutral-100' : 'bg-brand-50') : 'bg-brand-500'
+      } ${inactive && !soft ? 'opacity-60' : ''}`}
     >
       <span
         className={`pointer-events-none absolute inset-0 flex items-center justify-center pl-12 text-[15px] font-bold ${
-          danger ? 'text-status-danger' : 'text-white'
+          danger ? 'text-status-danger' : soft ? (inactive ? 'text-neutral-500' : 'text-brand-500') : 'text-white'
         }`}
         style={{ opacity: 1 - progress * 1.4 }}
       >
@@ -94,9 +95,9 @@ export function SlideToConfirm({ label, onConfirm, variant = 'primary', disabled
         onPointerCancel={onPointerUp}
         onKeyDown={onKeyDown}
         style={{ transform: `translateX(${progress * travel()}px)`, touchAction: 'none' }}
-        className={`relative z-10 flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-md ${
+        className={`relative z-10 flex h-14 w-14 items-center justify-center rounded-full shadow-md ${
           dragging ? '' : 'transition-transform duration-300 ease-out'
-        } ${danger ? 'text-status-danger' : 'text-brand-500'}`}
+        } ${danger ? 'bg-white text-status-danger' : soft ? (inactive ? 'bg-neutral-200 text-neutral-500 shadow-none' : 'bg-brand-500 text-white') : 'bg-white text-brand-500'}`}
       >
         {busy ? <Loader2 className="h-6 w-6 animate-spin" aria-hidden /> : <ChevronRight className="h-6 w-6" strokeWidth={2.6} aria-hidden />}
       </button>

@@ -3,7 +3,6 @@ import { Link, useLocation } from 'react-router-dom'
 import { ChevronLeft } from 'lucide-react'
 import { ProfileBadge } from '@/components/ProfileBadge'
 import { NotificationBell } from '@/components/NotificationBell'
-import { useJourneyContext } from '@/features/attendance/JourneyContext'
 import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 import { useRoleGroup } from '@/features/nav/useRoleGroup'
 import { FN, tabsFor, type FnKey } from '@/features/nav/navConfig'
@@ -60,13 +59,10 @@ const TITLE_KEYS: Record<string, string> = {
 /** The current screen's title, for the phone title bar and the desktop top bar. */
 export function useScreenTitle(): string {
   const { pathname } = useLocation()
-  const { attendance } = useJourneyContext()
   const { t } = useLanguage()
   return (
     pathname === '/check-in'
-      ? attendance === 'CLOCKED_IN'
-        ? t('nav.checkIn')
-        : t('nav.clockIn')
+      ? t('nav.checkIn')
       : pathname.startsWith('/customers/') && pathname.endsWith('/orders')
         ? t('nav.orderHistory')
       : pathname.startsWith('/customers/') && !TITLE_KEYS[pathname]

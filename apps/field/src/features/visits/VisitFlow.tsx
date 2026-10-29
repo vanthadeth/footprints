@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { AlertTriangle, Ban, Check, ChevronLeft, ChevronRight, Info, Loader2, Lock, RefreshCw, Search, Store } from 'lucide-react'
+import { AlertTriangle, Ban, Check, ChevronLeft, ChevronRight, Info, Loader2, Lock, MapPin, RefreshCw, Search, Store, X } from 'lucide-react'
 import { BottomSheet } from '@/components/BottomSheet'
 import { SlideToConfirm } from '@/components/SlideToConfirm'
 import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
@@ -20,6 +20,8 @@ import { visitsService, type NearbyCustomer, type VisitOutcomeDetails } from './
 import { AmountFields } from './AmountFields'
 import { VisitPhotoStrip } from './VisitPhotoStrip'
 import { outcomeFields, parseAmount } from './visitOutcome'
+import { GPS_LEVEL_COPY, gpsLevel } from '@/features/location/gpsLevel'
+import { GpsRadar } from '@/features/location/GpsRadar'
 import { CustomerInsightsSheet } from './CustomerInsightsSheet'
 import { insightsTeaser, useCustomerInsights } from './customerInsights'
 
@@ -69,6 +71,7 @@ export function VisitFlow({
   const plannedIds = new Set(planItems.filter((i) => i.status === 'planned').map((i) => i.customer_id))
   const settings = useAppSettings()
 
+  const { t } = useLanguage()
   const [step, setStep] = useState<Step>(journey.openVisit ? 'record' : presetCustomer ? 'confirm' : 'picker')
   const [locState, setLocState] = useState<'loading' | 'ready' | 'error'>('loading')
   const [accuracy, setAccuracy] = useState<number | null>(null)
@@ -252,6 +255,172 @@ export function VisitFlow({
   // the full viewport, since its `transform` (present even at rest -- the
   // animation's fill-mode is `both`) makes it the containing block for any
   // `position: fixed` descendant.
+  const sharedSheets = (
+    <>
+      <CustomerInsightsSheet
+        open={insightsOpen && !!insightsId}
+        insights={insights}
+        fallbackName={(step === 'record' ? customerName : pickTarget?.name) ?? 'Customer'}
+        onClose={() => setInsightsOpen(false)}
+        onOpenCustomer={
+          step === 'record'
+            ? undefined
+            : () => {
+                setInsightsOpen(false)
+                onClose()
+              }
+        }
+      />
+
+      <BottomSheet open={farCustomer !== null} onClose={() => setFarCustomer(null)} title="Customer Is Far Away">
+        <div className="p-4">
+          <p className="text-sm text-neutral-600">
+            {farCustomer?.shop_name} is {farCustomer ? formatDistance(farCustomer.distance_m) : ''} from your current
+            location -- farther than the {formatDistance(settings.checkinRadiusM)} visit range. Check in here anyway?
+          </p>
+          <button
+            onClick={handleConfirmFarCheckIn}
+            disabled={journey.busy}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-status-warn py-3.5 text-sm font-semibold text-white tap-target disabled:opacity-60"
+          >
+            {journey.busy && <Loader2 className="h-4 w-4 animate-spin" />}
+            {journey.busy ? 'Checking in…' : 'Check In Anyway'}
+          </button>
+          <button onClick={() => setFarCustomer(null)} className="mt-2 w-full rounded-xl py-3.5 text-sm font-semibold text-neutral-500 tap-target">
+            Cancel
+          </button>
+        </div>
+      </BottomSheet>
+    </>
+  )
+
+  if (step !== 'record') {
+    const gpsPending = locState !== 'ready' || accuracyTooLow
+    const gpsWarn = locState === 'error' || accuracyTooLow
+    const planByCustomer = new Map(planItems.map((i) => [i.customer_id, i]))
+    const nextPlanned = planItems.find((i) => i.status === 'planned')?.customer_id ?? null
+    const tagOf = (id: string): { text: string; cls: string } => {
+      const plan = planByCustomer.get(id)
+      if (plan?.appointment_at) return { text: t('checkIn.tagAppt', { time: formatTime(plan.appointment_at) }), cls: 'bg-brand-50 text-brand-700' }
+      if (id === nextPlanned) return { text: t('checkIn.tagNextStop'), cls: 'bg-status-working/10 text-status-working' }
+      if (plan?.status === 'planned') return { text: t('checkIn.tagPlan'), cls: 'bg-status-working/10 text-status-working' }
+      return { text: t('checkIn.tagNone'), cls: 'bg-neutral-200 text-neutral-600' }
+    }
+    const headerSub = gpsPending ? t('checkIn.gpsCheck') : presetCustomer ? t('checkIn.gpsAcc', { n: Math.round(accuracy ?? 0) }) : t('checkIn.nearbyCount', { n: customers.length, gps: t('checkIn.gpsAcc', { n: Math.round(accuracy ?? 0) }) })
+    const go = () => {
+      if (!pickTarget) return
+      if (selected && step === 'picker') handleSelectCustomer(selected)
+      else void journey.startVisit(pickTarget.id)
+    }
+    return (
+      <>
+        <BottomSheet
+          open
+          onClose={onClose}
+          title={t('checkIn.checkInAt')}
+          header={
+            <div className="px-5 pb-3 pt-2.5">
+          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-neutral-200" aria-hidden />
+          <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-[22px] font-extrabold leading-7 text-neutral-900">{t('checkIn.checkInAt')}</h2>
+                <p aria-live="polite" className="mt-1 text-[13px] font-semibold text-neutral-500">
+                  {headerSub}
+                </p>
+              </div>
+              <button type="button" onClick={onClose} aria-label={t('common.cancel')} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-900">
+                <X className="h-5 w-5" />
+              </button>
+              </div>
+            </div>
+          }
+        >
+          <div className="flex flex-col gap-2.5 px-5 pb-5">
+            {journey.error && (
+              <div role="alert" className="rounded-xl bg-status-danger/10 px-3 py-2.5 text-sm font-semibold text-status-danger">
+                {journey.error}
+              </div>
+            )}
+            {gpsPending ? (
+              <GpsRadar
+                checking={locState === 'loading'}
+                accuracy={accuracy}
+                warn={gpsWarn}
+                title={locState === 'loading' ? t('checkInFlow.findingYou') : accuracy != null ? t(GPS_LEVEL_COPY[gpsLevel(accuracy)].title) : (locError ?? t('checkIn.locationError'))}
+                hint={locState === 'loading' ? t('checkInFlow.checkingGps') : accuracy != null ? t(GPS_LEVEL_COPY[gpsLevel(accuracy)].hint) : ''}
+                onRefresh={refreshLocation}
+              />
+            ) : step === 'confirm' && presetCustomer ? (
+              <div className="flex items-center gap-3 rounded-2xl border-2 border-brand-500 bg-brand-50 px-3.5 py-3">
+                <span className="min-w-0 flex-1 truncate text-[15px] font-bold text-neutral-900">{presetCustomer.shopName}</span>
+              </div>
+            ) : (
+              <>
+                {filtered.length === 0 && <p className="rounded-2xl bg-neutral-100 p-4 text-sm text-neutral-500">{t('checkIn.noneNearby')}</p>}
+                <div role="radiogroup" aria-label="Customer" className="flex flex-col gap-2.5">
+                  {filtered.map((c) => {
+                    const on = c.id === selectedId
+                    const tag = tagOf(c.id)
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={on}
+                        onClick={() => setSelectedId(c.id)}
+                        className={`flex items-center gap-3 rounded-2xl border px-3.5 py-3 text-left ${on ? 'border-brand-500 bg-brand-50' : 'border-transparent bg-neutral-100'}`}
+                      >
+                        <span
+                          aria-hidden
+                          className={`h-[22px] w-[22px] shrink-0 rounded-full border-2 ${on ? 'border-brand-500 bg-brand-500 shadow-[inset_0_0_0_4px_#fff]' : 'border-neutral-400'}`}
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[15px] font-bold text-neutral-900">{c.shop_name}</span>
+                          <span className="block truncate text-xs text-neutral-500">{[c.business_type, c.street_address].filter(Boolean).join(' · ')}</span>
+                          <span className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold ${tag.cls}`}>{tag.text}</span>
+                        </span>
+                        <span className="shrink-0 text-sm font-extrabold text-neutral-900">{formatDistance(c.distance_m)}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+                {customers.length > 3 && (
+                  <label className="flex h-11 items-center gap-2.5 rounded-[14px] bg-neutral-100 px-3.5">
+                    <Search className="h-[18px] w-[18px] shrink-0 text-neutral-500" aria-hidden />
+                    <input
+                      type="search"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder={t('checkIn.searchAll')}
+                      aria-label={t('checkIn.searchAll')}
+                      className="min-w-0 flex-1 bg-transparent text-[15px] text-neutral-900 outline-none placeholder:text-neutral-500"
+                    />
+                  </label>
+                )}
+              </>
+            )}
+            {!checkWindowOpen && <p className="text-center text-xs text-neutral-500">{checkWindowText}</p>}
+            <button
+              type="button"
+              onClick={go}
+              disabled={pickBlocked || !pickTarget}
+              className="flex h-[52px] items-center justify-center gap-2 rounded-2xl bg-brand-500 text-base font-extrabold text-white disabled:opacity-50"
+            >
+              {journey.busy ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden /> : <MapPin className="h-5 w-5" aria-hidden />}
+              {pickTarget && !gpsPending ? t('checkIn.checkInAtName', { name: pickTarget.name }) : t('checkIn.checkInButton')}
+            </button>
+            {!presetCustomer && !gpsPending && (
+              <button type="button" onClick={() => journey.startVisit(null)} disabled={pickBlocked} className="text-center text-[13px] font-bold text-neutral-500 disabled:opacity-50">
+                {t('checkIn.visitNoCustomer')}
+              </button>
+            )}
+          </div>
+        </BottomSheet>
+        {sharedSheets}
+      </>
+    )
+  }
+
   return createPortal(
     <div className="fixed inset-0 z-30 flex flex-col bg-neutral-50">
       <header style={{ paddingTop: 'calc(0.625rem + env(safe-area-inset-top))' }} className="grid grid-cols-[44px_1fr_44px] items-center px-3 pb-1.5">
@@ -329,12 +498,12 @@ export function VisitFlow({
               <span className="min-w-0 flex-1">
                 <span className={`block text-sm font-bold ${accuracyTooLow || locState === 'error' ? 'text-status-warn' : 'text-neutral-900'}`}>
                   {locState === 'loading' && 'Finding your location…'}
-                  {locState === 'ready' && (accuracyTooLow ? 'GPS is too weak to check in' : 'Current location')}
+                  {locState === 'ready' && (accuracy != null ? t(GPS_LEVEL_COPY[gpsLevel(accuracy)].title) : 'Current location')}
                   {locState === 'error' && (locError ?? 'Location unavailable')}
                 </span>
                 {locState === 'ready' && accuracy != null && (
                   <span className="mt-px block text-xs text-neutral-500">
-                    {accuracyTooLow ? 'Move to an open area and refresh · ' : ''}accuracy ±{Math.round(accuracy)} m
+                    {t(GPS_LEVEL_COPY[gpsLevel(accuracy)].hint)} · {t('checkIn.gpsAcc', { n: Math.round(accuracy) })}
                   </span>
                 )}
               </span>
@@ -371,7 +540,9 @@ export function VisitFlow({
                   </label>
                 )}
                 <section aria-label="Nearest customers">
-                  <p className="px-0.5 pb-2 pt-0.5 text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">Nearest customers</p>
+                  <p className="px-0.5 pb-2 pt-0.5 text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">
+                    Nearest customers{locState === 'ready' && customers.length > 0 ? ` · ${customers.length} nearby` : ''}
+                  </p>
                   {locState === 'loading' && (
                     <div className="space-y-2">
                       <div className="h-16 animate-pulse rounded-2xl bg-neutral-100" />
@@ -467,7 +638,7 @@ export function VisitFlow({
           ) : (
             <>
               <SlideToConfirm
-                label={journey.busy ? 'Checking in…' : 'Slide to check in'}
+                label={journey.busy ? 'Checking in…' : pickTarget ? `Slide to check in at ${pickTarget.name}` : 'Slide to check in'}
                 busy={journey.busy}
                 disabled={pickBlocked || !pickTarget}
                 onConfirm={() => {
@@ -490,40 +661,7 @@ export function VisitFlow({
         </div>
       </div>
 
-      <CustomerInsightsSheet
-        open={insightsOpen && !!insightsId}
-        insights={insights}
-        fallbackName={(step === 'record' ? customerName : pickTarget?.name) ?? 'Customer'}
-        onClose={() => setInsightsOpen(false)}
-        onOpenCustomer={
-          step === 'record'
-            ? undefined
-            : () => {
-                setInsightsOpen(false)
-                onClose()
-              }
-        }
-      />
-
-      <BottomSheet open={farCustomer !== null} onClose={() => setFarCustomer(null)} title="Customer Is Far Away">
-        <div className="p-4">
-          <p className="text-sm text-neutral-600">
-            {farCustomer?.shop_name} is {farCustomer ? formatDistance(farCustomer.distance_m) : ''} from your current
-            location -- farther than the {formatDistance(settings.checkinRadiusM)} visit range. Check in here anyway?
-          </p>
-          <button
-            onClick={handleConfirmFarCheckIn}
-            disabled={journey.busy}
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-status-warn py-3.5 text-sm font-semibold text-white tap-target disabled:opacity-60"
-          >
-            {journey.busy && <Loader2 className="h-4 w-4 animate-spin" />}
-            {journey.busy ? 'Checking in…' : 'Check In Anyway'}
-          </button>
-          <button onClick={() => setFarCustomer(null)} className="mt-2 w-full rounded-xl py-3.5 text-sm font-semibold text-neutral-500 tap-target">
-            Cancel
-          </button>
-        </div>
-      </BottomSheet>
+      {sharedSheets}
     </div>,
     document.body
   )

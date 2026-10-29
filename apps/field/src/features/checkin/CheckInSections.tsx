@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Banknote, Building2, CalendarDays, Check, ChevronDown, ChevronRight, ListTodo, Loader2, MapPin, RefreshCw, Route, type LucideIcon } from 'lucide-react'
+import { Banknote, Building2, CalendarDays, Flag, Check, ChevronDown, ChevronRight, ListTodo, Loader2, MapPin, RefreshCw, Route, type LucideIcon } from 'lucide-react'
 import { useJourneyContext } from '@/features/attendance/JourneyContext'
 import type { VisitRow } from '@/features/attendance/types'
 import { clockBlock } from '@footprints/shared/features/permissions/clockRules'
@@ -38,7 +38,7 @@ type Loc =
  * clock-in): where you are against the clock-in locations, the GPS
  * accuracy, and whether you're ready. Only a hint -- app.clock_in decides.
  */
-export function HeroLocationCard({ required }: { required: RequiredLocation[] }) {
+export function HeroLocationCard({ required, light = false }: { required: RequiredLocation[]; light?: boolean }) {
   const { t } = useLanguage()
   const settings = useAppSettings()
   const { locations } = useLocations()
@@ -88,14 +88,34 @@ export function HeroLocationCard({ required }: { required: RequiredLocation[] })
             : t('checkInFlow.checkingGps')
   const ready = loc.status === 'ok'
 
+  if (light) {
+    return (
+      <div className={`${CARD} flex items-center gap-3 px-3.5 py-3`}>
+        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] ${ready ? 'bg-status-working/10 text-status-working' : 'bg-neutral-100 text-neutral-500'}`}>
+          {loc.status === 'checking' ? <Loader2 className="h-[18px] w-[18px] animate-spin" aria-hidden /> : <MapPin className="h-[18px] w-[18px]" aria-hidden />}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[15px] font-bold text-neutral-900">{title}</span>
+          <span className={`flex items-center gap-1 truncate text-xs font-bold ${ready ? 'text-status-working' : loc.status === 'checking' ? 'text-neutral-500' : 'text-status-warn'}`}>
+            {ready && <Check className="h-3 w-3 shrink-0" strokeWidth={3} aria-hidden />}
+            <span className="truncate">{sub}</span>
+          </span>
+        </span>
+        <button type="button" onClick={() => setNonce((n) => n + 1)} disabled={loc.status === 'checking'} aria-label={t('checkInFlow.refresh')} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-brand-500 disabled:opacity-40">
+          <RefreshCw className="h-[18px] w-[18px]" aria-hidden />
+        </button>
+      </div>
+    )
+  }
+
   return (
-    <div className="relative mt-3.5 flex items-center gap-2.5 rounded-[14px] bg-white/[.07] px-3 py-2.5">
-      <span className={`flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[9px] ${ready ? 'bg-[rgba(23,203,73,.2)] text-[#74E092]' : 'bg-white/10'}`}>
+    <div className={`relative mt-3.5 flex items-center gap-2.5 rounded-[14px] px-3 py-2.5 ${light ? 'bg-neutral-50' : 'bg-white/[.07]'}`}>
+      <span className={`flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[9px] ${ready ? (light ? 'bg-status-working/10 text-status-working' : 'bg-[rgba(23,203,73,.2)] text-[#74E092]') : light ? 'bg-neutral-100 text-neutral-500' : 'bg-white/10'}`}>
         {loc.status === 'checking' ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Building2 className="h-4 w-4" aria-hidden />}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-bold">{title}</span>
-        <span className={`block truncate text-xs ${loc.status === 'outside' || loc.status === 'low' ? 'text-[#FFB257]' : 'text-white/60'}`}>{sub}</span>
+        <span className={`block truncate text-sm font-bold ${light ? 'text-neutral-900' : ''}`}>{title}</span>
+        <span className={`block truncate text-xs ${loc.status === 'outside' || loc.status === 'low' ? (light ? 'text-status-warn' : 'text-[#FFB257]') : light ? 'text-neutral-500' : 'text-white/60'}`}>{sub}</span>
       </span>
       {ready ? (
         <span className="inline-flex h-[22px] shrink-0 items-center gap-1 rounded-full bg-[rgba(23,203,73,.2)] px-2 text-[11px] font-bold text-[#74E092]">
@@ -104,7 +124,7 @@ export function HeroLocationCard({ required }: { required: RequiredLocation[] })
         </span>
       ) : (
         loc.status !== 'checking' && (
-          <button type="button" onClick={() => setNonce((n) => n + 1)} className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full bg-white/10 px-2.5 text-xs font-bold">
+          <button type="button" onClick={() => setNonce((n) => n + 1)} className={`inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-2.5 text-xs font-bold ${light ? 'bg-neutral-100 text-neutral-900' : 'bg-white/10'}`}>
             <RefreshCw className="h-3.5 w-3.5" aria-hidden />
             {t('checkInFlow.refresh')}
           </button>
@@ -154,6 +174,84 @@ function TodayRow({ icon: Icon, tone, title, sub, value, to }: { icon: LucideIco
       </span>
       <span className="shrink-0 text-lg font-extrabold text-neutral-900">{value}</span>
     </Link>
+  )
+}
+
+/**
+ * The two summary cards under the clock card (canvas Check in, before shift):
+ * Appointments (count and the next one) and Plan (planned stops, or a nudge to make one).
+ */
+export function TodaySummaryCards({ canPlan }: { canPlan: boolean }) {
+  const { t } = useLanguage()
+  const { profile } = useProfile()
+  const today = todayDateString()
+  const { items } = usePlan(today)
+  const [appts, setAppts] = useState<CalendarItem[]>([])
+
+  useEffect(() => {
+    if (!profile) return
+    let cancelled = false
+    calendarService
+      .items(profile.id, today, today)
+      .then((r) => !cancelled && setAppts(sortDay(r.filter((i) => i.day === today && !i.done && i.kind === 'appt'))))
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [profile, today])
+
+  const total = items.length
+  const done = items.filter((i) => i.status !== 'planned').length
+  const firstStop = items.find((i) => i.status === 'planned')
+  const next = appts[0]
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <Link to="/calendar" className={`${CARD} flex flex-col px-3.5 py-3`}>
+        <p className="flex items-center gap-1.5 text-[13px] font-bold text-neutral-600">
+          <CalendarDays className="h-4 w-4" aria-hidden />
+          {t('checkIn.summaryAppointments')}
+        </p>
+        <p className="mt-1.5 flex items-baseline gap-1.5 text-neutral-900">
+          <span className="text-[28px] font-extrabold leading-8">{appts.length}</span>
+          <span className="text-sm font-semibold text-neutral-500">{t('checkIn.today')}</span>
+        </p>
+        <div className="mt-auto border-t border-neutral-100 pt-2.5">
+          {next ? (
+            <>
+              <p className="text-xs font-bold text-brand-500">{t('checkIn.next')}{next.at_time ? ` · ${hhmm(next.at_time)}` : ''}</p>
+              <p className="truncate text-sm font-bold text-neutral-900">{next.customer_name ?? itemTitle(next)}</p>
+            </>
+          ) : (
+            <p className="text-xs text-neutral-500">{t('checkIn.nothingScheduled')}</p>
+          )}
+        </div>
+      </Link>
+      <Link to={canPlan ? '/plan' : '/calendar'} className={`${CARD} flex flex-col px-3.5 py-3`}>
+        <p className="flex items-center gap-1.5 text-[13px] font-bold text-neutral-600">
+          <Flag className="h-4 w-4" aria-hidden />
+          {t('checkIn.summaryPlan')}
+        </p>
+        <p className="mt-1.5 flex items-baseline gap-1.5 text-neutral-900">
+          <span className="text-[28px] font-extrabold leading-8">{total}</span>
+          <span className="text-sm font-semibold text-neutral-500">{t('checkIn.planned')}</span>
+        </p>
+        <div className="mt-1.5 flex gap-1" aria-hidden>
+          {Array.from({ length: Math.min(total, 8) }, (_, i) => (
+            <span key={i} className={`h-1 flex-1 rounded-full ${i < done ? 'bg-status-working' : 'bg-neutral-200'}`} />
+          ))}
+        </div>
+        <div className="mt-auto border-t border-neutral-100 pt-2.5">
+          {total > 0 ? (
+            <>
+              <p className="text-xs font-bold text-brand-500">{t('checkIn.routeDone', { done, total })}</p>
+              <p className="truncate text-sm font-bold text-neutral-900">{firstStop?.address ?? firstStop?.shop_name ?? ''}</p>
+            </>
+          ) : (
+            <p className="text-xs font-semibold text-brand-500">{t('checkIn.nothingPlanned')} · {t('checkIn.makePlan')} ›</p>
+          )}
+        </div>
+      </Link>
+    </div>
   )
 }
 
