@@ -119,7 +119,6 @@ export function CheckInPage() {
     graceMin: settings.lateGraceMinutes,
     firstVisitDeadline: settings.flagRules.firstVisitDeadline,
     firstVisitFar: settings.flagRules.firstVisitFar,
-    duration: (ms) => formatDuration(ms, language),
     clock: (ms) => formatTime(new Date(ms).toISOString()),
   })
   const leaveLabel = leaveToday === 'annual' ? t('profile.annual') : leaveToday === 'sick' ? t('profile.sick') : leaveToday ? LEAVE_TYPE_LABEL[leaveToday] : ''
@@ -150,7 +149,6 @@ export function CheckInPage() {
       )}
 
       <div className="flex min-h-[calc(100dvh-11rem)] flex-col gap-3.5 px-4 pt-1.5 md:px-8 md:pt-4">
-        <DayAlertsStrip alerts={alerts} />
         {isClockedIn ? (
           /* On shift: the day so far (canvas Check in, clocked in), then Check in or the open visit. */
           <section aria-label={t('checkIn.onShift')} className="rounded-[22px] border border-neutral-100 bg-white p-4 shadow-card">
@@ -310,6 +308,7 @@ export function CheckInPage() {
                 </p>
               )}
             </section>
+            <DayAlertsStrip alerts={alerts} />
             {canClockIn && <HeroLocationCard required={clockRules.in} light />}
             <TodaySummaryCards canPlan={canPlan} />
             <div className="sticky bottom-24 z-10 mt-auto pt-2">
@@ -323,6 +322,7 @@ export function CheckInPage() {
           </>
         )}
 
+        {isClockedIn && <DayAlertsStrip alerts={alerts} />}
         {isClockedIn && <TripTodayCard />}
         {isClockedIn ? (
           /* On shift: the plan, then today's appointments. */

@@ -7,7 +7,7 @@ const at = (hm: string) => `${day}T${hm}:00+07:00`
 const ms = (hm: string) => new Date(at(hm)).getTime()
 const att = (inHm: string, outHm: string | null, flags: string[] = []) => ({ clock_in_at: at(inHm), clock_out_at: outHm ? at(outHm) : null, flags }) as unknown as AttendanceRow
 const visit = (hm: string) => ({ checked_in_at: at(hm), cancelled_at: null }) as unknown as VisitRow
-const base = { day, workStart: '08:00', workEnd: '17:00', graceMin: 10, firstVisitDeadline: '10:00', duration: (n: number) => `${Math.round(n / 60000)} min`, clock: (n: number) => String(new Date(n).toISOString().slice(11, 16)) }
+const base = { day, workStart: '08:00', workEnd: '17:00', graceMin: 10, firstVisitDeadline: '10:00', clock: (n: number) => String(new Date(n).toISOString().slice(11, 16)) }
 const ids = (a: ReturnType<typeof dayAlerts>) => a.map((x) => x.id)
 
 describe('dayAlerts', () => {
