@@ -11,6 +11,8 @@ import type { DayJourney } from '@/features/attendance/useJourneyHistory'
 import { SlideToConfirm } from '@/components/SlideToConfirm'
 import { VisitFlow, type PresetCustomer } from '@/features/visits/VisitFlow'
 import { HeroLocationCard, TodaySummaryCards, WeekStrip } from '@/features/checkin/CheckInSections'
+import { DayAlertsStrip } from '@/features/checkin/DayAlertsStrip'
+import { dayAlerts } from '@/features/checkin/dayAlerts'
 import { AppointmentsCard, Donut, GoalTile, PlanListCard } from '@/features/checkin/OnShiftCards'
 import { TripTodayCard } from '@/features/trips/TripTodayCard'
 import { useCustomerNames } from '@/features/customers/useCustomerNames'
@@ -107,6 +109,18 @@ export function CheckInPage() {
       : untilStart < -settings.lateGraceMinutes && settings.isWorkingDay && journey.todaysAttendance.length === 0
         ? { text: t('checkIn.lateBy', { n: formatDuration(-untilStart * 60_000, language) }), tone: 'text-[#FFB257]' }
         : null
+  const alerts = dayAlerts({
+    day: todayDateString(),
+    now: Date.now(),
+    attendance: journey.todaysAttendance,
+    visits: journey.todaysVisits,
+    workStart: settings.workStartTime,
+    workEnd: settings.workEndTime,
+    graceMin: settings.lateGraceMinutes,
+    firstVisitDeadline: settings.flagRules.firstVisitDeadline,
+    firstVisitFar: settings.flagRules.firstVisitFar,
+    clock: (ms) => formatTime(new Date(ms).toISOString()),
+  })
   const leaveLabel = leaveToday === 'annual' ? t('profile.annual') : leaveToday === 'sick' ? t('profile.sick') : leaveToday ? LEAVE_TYPE_LABEL[leaveToday] : ''
   const visitTarget = quota.dailyVisitTarget ?? settings.dailyVisitTarget
   const salesTarget = orderTargets[profile?.id ?? ''] ?? 0
@@ -294,6 +308,7 @@ export function CheckInPage() {
                 </p>
               )}
             </section>
+            <DayAlertsStrip alerts={alerts} />
             {canClockIn && <HeroLocationCard required={clockRules.in} light />}
             <TodaySummaryCards canPlan={canPlan} />
             <div className="sticky bottom-24 z-10 mt-auto pt-2">
@@ -307,6 +322,7 @@ export function CheckInPage() {
           </>
         )}
 
+        {isClockedIn && <DayAlertsStrip alerts={alerts} />}
         {isClockedIn && <TripTodayCard />}
         {isClockedIn ? (
           /* On shift: the plan, then today's appointments. */
