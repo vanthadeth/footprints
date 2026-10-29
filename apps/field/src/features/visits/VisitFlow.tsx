@@ -779,6 +779,17 @@ function RecordStep({
         <ChipGroup label="Payment status" options={byKind.payment_status} value={paymentStatusId} onChange={onPaymentStatus} />
       </section>
       <AmountFields orderLabel={orderLabel} paymentLabel={paymentLabel} orderAmount={orderAmount} collected={collected} onOrderAmount={onOrderAmount} onCollected={onCollected} />
+      <section aria-label="Note">
+        <GroupLabel text="Note" />
+        <textarea
+          value={remarks}
+          onChange={(e) => onRemarks(e.target.value)}
+          rows={3}
+          aria-label="Note"
+          placeholder="Add a note about this visit…"
+          className="w-full rounded-[14px] border-[1.5px] border-neutral-300 bg-white p-3 text-[15px] text-neutral-900 outline-none placeholder:text-neutral-500 focus:border-brand-500 dark:bg-neutral-950"
+        />
+      </section>
       {visitId && <VisitPhotoStrip visitId={visitId} editable />}
 
       <section aria-label="Next visit">
@@ -817,17 +828,6 @@ function RecordStep({
         <p className="mt-2 text-xs text-neutral-500">{nextAppointment ? `Scheduled: ${formatDate(nextAppointment)} · added to your plan` : 'No next visit scheduled'}</p>
       </section>
 
-      <section aria-label="Remarks">
-        <GroupLabel text="Remarks" />
-        <textarea
-          value={remarks}
-          onChange={(e) => onRemarks(e.target.value)}
-          rows={3}
-          aria-label="Remarks"
-          placeholder="Anything worth noting about this visit…"
-          className="w-full rounded-[14px] border-[1.5px] border-neutral-300 bg-white p-3 text-[15px] text-neutral-900 outline-none placeholder:text-neutral-500 focus:border-brand-500 dark:bg-neutral-950"
-        />
-      </section>
       <p className="flex items-center gap-1.5 text-xs text-neutral-500">
         <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden /> Auto check-out is on — you’re checked out if you move away from here.
       </p>
