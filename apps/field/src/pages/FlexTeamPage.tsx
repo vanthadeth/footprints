@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 import { todayDateString } from '@/lib/dateRange'
 import { flexService, type FlexTeamRow } from '@/features/flex/flexService'
 import { addDays, cycleLabel, dayDate, days, teamStatus } from '@/features/flex/flex'
@@ -27,6 +28,7 @@ const initials = (name: string) =>
  * A row opens that person's Days off, read-only.
  */
 export function FlexTeamPage() {
+  const { t, language } = useLanguage()
   const [params, setParams] = useSearchParams()
   const today = todayDateString()
   const date = params.get('d') ?? today
@@ -44,11 +46,11 @@ export function FlexTeamPage() {
         setRows(r)
         setError(null)
       })
-      .catch((e) => !cancelled && setError(e instanceof Error ? e.message : 'Couldn’t load flexible days off.'))
+      .catch((e) => !cancelled && setError(e instanceof Error ? e.message : t('flex.teamLoadFailed')))
     return () => {
       cancelled = true
     }
-  }, [date])
+  }, [date, t])
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -66,18 +68,18 @@ export function FlexTeamPage() {
   return (
     <div className="mx-auto max-w-lg space-y-3 px-4 pb-8 pt-3 md:max-w-3xl md:px-8">
       <div className="flex items-center gap-2">
-        <button type="button" onClick={() => cycle && go(addDays(cycle.cycleStart, -1))} disabled={!cycle} aria-label="Previous cycle" className="flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-600 disabled:opacity-40 dark:border-neutral-800">
+        <button type="button" onClick={() => cycle && go(addDays(cycle.cycleStart, -1))} disabled={!cycle} aria-label={t('flex.prevCycle')} className="flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-600 disabled:opacity-40 dark:border-neutral-800">
           <ChevronLeft className="h-4 w-4" />
         </button>
         <div className="min-w-0 flex-1 text-center">
-          <p className="text-[16px] font-extrabold text-neutral-900">{cycle ? cycleLabel(cycle) : 'This cycle'}</p>
-          <p className="text-[12.5px] text-neutral-500">{cycle ? (isCurrent ? `This cycle · settles ${dayDate(cycle.cycleEnd)}` : cycle.cycleEnd < today ? `Closed on ${dayDate(cycle.cycleEnd)}` : 'Next cycle') : ' '}</p>
+          <p className="text-[16px] font-extrabold text-neutral-900">{cycle ? cycleLabel(cycle, language) : t('flex.thisCycle')}</p>
+          <p className="text-[12.5px] text-neutral-500">{cycle ? (isCurrent ? t('flex.thisCycleSettles', { date: dayDate(cycle.cycleEnd, language) }) : cycle.cycleEnd < today ? t('flex.closedOn', { date: dayDate(cycle.cycleEnd, language) }) : t('flex.nextCycle')) : ' '}</p>
         </div>
         <button
           type="button"
           onClick={() => cycle && go(addDays(cycle.cycleEnd, 1) > today ? null : addDays(cycle.cycleEnd, 1))}
           disabled={isCurrent}
-          aria-label="Next cycle"
+          aria-label={t('flex.nextCycleBtn')}
           className="flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-600 disabled:opacity-40 dark:border-neutral-800"
         >
           <ChevronRight className="h-4 w-4" />
@@ -96,27 +98,27 @@ export function FlexTeamPage() {
 
       {rows && rows.length === 0 && (
         <div className="rounded-2xl bg-white p-5 text-center shadow-card">
-          <p className="text-[15px] font-bold text-neutral-900">No one on Flexible (travel) yet</p>
-          <p className="mt-1 text-[13px] text-neutral-500">Put someone on it in Users › Edit › Days off.</p>
+          <p className="text-[15px] font-bold text-neutral-900">{t('flex.noOneTitle')}</p>
+          <p className="mt-1 text-[13px] text-neutral-500">{t('flex.noOneBody')}</p>
         </div>
       )}
 
       {rows && rows.length > 0 && (
         <>
           <div className="grid grid-cols-3 gap-2">
-            <Tile label="On flexible" value={String(active.length)} />
-            <Tile label="Over allowance" value={String(overCount)} tone={overCount ? 'text-status-danger' : 'text-neutral-900'} />
-            <Tile label="Days planned" value={days(plannedTotal)} />
+            <Tile label={t('flex.tileOn')} value={String(active.length)} />
+            <Tile label={t('flex.tileOver')} value={String(overCount)} tone={overCount ? 'text-status-danger' : 'text-neutral-900'} />
+            <Tile label={t('flex.tilePlanned')} value={days(plannedTotal)} />
           </div>
 
           <label className="flex items-center gap-2 rounded-xl border-[1.5px] border-neutral-200 bg-white px-3 dark:border-neutral-800">
             <Search className="h-4 w-4 text-neutral-400" />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search name or department" aria-label="Search" className="min-w-0 flex-1 bg-transparent py-2.5 text-[15px] text-neutral-900 outline-none placeholder:text-neutral-400" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('flex.searchPh')} aria-label={t('flex.searchAria')} className="min-w-0 flex-1 bg-transparent py-2.5 text-[15px] text-neutral-900 outline-none placeholder:text-neutral-400" />
           </label>
 
           <ul className="overflow-hidden rounded-2xl bg-white shadow-card">
             {shown.map((r, i) => {
-              const st = teamStatus(r)
+              const st = teamStatus(r, t, language)
               const pct = (x: number) => `${r.allowance ? Math.min(100, Math.round((x / r.allowance) * 100)) : 0}%`
               return (
                 <li key={r.userId} className={i ? 'border-t border-neutral-100 dark:border-neutral-800' : ''}>
@@ -128,10 +130,10 @@ export function FlexTeamPage() {
                         <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-extrabold ${TONE[st.tone]}`}>{st.label}</span>
                       </span>
                       <span className="block truncate text-[12.5px] text-neutral-500">
-                        {r.departmentName ?? 'No department'}
-                        {r.isFlexible && ` · taken ${days(r.taken)}`}
-                        {r.isFlexible && r.planned > 0 && ` · ${days(r.planned)} planned`}
-                        {r.settled && r.annualDays ? ` · ${days(r.annualDays)} from annual leave` : ''}
+                        {r.departmentName ?? t('flex.noDept')}
+                        {r.isFlexible && t('flex.takenDot', { n: days(r.taken) })}
+                        {r.isFlexible && r.planned > 0 && t('flex.plannedDot', { n: days(r.planned) })}
+                        {r.settled && r.annualDays ? t('flex.fromAnnual', { n: days(r.annualDays) }) : ''}
                       </span>
                       {r.isFlexible && (
                         <span aria-hidden className="mt-1.5 flex h-1.5 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
@@ -143,7 +145,7 @@ export function FlexTeamPage() {
                     {r.isFlexible && (
                       <span className="shrink-0 text-right">
                         <span className={`block text-[20px] font-extrabold leading-none ${r.left < 0 ? 'text-status-danger' : 'text-neutral-900'}`}>{r.left < 0 ? `+${days(-r.left)}` : days(r.left)}</span>
-                        <span className="block text-[11px] font-semibold text-neutral-500">{r.left < 0 ? 'over' : `of ${days(r.allowance)} left`}</span>
+                        <span className="block text-[11px] font-semibold text-neutral-500">{r.left < 0 ? t('flex.over') : t('flex.ofLeft', { n: days(r.allowance) })}</span>
                       </span>
                     )}
                     <ChevronRight className="h-4 w-4 shrink-0 text-neutral-400" aria-hidden />
@@ -151,10 +153,10 @@ export function FlexTeamPage() {
                 </li>
               )
             })}
-            {shown.length === 0 && <li className="px-4 py-5 text-center text-[13px] text-neutral-500">No one matches “{query}”.</li>}
+            {shown.length === 0 && <li className="px-4 py-5 text-center text-[13px] text-neutral-500">{t('flex.noMatch', { q: query })}</li>}
           </ul>
 
-          <p className="px-1 text-[12px] leading-snug text-neutral-500">Left counts days already taken and days planned. Days over the allowance come from annual leave when the cycle settles.</p>
+          <p className="px-1 text-[12px] leading-snug text-neutral-500">{t('flex.teamNote')}</p>
         </>
       )}
     </div>

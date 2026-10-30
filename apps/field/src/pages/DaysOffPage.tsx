@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Info, Plus } from 'lucide-react'
+import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 import { todayDateString } from '@/lib/dateRange'
 import { RequestLeaveSheet } from '@/features/leave/RequestLeaveSheet'
 import { flexService } from '@/features/flex/flexService'
@@ -39,6 +40,7 @@ const TAG: Record<FlexDay['kind'], string> = {
  * and planned, a calendar of the cycle, and past cycles with how they settled.
  */
 export function DaysOffPage() {
+  const { t, language } = useLanguage()
   const [params, setParams] = useSearchParams()
   const today = todayDateString()
   const date = params.get('d') ?? today
@@ -65,12 +67,12 @@ export function DaysOffPage() {
         setList(d)
         setError(null)
       })
-      .catch((e) => !cancelled && setError(e instanceof Error ? e.message : 'Couldn’t load your days off.'))
+      .catch((e) => !cancelled && setError(e instanceof Error ? e.message : t('flex.loadFailed')))
       .finally(() => !cancelled && setLoading(false))
     return () => {
       cancelled = true
     }
-  }, [date, userId, nonce])
+  }, [date, userId, nonce, t])
 
   useEffect(() => {
     if (!userId) return setPersonName(null)
@@ -96,30 +98,30 @@ export function DaysOffPage() {
       </div>
     )
   }
-  if (error || !cycle) return <p className="mx-auto max-w-lg px-4 pt-4 text-sm text-status-danger">{error ?? 'Couldn’t load your days off.'}</p>
+  if (error || !cycle) return <p className="mx-auto max-w-lg px-4 pt-4 text-sm text-status-danger">{error ?? t('flex.loadFailed')}</p>
 
   const o = over(cycle)
-  const status = cycleStatus(cycle)
+  const status = cycleStatus(cycle, t)
   const done = cycle.settled || cycle.closed
   const pct = (x: number) => `${cycle.allowance ? Math.min(100, Math.round((x / cycle.allowance) * 100)) : 0}%`
-  const rows = usedRows(list)
+  const rows = usedRows(list, t, language)
 
   return (
     <div className="mx-auto max-w-lg px-4 pb-8 pt-3 md:max-w-2xl lg:max-w-4xl">
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <button type="button" onClick={() => go(addDays(cycle.cycleStart, -1))} aria-label="Previous cycle" className="flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-600 dark:border-neutral-800">
+          <button type="button" onClick={() => go(addDays(cycle.cycleStart, -1))} aria-label={t('flex.prevCycle')} className="flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-600 dark:border-neutral-800">
             <ChevronLeft className="h-4 w-4" />
           </button>
           <div className="min-w-0 flex-1 text-center">
-            <p className="text-[16px] font-extrabold text-neutral-900">{cycleLabel(cycle)}</p>
-            <p className="text-[12.5px] text-neutral-500">{done ? `${cycle.settled ? 'Settled' : 'Closed'} on ${dayDate(cycle.cycleEnd)}` : `${isCurrent ? 'This cycle' : 'Next cycle'} · settles ${dayDate(cycle.cycleEnd)}`}</p>
+            <p className="text-[16px] font-extrabold text-neutral-900">{cycleLabel(cycle, language)}</p>
+            <p className="text-[12.5px] text-neutral-500">{done ? t(cycle.settled ? 'flex.settledOn' : 'flex.closedOn', { date: dayDate(cycle.cycleEnd, language) }) : t(isCurrent ? 'flex.thisCycleSettles' : 'flex.nextCycleSettles', { date: dayDate(cycle.cycleEnd, language) })}</p>
           </div>
           <button
             type="button"
             onClick={() => go(isCurrent ? null : addDays(cycle.cycleEnd, 1) > today ? null : addDays(cycle.cycleEnd, 1))}
             disabled={isCurrent || cycle.cycleStart > today}
-            aria-label="Next cycle"
+            aria-label={t('flex.nextCycleBtn')}
             className="flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-600 disabled:opacity-40 dark:border-neutral-800"
           >
             <ChevronRight className="h-4 w-4" />
@@ -128,24 +130,24 @@ export function DaysOffPage() {
 
         {userId && (
           <p className="rounded-xl bg-brand-50 px-3 py-2.5 text-[13px] text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
-            Viewing {personName ?? 'their'}{personName ? '’s' : ''} days off. Only they can request days off here.
+            {personName ? t('flex.viewingPerson', { name: personName }) : t('flex.viewingThem')}
           </p>
         )}
 
         {!cycle.isFlexible ? (
           <div className="rounded-2xl bg-white p-4 text-[14px] text-neutral-600 shadow-card">
-            <p className="font-bold text-neutral-900">Company schedule this cycle</p>
-            <p className="mt-1">{userId ? 'They follow' : 'You follow'} the company’s working days, so weekends are days off and there’s no flexible allowance for {cycleLabel(cycle)}.</p>
+            <p className="font-bold text-neutral-900">{t('flex.companyTitle')}</p>
+            <p className="mt-1">{t(userId ? 'flex.companyThey' : 'flex.companyYou', { cycle: cycleLabel(cycle, language) })}</p>
           </div>
         ) : (
           <>
             <div className="rounded-2xl bg-white p-4 shadow-card">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[13px] font-bold text-neutral-500">{done ? 'Not used (not carried over)' : o ? 'Over the allowance' : 'Days off left'}</p>
+                  <p className="text-[13px] font-bold text-neutral-500">{done ? t('flex.notUsed') : o ? t('flex.overAllowance') : t('flex.daysLeft')}</p>
                   <p className="mt-0.5">
                     <span className={`text-[34px] font-extrabold leading-none ${o && !done ? 'text-status-danger' : 'text-neutral-900'}`}>{done ? days(cycle.unusedDays) : o ? `+${days(o)}` : days(cycle.left)}</span>
-                    <span className="ml-1.5 text-[14px] font-semibold text-neutral-500">of {days(cycle.allowance)} days</span>
+                    <span className="ml-1.5 text-[14px] font-semibold text-neutral-500">{t('flex.ofDays', { n: days(cycle.allowance) })}</span>
                   </p>
                 </div>
                 <span className={`rounded-full px-2.5 py-1 text-[12px] font-extrabold ${TONE[status.tone]}`}>{status.label}</span>
@@ -155,12 +157,12 @@ export function DaysOffPage() {
                 <span className="bg-status-visiting/35" style={{ width: pct(Math.max(0, Math.min(cycle.planned, cycle.allowance - cycle.taken))) }} />
               </div>
               <div className="mt-2 flex gap-4 text-[12.5px] font-semibold text-neutral-600">
-                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-status-visiting" />Taken {days(cycle.taken)}</span>
-                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-status-visiting/35" />Planned {days(cycle.planned)}</span>
-                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-neutral-200 dark:bg-neutral-700" />Left {days(Math.max(0, cycle.left))}</span>
+                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-status-visiting" />{t('flex.takenN', { n: days(cycle.taken) })}</span>
+                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-status-visiting/35" />{t('flex.plannedN', { n: days(cycle.planned) })}</span>
+                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-neutral-200 dark:bg-neutral-700" />{t('flex.leftN', { n: days(Math.max(0, cycle.left)) })}</span>
               </div>
               <p className="mt-3 border-t border-neutral-100 pt-3 text-[12.5px] leading-snug text-neutral-500 dark:border-neutral-800">
-                {cycle.saturdays} Saturdays × {rate(cycle.satRate)} + {cycle.sundays} Sundays × {rate(cycle.sunRate)} = <span className="font-bold text-neutral-800">{days(cycle.allowance)} days</span> this cycle, all usable from day one. Holidays are off and don’t count.
+                {t('flex.allowanceExplain', { sat: cycle.saturdays, satRate: rate(cycle.satRate), sun: cycle.sundays, sunRate: rate(cycle.sunRate), total: days(cycle.allowance) })}
               </p>
             </div>
 
@@ -169,25 +171,30 @@ export function DaysOffPage() {
                 <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
                 <p>
                   {done
-                    ? `This cycle is ${cycle.settled ? 'settled' : 'closed'}: ${days(cycle.taken)} of ${days(cycle.allowance)} days used, ${days(cycle.unusedDays)} not carried over${cycle.overDays ? `, ${days(cycle.overDays)} over the allowance` : ''}.`
-                    : `You’ve planned ${days(o)} day${o === 1 ? '' : 's'} more than this cycle’s allowance. Unless you work more weekends, ${o === 1 ? 'it' : 'they'} will come from your annual leave on ${dayDate(cycle.cycleEnd)}.`}
+                    ? t(cycle.settled ? 'flex.doneSettled' : 'flex.doneClosed', {
+                        taken: days(cycle.taken),
+                        allowance: days(cycle.allowance),
+                        unused: days(cycle.unusedDays),
+                        over: cycle.overDays ? t('flex.overSuffix', { n: days(cycle.overDays) }) : '',
+                      })
+                    : t(o === 1 ? 'flex.planOverOne' : 'flex.planOverMany', { n: days(o), date: dayDate(cycle.cycleEnd, language) })}
                 </p>
               </div>
             )}
 
             {done ? (
               <Link to={`/leave/days-off/settlement?end=${cycle.cycleEnd}${userId ? `&user=${userId}` : ''}`} className="flex h-[50px] items-center justify-center rounded-2xl border-[1.5px] border-neutral-200 bg-white text-[15px] font-bold text-brand-600 dark:border-neutral-800">
-                See settlement
+                {t('flex.seeSettlement')}
               </Link>
             ) : userId ? null : (
               <button type="button" onClick={() => setRequestOpen(true)} className="flex h-[50px] w-full items-center justify-center gap-2 rounded-2xl bg-brand-500 text-[15px] font-bold text-white">
-                <Plus className="h-[18px] w-[18px]" strokeWidth={2.4} /> Request day off
+                <Plus className="h-[18px] w-[18px]" strokeWidth={2.4} /> {t('flex.requestDayOff')}
               </button>
             )}
 
             <div className="rounded-2xl bg-white p-3 shadow-card">
               <div className="mb-1.5 grid grid-cols-7 gap-1">
-                {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
+                {t('leave.wdInitials').split(',').map((d, i) => (
                   <span key={i} className="text-center text-[11px] font-extrabold text-neutral-500">
                     {d}
                   </span>
@@ -198,11 +205,11 @@ export function DaysOffPage() {
                   d ? (
                     <span
                       key={d.day}
-                      aria-label={`${dayDate(d.day)}: ${cellLabel(d)}`}
+                      aria-label={`${dayDate(d.day, language)}: ${cellLabel(d, t)}`}
                       className={`relative flex h-[46px] flex-col items-center justify-center rounded-lg ${CELL[d.kind]} ${d.day === today ? 'ring-2 ring-neutral-900 dark:ring-neutral-100' : ''}`}
                     >
                       <span className={`text-[13px] font-bold ${d.kind === 'upcoming' ? 'text-neutral-400' : 'text-neutral-900'}`}>{Number(d.day.slice(8))}</span>
-                      <span className={`text-[9.5px] font-extrabold ${TAG[d.kind]}`}>{cellTag(d)}</span>
+                      <span className={`text-[9.5px] font-extrabold ${TAG[d.kind]}`}>{cellTag(d, t)}</span>
                       {d.kind === 'worked' && d.weekday >= 6 && <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-status-working" />}
                     </span>
                   ) : (
@@ -211,17 +218,17 @@ export function DaysOffPage() {
                 )}
               </div>
               <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1.5 text-[11.5px] font-semibold text-neutral-600">
-                <Legend className="bg-status-working/10" label="Worked" />
-                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-status-working" />Weekend worked</span>
-                <Legend className="bg-status-visiting/10" label="Day off" />
-                <Legend className="border-[1.5px] border-dashed border-status-visiting" label="Planned / no clock-in" />
-                <Legend className="holiday-stripes" label="Holiday" />
+                <Legend className="bg-status-working/10" label={t('flex.legWorked')} />
+                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-status-working" />{t('flex.legWeekendWorked')}</span>
+                <Legend className="bg-status-visiting/10" label={t('flex.legDayOff')} />
+                <Legend className="border-[1.5px] border-dashed border-status-visiting" label={t('flex.legPlanned')} />
+                <Legend className="holiday-stripes" label={t('flex.legHoliday')} />
               </div>
             </div>
 
             <div className="rounded-2xl bg-white px-4 py-3 shadow-card">
-              <p className="mb-1 text-[13px] font-extrabold text-neutral-900">Days off this cycle</p>
-              {rows.length === 0 && <p className="py-2 text-[13px] text-neutral-500">None yet.</p>}
+              <p className="mb-1 text-[13px] font-extrabold text-neutral-900">{t('flex.daysThisCycle')}</p>
+              {rows.length === 0 && <p className="py-2 text-[13px] text-neutral-500">{t('flex.noneYet')}</p>}
               {rows.map((r) => (
                 <div key={r.day} className="flex items-center justify-between gap-3 border-t border-neutral-100 py-2.5 first:border-t-0 dark:border-neutral-800">
                   <span className="min-w-0">
@@ -234,7 +241,7 @@ export function DaysOffPage() {
             </div>
 
             <p className="px-1 text-[12px] leading-snug text-neutral-500">
-              Settles on the {ordinal(cycle.closeDay)}: days you don’t use aren’t carried over, and days taken beyond the allowance come from annual leave.
+              {t('flex.settlesOn', { day: ordinal(cycle.closeDay, t, language) })}
             </p>
           </>
         )}
@@ -261,8 +268,9 @@ function Legend({ className, label }: { className: string; label: string }) {
   )
 }
 
-function ordinal(n: number): string {
-  if (n === 0) return 'last day of the month'
+function ordinal(n: number, t: (key: string, vars?: Record<string, string | number>) => string, language: 'en' | 'km'): string {
+  if (n === 0) return t('flex.lastDay')
+  if (language === 'km') return t('flex.dayN', { n })
   const s = n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th'
   return `${n}${s}`
 }
