@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Camera, RotateCcw, Check } from 'lucide-react'
+import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 import { BottomSheet } from '@/components/BottomSheet'
 
 /**
@@ -20,6 +21,7 @@ export function SelfieCaptureSheet({
   onCancel: () => void
   onCapture: (blob: Blob) => void
 }) {
+  const { t } = useLanguage()
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const [captured, setCaptured] = useState<{ blob: Blob; url: string } | null>(null)
@@ -124,7 +126,7 @@ export function SelfieCaptureSheet({
             <button
               onClick={capture}
               disabled={!!cameraError}
-              aria-label="Capture selfie"
+              aria-label={t('checkIn.takeSelfie')}
               className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-500 text-white shadow-card tap-target disabled:opacity-40"
             >
               <Camera className="h-7 w-7" />

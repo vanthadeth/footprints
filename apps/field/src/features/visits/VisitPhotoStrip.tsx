@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Camera, Loader2, X } from 'lucide-react'
+import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 import { useAuth } from '@footprints/shared/features/auth/AuthContext'
 import { visitPhotosService, type VisitPhoto, type VisitPhotoKind } from './visitPhotosService'
 
@@ -16,6 +17,7 @@ const KINDS: { value: VisitPhotoKind; label: string }[] = [
  * is closed mid-visit. Read-only when `editable` is false.
  */
 export function VisitPhotoStrip({ visitId, editable }: { visitId: string; editable: boolean }) {
+  const { t } = useLanguage()
   const { session } = useAuth()
   const userId = session?.user.id ?? null
   const [photos, setPhotos] = useState<VisitPhoto[]>([])
@@ -52,7 +54,7 @@ export function VisitPhotoStrip({ visitId, editable }: { visitId: string; editab
       setPhotos((prev) => [...prev, photo])
       setUrls((prev) => ({ ...prev, [photo.id]: URL.createObjectURL(file) }))
     } catch {
-      setError('Photo upload failed. Check your connection and try again.')
+      setError(t('visitFlow.photoUploadFailed'))
     } finally {
       setBusy(false)
       if (inputRef.current) inputRef.current.value = ''
@@ -65,7 +67,7 @@ export function VisitPhotoStrip({ visitId, editable }: { visitId: string; editab
       await visitPhotosService.remove(photo)
       setPhotos((prev) => prev.filter((p) => p.id !== photo.id))
     } catch {
-      setError('Could not remove that photo.')
+      setError(t('visitFlow.photoRemoveFailed'))
     }
   }
 
@@ -103,7 +105,7 @@ export function VisitPhotoStrip({ visitId, editable }: { visitId: string; editab
               <button
                 type="button"
                 onClick={() => handleRemove(p)}
-                aria-label={`Remove ${p.kind} photo`}
+                aria-label={t('visitFlow.removePhoto', { kind: p.kind })}
                 className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white"
               >
                 <X className="h-3.5 w-3.5" />

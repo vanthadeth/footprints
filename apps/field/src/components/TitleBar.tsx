@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { ChevronLeft } from 'lucide-react'
 import { ProfileBadge } from '@/components/ProfileBadge'
 import { NotificationBell } from '@/components/NotificationBell'
+import { formatLongDate } from '@footprints/shared/lib/datetime'
 import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 import { useRoleGroup } from '@/features/nav/useRoleGroup'
 import { FN, tabsFor, type FnKey } from '@/features/nav/navConfig'
@@ -114,7 +115,7 @@ export function TitleBar() {
     }`
 
   if (isRoot) {
-    const today = new Date().toLocaleDateString(language === 'km' ? 'km-KH' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
+    const today = language === 'km' ? formatLongDate(undefined, undefined, 'km') : new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
     return (
       <>
         <header style={{ paddingTop: 'env(safe-area-inset-top)' }} className={`${bar(titleGone)} px-4 md:px-8`}>
