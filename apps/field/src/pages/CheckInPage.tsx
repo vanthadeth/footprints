@@ -300,16 +300,16 @@ export function CheckInPage() {
               )}
             </section>
             <DayAlertsStrip alerts={alerts} />
-            <ApptPlanCard variant="before" canPlan={canPlan} />
             <button
               type="button"
               onClick={() => setClockSheet('in')}
               disabled={!canClockIn || journey.busy}
-              className="mt-auto flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-brand-500 text-[17px] font-bold text-white disabled:opacity-50"
+              className="flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-brand-500 text-[17px] font-bold text-white disabled:opacity-50"
             >
               <Clock className="h-[22px] w-[22px]" aria-hidden />
               {journey.todaysAttendance.length > 0 ? t('checkIn.clockInAgain') : t('checkIn.clockInCta')}
             </button>
+            <ApptPlanCard variant="before" canPlan={canPlan} />
           </>
         )}
 

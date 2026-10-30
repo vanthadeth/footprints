@@ -136,7 +136,7 @@ export function homeFor(group: RoleGroup, ctx: NavContext): string {
 export type RowKey =
   | 'trips' | 'tripset' | 'plan' | 'calendar' | 'journey' | 'report' | 'messages' | 'customers' | 'leave' | 'daysoff'
   | 'team' | 'attendance' | 'attendanceAll' | 'reports' | 'logs' | 'briefing' | 'flexteam' | 'approvals'
-  | 'allowances' | 'holidays' | 'users' | 'permissions' | 'org' | 'hours' | 'adminatt' | 'locations' | 'notifications' | 'translations' | 'settings' | 'sheetsync' | 'components' | 'attendanceRoster' | 'teamOverview'
+  | 'allowances' | 'holidays' | 'users' | 'permissions' | 'org' | 'hours' | 'adminatt' | 'locations' | 'notifications' | 'translations' | 'settings' | 'sheetsync' | 'components' | 'attendanceRoster'
 
 export interface RowDef {
   key: RowKey
@@ -180,7 +180,6 @@ export const ROW: Record<RowKey, RowDef> = {
   translations: { key: 'translations', label: 'Translations', sub: 'English and Khmer text', to: '/translations', icon: Languages, tone: 'bg-brand-600', needs: admin },
   settings: { key: 'settings', label: 'System settings', sub: 'Company-wide options', to: '/settings', icon: Settings, tone: 'bg-neutral-600', needs: admin },
   components: { key: 'components', label: 'Components', sub: 'Built components, light and dark', to: '/components', icon: LayoutGrid, tone: 'bg-neutral-600', needs: admin },
-  teamOverview: { key: 'teamOverview', label: 'Team', sub: 'Today: performance, attendance and day strips', to: '/team/overview', icon: UsersIcon, tone: 'bg-brand-500', needs: can('team_map') },
   attendanceRoster: { key: 'attendanceRoster', label: 'Attendance', sub: 'Everyone, by day: present, leave, late', to: '/attendance/roster', icon: ClipboardCheck, tone: 'bg-status-working', needs: admin },
   sheetsync: { key: 'sheetsync', label: 'Data & sync', sub: 'Google Sheet sync and recent runs', to: '/admin/sync', icon: FileSpreadsheet, tone: 'bg-status-working', needs: admin },
 }
@@ -240,7 +239,6 @@ const ROW_FN: [RowKey, FnKey, PartKey][] = [
   ['users', 'company', 'people'], ['permissions', 'company', 'people'], ['org', 'company', 'people'],
   ['hours', 'company', 'rules'], ['adminatt', 'company', 'rules'], ['locations', 'company', 'rules'], ['tripset', 'company', 'rules'],
   ['notifications', 'company', 'system'], ['translations', 'company', 'system'], ['settings', 'company', 'system'], ['sheetsync', 'company', 'system'], ['components', 'company', 'system'],
-  ['teamOverview', 'new', 'preview'],
   ['attendanceRoster', 'new', 'preview'],
 ]
 
@@ -318,7 +316,6 @@ const SHORT: Partial<Record<RowKey, string>> = {
   hours: 'Hours',
   adminatt: 'Attendance',
   attendanceRoster: 'Attendance',
-  teamOverview: 'Team',
   locations: 'Geofence',
   sheetsync: 'Sync',
   settings: 'System',

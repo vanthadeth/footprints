@@ -41,7 +41,6 @@ const NotificationsPage = lazyPage(() => import('@/pages/NotificationsPage').the
 const TranslationsPage = lazyPage(() => import('@/pages/TranslationsPage').then((m) => ({ default: m.TranslationsPage })))
 const PermissionsPage = lazyPage(() => import('@footprints/shared/pages/PermissionsPage').then((m) => ({ default: m.PermissionsPage })))
 const TodayPage = lazyPage(() => import('@/pages/TodayPage').then((m) => ({ default: m.TodayPage })))
-const TeamHomePage = lazyPage(() => import('@/pages/TeamHomePage').then((m) => ({ default: m.TeamHomePage })))
 const AttendanceOverviewPage = lazyPage(() => import('@/pages/AttendanceOverviewPage').then((m) => ({ default: m.AttendanceOverviewPage })))
 const PeoplePage = lazyPage(() => import('@/pages/PeoplePage').then((m) => ({ default: m.PeoplePage })))
 const TripsPage = lazyPage(() => import('@/pages/TripsPage').then((m) => ({ default: m.TripsPage })))
@@ -57,7 +56,7 @@ const FlexTeamPage = lazyPage(() => import('@/pages/FlexTeamPage').then((m) => (
 const DaysOffPage = lazyPage(() => import('@/pages/DaysOffPage').then((m) => ({ default: m.DaysOffPage })))
 const FlexSettlementPage = lazyPage(() => import('@/pages/FlexSettlementPage').then((m) => ({ default: m.FlexSettlementPage })))
 const SheetSyncPage = lazyPage(() => import('@/pages/SheetSyncPage').then((m) => ({ default: m.SheetSyncPage })))
-const TeamOverviewPage = lazyPage(() => import('@/pages/TeamOverviewPage').then((m) => ({ default: m.TeamOverviewPage })))
+const TeamTab = lazyPage(() => import('@/pages/TeamTab').then((m) => ({ default: m.TeamTab })))
 const AttendanceRosterPage = lazyPage(() => import('@/pages/AttendanceRosterPage').then((m) => ({ default: m.AttendanceRosterPage })))
 const AdminAttendancePage = lazyPage(() => import('@/pages/AdminAttendancePage').then((m) => ({ default: m.AdminAttendancePage })))
 const GeofencePage = lazyPage(() => import('@/pages/GeofencePage').then((m) => ({ default: m.GeofencePage })))
@@ -139,7 +138,7 @@ export const router = createBrowserRouter([
         path: '/team',
         element: (
           <Suspense fallback={<PageFallback />}>
-            <TeamHomePage />
+            <TeamTab />
           </Suspense>
         ),
       },
@@ -210,15 +209,8 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        // New manager Team page, reached from Hub > New features; the Team tab above is unchanged for now.
         path: '/team/overview',
-        element: (
-          <RequirePermission module="team_map">
-            <Suspense fallback={<PageFallback />}>
-              <TeamOverviewPage />
-            </Suspense>
-          </RequirePermission>
-        ),
+        element: <Navigate to="/team" replace />,
       },
       {
         path: '/team/footprints/:userId',
