@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import type { Seg, SegKind } from './dayBar'
 
 type Tone = 'card' | 'hero'
-type Size = 'sm' | 'md' | 'lg'
+type Size = 'sm' | 'md' | 'lg' | 'flat'
 
 /** The canvas's bar colours: on a white card, and on the dark Check In card. */
 const FILL: Record<Tone, Record<SegKind, string>> = {
@@ -31,6 +31,8 @@ const SIZE: Record<Size, { h: string; r: string; gap: number }> = {
   sm: { h: 'h-2', r: 'rounded-[2px]', gap: 2 },
   md: { h: 'h-3', r: 'rounded-[3px]', gap: 2 },
   lg: { h: 'h-5', r: 'rounded-[4px]', gap: 3 },
+  /** The Check in card's bar: a flat 14px strip, stretches split by a hairline. */
+  flat: { h: 'h-3.5', r: 'rounded-none', gap: 1 },
 }
 
 export interface DayMark {

@@ -1,19 +1,19 @@
 import { useVisitOrders, useVisitOrderTotals } from '@/features/orders/useVisitOrders'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { AlertTriangle, CalendarDays, Check, ChevronRight, Clock, LogOut, MapPin, Moon, Store, X } from 'lucide-react'
+import { AlertTriangle, CalendarDays, Check, ChevronRight, Clock, LogOut, MapPin, MapPinCheck, Moon, Store, X } from 'lucide-react'
 import { useJourneyContext } from '@/features/attendance/JourneyContext'
 import type { AttendanceRow, VisitRow } from '@/features/attendance/types'
 import { ClockSheet } from '@/features/attendance/ClockSheet'
 import { computeJourneyStats } from '@/features/attendance/journeyStats'
 import type { FlagRules } from '@/features/attendance/flagRules'
 import type { DayJourney } from '@/features/attendance/useJourneyHistory'
-import { SlideToConfirm } from '@/components/SlideToConfirm'
 import { VisitFlow, type PresetCustomer } from '@/features/visits/VisitFlow'
-import { HeroLocationCard, TodaySummaryCards, WeekStrip } from '@/features/checkin/CheckInSections'
+import { WeekStrip } from '@/features/checkin/CheckInSections'
+import { ApptPlanCard, RecentVisitsCard } from '@/features/checkin/HomeCards'
+import { formatMn } from '@/features/checkin/formatMn'
 import { DayAlertsStrip } from '@/features/checkin/DayAlertsStrip'
 import { dayAlerts } from '@/features/checkin/dayAlerts'
-import { AppointmentsCard, Donut, GoalTile, PlanListCard } from '@/features/checkin/OnShiftCards'
 import { TripTodayCard } from '@/features/trips/TripTodayCard'
 import { useCustomerNames } from '@/features/customers/useCustomerNames'
 import { DayBar } from '@/features/fleet/DayBar'
@@ -106,8 +106,8 @@ export function CheckInPage() {
       : { text: t('checkIn.clockInOpensShort', { time: clockInOpensAt }), tone: 'text-heroMuted' }
     : untilStart > 0
       ? { text: t('checkIn.startsIn', { n: formatDuration(untilStart * 60_000, language) }), tone: 'text-[#74E092]' }
-      : untilStart < -settings.lateGraceMinutes && settings.isWorkingDay && journey.todaysAttendance.length === 0
-        ? { text: t('checkIn.lateBy', { n: formatDuration(-untilStart * 60_000, language) }), tone: 'text-[#FFB257]' }
+      : settings.isWorkingDay && journey.todaysAttendance.length === 0
+        ? { text: t('checkIn.startedAgo', { n: formatDuration(-untilStart * 60_000, language) }), tone: untilStart < -settings.lateGraceMinutes ? 'text-[#FFB257]' : 'text-[#74E092]' }
         : null
   const alerts = dayAlerts({
     day: todayDateString(),
@@ -151,57 +151,48 @@ export function CheckInPage() {
       <div className="flex min-h-[calc(100dvh-11rem)] flex-col gap-3.5 px-4 pt-1.5 md:px-8 md:pt-4">
         {isClockedIn ? (
           /* On shift: the day so far (canvas Check in, clocked in), then Check in or the open visit. */
-          <section aria-label={t('checkIn.onShift')} className="rounded-[22px] border border-neutral-100 bg-white p-4 shadow-card">
+          <section aria-label={t('checkIn.onShift')} className="rounded-[20px] bg-white p-4 shadow-card">
             <div className="flex items-center justify-between gap-2">
-              <span className="inline-flex h-7 items-center gap-2 rounded-full bg-status-working/10 px-3 text-[13px] font-bold text-status-working">
-                <span className="h-2 w-2 rounded-full bg-status-working" />
+              <span className="inline-flex h-7 items-center gap-[7px] whitespace-nowrap rounded-full bg-status-working/10 px-3 text-[12.5px] font-bold text-status-working">
+                <span className="h-2 w-2 rounded-full bg-current" />
                 {t('checkIn.clockedInPill', { time: clockInTime ? formatTime(clockInTime) : '—' })}
               </span>
-              <span className="text-[13px] font-semibold text-neutral-500">{shiftLabel}</span>
+              <span className="whitespace-nowrap text-[12.5px] font-semibold text-neutral-600">{shiftLabel}</span>
             </div>
-            <div className="mt-4 flex items-center gap-4">
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-neutral-500">{t('checkIn.withCustomers')}</p>
-                <p className="mt-1 text-[34px] font-extrabold leading-[40px] tracking-tight text-brand-500 tabular-nums">{formatDuration(stats.totalVisitingMs, language)}</p>
-                <p className="mt-0.5 text-[13px] text-neutral-500">
-                  {t('checkIn.visitsAvg', { n: stats.totalVisits, avg: formatDuration(stats.averageVisitMs, language) })}
-                </p>
-              </div>
-              <span className="h-[84px] w-px shrink-0 bg-neutral-100" aria-hidden />
-              <div className="flex shrink-0 flex-col items-center">
-                <Donut ratio={stats.totalWorkingMs > 0 ? stats.totalVisitingMs / stats.totalWorkingMs : 0} />
-                <p className="mt-1 text-xs text-neutral-500">{t('checkIn.ofWorked', { n: formatDuration(stats.totalWorkingMs, language) })}</p>
-              </div>
+            <p className="mt-4 flex items-baseline gap-1.5">
+              <b className="text-[32px] font-bold leading-[38px] tracking-[-0.02em] tabular-nums text-neutral-900">{formatMn(stats.totalVisitingMs, t, language)}</b>
+              <span className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-neutral-600">{t('checkIn.withCustomers')}</span>
+            </p>
+            <div className="mb-6 mt-3">
+              <HeroDayBar attendance={journey.todaysAttendance} visits={journey.todaysVisits} workStart={settings.workStartTime} workEnd={settings.workEndTime} flagRules={settings.flagRules} customerNames={customerNames} />
             </div>
-            <HeroDayBar attendance={journey.todaysAttendance} visits={journey.todaysVisits} workStart={settings.workStartTime} workEnd={settings.workEndTime} flagRules={settings.flagRules} customerNames={customerNames} />
-            <div className="mt-4 flex gap-4">
+            <div className="mb-4 grid grid-cols-2 gap-2.5">
               <GoalTile
                 label={t('nav.visits')}
                 value={String(stats.totalVisits)}
                 unit={visitTarget > 0 ? t('checkIn.ofVisits', { n: visitTarget }) : undefined}
                 ratio={visitTarget > 0 ? stats.totalVisits / visitTarget : null}
-                caption={visitTarget > 0 ? t('checkIn.left', { n: Math.max(0, visitTarget - stats.totalVisits) }) : undefined}
+                note={visitTarget > 0 ? t('checkIn.left', { n: Math.max(0, visitTarget - stats.totalVisits) }) : undefined}
               />
-              <span className="w-px shrink-0 bg-neutral-100" aria-hidden />
               <GoalTile
                 label={t('checkIn.sales')}
                 value={`$${Math.round(salesToday).toLocaleString('en-US')}`}
-                unit={orderCount > 0 ? `(${orderCount})` : undefined}
+                unit={orderCount > 0 ? `(${orderCount} ${orderCount === 1 ? 'order' : 'orders'})` : undefined}
                 ratio={salesTarget > 0 ? salesToday / salesTarget : null}
-                caption={salesTarget > 0 ? (salesToday >= salesTarget ? t('checkIn.targetReached') : t('checkIn.toGo', { n: `$${Math.round(salesTarget - salesToday).toLocaleString('en-US')}` })) : undefined}
+                note={salesTarget > 0 ? (salesToday >= salesTarget ? t('checkIn.targetReached') : t('checkIn.toGo', { n: `$${Math.round(salesTarget - salesToday).toLocaleString('en-US')}` })) : undefined}
               />
             </div>
             {clockInLocationId && locationNames[clockInLocationId] && (
-              <p className="mt-3.5 flex items-center gap-1.5 text-[13px] font-semibold text-neutral-600">
-                <MapPin className="h-3.5 w-3.5 text-status-working" aria-hidden />
+              <p className="flex items-center gap-1.5 text-xs font-semibold text-neutral-600">
+                <MapPin className="h-4 w-4 text-status-working" aria-hidden />
                 {locationNames[clockInLocationId]} · {t('checkIn.insideWork')}
               </p>
             )}
 
-            <div className="mt-3.5 flex gap-2.5">
+            <div className="mt-3.5 flex gap-2">
               {isVisiting && journey.openVisit ? (
-                <button type="button" onClick={() => openFlow()} className="flex min-h-[52px] min-w-0 flex-1 items-center gap-3 rounded-2xl bg-brand-50 p-2.5 text-left">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white">
+                <button type="button" onClick={() => openFlow()} className="flex min-h-12 min-w-0 flex-1 items-center gap-3 rounded-[14px] bg-brand-50 p-2 text-left">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white">
                     <Store className="h-5 w-5" aria-hidden />
                   </span>
                   <span className="min-w-0 flex-1">
@@ -220,9 +211,9 @@ export function CheckInPage() {
                   type="button"
                   onClick={() => openFlow()}
                   disabled={journey.busy}
-                  className="flex h-[52px] min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl bg-brand-500 text-base font-extrabold text-white disabled:opacity-60"
+                  className="flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-[14px] bg-brand-500 text-[15px] font-bold text-white disabled:opacity-60"
                 >
-                  <MapPin className="h-5 w-5" aria-hidden />
+                  <MapPinCheck className="h-5 w-5" aria-hidden />
                   {t('checkIn.checkInButton')}
                 </button>
               )}
@@ -231,7 +222,7 @@ export function CheckInPage() {
                 onClick={() => setClockSheet('out')}
                 disabled={journey.busy}
                 aria-label={t('checkIn.clockOutTitle')}
-                className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl border border-neutral-200 bg-white text-status-danger disabled:opacity-50"
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] border-[1.5px] border-neutral-300 text-status-danger disabled:opacity-50"
               >
                 <LogOut className="h-5 w-5" aria-hidden />
               </button>
@@ -309,16 +300,16 @@ export function CheckInPage() {
               )}
             </section>
             <DayAlertsStrip alerts={alerts} />
-            {canClockIn && <HeroLocationCard required={clockRules.in} light />}
-            <TodaySummaryCards canPlan={canPlan} />
-            <div className="sticky bottom-24 z-10 mt-auto pt-2">
-              <SlideToConfirm
-                label={journey.todaysAttendance.length > 0 ? t('checkIn.clockInAgain') : t('checkIn.slideToClockIn')}
-                disabled={!canClockIn || journey.busy}
-                busy={journey.busy}
-                onConfirm={() => setClockSheet('in')}
-              />
-            </div>
+            <ApptPlanCard variant="before" canPlan={canPlan} />
+            <button
+              type="button"
+              onClick={() => setClockSheet('in')}
+              disabled={!canClockIn || journey.busy}
+              className="mt-auto flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-brand-500 text-[17px] font-bold text-white disabled:opacity-50"
+            >
+              <Clock className="h-[22px] w-[22px]" aria-hidden />
+              {journey.todaysAttendance.length > 0 ? t('checkIn.clockInAgain') : t('checkIn.clockInCta')}
+            </button>
           </>
         )}
 
@@ -327,8 +318,8 @@ export function CheckInPage() {
         {isClockedIn ? (
           /* On shift: the plan, then today's appointments. */
           <>
-            {canPlan && <PlanListCard onCheckIn={(stop) => openFlow({ id: stop.customer_id, shopName: stop.shop_name })} busy={journey.busy || isVisiting} />}
-            <AppointmentsCard />
+            <ApptPlanCard variant="on" canPlan={canPlan} onCheckIn={(stop) => openFlow({ id: stop.customer_id, shopName: stop.shop_name })} busy={journey.busy || isVisiting} />
+            <RecentVisitsCard />
           </>
         ) : (
           /* Before clock-in: nothing below the slide, as on the canvas. */
@@ -389,9 +380,9 @@ function HeroDayBar({
       segs={segs}
       from={from}
       to={to}
-      size="lg"
+      size="flat"
       tone="card"
-      className="mt-4"
+      className=""
       label={`${live.length} ${live.length === 1 ? 'visit' : 'visits'} since ${formatTime(new Date(from).toISOString())}`}
       describe={(g) => segText(g, name(g))}
     />
@@ -443,6 +434,22 @@ function AutoCheckoutBanner({
       <button onClick={onDismiss} aria-label="Dismiss" className="text-neutral-400 tap-target">
         <X className="h-4 w-4" />
       </button>
+    </div>
+  )
+}
+
+/** A Visits / Sales tile: label and note on one line, the value, then a thin progress bar. */
+function GoalTile({ label, value, unit, ratio, note }: { label: string; value: string; unit?: string; ratio: number | null; note?: string }) {
+  return (
+    <div className="grid min-w-0 grid-cols-[1fr_auto] items-center gap-x-2 gap-y-2 rounded-2xl bg-neutral-100 px-3.5 py-3">
+      <span className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-neutral-600">{label}</span>
+      <span className="whitespace-nowrap text-xs font-semibold text-neutral-600">{note}</span>
+      <p className="col-span-2 whitespace-nowrap text-[12.5px] text-neutral-600">
+        <b className="text-xl font-bold text-neutral-900">{value}</b> {unit}
+      </p>
+      <span className="col-span-2 mt-0.5 block h-2 overflow-hidden rounded-full bg-neutral-200">
+        {ratio != null && <i className="block h-2 rounded-full bg-brand-500" style={{ width: `${Math.round(Math.min(1, Math.max(0, ratio)) * 100)}%` }} />}
+      </span>
     </div>
   )
 }

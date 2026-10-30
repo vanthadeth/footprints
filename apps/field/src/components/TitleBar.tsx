@@ -115,7 +115,7 @@ export function TitleBar() {
     }`
 
   if (isRoot) {
-    const today = language === 'km' ? formatLongDate(undefined, undefined, 'km') : new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
+    const today = language === 'km' ? formatLongDate(undefined, undefined, 'km') : new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })
     return (
       <>
         <header style={{ paddingTop: 'env(safe-area-inset-top)' }} className={`${bar(titleGone)} px-4 md:px-8`}>
