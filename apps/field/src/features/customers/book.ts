@@ -1,5 +1,6 @@
 import { APP_TIMEZONE } from '@footprints/shared/lib/config'
 import { displayName } from '@footprints/shared/lib/displayName'
+import { en } from '@footprints/shared/i18n/en'
 import type { ActivityRow, BookRow, Bucket, SummaryRow, Visitor } from './customerBookService'
 import { provinceEnglish } from './provinces'
 
@@ -10,6 +11,16 @@ import { provinceEnglish } from './provinces'
  */
 
 export const PAGE_SIZE = 20
+
+/** The app's `t`; the helpers below default to English so tests and untranslated callers keep working. */
+export type Tr = (key: string, vars?: Record<string, string | number>) => string
+
+export const enT: Tr = (key, vars) => {
+  let node: unknown = en
+  for (const part of key.split('.')) node = typeof node === 'object' && node !== null ? (node as Record<string, unknown>)[part] : undefined
+  const template = typeof node === 'string' ? node : key
+  return vars ? Object.entries(vars).reduce((acc, [name, value]) => acc.split(`{{${name}}}`).join(String(value)), template) : template
+}
 
 // ---------------------------------------------------------------- ranges
 
@@ -39,6 +50,12 @@ export function urgency(days: number | null): Urgency {
   if (days <= 60) return 'overdue'
   return 'lapsed'
 }
+
+const RANGE_KEY: Record<Bucket, string> = { '0-14': 'range014', '15-30': 'range1530', '31-60': 'range3160', '60+': 'range60', never: 'neverVisited' }
+export const rangeLabel = (b: Bucket, t: Tr = enT) => t(`customers.${RANGE_KEY[b]}`)
+
+const URGENCY_KEY: Record<Urgency, string> = { fresh: 'urgVisited', ok: 'urgVisited', due: 'urgDue', overdue: 'urgOverdue', lapsed: 'urgLapsed', never: 'neverVisited' }
+export const urgencyLabel = (u: Urgency, t: Tr = enT) => t(`customers.${URGENCY_KEY[u]}`)
 
 export const URGENCY: Record<Urgency, { label: string; chip: string }> = {
   fresh: { label: 'Visited', chip: 'bg-status-working/10 text-status-working' },
@@ -76,20 +93,20 @@ export function toggle<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((x) => x !== value) : [...list, value]
 }
 
-function monthsText(m: number): string {
-  return `${m} ${m === 1 ? 'month' : 'months'}`
+export function monthsText(m: number, t: Tr = enT): string {
+  return t(m === 1 ? 'customers.monthOne' : 'customers.monthMany', { n: m })
 }
 
 /** "Visited by Dara & Sokha · 3 months", "Not visited by anyone · 1 month". */
-export function peopleLabel(f: CustomerFilter, names: Record<string, string>): string {
-  const first = f.people.map((id) => (names[id] ?? 'Someone').split(' ')[0])
-  const who = first.length === 0 ? 'anyone' : first.length <= 2 ? first.join(' & ') : `${first[0]} +${first.length - 1}`
-  return `${f.mode === 'not' ? 'Not visited by' : 'Visited by'} ${who} · ${monthsText(f.months)}`
+export function peopleLabel(f: CustomerFilter, names: Record<string, string>, t: Tr = enT): string {
+  const first = f.people.map((id) => (names[id] ?? t('customers.someone')).split(' ')[0])
+  const who = first.length === 0 ? t('customers.anyoneLower') : first.length <= 2 ? first.join(' & ') : `${first[0]} +${first.length - 1}`
+  return `${t(f.mode === 'not' ? 'customers.notVisitedBy' : 'customers.visitedBy', { who })} · ${monthsText(f.months, t)}`
 }
 
-export function peopleHint(f: CustomerFilter, names: Record<string, string>): string {
-  if (!peopleActive(f)) return 'Pick people, or switch to "Not visited" to find customers nobody has seen.'
-  return `${peopleLabel(f, names).replace(/ · .*/, '')} in the last ${monthsText(f.months)}.`
+export function peopleHint(f: CustomerFilter, names: Record<string, string>, t: Tr = enT): string {
+  if (!peopleActive(f)) return t('customers.hintNone')
+  return t('customers.hintOn', { label: peopleLabel(f, names, t).replace(/ · .*/, ''), months: monthsText(f.months, t) })
 }
 
 export interface FilterChip {
@@ -97,9 +114,9 @@ export interface FilterChip {
   label: string
 }
 
-export function filterChips(f: CustomerFilter, names: Record<string, string>): FilterChip[] {
-  const chips: FilterChip[] = f.ranges.map((k) => ({ key: `r:${k}`, label: RANGES.find((r) => r.key === k)?.label ?? k }))
-  if (peopleActive(f)) chips.push({ key: 'people', label: peopleLabel(f, names) })
+export function filterChips(f: CustomerFilter, names: Record<string, string>, t: Tr = enT): FilterChip[] {
+  const chips: FilterChip[] = f.ranges.map((k) => ({ key: `r:${k}`, label: rangeLabel(k, t) }))
+  if (peopleActive(f)) chips.push({ key: 'people', label: peopleLabel(f, names, t) })
   return chips
 }
 
@@ -171,23 +188,23 @@ export function firstName(fullName: string | null, nickname?: string | null): st
   return displayName(fullName ?? '', nickname).split(' ')[0]
 }
 
-function daysText(days: number): string {
-  return days === 0 ? 'Today' : `${days} ${days === 1 ? 'day' : 'days'}`
+export function daysText(days: number, t: Tr = enT): string {
+  return days === 0 ? t('customers.today') : t(days === 1 ? 'customers.dayOne' : 'customers.dayMany', { n: days })
 }
 
 /** "12 days · Dara", "Today · Sokha", "Never visited". */
-export function lastVisitText(r: Pick<BookRow, 'days_since' | 'last_by_name' | 'last_by_nickname'>): string {
-  if (r.days_since == null) return 'Never visited'
+export function lastVisitText(r: Pick<BookRow, 'days_since' | 'last_by_name' | 'last_by_nickname'>, t: Tr = enT): string {
+  if (r.days_since == null) return t('customers.neverVisited')
   const who = firstName(r.last_by_name, r.last_by_nickname)
-  return who ? `${daysText(r.days_since)} · ${who}` : daysText(r.days_since)
+  return who ? `${daysText(r.days_since, t)} · ${who}` : daysText(r.days_since, t)
 }
 
 /** The list's chip: urgency word first when it matters ("Overdue · 45 days · Dara"). */
-export function lastVisitChip(r: Pick<BookRow, 'days_since' | 'last_by_name' | 'last_by_nickname'>): string {
+export function lastVisitChip(r: Pick<BookRow, 'days_since' | 'last_by_name' | 'last_by_nickname'>, t: Tr = enT): string {
   const u = urgency(r.days_since)
-  if (u === 'never') return 'Never visited'
-  const text = lastVisitText(r)
-  return u === 'due' || u === 'overdue' || u === 'lapsed' ? `${URGENCY[u].label} · ${text}` : text
+  if (u === 'never') return t('customers.neverVisited')
+  const text = lastVisitText(r, t)
+  return u === 'due' || u === 'overdue' || u === 'lapsed' ? `${urgencyLabel(u, t)} · ${text}` : text
 }
 
 export function freqText(r: Pick<BookRow, 'freq_days' | 'visits_90'>): string {
