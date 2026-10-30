@@ -2,6 +2,11 @@ import type { Language } from '@footprints/shared/lib/language'
 
 const KM_MONTHS = ['មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ']
 
+/** Full month name (m0 = 0 for January): English or Khmer. */
+export function monthName(m0: number, language: Language = 'en'): string {
+  return language === 'km' ? `${KM_MONTHS[m0]}` : new Date(Date.UTC(2000, m0, 1)).toLocaleDateString('en-GB', { month: 'long', timeZone: 'UTC' })
+}
+
 /** y / m / d of a "YYYY-MM-DD" day or an ISO instant (instants are read in Phnom Penh). */
 function ymd(iso: string): [number, number, number] {
   if (iso.length === 10) return iso.split('-').map(Number) as [number, number, number]

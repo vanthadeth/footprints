@@ -3,6 +3,8 @@ import { CalendarDays, CalendarRange, Loader2, Moon, Sun, Users } from 'lucide-r
 import { AdminFrame, AdminGroup, AdminRow, AdminTabs } from '@footprints/shared/components/AdminKit'
 import { Stepper } from '@/components/Stepper'
 import { useProfile } from '@footprints/shared/features/auth/useProfile'
+import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
+import { dayMonth } from '@/features/customers/detail/dates'
 import { summaryService } from '@/features/attendanceSummary/summaryService'
 import { flexService } from '@/features/flex/flexService'
 import { days as fmtDays, rate } from '@/features/flex/flex'
@@ -13,11 +15,11 @@ import { HolidaysPage } from './HolidaysPage'
 
 const TABS = ['cycle', 'allow', 'flex', 'holiday'] as const
 type Tab = (typeof TABS)[number]
-const SUB: Record<Tab, string> = { cycle: 'Monthly cycle for payroll', allow: 'Leave allowances', flex: 'Days earned for weekend work', holiday: 'Public holidays and company days off' }
+const SUB_KEY: Record<Tab, string> = { cycle: 'attAdmin.subCycle', allow: 'attAdmin.subAllow', flex: 'attAdmin.subFlex', holiday: 'attAdmin.subHoliday' }
 
-const ordinal = (n: number) => `${n}${n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th'}`
+const ordinal = (n: number, language: 'en' | 'km' = 'en', t?: (key: string, vars?: Record<string, string | number>) => string) =>
+  language === 'km' && t ? t('flex.dayN', { n }) : `${n}${n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th'}`
 const iso = (y: number, m: number, d: number) => new Date(Date.UTC(y, m, d)).toISOString().slice(0, 10)
-const label = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })
 
 /** The cycle containing `day` for a close day (0 = the calendar month), shifted `back` cycles into the past. */
 function cycleOf(day: string, closeDay: number, back = 0): { start: string; end: string } {
@@ -33,17 +35,18 @@ function cycleOf(day: string, closeDay: number, back = 0): { start: string; end:
  * allowances), Flexible (days earned for weekend work) and Holiday.
  */
 export function AdminAttendancePage() {
+  const { t } = useLanguage()
   const [tab, setTab] = useTab(TABS, 'cycle')
   return (
     <AdminFrame
-      sub={SUB[tab]}
+      sub={t(SUB_KEY[tab])}
       tabs={
         <AdminTabs
           tabs={[
-            ['cycle', 'Cycle'],
-            ['allow', 'Allowance'],
-            ['flex', 'Flexible'],
-            ['holiday', 'Holiday'],
+            ['cycle', t('attAdmin.tabCycle')],
+            ['allow', t('attAdmin.tabAllow')],
+            ['flex', t('attAdmin.tabFlex')],
+            ['holiday', t('attAdmin.tabHoliday')],
           ]}
           value={tab}
           onChange={setTab}
@@ -62,6 +65,8 @@ interface Draft {
 }
 
 function CycleAndFlex({ tab }: { tab: 'cycle' | 'flex' }) {
+  const { t, language } = useLanguage()
+  const label = (d: string) => dayMonth(d, language)
   const { profile } = useProfile()
   const canEdit = profile?.is_super_admin === true || profile?.role_name === 'HR'
   const [draft, setDraft] = useState<Draft | null>(null)
@@ -78,9 +83,9 @@ function CycleAndFlex({ tab }: { tab: 'cycle' | 'flex' }) {
       setSaved(JSON.stringify(d))
       setPeople(s.flexiblePeople)
     } catch (e) {
-      setMessage({ ok: false, text: e instanceof Error ? e.message : 'Could not load the settings.' })
+      setMessage({ ok: false, text: e instanceof Error ? e.message : t('attAdmin.loadFailed') })
     }
-  }, [])
+  }, [t])
   useEffect(() => {
     void load()
   }, [load])
@@ -97,9 +102,9 @@ function CycleAndFlex({ tab }: { tab: 'cycle' | 'flex' }) {
       if (before.closeDay !== draft.closeDay) await summaryService.setCycleCloseDay(draft.closeDay)
       if (before.sat !== draft.sat || before.sun !== draft.sun) await flexService.setRates(draft.sat, draft.sun)
       await load()
-      setMessage({ ok: true, text: 'Saved.' })
+      setMessage({ ok: true, text: t('attAdmin.saved') })
     } catch (e) {
-      setMessage({ ok: false, text: e instanceof Error ? e.message : 'Could not save.' })
+      setMessage({ ok: false, text: e instanceof Error ? e.message : t('attAdmin.saveFailed') })
     } finally {
       setSaving(false)
     }
@@ -115,8 +120,8 @@ function CycleAndFlex({ tab }: { tab: 'cycle' | 'flex' }) {
     <>
       {tab === 'cycle' ? (
         <>
-          <section aria-label="This cycle" className="rounded-[18px] bg-brand-900 px-4 py-3.5 text-white">
-            <p className="text-xs font-semibold text-white/60">This cycle</p>
+          <section aria-label={t('attAdmin.thisCycle')} className="rounded-[18px] bg-brand-900 px-4 py-3.5 text-white">
+            <p className="text-xs font-semibold text-white/60">{t('attAdmin.thisCycle')}</p>
             <p className="mt-0.5 text-[22px] font-bold">
               {label(cur.start)} – {label(cur.end)}
             </p>
@@ -124,47 +129,47 @@ function CycleAndFlex({ tab }: { tab: 'cycle' | 'flex' }) {
               <span className="block h-full bg-[#45A5FF]" style={{ width: `${Math.min(100, (dayN / total) * 100)}%` }} />
             </div>
             <p className="mt-2 text-xs text-white/60">
-              Day {dayN} of {total} · closes {label(cur.end)}
+              {t('attAdmin.dayOf', { n: dayN, t: total, date: label(cur.end) })}
             </p>
           </section>
-          <AdminGroup title="Cycle">
+          <AdminGroup title={t('attAdmin.groupCycle')}>
             <AdminRow
               icon={CalendarRange}
-              label="Cycle runs"
-              sub={draft.closeDay === 0 ? 'The calendar month' : `The ${ordinal(draft.closeDay + 1)} to the ${ordinal(draft.closeDay)}`}
+              label={t('attAdmin.cycleRuns')}
+              sub={draft.closeDay === 0 ? t('attAdmin.calMonth') : t('attAdmin.cycleRange', { a: ordinal(draft.closeDay + 1, language, t), b: ordinal(draft.closeDay, language, t) })}
               control={
-                <Stepper label="Cycle day" value={draft.closeDay} max={28} format={(v) => (v === 0 ? 'Month end' : ordinal(v))} disabled={!canEdit} onChange={(v) => setDraft({ ...draft, closeDay: v })} />
+                <Stepper label={t('attAdmin.cycleDayAria')} value={draft.closeDay} max={28} format={(v) => (v === 0 ? t('attAdmin.monthEnd') : ordinal(v, language, t))} disabled={!canEdit} onChange={(v) => setDraft({ ...draft, closeDay: v })} />
               }
             />
-            <AdminRow icon={Users} label="Monthly summary" sub="Hours, late, absent and leave per person" to="/fleet?tab=attendance" />
+            <AdminRow icon={Users} label={t('attAdmin.monthlySummary')} sub={t('attAdmin.monthlySub')} to="/fleet?tab=attendance" />
           </AdminGroup>
-          <AdminGroup title="Past cycles">
+          <AdminGroup title={t('attAdmin.pastCycles')}>
             {past.map((c) => (
-              <AdminRow key={c.start} icon={CalendarDays} label={`${label(c.start)} – ${label(c.end)}`} sub="Closed" pill={{ text: 'Closed', tone: 'ok' }} to="/fleet?tab=attendance" />
+              <AdminRow key={c.start} icon={CalendarDays} label={`${label(c.start)} – ${label(c.end)}`} sub={t('attAdmin.closed')} pill={{ text: t('attAdmin.closed'), tone: 'ok' }} to="/fleet?tab=attendance" />
             ))}
           </AdminGroup>
         </>
       ) : (
         <>
-          <AdminGroup title="Who earns flexible days">
-            <AdminRow icon={Users} label={`${people} ${people === 1 ? 'person' : 'people'} on Flexible (travel)`} sub="People who often work weekends · set in Users › edit" to="/users" />
-            <AdminRow icon={CalendarDays} label="Everyone’s flexible days" sub="Balances and days taken this cycle" to="/leave/flexible" />
+          <AdminGroup title={t('attAdmin.whoEarns')}>
+            <AdminRow icon={Users} label={t(people === 1 ? 'attAdmin.peopleOnFlexOne' : 'attAdmin.peopleOnFlexMany', { n: people })} sub={t('attAdmin.peopleSub')} to="/users" />
+            <AdminRow icon={CalendarDays} label={t('attAdmin.everyones')} sub={t('attAdmin.everyonesSub')} to="/leave/flexible" />
           </AdminGroup>
-          <AdminGroup title="How days are earned">
+          <AdminGroup title={t('attAdmin.howEarned')}>
             <AdminRow
               icon={Sun}
-              label="A Saturday worked"
-              sub="For people on Flexible days off"
-              control={<Stepper label="Saturday rate" value={draft.sat} step={0.5} max={2} format={(v) => `${rate(v)} day`} disabled={!canEdit} onChange={(v) => setDraft({ ...draft, sat: v })} />}
+              label={t('attAdmin.satWorked')}
+              sub={t('attAdmin.forFlex')}
+              control={<Stepper label={t('attAdmin.satRateAria')} value={draft.sat} step={0.5} max={2} format={(v) => t('attAdmin.dayRate', { n: rate(v) })} disabled={!canEdit} onChange={(v) => setDraft({ ...draft, sat: v })} />}
             />
             <AdminRow
               icon={Moon}
-              label="A Sunday worked"
-              sub={`4 Sat + 4 Sun a cycle = ${fmtDays(4 * draft.sat + 4 * draft.sun)} days`}
-              control={<Stepper label="Sunday rate" value={draft.sun} step={0.5} max={2} format={(v) => `${rate(v)} day`} disabled={!canEdit} onChange={(v) => setDraft({ ...draft, sun: v })} />}
+              label={t('attAdmin.sunWorked')}
+              sub={t('attAdmin.sunSub', { n: fmtDays(4 * draft.sat + 4 * draft.sun) })}
+              control={<Stepper label={t('attAdmin.sunRateAria')} value={draft.sun} step={0.5} max={2} format={(v) => t('attAdmin.dayRate', { n: rate(v) })} disabled={!canEdit} onChange={(v) => setDraft({ ...draft, sun: v })} />}
             />
           </AdminGroup>
-          <p className="-mt-2 text-xs text-neutral-500">Flexible days can be taken in advance and settle on the cycle’s close day: unused days aren’t carried over, and extra days come from annual leave.</p>
+          <p className="-mt-2 text-xs text-neutral-500">{t('attAdmin.flexNote')}</p>
         </>
       )}
 
@@ -173,7 +178,7 @@ function CycleAndFlex({ tab }: { tab: 'cycle' | 'flex' }) {
         <div className="fixed inset-x-0 bottom-[calc(84px+env(safe-area-inset-bottom))] z-20 px-4 md:bottom-6">
           <div className="mx-auto max-w-lg md:max-w-2xl">
             <button type="button" onClick={save} disabled={saving} className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-brand-500 text-[15px] font-bold text-white shadow-lg disabled:opacity-50">
-              {saving && <Loader2 className="h-4 w-4 animate-spin" />} Save changes
+              {saving && <Loader2 className="h-4 w-4 animate-spin" />} {t('attAdmin.saveChanges')}
             </button>
           </div>
         </div>
