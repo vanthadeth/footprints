@@ -1,21 +1,24 @@
+import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 import { AGE_BUCKETS, ageing } from './ageing'
+import { dayMonth } from './dates'
 import { useCustomerInvoices } from './useCustomerInvoices'
 
 const usd = (n: number) => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-const dayOf = (d: string | null) => (d ? new Date(d.slice(0, 10) + 'T00:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }) : '—')
 
 /** What the customer owes and how overdue it is (canvas Customer · payments). Payment history needs synced payments, which don't exist yet. */
 export function PaymentsTab({ customerId, balance, today }: { customerId: string; balance: number | null; today: string }) {
+  const { t, language } = useLanguage()
+  const dayOf = (d: string | null) => dayMonth(d, language)
   const { rows, loading } = useCustomerInvoices(customerId)
   const a = ageing(rows, balance, today)
   const owed = balance && balance > 0 ? balance : 0
   if (loading) return <div className="h-24 animate-pulse rounded-2xl bg-neutral-100" />
   return (
     <div className="flex flex-col gap-3">
-      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-card" aria-label="Outstanding">
+      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-card" aria-label={t('customerDetail.outstandingAria')}>
         <div className="flex items-baseline justify-between gap-2">
-          <p className={`text-[22px] font-extrabold leading-7 ${owed > 0 ? 'text-neutral-900' : 'text-status-working'}`}>{owed > 0 ? `${usd(owed)} outstanding` : 'Nothing owed'}</p>
-          {a.open.length > 0 && <p className="text-xs text-neutral-500">{a.open.length} {a.open.length === 1 ? 'invoice' : 'invoices'}</p>}
+          <p className={`text-[22px] font-extrabold leading-7 ${owed > 0 ? 'text-neutral-900' : 'text-status-working'}`}>{owed > 0 ? t('customerDetail.outstanding', { amount: usd(owed) }) : t('customerDetail.nothingOwed')}</p>
+          {a.open.length > 0 && <p className="text-xs text-neutral-500">{t(a.open.length === 1 ? 'customerDetail.invoiceOne' : 'customerDetail.invoiceMany', { n: a.open.length })}</p>}
         </div>
         {owed > 0 && (
           <>
@@ -26,32 +29,32 @@ export function PaymentsTab({ customerId, balance, today }: { customerId: string
               {AGE_BUCKETS.map((b) => (
                 <div key={b.key}>
                   <p className="text-[13px] font-extrabold tabular-nums text-neutral-900">{usd(a.totals[b.key]).replace('.00', '')}</p>
-                  <p className="text-[10.5px] text-neutral-500">{b.label}</p>
+                  <p className="text-[10.5px] text-neutral-500">{b.key === 'current' ? t('customerDetail.ageNotDue') : b.label}</p>
                 </div>
               ))}
             </div>
-            <p className="mt-3 text-xs text-neutral-500">Days past due, counted from each invoice’s due date (invoice date plus payment term). Worked out from the synced balance; payments aren’t synced yet.</p>
+            <p className="mt-3 text-xs text-neutral-500">{t('customerDetail.ageNote')}</p>
           </>
         )}
       </section>
 
       {a.open.length > 0 && (
-        <section aria-label="Open invoices">
-          <p className="px-0.5 pb-1.5 text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">Open invoices</p>
+        <section aria-label={t('customerDetail.openInvoices')}>
+          <p className="px-0.5 pb-1.5 text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">{t('customerDetail.openInvoices')}</p>
           <ul className="overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-card">
             {a.open.map((o) => (
               <li key={`${o.inv_no}-${o.inv_date}`} className="flex items-start gap-3 border-t border-neutral-100 px-3.5 py-3 first:border-t-0">
                 <span className="min-w-0 flex-1">
                   <span className="block text-[15px] font-extrabold text-neutral-900">{o.inv_no ?? '—'}</span>
                   <span className="block text-xs text-neutral-500">
-                    Issued {dayOf(o.inv_date)}
-                    {o.due_date ? ` · due ${dayOf(o.due_date)}` : ''}
+                    {t('customerDetail.issued', { date: dayOf(o.inv_date) })}
+                    {o.due_date ? t('customerDetail.dueOn', { date: dayOf(o.due_date) }) : ''}
                   </span>
                 </span>
                 <span className="shrink-0 text-right">
                   <span className="block text-[15px] font-extrabold tabular-nums text-neutral-900">{usd(o.open)}</span>
                   <span className={`text-xs font-bold ${o.daysPastDue > 0 ? 'text-status-danger' : 'text-neutral-500'}`}>
-                    {o.daysPastDue > 0 ? `${o.daysPastDue} days past due` : o.daysPastDue === 0 ? 'Due today' : `Due in ${-o.daysPastDue} days`}
+                    {o.daysPastDue > 0 ? t('customerDetail.pastDue', { n: o.daysPastDue }) : o.daysPastDue === 0 ? t('customerDetail.dueToday') : t('customerDetail.dueIn', { n: -o.daysPastDue })}
                   </span>
                 </span>
               </li>

@@ -15,6 +15,13 @@ export const PAGE_SIZE = 20
 /** The app's `t`; the helpers below default to English so tests and untranslated callers keep working. */
 export type Tr = (key: string, vars?: Record<string, string | number>) => string
 
+/** Data values such as "Met the owner" or "Paid in full" come from the database; known ones are translated, the rest show as stored. */
+export function statusLabel(value: string, t: Tr = enT): string {
+  const key = `customerDetail.st_${value.replace(/[^A-Za-z]/g, '')}`
+  const out = t(key)
+  return out === key ? value : out
+}
+
 export const enT: Tr = (key, vars) => {
   let node: unknown = en
   for (const part of key.split('.')) node = typeof node === 'object' && node !== null ? (node as Record<string, unknown>)[part] : undefined
@@ -239,9 +246,10 @@ export function localDay(iso: string, timeZone: string = APP_TIMEZONE): string {
 }
 
 /** "Fri 18 Sep" for a "YYYY-MM-DD" day or an ISO instant (read in the app timezone). */
-export function shortDay(dayOrIso: string): string {
+export function shortDay(dayOrIso: string, language: 'en' | 'km' = 'en'): string {
   const day = dayOrIso.length > 10 ? localDay(dayOrIso) : dayOrIso
   const [y, m, d] = day.split('-').map(Number)
+  if (language === 'km') return `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`
   const date = new Date(Date.UTC(y, m - 1, d))
   return `${WD[date.getUTCDay()]} ${d} ${MO[m - 1]}`
 }
@@ -253,8 +261,8 @@ export function dayDiff(from: string, to: string): number {
   return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86_400_000)
 }
 
-export function agoText(days: number): string {
-  return days === 0 ? 'today' : days === 1 ? 'yesterday' : `${days} days ago`
+export function agoText(days: number, t: Tr = enT): string {
+  return days === 0 ? t('customerDetail.agoToday') : days === 1 ? t('customerDetail.agoYesterday') : t('customerDetail.agoDays', { n: days })
 }
 
 // ---------------------------------------------------------------- paging
@@ -339,16 +347,16 @@ const ORDER_TONE: Record<string, ChipTone> = { Ordered: 'ok', 'Will order later'
 const PAY_TONE: Record<string, ChipTone> = { 'Paid in full': 'ok', 'Part paid': 'warn', 'Nothing collected': 'bad', 'Not due': 'plain' }
 
 /** Outcome chips for one visit: status, order (+ amount), payment (+ collected when not paid in full). */
-export function outcomeChips(r: ActivityRow): { label: string; tone: ChipTone }[] {
+export function outcomeChips(r: ActivityRow, t: Tr = enT): { label: string; tone: ChipTone }[] {
   if (r.cancelled_at) return []
   const chips: { label: string; tone: ChipTone }[] = []
-  if (r.visit_status) chips.push({ label: r.visit_status, tone: VISIT_TONE[r.visit_status] ?? 'visit' })
-  if (r.order_status) chips.push({ label: r.order_status + (r.order_amount ? ` · ${formatUsd0(r.order_amount)}` : ''), tone: ORDER_TONE[r.order_status] ?? 'plain' })
+  if (r.visit_status) chips.push({ label: statusLabel(r.visit_status, t), tone: VISIT_TONE[r.visit_status] ?? 'visit' })
+  if (r.order_status) chips.push({ label: statusLabel(r.order_status, t) + (r.order_amount ? ` · ${formatUsd0(r.order_amount)}` : ''), tone: ORDER_TONE[r.order_status] ?? 'plain' })
   if (r.payment_status) {
-    const collected = r.collected && r.payment_status !== 'Paid in full' ? ` · ${formatUsd0(r.collected)} collected` : ''
-    chips.push({ label: r.payment_status + collected, tone: PAY_TONE[r.payment_status] ?? 'plain' })
+    const collected = r.collected && r.payment_status !== 'Paid in full' ? ` · ${t('customerDetail.collected', { amount: formatUsd0(r.collected) })}` : ''
+    chips.push({ label: statusLabel(r.payment_status, t) + collected, tone: PAY_TONE[r.payment_status] ?? 'plain' })
   } else if (r.collected) {
-    chips.push({ label: `${formatUsd0(r.collected)} collected`, tone: 'ok' })
+    chips.push({ label: t('customerDetail.collected', { amount: formatUsd0(r.collected) }), tone: 'ok' })
   }
   return chips
 }

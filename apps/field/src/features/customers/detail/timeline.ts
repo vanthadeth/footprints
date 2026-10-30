@@ -1,5 +1,6 @@
 import type { CustomerOrder } from '@/features/orders/ordersService'
 import { orderValue } from '@/features/orders/ordersService'
+import { enT, type Tr } from '../book'
 
 export interface InvoiceRow {
   id: string
@@ -37,7 +38,8 @@ const invValue = (i: InvoiceRow) => (i.inv_value == null ? '—' : i.is_khr ? `�
  * own: it shows under that invoice as "Ref: Sale Order". An invoice whose sale order isn't loaded (or
  * has none) is just the invoice.
  */
-export function orderEntries(orders: CustomerOrder[], invoices: InvoiceRow[]): OrderEntry[] {
+export function orderEntries(orders: CustomerOrder[], invoices: InvoiceRow[], t: Tr = enT): OrderEntry[] {
+  const c = (k: string) => t(`customerDetail.${k}`)
   const byId = new Map(orders.map((o) => [o.id, o]))
   const invoiced = new Set(invoices.map((i) => i.sale_order_id).filter((x): x is string => !!x))
   const inv: OrderEntry[] = invoices.map((i) => {
@@ -49,7 +51,7 @@ export function orderEntries(orders: CustomerOrder[], invoices: InvoiceRow[]): O
       amount: invValue(i),
       no: i.inv_no ?? '—',
       userId: i.user_id ?? so?.user_id ?? null,
-      chip: i.status === 9 ? { label: 'Void', tone: 'muted' } : i.status === 0 ? { label: 'Draft', tone: 'warn' } : i.received_date ? { label: 'Received', tone: 'ok' } : i.sent_date ? { label: 'Sent', tone: 'ok' } : { label: 'Submitted', tone: 'ok' },
+      chip: i.status === 9 ? { label: c('chipVoid'), tone: 'muted' } : i.status === 0 ? { label: c('chipDraft'), tone: 'warn' } : i.received_date ? { label: c('chipReceived'), tone: 'ok' } : i.sent_date ? { label: c('chipSent'), tone: 'ok' } : { label: c('chipSubmitted'), tone: 'ok' },
       ref: so ? { no: so.order_no, amount: orderValue(so) } : null,
     }
   })
@@ -62,19 +64,19 @@ export function orderEntries(orders: CustomerOrder[], invoices: InvoiceRow[]): O
       amount: orderValue(o),
       no: o.order_no,
       userId: o.user_id,
-      chip: o.status === 'cancelled' ? { label: 'Cancelled', tone: 'muted' } : o.approved ? { label: 'Approved', tone: 'ok' } : { label: 'Not approved', tone: 'warn' },
+      chip: o.status === 'cancelled' ? { label: c('chipCancelled'), tone: 'muted' } : o.approved ? { label: c('chipApproved'), tone: 'ok' } : { label: c('chipNotApproved'), tone: 'warn' },
       ref: null,
     }))
   return [...so, ...inv].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
 }
 
 /** "4 days ago", "today", "3 weeks ago", "2 months ago" for a "YYYY-MM-DD" (or ISO) date against today's. */
-export function agoText(date: string | null, today: string): string {
+export function agoText(date: string | null, today: string, t: Tr = enT): string {
   if (!date) return '—'
   const d = Math.floor((new Date(today.slice(0, 10) + 'T00:00:00Z').getTime() - new Date(date.slice(0, 10) + 'T00:00:00Z').getTime()) / 86_400_000)
-  if (d <= 0) return 'today'
-  if (d === 1) return 'yesterday'
-  if (d < 14) return `${d} days ago`
-  if (d < 60) return `${Math.round(d / 7)} weeks ago`
-  return `${Math.round(d / 30)} months ago`
+  if (d <= 0) return t('customerDetail.agoToday')
+  if (d === 1) return t('customerDetail.agoYesterday')
+  if (d < 14) return t('customerDetail.agoDays', { n: d })
+  if (d < 60) return t('customerDetail.agoWeeks', { n: Math.round(d / 7) })
+  return t('customerDetail.agoMonths', { n: Math.round(d / 30) })
 }
