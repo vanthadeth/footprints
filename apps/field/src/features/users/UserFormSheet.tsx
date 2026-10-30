@@ -9,7 +9,7 @@ import { generateSuggestedPassword, PasswordBox } from '@footprints/shared/featu
 import { usersService, type ManagedUser, type Option, type UserStatus } from '@footprints/shared/features/users/usersService'
 import { formatSheetIds, parseSheetIds } from '@footprints/shared/features/users/sheetIds'
 import { flexService, type DayOffMode, type DayOffModeInfo } from '@/features/flex/flexService'
-import { dayDate, rate, shortDate } from '@/features/flex/flex'
+import { dayDate, shortDate } from '@/features/flex/flex'
 import { scheduleService, type UserClockWindow } from '@/features/schedule/scheduleService'
 import { Stepper } from '@/components/Stepper'
 
@@ -61,7 +61,10 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
   const [modeInfo, setModeInfo] = useState<DayOffModeInfo | null>(null)
   const [dayOffMode, setDayOffMode] = useState<DayOffMode>('company')
   const [thisCycle, setThisCycle] = useState(false)
-  const [rates, setRates] = useState({ sat: 0.5, sun: 1 })
+  // Minimum working days a cycle as typed (blank = company default) and the default shown as a hint.
+  const [minDays, setMinDays] = useState('')
+  const [minDefault, setMinDefault] = useState(20)
+  const [minDaysLoaded, setMinDaysLoaded] = useState('')
   // Clock-in window (0109): this person's own early clock-in / auto
   // clock-out minutes, null = the company setting.
   const [clockWindow, setClockWindow] = useState<UserClockWindow | null>(null)
@@ -137,6 +140,8 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
     setModeInfo(null)
     setDayOffMode('company')
     setThisCycle(false)
+    setMinDays('')
+    setMinDaysLoaded('')
     setClockWindow(null)
     setEarlyMinutes(null)
     setGraceMinutes(null)
@@ -157,12 +162,21 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
         })
         .catch(() => setModeInfo(null))
       flexService
-        .settings()
-        .then((st) => setRates({ sat: st.satRate, sun: st.sunRate }))
+        .rule()
+        .then((r) => setMinDefault(r.minDays))
+        .catch(() => {})
+      usersService
+        .minWorkingDays(user.id)
+        .then((n) => {
+          setMinDays(n == null ? '' : String(n))
+          setMinDaysLoaded(n == null ? '' : String(n))
+        })
         .catch(() => {})
     }
   }, [open, mode, user])
 
+  const minDaysNum = minDays.trim() === '' ? null : Number(minDays)
+  const minDaysInvalid = minDaysNum != null && (!Number.isInteger(minDaysNum) || minDaysNum < 1 || minDaysNum > 31)
   const modeChanges = !!modeInfo && (dayOffMode !== (modeInfo.nextMode ?? modeInfo.mode) || (thisCycle && dayOffMode !== modeInfo.mode))
   const clockWindowChanges =
     !!clockWindow && (earlyMinutes !== clockWindow.allowEarlyClockinMinutes || graceMinutes !== clockWindow.autoClockoutGraceMinutes)
@@ -173,7 +187,8 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
     fullName.trim() &&
     roleId &&
     (mode === 'edit' || (email.trim() && password.length >= MIN_PASSWORD_LENGTH)) &&
-    !statusNeedsMoreInput
+    !statusNeedsMoreInput &&
+    !minDaysInvalid
 
   async function handleSave() {
     if (!canSave || saving) return
@@ -207,6 +222,7 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
           roleId: roleId || null,
           status,
           isFieldSales,
+          ...(minDays !== minDaysLoaded ? { minWorkingDays: minDaysNum } : {}),
           monthlyOrderTargetUsd: orderTarget.trim() === '' ? null : Math.max(0, Number(orderTarget) || 0),
           salesTargetRequired: targetRequired,
           suspendedFrom: suspendedFrom || null,
@@ -548,7 +564,7 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
               {(
                 [
                   ['company', 'Company schedule', 'Works the company’s working days and hours. Weekends and public holidays are days off.'],
-                  ['flexible', 'Flexible (travel)', `Works through weekends while travelling. Public holidays are off; instead of a fixed weekend they get ${rate(rates.sat)} day per Saturday and ${rate(rates.sun)} per Sunday to take when it suits their trips — in advance too. Settles each attendance cycle.`],
+                  ['flexible', 'Flexible (travel)', `Works through weekends while travelling and picks their own days off. Must work a minimum number of days each attendance cycle (clock-ins, approved leave and public holidays count); missing days count as absent and come off annual leave, then unpaid.`],
                 ] as [DayOffMode, string, string][]
               ).map(([value, label, text]) => (
                 <button
@@ -581,6 +597,11 @@ export function UserFormSheet({ open, mode, user, users, roles, departments, onC
                   <span className="font-semibold text-neutral-800">Start this cycle</span> — from {shortDate(modeInfo.cycleStart)}, recounting the days so far under the new rule.
                 </span>
               </label>
+            )}
+            {dayOffMode === 'flexible' && (
+              <Field label="Minimum working days" hint={minDaysInvalid ? 'Enter 1 to 31 working days.' : `Leave blank to use the company default (${minDefault}).`}>
+                <TextInput value={minDays} onChange={setMinDays} placeholder={String(minDefault)} type="number" />
+              </Field>
             )}
             <p className="text-xs text-neutral-400">
               {thisCycle && dayOffMode !== modeInfo.mode

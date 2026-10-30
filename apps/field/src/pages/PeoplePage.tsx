@@ -4,7 +4,8 @@ import { CalendarCheck, CalendarRange, ChevronRight, Scale, Users as UsersIcon, 
 import { summaryService } from '@/features/attendanceSummary/summaryService'
 import { teamKpis, totalsByPerson, formatRate, formatDays, type AttendanceDay } from '@/features/attendanceSummary/attendanceSummary'
 import { cycleFor } from '@/features/attendanceSummary/attendanceCycle'
-import { flexService, type FlexTeamRow } from '@/features/flex/flexService'
+import { flexService } from '@/features/flex/flexService'
+import { counted, type TeamProgressRow } from '@/features/flex/progress'
 import { usersService, type ManagedUser } from '@footprints/shared/features/users/usersService'
 import { localDay } from '@/features/customers/book'
 import { displayName } from '@footprints/shared/lib/displayName'
@@ -22,7 +23,7 @@ const TODAY_TILES: { key: AttendanceDay['status'] | 'lateAll'; label: string; to
 
 /**
  * People (HR home tab): attendance today by status, who needs a look
- * (absent without leave, over the flexible allowance, starting flexible
+ * (absent without leave, short of the minimum working days, starting flexible
  * days off), this attendance cycle's numbers and who's out today, with the
  * HR tools one tap away.
  */
@@ -33,7 +34,7 @@ export function PeoplePage() {
   const [cycleRows, setCycleRows] = useState<AttendanceDay[]>([])
   const [cycle, setCycle] = useState<{ start: string; end: string } | null>(null)
   const [people, setPeople] = useState<ManagedUser[]>([])
-  const [flex, setFlex] = useState<FlexTeamRow[]>([])
+  const [flex, setFlex] = useState<TeamProgressRow[]>([])
 
   useEffect(() => {
     let cancelled = false
@@ -56,7 +57,7 @@ export function PeoplePage() {
       .then((u) => !cancelled && setPeople(u))
       .catch(() => {})
     flexService
-      .team()
+      .teamProgress(today)
       .then((r) => !cancelled && setFlex(r))
       .catch(() => {})
     return () => {
@@ -75,7 +76,7 @@ export function PeoplePage() {
   const out = (todayRows ?? []).filter((r) => r.status === 'leave' || r.status === 'dayoff' || (r.leaveFraction > 0 && r.status !== 'holiday'))
   const lookRows = [
     ...absent.map((r) => ({ id: `a-${r.userId}`, name: nameOf(r.userId), sub: 'No clock-in, no leave today', tag: 'Absent', tone: 'bg-status-danger/10 text-status-danger', to: '/fleet?tab=attendance' })),
-    ...flex.filter((f) => f.isFlexible && f.left < 0).map((f) => ({ id: `f-${f.userId}`, name: f.name, sub: `Flexible days off: ${flexDays(f.taken + f.planned)} of ${flexDays(f.allowance)} taken or planned`, tag: `Over by ${flexDays(-f.left)}`, tone: 'bg-status-visiting/10 text-status-visiting', to: `/leave/days-off?user=${f.userId}` })),
+    ...flex.filter((f) => f.isFlexible && !f.settled && f.spare < 0).map((f) => ({ id: `f-${f.userId}`, name: f.name, sub: `Working days: ${flexDays(counted(f))} of ${flexDays(f.minDays ?? 0)} so far`, tag: `Short by ${flexDays(-f.spare)}`, tone: 'bg-status-visiting/10 text-status-visiting', to: `/leave/days-off?user=${f.userId}` })),
     ...flex.filter((f) => !f.isFlexible && f.nextFrom).map((f) => ({ id: `n-${f.userId}`, name: f.name, sub: 'Starts flexible (travel) days off', tag: `Starts ${shortDate(f.nextFrom!)}`, tone: 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800', to: '/leave/flexible' })),
   ]
 

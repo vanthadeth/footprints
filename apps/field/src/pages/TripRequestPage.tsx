@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { MoneyInput } from '@/components/MoneyInput'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { AlertTriangle, CalendarDays, ChevronRight, Home, Minus, Moon, Plus, X } from 'lucide-react'
+import { AlertTriangle, CalendarDays, ChevronRight, Moon, Plus, X } from 'lucide-react'
 import { useProfile } from '@footprints/shared/features/auth/useProfile'
 import { displayName } from '@footprints/shared/lib/displayName'
 import { customerBookService } from '@/features/customers/customerBookService'
@@ -15,11 +15,12 @@ import {
   costOf,
   dayLabel,
   earliestStart,
+  initials,
   hoursBefore,
   money,
   planTrip,
+  ppToday,
   provinceName,
-  roomSplit,
   roomsFor,
   type SpecialLine,
   type TripDayInput,
@@ -28,10 +29,9 @@ import {
 import { tripDraftStore, tripErrorMessage, tripService, toDays, type TripCandidate, type TripDraft } from '@/features/trips/tripService'
 import { ProvinceSheet, type ProvinceCounts } from '@/features/trips/ProvinceSheet'
 import { PeopleSheet } from '@/features/trips/PeopleSheet'
-import { Avatar, AvatarStack, Checks, CostCard, DayList, RoomsCard, RouteStrip } from '@/features/trips/TripParts'
-import { card, kicker } from '@/features/trips/tripStyles'
+import { LONG_DAY_KM, Checks, CostCard, DayPills, HeroStats, PeoplePills, ProvincePill } from '@/features/trips/TripParts'
+import { card } from '@/features/trips/tripStyles'
 
-const LONG_DAY_KM = 250
 const emptyDay = (): TripDayInput => ({ provinces: [], night: null, rooms: null })
 
 /** The next three Mondays from the earliest allowed start, for quick picks. */
@@ -198,7 +198,6 @@ export function TripRequestPage() {
     days[days.length - 1] = { ...days[days.length - 1], night: null, rooms: null }
     set({ days })
   }
-  const setRooms = (i: number, v: number) => setDay(i, { ...draft.days[i], rooms: Math.max(1, Math.min(people, v)) })
   const setSpecial = (special: SpecialLine[]) => set({ special })
   const removeSpecial = (i: number) => {
     setSpecial(draft.special.filter((_, j) => j !== i))
@@ -228,43 +227,34 @@ export function TripRequestPage() {
     }
   }
 
+  const leaveIn = Math.max(Math.round((new Date(`${draft.start}T00:00:00Z`).getTime() - new Date(`${ppToday()}T00:00:00Z`).getTime()) / 86_400_000), 0)
+  const longDate = new Date(`${draft.start}T00:00:00Z`).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
+  const sub = 'text-[12px] font-extrabold uppercase tracking-wide text-neutral-500'
+
   if (step === 'review') {
     const hol = plan.days.find((d) => holidays[d.date])
     return (
       <div className="mx-auto max-w-lg space-y-3 px-4 pb-8 pt-2 md:max-w-2xl lg:max-w-4xl md:px-8">
+        <p className="px-0.5 text-[12.5px] text-neutral-500">Step 2 of 2 · Check and send</p>
         <div className="space-y-3 rounded-[20px] bg-brand-900 p-4 text-white">
+          <div className="flex items-center justify-between">
+            <p className="text-[12px] font-extrabold uppercase tracking-wide text-white/60">New sales trip</p>
+            <span className="rounded-full bg-white/15 px-2.5 py-1 text-[11.5px] font-extrabold">Not sent yet</span>
+          </div>
           <div>
-            <p className="text-[12px] font-extrabold uppercase tracking-wide text-white/60">Sales trip · {plan.range}</p>
-            <p className="mt-1 text-[24px] font-extrabold">{plan.length}</p>
+            <p className="text-[24px] font-extrabold leading-tight">{plan.range}</p>
+            <p className="text-[13px] text-white/80">Leaves Phnom Penh {longDate.split(' ').slice(0, 3).join(' ')}</p>
           </div>
-          <RouteStrip plan={plan} dark />
-          <div className="grid grid-cols-3 gap-1.5 border-t border-white/15 pt-3">
-            {[
-              ['Provinces', String(plan.provinces.length)],
-              ['Driving', `≈ ${plan.totalKm} km`],
-              ['Longest day', `≈ ${plan.longest?.km ?? 0} km`],
-            ].map(([l, v]) => (
-              <span key={l}>
-                <span className="block text-[11.5px] text-white/65">{l}</span>
-                <span className="mt-0.5 block text-[17px] font-extrabold">{v}</span>
-              </span>
-            ))}
+          <HeroStats days={plan.days.length} provinces={plan.provinces.length} total={cost.total} />
+          <div className="border-t border-white/15 pt-3">
+            <PeoplePills names={draft.people.map(nameOf)} dark />
           </div>
         </div>
 
-        <div className={`${card} flex items-center gap-3 p-3.5`}>
-          <AvatarStack names={draft.people.map(fullNameOf)} />
-          <span className="min-w-0 flex-1">
-            <span className="block text-[14.5px] font-extrabold text-neutral-900">
-              {people} {people === 1 ? 'person' : 'people'} going
-            </span>
-            <span className="block truncate text-[12.5px] text-neutral-500">{draft.people.map(nameOf).join(', ')} · everyone gets the trip once approved</span>
-          </span>
-        </div>
-
-        <DayList plan={plan} people={people} perRoom={rates.perRoom} />
-        <RoomsCard plan={plan} people={people} perRoom={rates.perRoom} roomNights={cost.roomNights} />
-        <CostCard cost={cost} people={people} special={draft.special} cap={rates.specialCap} />
+        <p className={`${sub} px-0.5 pt-1`}>Day by day · {plan.days.length} {plan.days.length === 1 ? 'day' : 'days'}</p>
+        <DayPills plan={plan} people={people} perRoom={rates.perRoom} counts={counts} />
+        <CostCard cost={cost} people={people} special={draft.special} cap={rates.specialCap} title="Cost · rates today" />
+        <p className={`${sub} px-0.5 pt-1`}>Checks</p>
         <Checks
           items={[
             soon ? { ok: false, text: `Too soon — trips must be sent at least ${rates.noticeHours} h before you leave` } : { ok: true, text: `Sent ${Math.floor(hrs / 24) ? `${Math.floor(hrs / 24)} days` : `${hrs} h`} before you leave — at least ${rates.noticeHours} h ahead` },
@@ -274,196 +264,150 @@ export function TripRequestPage() {
           ]}
         />
         {draft.note && (
-          <div className={`${card} p-3.5`}>
-            <p className={kicker}>Purpose</p>
-            <p className="mt-1.5 text-sm leading-relaxed text-neutral-900">{draft.note}</p>
-          </div>
+          <>
+            <p className={`${sub} px-0.5 pt-1`}>Purpose</p>
+            <div className={`${card} p-3.5`}>
+              <p className="text-sm leading-relaxed text-neutral-900">{draft.note}</p>
+            </div>
+          </>
         )}
         <p className="px-1 text-[13px] leading-snug text-neutral-600">Goes to your Sales Manager. Any Sales Manager or Super Admin can approve it.</p>
         {error && <p className="rounded-xl bg-status-danger/10 px-3 py-2 text-sm text-status-danger">{error}</p>}
-        <button type="button" disabled={sending || !ok} onClick={send} className="h-[52px] w-full rounded-2xl bg-brand-500 text-[15px] font-extrabold text-white disabled:opacity-60">
+        <button type="button" disabled={sending || !ok} onClick={send} className="h-[52px] w-full rounded-2xl bg-brand-500 text-[16px] font-bold text-white disabled:opacity-60">
           {sending ? 'Sending…' : id ? 'Send again for approval' : 'Send for approval'}
         </button>
-        <button type="button" onClick={() => setStep('edit')} className="h-11 w-full rounded-2xl text-sm font-bold text-brand-600">
-          Edit trip
+        <button type="button" onClick={() => setStep('edit')} className="h-[52px] w-full rounded-2xl border-[1.5px] border-neutral-200 text-[16px] font-bold text-neutral-900 dark:border-neutral-700">
+          Back to edit
         </button>
-        <p className="px-1 text-[12px] leading-relaxed text-neutral-500">
-          Once approved, everyone on the trip can clock in away from their work locations on trip days, and the trip shows on their calendars.
-        </p>
       </div>
     )
   }
 
   return (
-    <div className="mx-auto max-w-lg space-y-3.5 px-4 pb-8 pt-2 md:max-w-2xl lg:max-w-4xl md:px-8">
+    <div className="mx-auto max-w-lg space-y-3 px-4 pb-4 pt-2 md:max-w-2xl lg:max-w-4xl md:px-8">
+      <p className="flex items-center justify-between px-0.5 text-[12.5px] text-neutral-500">
+        <span>Step 1 of 2 · Details</span>
+        {!id && <span>Draft saved</span>}
+      </p>
       {decisionNote && (
         <p className="rounded-2xl bg-status-warn/10 px-3.5 py-2.5 text-[13px] leading-snug text-neutral-900">
           <b>Changes asked:</b> “{decisionNote}”
         </p>
       )}
 
-      <div className={`${card} space-y-2.5 p-3.5`}>
-        <p className={kicker}>Leave Phnom Penh</p>
-        <label className={`flex h-12 items-center gap-2.5 rounded-xl border-[1.5px] px-3 ${soon ? 'border-status-danger' : 'border-brand-500'}`}>
-          <CalendarDays className="h-5 w-5 text-brand-600" aria-hidden />
+      <section aria-label="Start date" className={`${card} space-y-3 p-4`}>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[15.5px] font-extrabold text-neutral-900">Leave Phnom Penh</p>
+          <span className={`inline-flex h-6 items-center gap-1 rounded-full px-2.5 text-[11.5px] font-extrabold ${soon ? 'bg-status-danger/10 text-status-danger' : 'bg-status-working/10 text-status-working'}`}>
+            {soon ? `Too soon · needs ${rates.noticeHours} h notice` : `${rates.noticeHours} h notice ok`}
+          </span>
+        </div>
+        <label className={`relative flex items-center gap-3 rounded-[14px] border-[1.5px] px-3 py-2.5 ${soon ? 'border-status-danger' : 'border-neutral-300 dark:border-neutral-600'}`}>
+          <span className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/15">
+            <CalendarDays className="h-5 w-5" aria-hidden />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[15px] font-extrabold text-neutral-900">{longDate}</span>
+            <span className="block text-[12.5px] text-neutral-500">{leaveIn === 0 ? 'Today' : leaveIn === 1 ? 'Tomorrow' : `In ${leaveIn} days`}</span>
+          </span>
           <input
             type="date"
             value={draft.start}
             min={first}
             onChange={(e) => e.target.value && set({ start: e.target.value })}
             aria-label="Trip start date"
-            className="min-w-0 flex-1 bg-transparent text-base font-extrabold text-neutral-900 outline-none"
+            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
           />
         </label>
-        <div className="flex flex-wrap gap-1.5">
-          {quickStarts(first).map((q, i) => (
-            <button
-              key={q}
-              type="button"
-              onClick={() => set({ start: q })}
-              className={`h-8 rounded-full border-[1.5px] px-3 text-[12.5px] font-bold ${
-                q === draft.start ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-100' : 'border-neutral-200 text-neutral-600 dark:border-neutral-700'
-              }`}
-            >
-              {i === 0 ? 'Earliest · ' : ''}
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4">
+          {quickStarts(first).map((q) => (
+            <button key={q} type="button" onClick={() => set({ start: q })} className={`h-[34px] shrink-0 rounded-full border-[1.5px] px-3.5 text-[13px] ${q === draft.start ? 'border-brand-500 bg-brand-500 font-bold text-white' : 'border-neutral-300 font-semibold text-neutral-900 dark:border-neutral-600'}`}>
               {dayLabel(q)}
             </button>
           ))}
         </div>
-        <p className="text-[13px] text-neutral-600">
-          <b className="text-neutral-900">{plan.length}</b> · {plan.back ? `back in Phnom Penh ${dayLabel(plan.end)}` : `ends ${dayLabel(plan.end)}`}
-        </p>
-        <p role={soon ? 'alert' : undefined} className={`text-[12.5px] leading-snug ${soon ? 'rounded-xl bg-status-danger/10 px-2.5 py-2 text-neutral-900' : 'text-neutral-500'}`}>
-          {soon
-            ? `Too soon: you’d leave in ${Math.max(hrs, 0)} h. Trips must be sent at least ${rates.noticeHours} h before you leave (${rates.leaveAt} on day 1). Earliest start: ${dayLabel(first)}.`
-            : `Send at least ${rates.noticeHours} h before you leave at ${rates.leaveAt} — earliest start today is ${dayLabel(first)}.`}
-        </p>
-      </div>
+        {soon && (
+          <p role="alert" className="rounded-xl bg-status-danger/10 px-2.5 py-2 text-[12.5px] leading-snug text-neutral-900">
+            You’d leave in {Math.max(hrs, 0)} h. Trips must be sent at least {rates.noticeHours} h before you leave ({rates.leaveAt} on day 1). Earliest start: {dayLabel(first)}.
+          </p>
+        )}
+      </section>
 
-      <div className={`${card} space-y-2.5 p-3.5`}>
+      <section aria-label="Who is going" className={`${card} space-y-3 p-4`}>
         <div className="flex items-center justify-between">
-          <p className={kicker}>Who’s going · {people}</p>
-          <button type="button" onClick={() => setSheet({ kind: 'people' })} className="text-[13px] font-extrabold text-brand-600">
-            + Add people
-          </button>
+          <p className="text-[15.5px] font-extrabold text-neutral-900">Who’s going</p>
+          <span className="text-[12.5px] text-neutral-500">
+            {people} {people === 1 ? 'person' : 'people'}
+          </span>
         </div>
         <div className="flex flex-wrap gap-1.5">
-          {draft.people.map((uid, i) => (
-            <span key={uid} className="inline-flex h-9 items-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 pl-1 pr-1.5 dark:border-neutral-700">
-              <Avatar name={fullNameOf(uid)} i={i} size="h-7 w-7 text-[11px]" />
-              <span className={`text-[13.5px] font-bold text-neutral-900 ${uid === meId ? 'pr-1.5' : ''}`}>{nameOf(uid)}</span>
+          {draft.people.map((uid) => (
+            <span key={uid} className="inline-flex h-8 items-center gap-1.5 rounded-full bg-brand-50 pl-1 pr-3 text-[13px] font-bold text-brand-700 dark:bg-brand-500/15 dark:text-brand-100">
+              <span className="flex h-[24px] w-[24px] items-center justify-center rounded-full bg-brand-500 text-[10px] font-extrabold text-white">{initials(fullNameOf(uid))}</span>
+              {uid === meId ? `${fullNameOf(uid)} (you)` : nameOf(uid)}
               {uid !== meId && (
-                <button type="button" aria-label={`Remove ${nameOf(uid)}`} onClick={() => setPeople(draft.people.filter((p) => p !== uid))} className="flex h-6 w-6 items-center justify-center rounded-full text-neutral-500">
+                <button type="button" aria-label={`Remove ${nameOf(uid)}`} onClick={() => setPeople(draft.people.filter((p) => p !== uid))} className="-mr-1 flex h-5 w-5 items-center justify-center rounded-full opacity-70">
                   <X className="h-3.5 w-3.5" />
                 </button>
               )}
             </span>
           ))}
+          <button type="button" onClick={() => setSheet({ kind: 'people' })} className="inline-flex h-8 items-center gap-1 rounded-full border-[1.5px] border-dashed border-neutral-300 px-3 text-[13px] font-bold text-brand-600 dark:border-neutral-600">
+            <Plus className="h-4 w-4" aria-hidden /> Add people
+          </button>
         </div>
-        <p className="text-[12.5px] leading-snug text-neutral-500">
-          {people === 1
-            ? 'Just you · 1 room a night. Teammates you add get the trip on their calendar and can clock in on the route too.'
-            : `${people} people · rooms default to ${rates.perRoom} per room — change any night below. Everyone gets the trip once it’s approved.`}
-        </p>
         {clashes.length > 0 && <p className="rounded-xl bg-status-warn/10 px-2.5 py-2 text-[12.5px] text-neutral-900">{clashes.map((c) => `${c.name}: ${c.busy}`).join(' · ')}</p>}
-      </div>
+      </section>
 
-      <div className="flex items-baseline justify-between px-0.5">
-        <p className="text-[17px] font-extrabold text-neutral-900">Day by day</p>
-        <span className="text-[12.5px] font-bold text-neutral-500">≈ {plan.totalKm} km driving</span>
-      </div>
-
-      <div>
-        <div className="flex gap-2.5">
-          <div className="flex w-[30px] flex-col items-center">
-            <span className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-brand-50 text-brand-600 dark:bg-brand-500/15">
-              <Home className="h-4 w-4" aria-hidden />
-            </span>
-            <span className="min-h-[14px] w-0.5 flex-1 bg-neutral-200 dark:bg-neutral-700" />
-          </div>
-          <p className="mb-4 mt-1.5 text-[13.5px] text-neutral-600">
-            <b className="text-neutral-900">Phnom Penh</b> · leave {dayLabel(draft.start)} at {rates.leaveAt}
-          </p>
-        </div>
-
+      <p className={`${sub} px-0.5 pt-1`}>Day by day</p>
+      <div className={`${card} px-3.5 py-1`}>
         {plan.days.map((d, i) => {
           const empty = !d.provinces.length
           const warns: string[] = []
           if (holidays[d.date]) warns.push(`Public holiday — ${holidays[d.date]}. Visits are allowed, but many shops will be closed.`)
           if (d.km > LONG_DAY_KM) warns.push(`≈ ${d.km} km of driving. Consider another night on the way, or fewer stops.`)
-          if (i < lastI && !d.night && !empty) warns.push('Pick where you sleep tonight.')
+          if (i < lastI && !d.night && !empty) warns.push('Pick where you sleep, or the trip cannot be sent.')
           const rooms = roomsFor(d, people, rates.perRoom)
-          const split = roomSplit(people, rooms)
           return (
-            <div key={i} className="flex gap-2.5">
-              <div className="flex w-[30px] flex-col items-center">
-                <span className={`flex h-[30px] w-[30px] items-center justify-center rounded-full text-[13px] font-extrabold ${empty ? 'border border-neutral-300 bg-white text-neutral-500 dark:border-neutral-600' : 'bg-status-visiting text-white'}`}>{d.n}</span>
-                <span className="w-0.5 flex-1 bg-neutral-200 dark:bg-neutral-700" />
+            <div key={i} className={`py-3 ${i ? 'border-t border-neutral-100 dark:border-neutral-800' : ''}`}>
+              <div className="flex items-center gap-3">
+                <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[10px] bg-brand-50 text-[13px] font-extrabold text-brand-700 dark:bg-brand-500/15 dark:text-brand-100">{d.n}</span>
+                <span className="min-w-0 flex-1 text-[15px] font-extrabold text-neutral-900">{d.label}</span>
+                {draft.days.length > 1 && (
+                  <button type="button" aria-label={`Remove day ${d.n}`} onClick={() => removeDay(i)} className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-100 text-neutral-500 dark:bg-neutral-800">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
-              <div className={`mb-3 min-w-0 flex-1 space-y-2.5 rounded-2xl bg-white p-3 shadow-card ${empty ? 'border-[1.5px] border-dashed border-neutral-300 dark:border-neutral-600' : warns.length ? 'border-[1.5px] border-status-warn' : ''}`}>
-                <div className="flex items-center gap-2">
-                  <span className="flex-1 text-[15px] font-extrabold text-neutral-900">
-                    Day {d.n} · {d.label}
-                  </span>
-                  <span className={`text-[12px] font-bold ${d.km > LONG_DAY_KM ? 'text-status-warn' : 'text-neutral-500'}`}>{empty ? 'Not planned' : `≈ ${d.km} km`}</span>
-                  {draft.days.length > 1 && (
-                    <button type="button" aria-label={`Remove day ${d.n}`} onClick={() => removeDay(i)} className="flex h-7 w-7 items-center justify-center rounded-full text-neutral-500">
-                      <X className="h-4 w-4" />
+              <div className="mt-2 space-y-1.5 pl-[42px]">
+                <div className="flex flex-wrap gap-1.5">
+                  {d.provinces.map((c) => (
+                    <button key={c} type="button" onClick={() => setSheet({ kind: 'day', i })} aria-label={`Change day ${d.n} provinces`}>
+                      <ProvincePill kind="visit" name={provinceName(c)} count={counts[c]?.total} />
                     </button>
-                  )}
+                  ))}
+                  <button type="button" onClick={() => setSheet({ kind: 'day', i })} className={`inline-flex h-7 items-center gap-1 rounded-full border-[1.5px] border-dashed px-2.5 text-[12.5px] font-bold text-brand-600 ${empty ? 'border-brand-500' : 'border-neutral-300 dark:border-neutral-600'}`}>
+                    <Plus className="h-3.5 w-3.5" aria-hidden /> {empty ? 'Add provinces to visit' : 'Province'}
+                  </button>
                 </div>
-                <div className="space-y-1.5">
-                  <span className="text-[11.5px] font-extrabold uppercase tracking-wide text-neutral-500">Visit</span>
+                {!empty && (
                   <div className="flex flex-wrap gap-1.5">
-                    {d.provinces.map((c, j) => (
-                      <button key={c} type="button" onClick={() => setSheet({ kind: 'day', i })} className="inline-flex h-[34px] items-center gap-1.5 rounded-full bg-status-visiting/10 pl-1 pr-2.5">
-                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-status-visiting text-[11.5px] font-extrabold text-white">{j + 1}</span>
-                        <span className="text-[13.5px] font-bold text-neutral-900">{provinceName(c)}</span>
-                        {counts[c] && <span className="text-[11.5px] font-bold text-status-visiting">{counts[c].total}</span>}
+                    {d.night ? (
+                      <button type="button" onClick={() => setSheet({ kind: 'day', i })} aria-label={`Change where you sleep on day ${d.n}`}>
+                        <ProvincePill kind="sleep" name={provinceName(d.night)} count={`${rooms} room${rooms === 1 ? '' : 's'}`} />
                       </button>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() => setSheet({ kind: 'day', i })}
-                      className={`inline-flex h-[34px] items-center rounded-full border-[1.5px] border-dashed px-3 text-[13px] font-extrabold text-brand-600 ${empty ? 'border-brand-500' : 'border-neutral-300 dark:border-neutral-600'}`}
-                    >
-                      + {empty ? 'Add provinces to visit' : 'Province'}
-                    </button>
-                  </div>
-                </div>
-                <button type="button" onClick={() => setSheet({ kind: 'day', i })} className={`flex min-h-[44px] w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left ${d.back ? 'bg-brand-50 dark:bg-brand-500/15' : 'bg-neutral-50'}`}>
-                  <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${d.back ? 'bg-brand-500 text-white' : 'bg-brand-900 text-[#FFB257]'}`}>
-                    {d.back ? <Home className="h-3.5 w-3.5" aria-hidden /> : <Moon className="h-3.5 w-3.5" aria-hidden />}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[11.5px] font-bold text-neutral-500">{d.back ? (i === lastI ? 'End of trip' : 'Back home') : 'Overnight in'}</span>
-                    <span className={`block text-[14.5px] font-extrabold ${d.back ? 'text-brand-700 dark:text-brand-100' : 'text-neutral-900'}`}>
-                      {d.back ? (i === lastI ? 'Back to Phnom Penh' : 'Pick where you sleep') : provinceName(d.night!)}
-                    </span>
-                  </span>
-                  <span className="text-[12px] font-bold text-neutral-500">{d.back ? (i === lastI ? 'evening' : '') : d.nightN > 1 ? `night ${d.nightN} here` : ''}</span>
-                  <ChevronRight className="h-4 w-4 text-neutral-400" aria-hidden />
-                </button>
-                {d.night && (
-                  <div className="flex items-center gap-2 pl-1.5">
-                    <span className="min-w-0 flex-1 text-[13px] text-neutral-600">
-                      <b className="text-neutral-900">
-                        {rooms} room{rooms === 1 ? '' : 's'}
-                      </b>{' '}
-                      · {people === 1 ? 'just you' : rooms === 1 ? `all ${people} share` : `${people} people · ${split.join(' + ')}`}
-                    </span>
-                    <button type="button" aria-label={`Fewer rooms on day ${d.n}`} disabled={rooms <= 1} onClick={() => setRooms(i, rooms - 1)} className="flex h-[30px] w-[30px] items-center justify-center rounded-full border-[1.5px] border-neutral-200 text-neutral-600 disabled:opacity-30 dark:border-neutral-700">
-                      <Minus className="h-3.5 w-3.5" />
-                    </button>
-                    <span className="w-4 text-center text-[15px] font-extrabold tabular-nums text-neutral-900">{rooms}</span>
-                    <button type="button" aria-label={`More rooms on day ${d.n}`} disabled={rooms >= people} onClick={() => setRooms(i, rooms + 1)} className="flex h-[30px] w-[30px] items-center justify-center rounded-full border-[1.5px] border-neutral-200 text-neutral-600 disabled:opacity-30 dark:border-neutral-700">
-                      <Plus className="h-3.5 w-3.5" />
-                    </button>
+                    ) : i === lastI ? (
+                      <ProvincePill kind="home" name="Phnom Penh" count="home" />
+                    ) : (
+                      <button type="button" onClick={() => setSheet({ kind: 'day', i })} className="inline-flex h-7 items-center gap-1.5 rounded-full border-[1.5px] border-dashed border-status-warn px-2.5 text-[12.5px] font-bold text-status-warn">
+                        <Moon className="h-3 w-3" aria-hidden /> Where do you sleep tonight?
+                      </button>
+                    )}
                   </div>
                 )}
                 {warns.map((w) => (
-                  <p key={w} role="note" className="flex items-start gap-2 rounded-xl bg-status-warn/10 px-2.5 py-2 text-[12.5px] leading-snug text-neutral-900">
-                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-status-warn" aria-hidden />
+                  <p key={w} role="note" className="flex items-start gap-1.5 text-[12.5px] leading-snug text-status-warn">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
                     {w}
                   </p>
                 ))}
@@ -471,21 +415,9 @@ export function TripRequestPage() {
             </div>
           )
         })}
-
-        <div className="flex gap-2.5">
-          <div className="flex w-[30px] flex-col items-center">
-            <span className="min-h-[8px] w-0.5 flex-1 bg-neutral-200 dark:bg-neutral-700" />
-          </div>
-          <button type="button" onClick={addDay} disabled={draft.days.length >= 31} className="mb-3 h-11 flex-1 rounded-2xl border-[1.5px] border-dashed border-neutral-300 text-sm font-extrabold text-brand-600 disabled:opacity-40 dark:border-neutral-600">
-            + Add a day
-          </button>
-        </div>
-        <div className="flex gap-2.5">
-          <span className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-brand-500 text-white">
-            <Home className="h-4 w-4" aria-hidden />
-          </span>
-          <p className="mt-1.5 text-[13.5px] text-neutral-600">Back in Phnom Penh · {dayLabel(plan.end)} evening</p>
-        </div>
+        <button type="button" onClick={addDay} disabled={draft.days.length >= 31} className="mb-2 mt-1 flex h-12 w-full items-center justify-center gap-1.5 rounded-[14px] border-[1.5px] border-dashed border-neutral-300 text-sm font-bold text-brand-600 disabled:opacity-40 dark:border-neutral-600">
+          <Plus className="h-4 w-4" aria-hidden /> Add day
+        </button>
       </div>
 
       {plan.provinces.length > 0 && (
@@ -500,91 +432,89 @@ export function TripRequestPage() {
         </Link>
       )}
 
-      <div className={`${card} flex items-center gap-3 p-3.5`}>
-        <span className="min-w-0 flex-1">
-          <span className="block text-[15px] font-bold text-neutral-900">Fuel / transport</span>
-          <span className="block text-[12.5px] leading-snug text-neutral-500">≈ {plan.totalKm} km on this route · one vehicle. Leave empty if there’s no fuel to claim.</span>
-        </span>
+      <section aria-label="Fuel and transport" className={`${card} space-y-3 p-4`}>
+        <div className="flex items-center justify-between">
+          <p className="text-[15.5px] font-extrabold text-neutral-900">Fuel / transport</p>
+          <span className="text-[12.5px] text-neutral-500">Optional</span>
+        </div>
         <MoneyInput optional label="Fuel / transport" value={draft.fuel} max={100000} onChange={(v) => set({ fuel: v })} onValidChange={setFuelOk} />
-      </div>
+        <p className="text-[12.5px] leading-snug text-neutral-500">One vehicle for the whole trip. Leave empty if there is none.</p>
+      </section>
 
-      <div className={`${card} space-y-2 p-3.5`}>
-        <div className="flex items-baseline justify-between">
-          <p className={kicker}>Special allowance</p>
-          <span className="text-[13.5px] font-extrabold text-neutral-900">{draft.special.length ? money(cost.special) : 'None'}</span>
+      <section aria-label="Special allowance" className={`${card} space-y-3 p-4`}>
+        <div className="flex items-center justify-between">
+          <p className="text-[15.5px] font-extrabold text-neutral-900">Special allowance</p>
+          <span className="text-[12.5px] text-neutral-500">{draft.special.length ? `${money(cost.special)} · max ${money(rates.specialCap)}` : `Max ${money(rates.specialCap)}`}</span>
         </div>
         {draft.special.map((s, i) => (
-          <div key={i} className={`flex items-center gap-2 py-1.5 ${i ? 'border-t border-neutral-100 dark:border-neutral-800' : ''}`}>
-            <span className="shrink-0 rounded-full bg-earth-50 px-2 py-0.5 text-[11.5px] font-extrabold text-earth-500">{s.reason}</span>
+          <div key={i} className={`space-y-2 ${i ? 'border-t border-neutral-100 pt-3 dark:border-neutral-800' : ''}`}>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex h-7 shrink-0 items-center rounded-full bg-brand-500 px-3 text-[12.5px] font-bold text-white">{s.reason}</span>
+              <span className="flex-1" />
+              <MoneyInput
+                key={`${specialRev}-${i}`}
+                size="sm"
+                label={`Amount for ${s.reason}`}
+                value={s.amount}
+                max={10000}
+                onChange={(v) => setSpecial(draft.special.map((x, j) => (j === i ? { ...x, amount: v } : x)))}
+                onValidChange={amountValid(i)}
+              />
+              <button type="button" aria-label={`Remove ${s.reason}`} onClick={() => removeSpecial(i)} className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-100 text-neutral-500 dark:bg-neutral-800">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
             <input
               value={s.note}
               onChange={(e) => setSpecial(draft.special.map((x, j) => (j === i ? { ...x, note: e.target.value } : x)))}
               placeholder="Note for the approver"
               aria-label={`Note for ${s.reason}`}
-              className="min-w-0 flex-1 bg-transparent text-[13px] text-neutral-900 outline-none placeholder:text-neutral-400"
+              className="h-11 w-full rounded-[14px] border-[1.5px] border-neutral-300 bg-transparent px-3.5 text-[14.5px] text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-brand-500 dark:border-neutral-600"
             />
-            <MoneyInput
-              key={`${specialRev}-${i}`}
-              size="sm"
-              label={`Amount for ${s.reason}`}
-              value={s.amount}
-              max={10000}
-              onChange={(v) => setSpecial(draft.special.map((x, j) => (j === i ? { ...x, amount: v } : x)))}
-              onValidChange={amountValid(i)}
-            />
-            <button type="button" aria-label={`Remove ${s.reason}`} onClick={() => removeSpecial(i)} className="flex h-6 w-6 items-center justify-center rounded-full text-neutral-500">
-              <X className="h-4 w-4" />
-            </button>
           </div>
         ))}
-        {!draft.special.length && <p className="text-[12.5px] leading-snug text-neutral-500">Nothing extra. Add costs the standard rates don’t cover — a ferry, parking, a customer event.</p>}
+        {!draft.special.length && <p className="text-[12.5px] leading-snug text-neutral-500">Nothing extra. Add costs the standard rates don’t cover, like a ferry, parking or a customer event.</p>}
         <div className="flex flex-wrap gap-1.5">
           {SPECIAL_REASONS.map((r) => (
-            <button
-              key={r.reason}
-              type="button"
-              onClick={() => setSpecial([...draft.special, { reason: r.reason, note: '', amount: r.amount }])}
-              className="h-[30px] rounded-full border-[1.5px] border-dashed border-neutral-300 px-2.5 text-[12.5px] font-bold text-brand-600 dark:border-neutral-600"
-            >
-              + {r.reason}
+            <button key={r.reason} type="button" onClick={() => setSpecial([...draft.special, { reason: r.reason, note: '', amount: r.amount }])} className="inline-flex h-8 items-center rounded-full border-[1.5px] border-neutral-300 px-3 text-[13px] font-semibold text-neutral-900 dark:border-neutral-600">
+              {r.reason}
             </button>
           ))}
         </div>
         {cost.over && (
           <p role="alert" className="rounded-xl bg-status-warn/10 px-2.5 py-2 text-[12.5px] leading-snug text-neutral-900">
-            Special allowance is {money(cost.special)} — over the {money(rates.specialCap)} limit per trip. You can still send it; the approver will see it flagged.
+            Special allowance is {money(cost.special)}, over the {money(rates.specialCap)} limit per trip. You can still send it; the approver will see it flagged.
           </p>
         )}
-      </div>
+      </section>
 
-      <button type="button" onClick={() => ok && setStep('review')} className={`${card} flex w-full items-center gap-3 p-3.5 text-left`}>
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-earth-50 text-lg font-extrabold text-earth-500">$</span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-extrabold text-neutral-900">Estimated cost {money(cost.total)}</span>
-          <span className="block text-[12.5px] text-neutral-500">
-            {people > 1 ? `${money(cost.perPerson)} per person · ` : ''}allowance {money(cost.lines[0].value)} · hotel {cost.roomNights} room-nights {money(cost.lines[1].value)} · fuel {money(cost.lines[2].value)}
-            {draft.special.length ? ` · special ${money(cost.special)}` : ''}
-          </span>
-        </span>
-      </button>
-
-      <label className="block space-y-1.5">
-        <span className="text-[13px] font-bold text-neutral-600">
-          Purpose / note for your manager <span className="font-medium text-neutral-500">(optional)</span>
-        </span>
+      <section aria-label="Purpose" className={`${card} space-y-3 p-4`}>
+        <div className="flex items-center justify-between">
+          <p className="text-[15.5px] font-extrabold text-neutral-900">What is this trip for?</p>
+          <span className="text-[12.5px] text-neutral-500">Optional</span>
+        </div>
         <textarea
           value={draft.note}
           onChange={(e) => set({ note: e.target.value })}
-          rows={2}
-          placeholder="What is this trip for?"
-          className="w-full rounded-xl border-[1.5px] border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-brand-500 dark:border-neutral-700"
+          rows={3}
+          aria-label="What is this trip for?"
+          placeholder="Note for your manager"
+          className="w-full rounded-[14px] border-[1.5px] border-neutral-300 bg-transparent px-3.5 py-2.5 text-[14.5px] text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-brand-500 dark:border-neutral-600"
         />
-      </label>
+      </section>
 
       {error && <p className="rounded-xl bg-status-danger/10 px-3 py-2 text-sm text-status-danger">{error}</p>}
-      <button type="button" disabled={!ok} onClick={() => setStep('review')} className="h-[50px] w-full rounded-2xl bg-brand-500 text-[15px] font-extrabold text-white disabled:bg-neutral-200 disabled:text-neutral-500 dark:disabled:bg-neutral-800">
-        {ok ? 'Review trip' : blocker}
-      </button>
+
+      <div className="sticky bottom-[calc(4rem+env(safe-area-inset-bottom))] z-10 -mx-4 flex items-center gap-3.5 border-t border-neutral-200 bg-neutral-50 px-4 py-3 md:bottom-0 md:-mx-8 md:px-8 dark:border-neutral-800">
+        <span className="min-w-0 flex-1">
+          <span className="block text-[12px] text-neutral-500">Total spending</span>
+          <span className="block text-[22px] font-extrabold leading-[26px] tabular-nums text-neutral-900">{money(cost.total)}</span>
+          <span className={`block truncate text-[12px] ${ok ? 'text-neutral-500' : 'text-status-warn'}`}>{ok ? (people > 1 ? `${money(cost.perPerson)} per person` : 'Just you') : blocker}</span>
+        </span>
+        <button type="button" disabled={!ok} onClick={() => setStep('review')} className="flex h-[52px] shrink-0 items-center gap-1.5 rounded-2xl bg-brand-500 px-6 text-[16px] font-bold text-white disabled:bg-neutral-200 disabled:text-neutral-500 dark:disabled:bg-neutral-800">
+          Review <ChevronRight className="h-[18px] w-[18px]" aria-hidden />
+        </button>
+      </div>
 
       {sheet?.kind === 'day' && (
         <ProvinceSheet

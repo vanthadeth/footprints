@@ -5,7 +5,7 @@ import { useRoleGroup } from '@/features/nav/useRoleGroup'
 import { usePendingApprovals } from '@/features/nav/usePendingApprovals'
 import { canApprove, forYou, hubFunctions, hubSearch, rowLabel, rowShort } from '@/features/nav/navConfig'
 import { AttendanceHubCard } from '@/features/attendanceSummary/AttendanceHubCard'
-import { useFlexCycle } from '@/features/flex/useFlexCycle'
+import { useFlexProgress } from '@/features/flex/useFlexProgress'
 import { useMessages } from '@/features/conversations/MessagesContext'
 import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 
@@ -20,8 +20,8 @@ import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 export function MenuPage() {
   const { t } = useLanguage()
   const [query, setQuery] = useState('')
-  const flex = useFlexCycle()
-  const { group, ctx } = useRoleGroup(!!flex.cycle?.isFlexible)
+  const flex = useFlexProgress()
+  const { group, ctx } = useRoleGroup(!!flex.progress?.isFlexible)
   const pendingApprovals = usePendingApprovals(canApprove(ctx))
   const { unreadCount: unreadMessages } = useMessages()
   const badge = (key: string) => (key === 'approvals' ? pendingApprovals : key === 'messages' ? unreadMessages : 0)

@@ -10,7 +10,8 @@ import { BalanceCards } from './BalanceCards'
 import { leaveErrorMessage, leaveService } from './leaveService'
 import { leaveDateRangeLabel } from './leaveDate'
 import { FlexCard } from '@/features/flex/FlexCard'
-import { useFlexCycle } from '@/features/flex/useFlexCycle'
+import { useFlexProgress } from '@/features/flex/useFlexProgress'
+import { counted } from '@/features/flex/progress'
 import type { LeaveBalanceSummary, LeaveRequest } from './types'
 import { leaveTitleOf } from './leaveText'
 
@@ -31,7 +32,7 @@ export function MyLeaveTab({
   const [busyId, setBusyId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const today = todayDateString()
-  const flex = useFlexCycle()
+  const flex = useFlexProgress()
 
   async function cancel(id: string) {
     setBusyId(id)
@@ -58,9 +59,9 @@ export function MyLeaveTab({
           balances={balances}
           requests={requests}
           linkTo="/leave?tab=balance"
-          flex={flex.cycle?.isFlexible ? { left: flex.cycle.left, allowance: flex.cycle.allowance } : null}
+          flex={flex.progress?.isFlexible && flex.progress.minDays != null ? { have: counted(flex.progress), min: flex.progress.minDays } : null}
         />
-        {flex.cycle?.isFlexible && <FlexCard cycle={flex.cycle} />}
+        {flex.progress?.isFlexible && <FlexCard progress={flex.progress} />}
 
         <button
           onClick={() => setRequestOpen(true)}
@@ -130,11 +131,7 @@ export function MyLeaveTab({
       <RequestLeaveSheet
         open={requestOpen}
         onClose={() => setRequestOpen(false)}
-        flex={flex.cycle}
-        onSubmitted={() => {
-          onChanged()
-          flex.reload()
-        }}
+        onSubmitted={onChanged}
       />
     </div>
   )

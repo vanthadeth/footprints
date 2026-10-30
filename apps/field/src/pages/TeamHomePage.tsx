@@ -7,7 +7,8 @@ import { DAY_BAR_LEGEND, daySegments } from '@/features/fleet/dayBar'
 import { DayBar, DayBarSwatch } from '@/features/fleet/DayBar'
 import { firstClockIn, lastClockOut } from '@/features/attendance/sessions'
 import { useFleet } from '@/features/fleet/useFleet'
-import { flexService, type FlexTeamRow } from '@/features/flex/flexService'
+import { flexService } from '@/features/flex/flexService'
+import type { TeamProgressRow } from '@/features/flex/progress'
 import { useRoleGroup } from '@/features/nav/useRoleGroup'
 import { usePendingApprovals } from '@/features/nav/usePendingApprovals'
 import { canApprove } from '@/features/nav/navConfig'
@@ -51,7 +52,7 @@ export function TeamHomePage() {
   const { ctx } = useRoleGroup()
   const pending = usePendingApprovals(canApprove(ctx))
   const canBriefing = useCan('customer_briefing')
-  const [flex, setFlex] = useState<FlexTeamRow[]>([])
+  const [flex, setFlex] = useState<TeamProgressRow[]>([])
   const settings = useAppSettings()
   const { notifications } = useNotificationsContext()
   const recent = notifications.slice(0, 4)
@@ -61,7 +62,7 @@ export function TeamHomePage() {
   useEffect(() => {
     let cancelled = false
     flexService
-      .team()
+      .teamProgress(null)
       .then((r) => !cancelled && setFlex(r))
       .catch(() => {})
     return () => {
@@ -71,7 +72,7 @@ export function TeamHomePage() {
 
   const field = useMemo(() => all.filter((s) => s.member.isFieldSales), [all])
   const notIn = field.filter((s) => s.status === 'OFF' && !s.attendance)
-  const overFlex = flex.filter((r) => r.isFlexible && r.left < 0)
+  const overFlex = flex.filter((r) => r.isFlexible && !r.settled && r.spare < 0)
 
   const needs: Need[] = [
     ...(pending ? [{ key: 'approvals', icon: CheckSquare, tone: 'bg-status-warn/10 text-status-warn', title: `${pending} request${pending === 1 ? '' : 's'} to decide`, sub: 'Leave and flexible days off', to: '/approvals', action: 'Review' }] : []),
@@ -79,7 +80,7 @@ export function TeamHomePage() {
       ? [{ key: 'notin', icon: UserX, tone: 'bg-status-danger/10 text-status-danger', title: notIn.length === 1 ? `${displayName(notIn[0].member.fullName, notIn[0].member.nickname)} hasn’t clocked in` : `${notIn.length} people haven’t clocked in`, sub: notIn.slice(0, 3).map((s) => displayName(s.member.fullName, s.member.nickname)).join(', '), to: '/fleet', action: 'See' }]
       : []),
     ...(overFlex.length
-      ? [{ key: 'flex', icon: CalendarRange, tone: 'bg-status-visiting/10 text-status-visiting', title: overFlex.length === 1 ? `${overFlex[0].name} is over the flexible allowance` : `${overFlex.length} people over the flexible allowance`, sub: overFlex.map((r) => `${r.name} +${days(-r.left)}`).join(', '), to: '/leave/flexible', action: 'See' }]
+      ? [{ key: 'flex', icon: CalendarRange, tone: 'bg-status-visiting/10 text-status-visiting', title: overFlex.length === 1 ? `${overFlex[0].name} can’t reach the minimum working days` : `${overFlex.length} people can’t reach the minimum working days`, sub: overFlex.map((r) => `${r.name} −${days(-r.spare)}`).join(', '), to: '/leave/flexible', action: 'See' }]
       : []),
   ]
 
