@@ -10,8 +10,8 @@ interface Props {
   /** Horizontal swipe row (Leave tab) vs a stacked list (Balance tab). */
   layout?: 'row' | 'stack'
   linkTo?: string
-  /** Flexible days off left this cycle, for people who earn them (shown between Annual and Sick). */
-  flex?: { left: number; allowance: number } | null
+  /** Working days this cycle against the minimum, for people on flexible days off (shown between Annual and Sick). */
+  flex?: { have: number; min: number } | null
 }
 
 /** Working days the request uses, as stored when it was made; older rows fall back to a calendar-day count. */
@@ -54,12 +54,12 @@ export function BalanceCards({ balances, requests, layout = 'row', linkTo, flex 
   if (flex) {
     cards.splice(1, 0, {
       key: 'flex',
-      name: t('leave.balFlexible'),
-      big: String(flex.left),
-      unit: unitLeft(flex.left),
-      usedPct: flex.allowance ? Math.min(100, ((flex.allowance - flex.left) / flex.allowance) * 100) : 0,
+      name: t('workDays.balName'),
+      big: String(flex.have),
+      unit: t('workDays.cardOf', { n: flex.min }),
+      usedPct: flex.min ? Math.min(100, (flex.have / flex.min) * 100) : 0,
       pendingPct: 0,
-      caption: t('leave.capFlex', { n: flex.allowance }),
+      caption: t('workDays.balCaption', { n: flex.min }),
       color: LEAVE_TYPE_COLOR.flex,
     })
   }

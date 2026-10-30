@@ -26,6 +26,7 @@ export type Database = {
           daily_active_hours: number | null
           daily_visit_target: number | null
           daily_order_target_usd: number
+          min_working_days: number
           monthly_order_target_usd: number
           daily_working_hours: number | null
           default_annual_leave_days: number
@@ -92,6 +93,7 @@ export type Database = {
           daily_active_hours?: number | null
           daily_visit_target?: number | null
           daily_order_target_usd?: number
+          min_working_days?: number
           monthly_order_target_usd?: number
           daily_working_hours?: number | null
           default_annual_leave_days?: number
@@ -158,6 +160,7 @@ export type Database = {
           daily_active_hours?: number | null
           daily_visit_target?: number | null
           daily_order_target_usd?: number
+          min_working_days?: number
           monthly_order_target_usd?: number
           daily_working_hours?: number | null
           default_annual_leave_days?: number
@@ -1469,7 +1472,9 @@ export type Database = {
           annual_days: number
           auto_days: number
           cycle_end: string
+          credited_days: number | null
           cycle_start: string
+          min_days: number | null
           over_days: number
           requested: number
           saturdays: number
@@ -1478,13 +1483,16 @@ export type Database = {
           unpaid_days: number
           unused_days: number
           user_id: string
+          worked_days: number | null
         }
         Insert: {
           allowance: number
           annual_days: number
           auto_days: number
           cycle_end: string
+          credited_days?: number | null
           cycle_start: string
+          min_days?: number | null
           over_days: number
           requested: number
           saturdays: number
@@ -1493,13 +1501,16 @@ export type Database = {
           unpaid_days: number
           unused_days: number
           user_id: string
+          worked_days?: number | null
         }
         Update: {
           allowance?: number
           annual_days?: number
           auto_days?: number
           cycle_end?: string
+          credited_days?: number | null
           cycle_start?: string
+          min_days?: number | null
           over_days?: number
           requested?: number
           saturdays?: number
@@ -1508,6 +1519,7 @@ export type Database = {
           unpaid_days?: number
           unused_days?: number
           user_id?: string
+          worked_days?: number | null
         }
         Relationships: [
           {
@@ -3672,6 +3684,7 @@ export type Database = {
           created_at: string
           date_of_birth: string | null
           daily_order_target_usd: number | null
+          min_working_days: number | null
           monthly_order_target_usd: number | null
           sales_target_required: boolean
           department_id: string | null
@@ -3706,6 +3719,7 @@ export type Database = {
           created_at?: string
           date_of_birth?: string | null
           daily_order_target_usd?: number | null
+          min_working_days?: number | null
           monthly_order_target_usd?: number | null
           sales_target_required?: boolean
           department_id?: string | null
@@ -3740,6 +3754,7 @@ export type Database = {
           created_at?: string
           date_of_birth?: string | null
           daily_order_target_usd?: number | null
+          min_working_days?: number | null
           monthly_order_target_usd?: number | null
           sales_target_required?: boolean
           department_id?: string | null
@@ -5562,6 +5577,69 @@ export type Database = {
           weekday: number
         }[]
       }
+      flex_progress: {
+        Args: { p_date?: string; p_user?: string }
+        Returns: {
+          above_days: number
+          annual_days: number
+          available: number
+          close_day: number
+          closed: boolean
+          credited: number
+          cycle_end: string
+          cycle_start: string
+          is_flexible: boolean
+          min_days: number
+          settled: boolean
+          settled_at: string
+          short_days: number
+          spare: number
+          still_needed: number
+          unpaid_days: number
+          worked: number
+        }[]
+      }
+      flex_progress_days: {
+        Args: { p_from: string; p_to: string; p_user: string }
+        Returns: {
+          credit: number
+          day: string
+          holiday_name: string
+          kind: string
+          weekday: number
+        }[]
+      }
+      flex_rule_settings: {
+        Args: never
+        Returns: {
+          close_day: number
+          flexible_people: number
+          min_days: number
+        }[]
+      }
+      flex_team_progress: {
+        Args: { p_date?: string }
+        Returns: {
+          annual_days: number
+          available: number
+          credited: number
+          cycle_end: string
+          cycle_start: string
+          department_name: string
+          full_name: string
+          is_flexible: boolean
+          min_days: number
+          next_from: string
+          nickname: string
+          settled: boolean
+          short_days: number
+          spare: number
+          still_needed: number
+          unpaid_days: number
+          user_id: string
+          worked: number
+        }[]
+      }
       flex_settings: {
         Args: never
         Returns: {
@@ -6083,6 +6161,10 @@ export type Database = {
         Returns: string
       }
       set_default_printer: { Args: { p_printer: string }; Returns: undefined }
+      set_min_working_days: {
+        Args: { p_days: number }
+        Returns: undefined
+      }
       set_flex_rates: {
         Args: { p_sat: number; p_sun: number }
         Returns: undefined

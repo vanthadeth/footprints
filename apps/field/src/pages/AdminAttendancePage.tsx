@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { CalendarDays, CalendarRange, Loader2, Moon, Sun, Users } from 'lucide-react'
+import { CalendarCheck, CalendarDays, CalendarRange, Loader2, Palmtree, Users, Wallet, UserX } from 'lucide-react'
 import { AdminFrame, AdminGroup, AdminRow, AdminTabs } from '@footprints/shared/components/AdminKit'
 import { Stepper } from '@/components/Stepper'
 import { useProfile } from '@footprints/shared/features/auth/useProfile'
@@ -7,7 +7,6 @@ import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 import { dayMonth } from '@/features/customers/detail/dates'
 import { summaryService } from '@/features/attendanceSummary/summaryService'
 import { flexService } from '@/features/flex/flexService'
-import { days as fmtDays, rate } from '@/features/flex/flex'
 import { useTab } from '@/hooks/useTab'
 import { todayDateString } from '@/lib/dateRange'
 import { LeaveAllowancesPage } from './LeaveAllowancesPage'
@@ -60,8 +59,7 @@ export function AdminAttendancePage() {
 
 interface Draft {
   closeDay: number
-  sat: number
-  sun: number
+  minDays: number
 }
 
 function CycleAndFlex({ tab }: { tab: 'cycle' | 'flex' }) {
@@ -77,8 +75,8 @@ function CycleAndFlex({ tab }: { tab: 'cycle' | 'flex' }) {
 
   const load = useCallback(async () => {
     try {
-      const s = await flexService.settings()
-      const d = { closeDay: s.closeDay, sat: s.satRate, sun: s.sunRate }
+      const s = await flexService.rule()
+      const d = { closeDay: s.closeDay, minDays: s.minDays }
       setDraft(d)
       setSaved(JSON.stringify(d))
       setPeople(s.flexiblePeople)
@@ -100,7 +98,7 @@ function CycleAndFlex({ tab }: { tab: 'cycle' | 'flex' }) {
     try {
       const before = JSON.parse(saved) as Draft
       if (before.closeDay !== draft.closeDay) await summaryService.setCycleCloseDay(draft.closeDay)
-      if (before.sat !== draft.sat || before.sun !== draft.sun) await flexService.setRates(draft.sat, draft.sun)
+      if (before.minDays !== draft.minDays) await flexService.setMinWorkingDays(draft.minDays)
       await load()
       setMessage({ ok: true, text: t('attAdmin.saved') })
     } catch (e) {
@@ -151,25 +149,25 @@ function CycleAndFlex({ tab }: { tab: 'cycle' | 'flex' }) {
         </>
       ) : (
         <>
-          <AdminGroup title={t('attAdmin.whoEarns')}>
-            <AdminRow icon={Users} label={t(people === 1 ? 'attAdmin.peopleOnFlexOne' : 'attAdmin.peopleOnFlexMany', { n: people })} sub={t('attAdmin.peopleSub')} to="/users" />
+          <AdminGroup title={t('workDays.adminMinTitle')}>
+            <AdminRow
+              icon={CalendarCheck}
+              label={t('workDays.adminMinTitle')}
+              sub={t('workDays.adminMinSub', { cycle: `${label(cur.start)} – ${label(cur.end)}` })}
+              control={<Stepper label={t('workDays.adminMinTitle')} value={draft.minDays} min={1} max={31} format={(v) => String(v)} disabled={!canEdit} onChange={(v) => setDraft({ ...draft, minDays: v })} />}
+            />
+            <AdminRow icon={Users} label={t('workDays.adminPeople', { n: people })} sub={t('attAdmin.peopleSub')} to="/users" />
             <AdminRow icon={CalendarDays} label={t('attAdmin.everyones')} sub={t('attAdmin.everyonesSub')} to="/leave/flexible" />
           </AdminGroup>
-          <AdminGroup title={t('attAdmin.howEarned')}>
-            <AdminRow
-              icon={Sun}
-              label={t('attAdmin.satWorked')}
-              sub={t('attAdmin.forFlex')}
-              control={<Stepper label={t('attAdmin.satRateAria')} value={draft.sat} step={0.5} max={2} format={(v) => t('attAdmin.dayRate', { n: rate(v) })} disabled={!canEdit} onChange={(v) => setDraft({ ...draft, sat: v })} />}
-            />
-            <AdminRow
-              icon={Moon}
-              label={t('attAdmin.sunWorked')}
-              sub={t('attAdmin.sunSub', { n: fmtDays(4 * draft.sat + 4 * draft.sun) })}
-              control={<Stepper label={t('attAdmin.sunRateAria')} value={draft.sun} step={0.5} max={2} format={(v) => t('attAdmin.dayRate', { n: rate(v) })} disabled={!canEdit} onChange={(v) => setDraft({ ...draft, sun: v })} />}
-            />
+          <AdminGroup title={t('workDays.adminCounts')}>
+            <AdminRow icon={CalendarCheck} label={t('workDays.adminCountClock')} sub={t('workDays.adminCountClockSub')} />
+            <AdminRow icon={Palmtree} label={t('workDays.adminCountLeave')} sub={t('workDays.adminCountLeaveSub')} />
+            <AdminRow icon={CalendarDays} label={t('workDays.adminCountHol')} sub={t('workDays.adminCountHolSub')} />
           </AdminGroup>
-          <p className="-mt-2 text-xs text-neutral-500">{t('attAdmin.flexNote')}</p>
+          <AdminGroup title={t('workDays.adminShort')}>
+            <AdminRow icon={UserX} label={t('workDays.adminShort1')} sub={t('workDays.adminShort1Sub')} />
+            <AdminRow icon={Wallet} label={t('workDays.adminShort2')} sub={t('workDays.adminShort2Sub')} />
+          </AdminGroup>
         </>
       )}
 

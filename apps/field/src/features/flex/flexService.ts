@@ -1,6 +1,7 @@
 import { callRpc } from '@footprints/shared/lib/rpc'
 import { displayName } from '@footprints/shared/lib/displayName'
 import type { FlexCycle, FlexDay, FlexKind } from './flex'
+import type { FlexProgress, ProgressDay, ProgressKind, TeamProgressRow } from './progress'
 
 type N = number | string | null
 const num = (v: N) => Number(v ?? 0)
@@ -144,4 +145,118 @@ export const flexService = {
   async setRates(sat: number, sun: number): Promise<void> {
     await callRpc<null>('set_flex_rates', { p_sat: sat, p_sun: sun })
   },
+
+  /** The minimum-working-days view of a cycle (0123): live, or the frozen settlement. */
+  async progress(userId: string | null = null, date: string | null = null): Promise<FlexProgress | null> {
+    const rows = await callRpc<ProgressRow[]>('flex_progress', { p_user: userId, p_date: date })
+    const r = rows?.[0]
+    if (!r) return null
+    return {
+      cycleStart: r.cycle_start,
+      cycleEnd: r.cycle_end,
+      closeDay: r.close_day,
+      isFlexible: r.is_flexible,
+      minDays: r.min_days == null ? null : num(r.min_days),
+      worked: num(r.worked),
+      credited: num(r.credited),
+      stillNeeded: num(r.still_needed),
+      available: num(r.available),
+      spare: num(r.spare),
+      closed: r.closed,
+      settled: r.settled,
+      settledAt: r.settled_at,
+      shortDays: num(r.short_days),
+      aboveDays: num(r.above_days),
+      annualDays: r.annual_days == null ? null : num(r.annual_days),
+      unpaidDays: r.unpaid_days == null ? null : num(r.unpaid_days),
+      legacy: r.settled && r.min_days == null,
+    }
+  },
+
+  async progressDays(userId: string | null, from: string, to: string): Promise<ProgressDay[]> {
+    const rows = await callRpc<{ day: string; kind: ProgressKind; credit: N; weekday: number; holiday_name: string | null }[]>('flex_progress_days', { p_user: userId, p_from: from, p_to: to })
+    return (rows ?? []).map((r) => ({ day: r.day, kind: r.kind, credit: num(r.credit), weekday: r.weekday, holidayName: r.holiday_name }))
+  },
+
+  /** Everyone on flexible days off the caller may see, with the cycle containing `date`. */
+  async teamProgress(date: string | null = null): Promise<TeamProgressRow[]> {
+    const rows = await callRpc<
+      {
+        user_id: string
+        full_name: string
+        nickname: string | null
+        department_name: string | null
+        is_flexible: boolean
+        next_from: string | null
+        cycle_start: string
+        cycle_end: string
+        min_days: N
+        worked: N
+        credited: N
+        still_needed: N
+        available: N
+        spare: N
+        settled: boolean
+        short_days: N
+        annual_days: N
+        unpaid_days: N
+      }[]
+    >('flex_team_progress', { p_date: date })
+    return (rows ?? []).map((r) => ({
+      userId: r.user_id,
+      name: displayName(r.full_name, r.nickname),
+      departmentName: r.department_name,
+      isFlexible: r.is_flexible,
+      nextFrom: r.next_from,
+      cycleStart: r.cycle_start,
+      cycleEnd: r.cycle_end,
+      minDays: r.min_days == null ? null : num(r.min_days),
+      worked: num(r.worked),
+      credited: num(r.credited),
+      stillNeeded: num(r.still_needed),
+      available: num(r.available),
+      spare: num(r.spare),
+      settled: r.settled,
+      shortDays: num(r.short_days),
+      annualDays: r.annual_days == null ? null : num(r.annual_days),
+      unpaidDays: r.unpaid_days == null ? null : num(r.unpaid_days),
+    }))
+  },
+
+  /** The company default minimum and how many people it covers. */
+  async rule(): Promise<FlexRule> {
+    const rows = await callRpc<{ close_day: number; min_days: number; flexible_people: number }[]>('flex_rule_settings')
+    const r = rows?.[0]
+    return { closeDay: r?.close_day ?? 20, minDays: r?.min_days ?? 20, flexiblePeople: r?.flexible_people ?? 0 }
+  },
+
+  async setMinWorkingDays(days: number): Promise<void> {
+    await callRpc<null>('set_min_working_days', { p_days: days })
+  },
+}
+
+type ProgressRow = {
+  cycle_start: string
+  cycle_end: string
+  close_day: number
+  is_flexible: boolean
+  min_days: N
+  worked: N
+  credited: N
+  still_needed: N
+  available: N
+  spare: N
+  closed: boolean
+  settled: boolean
+  settled_at: string | null
+  short_days: N
+  above_days: N
+  annual_days: N
+  unpaid_days: N
+}
+
+export interface FlexRule {
+  closeDay: number
+  minDays: number
+  flexiblePeople: number
 }

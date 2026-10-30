@@ -59,6 +59,8 @@ export interface EditUserInput {
   monthlyOrderTargetUsd?: number | null
   /** False: this person does not have to achieve a sales target. Left alone when undefined. */
   salesTargetRequired?: boolean
+  /** This person's minimum working days a cycle on flexible days off (null: the company default). Left alone when undefined. */
+  minWorkingDays?: number | null
   /** Required by a DB check constraint when status is 'suspended'; ignored otherwise. */
   suspendedFrom?: string | null
   suspendedTo?: string | null
@@ -152,6 +154,13 @@ export const usersService = {
     return { monthlyUsd: data?.monthly_order_target_usd != null ? Number(data.monthly_order_target_usd) : null, required: data?.sales_target_required !== false }
   },
 
+  /** The person's own minimum working days a cycle (null: the company default). */
+  async minWorkingDays(userId: string): Promise<number | null> {
+    const { data, error } = await supabase.from('users').select('min_working_days').eq('id', userId).maybeSingle()
+    if (error) throw error
+    return data?.min_working_days != null ? Number(data.min_working_days) : null
+  },
+
   async listRoles(): Promise<Option[]> {
     const { data, error } = await supabase.from('roles').select('id, name').eq('active', true).order('sort_order')
     if (error) throw error
@@ -179,6 +188,7 @@ export const usersService = {
         is_field_sales: input.isFieldSales,
         ...(input.monthlyOrderTargetUsd !== undefined ? { monthly_order_target_usd: input.monthlyOrderTargetUsd } : {}),
         ...(input.salesTargetRequired !== undefined ? { sales_target_required: input.salesTargetRequired } : {}),
+        ...(input.minWorkingDays !== undefined ? { min_working_days: input.minWorkingDays } : {}),
         // Only sent when relevant -- DB check constraints require these
         // exact fields when status is suspended/discharged, and don't care
         // about stale values from a previous suspension otherwise.

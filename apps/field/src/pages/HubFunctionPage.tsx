@@ -3,7 +3,7 @@ import { GroupedList, ListRow } from '@/components/GroupedList'
 import { useRoleGroup } from '@/features/nav/useRoleGroup'
 import { usePendingApprovals } from '@/features/nav/usePendingApprovals'
 import { canApprove, hubFunctions, partTitle, rowLabel, rowSub } from '@/features/nav/navConfig'
-import { useFlexCycle } from '@/features/flex/useFlexCycle'
+import { useFlexProgress } from '@/features/flex/useFlexProgress'
 import { useMessages } from '@/features/conversations/MessagesContext'
 import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 
@@ -16,8 +16,8 @@ const NOTE_KEYS: Record<string, string> = { sell: 'menu.noteSell', day: 'menu.no
 export function HubFunctionPage() {
   const { fn } = useParams()
   const { t } = useLanguage()
-  const flex = useFlexCycle()
-  const { group, ctx, ready } = useRoleGroup(!!flex.cycle?.isFlexible)
+  const flex = useFlexProgress()
+  const { group, ctx, ready } = useRoleGroup(!!flex.progress?.isFlexible)
   const pendingApprovals = usePendingApprovals(canApprove(ctx))
   const { unreadCount: unreadMessages } = useMessages()
   const badge = (key: string) => (key === 'approvals' ? pendingApprovals : key === 'messages' ? unreadMessages : undefined)
