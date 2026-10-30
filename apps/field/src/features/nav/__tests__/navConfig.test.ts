@@ -65,19 +65,17 @@ describe('hub', () => {
     expect(fns.find((f) => f.key === 'time')?.parts.map((p) => p.key)).toEqual(['mine', 'team', 'company'])
   })
 
-  it('puts Team and Attendance under Hub > New features for a super admin', () => {
+  it('puts Attendance under Hub > New features for a super admin', () => {
     const fn = hubFunctions('admin', ctx([], true)).find((f) => f.key === 'new')!
     expect(fn.title).toBe('New features')
-    expect(fn.rows.map((r) => [r.key, r.label, r.to])).toEqual([['teamOverview', 'Team', '/team/overview'], ['attendanceRoster', 'Attendance', '/attendance/roster']])
+    expect(fn.rows.map((r) => [r.key, r.label, r.to])).toEqual([['attendanceRoster', 'Attendance', '/attendance/roster']])
     expect(fn.parts.map((p) => p.title)).toEqual(['Preview'])
   })
 
-  it('shows managers only the Team row there, and Attendance stays for super admins', () => {
+  it('keeps Attendance under New features for super admins only', () => {
     for (const group of ['admin', 'hr', 'manager', 'field', 'office'] as const) {
-      const fn = hubFunctions(group, ctx(MANAGER, false)).find((f) => f.key === 'new')
-      expect(fn?.rows.map((r) => r.key)).toEqual(['teamOverview'])
+      expect(hubFunctions(group, ctx(MANAGER, false)).map((f) => f.key)).not.toContain('new')
     }
-    // nobody who cannot see the team map gets the card
     expect(hubFunctions('field', ctx(SALES)).map((f) => f.key)).not.toContain('new')
   })
 
@@ -89,10 +87,8 @@ describe('hub', () => {
 
   it('links back to New features from the new pages and finds them in Hub search', () => {
     expect(fnForPath('/attendance/roster')).toBe('new')
-    expect(fnForPath('/team/overview')).toBe('new')
     expect(hubSearch('admin', ctx([], true), 'attendance').some((r) => r.key === 'attendanceRoster' && r.fn.key === 'new')).toBe(true)
     expect(hubSearch('admin', ctx(['x.view'], false), 'attendance').some((r) => r.key === 'attendanceRoster')).toBe(false)
-    expect(hubSearch('manager', ctx(MANAGER, false), 'day strips').some((r) => r.key === 'teamOverview' && r.fn.key === 'new')).toBe(true)
   })
 
   it('drops functions with nothing in them', () => {

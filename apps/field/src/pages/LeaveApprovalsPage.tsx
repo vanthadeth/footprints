@@ -15,9 +15,10 @@ import { useTab } from '@/hooks/useTab'
 import { todayDateString } from '@/lib/dateRange'
 import { leaveDateRangeLabel } from '@/features/leave/leaveDate'
 import { tripService, type TripRow } from '@/features/trips/tripService'
-import { TripApprovalCard } from '@/features/trips/TripApprovalCard'
+import { TripRequestCard } from '@/features/trips/TripRequestCard'
+import { useProvinceCounts } from '@/features/trips/useProvinceCounts'
 import { TripTransfersPanel } from '@/features/trips/TripTransfersPanel'
-import { DEFAULT_RATES, dayLabel, type TripRates } from '@/features/trips/trip'
+import { dayLabel } from '@/features/trips/trip'
 
 /**
  * Approvals (a tab for managers and HR, Hub for admins), as on the canvas
@@ -38,17 +39,16 @@ export function LeaveApprovalsPage() {
   const [tab, setTab] = useTab(['leave', 'trips', 'transfers'] as const, 'leave')
   const [trips, setTrips] = useState<TripRow[]>([])
   const [ledger, setLedger] = useState<TripRow[]>([])
-  const [rates, setRates] = useState<TripRates>(DEFAULT_RATES)
+  const provinceCounts = useProvinceCounts()
 
   const load = useCallback(() => {
     setLoading(true)
     setError(null)
-    Promise.all([leaveService.listRequests(), usersService.list().catch(() => [] as ManagedUser[]), tripService.team().catch(() => [] as TripRow[]), tripService.rates().catch(() => DEFAULT_RATES), canTransfer ? tripService.ledger() : Promise.resolve([] as TripRow[])])
-      .then(([r, p, t, tr, l]) => {
+    Promise.all([leaveService.listRequests(), usersService.list().catch(() => [] as ManagedUser[]), tripService.team().catch(() => [] as TripRow[]), canTransfer ? tripService.ledger() : Promise.resolve([] as TripRow[])])
+      .then(([r, p, t, l]) => {
         setRequests(r)
         setPeople(p)
         setTrips(t)
-        setRates(tr)
         setLedger(l)
       })
       .catch((e) => setError(e instanceof Error ? e.message : t('leave.loadRequestsFailed')))
@@ -132,7 +132,7 @@ export function LeaveApprovalsPage() {
             ) : (
               <div className="space-y-3 lg:grid lg:grid-cols-2 lg:items-start lg:gap-3 lg:space-y-0">
                 {waitingTrips.map((t) => (
-                  <TripApprovalCard key={t.id} trip={t} rates={rates} onDecided={load} />
+                  <TripRequestCard key={t.id} trip={t} counts={provinceCounts} />
                 ))}
               </div>
             )
