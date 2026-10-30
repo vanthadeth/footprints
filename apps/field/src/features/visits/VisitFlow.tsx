@@ -33,12 +33,8 @@ export interface PresetCustomer {
   shopName: string
 }
 
-const NEXT_VISIT_PRESETS: { label: string; days: number }[] = [
-  { label: 'Tomorrow', days: 1 },
-  { label: 'In 3 days', days: 3 },
-  { label: 'Next week', days: 7 },
-  { label: 'In 2 weeks', days: 14 },
-]
+const NEXT_VISIT_PRESETS: { days: number }[] = [{ days: 1 }, { days: 3 }, { days: 7 }, { days: 14 }]
+const PRESET_KEY: Record<number, string> = { 1: 'visitFlow.presetTomorrow', 3: 'visitFlow.presetIn3Days', 7: 'visitFlow.presetNextWeek', 14: 'visitFlow.presetIn2Weeks' }
 
 /**
  * The full-screen, "locked" Check In flow (spec): nearest-customer picker ->
@@ -114,8 +110,8 @@ export function VisitFlow({
     } catch (e) {
       setLocError(
         e instanceof LocationError && e.status === 'permission_denied'
-          ? 'Location access is required to check in.'
-          : 'Could not get your location. Try again.'
+          ? t('visitFlow.locPermission')
+          : t('visitFlow.locFailed')
       )
       setLocState('error')
     }
@@ -244,7 +240,7 @@ export function VisitFlow({
   const accuracyTooLow = locState === 'ready' && accuracy != null && accuracy > settings.maxLocationAccuracyM
   // The server refuses customer check-in/out outside the admin's hours (app.within_check_window); say so up front.
   const checkWindowOpen = isPastTimeOfDay(settings.checkWindowStart) && !isPastTimeOfDay(settings.checkWindowEnd)
-  const checkWindowText = `Customer check-in is open ${settings.checkWindowStart.slice(0, 5)}–${settings.checkWindowEnd.slice(0, 5)}.`
+  const checkWindowText = t('visitFlow.checkWindow', { start: settings.checkWindowStart.slice(0, 5), end: settings.checkWindowEnd.slice(0, 5) })
   const pickBlocked = journey.busy || accuracyTooLow || locState !== 'ready' || !checkWindowOpen
   const pickTarget = step === 'confirm' && presetCustomer ? { id: presetCustomer.id, name: presetCustomer.shopName, far: false, distance: null as number | null } : selected ? { id: selected.id, name: selected.shop_name, far: selected.distance_m > settings.checkinRadiusM, distance: selected.distance_m } : null
   const filtered = query.trim() ? customers.filter((c) => c.shop_name.toLowerCase().includes(query.trim().toLowerCase())) : customers
@@ -272,11 +268,10 @@ export function VisitFlow({
         }
       />
 
-      <BottomSheet open={farCustomer !== null} onClose={() => setFarCustomer(null)} title="Customer Is Far Away">
+      <BottomSheet open={farCustomer !== null} onClose={() => setFarCustomer(null)} title={t('visitFlow.farTitle')}>
         <div className="p-4">
           <p className="text-sm text-neutral-600">
-            {farCustomer?.shop_name} is {farCustomer ? formatDistance(farCustomer.distance_m) : ''} from your current
-            location -- farther than the {formatDistance(settings.checkinRadiusM)} visit range. Check in here anyway?
+            {t('visitFlow.farBody', { name: farCustomer?.shop_name ?? '', distance: farCustomer ? formatDistance(farCustomer.distance_m) : '', range: formatDistance(settings.checkinRadiusM) })}
           </p>
           <button
             onClick={handleConfirmFarCheckIn}
@@ -284,10 +279,10 @@ export function VisitFlow({
             className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-status-warn py-3.5 text-sm font-semibold text-white tap-target disabled:opacity-60"
           >
             {journey.busy && <Loader2 className="h-4 w-4 animate-spin" />}
-            {journey.busy ? 'Checking in…' : 'Check In Anyway'}
+            {journey.busy ? t('visitFlow.checkingIn') : t('visitFlow.checkInAnyway')}
           </button>
           <button onClick={() => setFarCustomer(null)} className="mt-2 w-full rounded-xl py-3.5 text-sm font-semibold text-neutral-500 tap-target">
-            Cancel
+            {t('common.cancel')}
           </button>
         </div>
       </BottomSheet>
@@ -427,13 +422,13 @@ export function VisitFlow({
         {step === 'record' ? (
           <span />
         ) : (
-          <button onClick={onClose} aria-label="Back" className="flex h-10 w-10 items-center justify-center rounded-full text-neutral-900 tap-target">
+          <button onClick={onClose} aria-label={t('visitFlow.back')} className="flex h-10 w-10 items-center justify-center rounded-full text-neutral-900 tap-target">
             <ChevronLeft className="h-[22px] w-[22px]" />
           </button>
         )}
         <div className="text-center">
-          <h1 className="text-[17px] font-bold text-neutral-900">{step === 'record' ? 'Visit record' : 'Check in'}</h1>
-          {step === 'record' && <p className="text-xs text-neutral-500">Fill in, then slide to check out</p>}
+          <h1 className="text-[17px] font-bold text-neutral-900">{step === 'record' ? t('visitFlow.visitRecord') : t('checkIn.checkInButton')}</h1>
+          {step === 'record' && <p className="text-xs text-neutral-500">{t('visitFlow.fillIn')}</p>}
         </div>
         {step === 'record' && journey.openVisit ? (
           <span className="flex items-center justify-end gap-1 text-xs font-bold text-status-working">
@@ -497,9 +492,9 @@ export function VisitFlow({
               </span>
               <span className="min-w-0 flex-1">
                 <span className={`block text-sm font-bold ${accuracyTooLow || locState === 'error' ? 'text-status-warn' : 'text-neutral-900'}`}>
-                  {locState === 'loading' && 'Finding your location…'}
-                  {locState === 'ready' && (accuracy != null ? t(GPS_LEVEL_COPY[gpsLevel(accuracy)].title) : 'Current location')}
-                  {locState === 'error' && (locError ?? 'Location unavailable')}
+                  {locState === 'loading' && t('visitFlow.findingLocation')}
+                  {locState === 'ready' && (accuracy != null ? t(GPS_LEVEL_COPY[gpsLevel(accuracy)].title) : t('checkIn.currentLocation'))}
+                  {locState === 'error' && (locError ?? t('visitFlow.locationUnavailable'))}
                 </span>
                 {locState === 'ready' && accuracy != null && (
                   <span className="mt-px block text-xs text-neutral-500">
@@ -510,7 +505,7 @@ export function VisitFlow({
               <button
                 onClick={refreshLocation}
                 disabled={locState === 'loading'}
-                aria-label="Refresh location"
+                aria-label={t('visitFlow.refreshLocation')}
                 className="flex h-10 w-10 items-center justify-center rounded-full text-brand-500 tap-target disabled:opacity-40"
               >
                 <RefreshCw className={`h-[19px] w-[19px] ${locState === 'loading' ? 'animate-spin' : ''}`} />
@@ -533,13 +528,13 @@ export function VisitFlow({
                       type="search"
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
-                      placeholder="Search nearby customers"
-                      aria-label="Search nearby customers"
+                      placeholder={t('visitFlow.searchNearby')}
+                      aria-label={t('visitFlow.searchNearby')}
                       className="min-w-0 flex-1 bg-transparent text-[15px] text-neutral-900 outline-none placeholder:text-neutral-500"
                     />
                   </label>
                 )}
-                <section aria-label="Nearest customers">
+                <section aria-label={t('visitFlow.nearestCustomers')}>
                   <p className="px-0.5 pb-2 pt-0.5 text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">
                     Nearest customers{locState === 'ready' && customers.length > 0 ? ` · ${customers.length} nearby` : ''}
                   </p>
@@ -551,7 +546,7 @@ export function VisitFlow({
                     </div>
                   )}
                   {locState === 'ready' && filtered.length === 0 && (
-                    <p className="rounded-2xl border border-neutral-100 bg-white p-4 text-sm text-neutral-500 shadow-card">No customers found nearby.</p>
+                    <p className="rounded-2xl border border-neutral-100 bg-white p-4 text-sm text-neutral-500 shadow-card">{t('checkIn.noneNearby')}</p>
                   )}
                   <div role="radiogroup" aria-label="Customer" className="flex flex-col gap-2">
                     {filtered.map((c) => {
@@ -572,7 +567,7 @@ export function VisitFlow({
                             <span className="min-w-0 flex-1">
                               <span className="block truncate text-[15px] font-bold text-neutral-900">{c.shop_name}</span>
                               <span className="flex min-w-0 items-center gap-1.5 text-xs text-neutral-500">
-                                {plannedIds.has(c.id) && <span className="shrink-0 rounded-full bg-brand-50 px-1.5 py-px text-[10.5px] font-bold text-brand-700">Planned</span>}
+                                {plannedIds.has(c.id) && <span className="shrink-0 rounded-full bg-brand-50 px-1.5 py-px text-[10.5px] font-bold text-brand-700">{t('visitFlow.planned')}</span>}
                                 <span className="truncate">{[c.business_type, c.street_address].filter(Boolean).join(' · ')}</span>
                               </span>
                             </span>
@@ -598,11 +593,11 @@ export function VisitFlow({
                             >
                               <Info className="h-[18px] w-[18px] shrink-0" aria-hidden />
                               <span className="min-w-0 flex-1">
-                                <span className="block text-sm font-bold">Know before you go in</span>
+                                <span className="block text-sm font-bold">{t('visitFlow.knowBefore')}</span>
                                 <span className="block truncate text-xs opacity-85">{insights.loading ? 'Loading…' : insightsTeaser(insights)}</span>
                               </span>
                               <span className="inline-flex items-center gap-0.5 text-[13px] font-bold text-brand-500">
-                                Insights
+                                {t('visitFlow.insights')}
                                 <ChevronRight className="h-3.5 w-3.5" aria-hidden />
                               </span>
                             </button>
@@ -630,15 +625,15 @@ export function VisitFlow({
         <div className="mx-auto max-w-md">
           {step === 'record' ? (
             <>
-              <SlideToConfirm label={journey.busy ? 'Checking out…' : 'Slide to check out'} variant="danger" busy={journey.busy} disabled={!checkWindowOpen} onConfirm={handleConfirm} />
+              <SlideToConfirm label={journey.busy ? t('visitFlow.checkingOut') : t('visitFlow.slideCheckOut')} variant="danger" busy={journey.busy} disabled={!checkWindowOpen} onConfirm={handleConfirm} />
               <p className="mt-2 text-center text-xs text-neutral-500">
-                {checkWindowOpen ? 'All fields are optional. Checking out can’t be undone.' : `${checkWindowText} Clock out to close this visit.`}
+                {checkWindowOpen ? t('visitFlow.allOptional') : `${checkWindowText} ${t('visitFlow.clockOutToClose')}`}
               </p>
             </>
           ) : (
             <>
               <SlideToConfirm
-                label={journey.busy ? 'Checking in…' : pickTarget ? `Slide to check in at ${pickTarget.name}` : 'Slide to check in'}
+                label={journey.busy ? t('visitFlow.checkingIn') : pickTarget ? t('visitFlow.slideCheckInAt', { name: pickTarget.name }) : t('visitFlow.slideCheckIn')}
                 busy={journey.busy}
                 disabled={pickBlocked || !pickTarget}
                 onConfirm={() => {
@@ -651,10 +646,10 @@ export function VisitFlow({
                 {!checkWindowOpen
                   ? checkWindowText
                   : !pickTarget
-                  ? 'Pick a customer, or visit without one'
+                  ? t('visitFlow.pickCustomer')
                   : pickTarget.far && pickTarget.distance != null
-                    ? `${pickTarget.name} is ${formatDistance(pickTarget.distance)} away — you’ll be asked to confirm.`
-                    : `Checking in at ${pickTarget.name}${pickTarget.distance != null ? ` · ${formatDistance(pickTarget.distance)} away` : ''}`}
+                    ? t('visitFlow.farConfirm', { name: pickTarget.name, distance: formatDistance(pickTarget.distance) })
+                    : pickTarget.distance != null ? t('visitFlow.checkingInAtFar', { name: pickTarget.name, distance: formatDistance(pickTarget.distance) }) : t('visitFlow.checkingInAt', { name: pickTarget.name })}
               </p>
             </>
           )}
@@ -732,6 +727,7 @@ function RecordStep({
   onReselect: () => void
   onCancelCheckIn: () => void
 }) {
+  const { t } = useLanguage()
   const [nextPreset, setNextPreset] = useState<number | 'pick' | null>(null)
   return (
     <div className="flex flex-col gap-[18px] px-4 pt-1">
@@ -741,11 +737,11 @@ function RecordStep({
             <Store className="h-[22px] w-[22px]" aria-hidden />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-base font-bold text-neutral-900">{customerName ?? 'No customer'}</span>
+            <span className="block truncate text-base font-bold text-neutral-900">{customerName ?? t('visitFlow.noCustomer')}</span>
             {customerSub && <span className="block truncate text-xs text-neutral-500">{customerSub}</span>}
             <span className="block text-xs text-neutral-500">
-              Checked in {checkedInAt ? formatTime(checkedInAt) : '—'}
-              {checkedInAt && ` · ${formatDuration(Date.now() - new Date(checkedInAt).getTime())} so far`}
+              {t('checkIn.checkedInAt', { time: checkedInAt ? formatTime(checkedInAt) : '—' })}
+              {checkedInAt && ` · ${t('visitFlow.soFar', { duration: formatDuration(Date.now() - new Date(checkedInAt).getTime()) })}`}
             </span>
           </span>
         </div>
@@ -753,49 +749,49 @@ function RecordStep({
           <button type="button" onClick={onOpenInsights} aria-haspopup="dialog" className="flex items-center gap-2.5 rounded-[14px] bg-brand-50 px-3.5 py-2.5 text-left text-brand-700">
             <Info className="h-[18px] w-[18px] shrink-0" aria-hidden />
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-bold">Customer insights</span>
+              <span className="block text-sm font-bold">{t('visitFlow.customerInsights')}</span>
               <span className="block truncate text-xs opacity-85">{insightsTeaser}</span>
             </span>
-            <span className="text-[13px] font-bold text-brand-500">Open</span>
+            <span className="text-[13px] font-bold text-brand-500">{t('visitFlow.open')}</span>
           </button>
         )}
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-neutral-100 pt-2.5">
-          <span className="text-xs text-neutral-500">Wrong shop, or checked in by mistake?</span>
+          <span className="text-xs text-neutral-500">{t('visitFlow.wrongShop')}</span>
           <span className="flex gap-1.5">
             <button onClick={onReselect} disabled={busy} className="h-8 rounded-full border border-neutral-200 px-3 text-xs font-bold text-neutral-700 disabled:opacity-50">
-              Change shop
+              {t('visitFlow.changeShop')}
             </button>
             <button onClick={onCancelCheckIn} disabled={busy} className="h-8 rounded-full border border-status-danger/30 px-3 text-xs font-bold text-status-danger disabled:opacity-50">
-              Cancel visit
+              {t('visitFlow.cancelVisit')}
             </button>
           </span>
         </div>
       </section>
 
       <section aria-label="Outcome" className="flex flex-col gap-4">
-        <ChipGroup label="Type of visit" options={byKind.visit_type} value={visitTypeId} onChange={onVisitType} />
-        <ChipGroup label="Visit status" options={byKind.visit_status} value={visitStatusId} onChange={onVisitStatus} />
-        <ChipGroup label="Order status" options={byKind.order_status} value={orderStatusId} onChange={onOrderStatus} />
-        <ChipGroup label="Payment status" options={byKind.payment_status} value={paymentStatusId} onChange={onPaymentStatus} />
+        <ChipGroup label={t('visitFlow.typeOfVisit')} options={byKind.visit_type} value={visitTypeId} onChange={onVisitType} />
+        <ChipGroup label={t('visitFlow.visitStatus')} options={byKind.visit_status} value={visitStatusId} onChange={onVisitStatus} />
+        <ChipGroup label={t('visitFlow.orderStatus')} options={byKind.order_status} value={orderStatusId} onChange={onOrderStatus} />
+        <ChipGroup label={t('visitFlow.paymentStatus')} options={byKind.payment_status} value={paymentStatusId} onChange={onPaymentStatus} />
       </section>
       <AmountFields orderLabel={orderLabel} paymentLabel={paymentLabel} orderAmount={orderAmount} collected={collected} onOrderAmount={onOrderAmount} onCollected={onCollected} />
-      <section aria-label="Note">
-        <GroupLabel text="Note" />
+      <section aria-label={t('visitFlow.note')}>
+        <GroupLabel text={t('visitFlow.note')} />
         <textarea
           value={remarks}
           onChange={(e) => onRemarks(e.target.value)}
           rows={3}
-          aria-label="Note"
-          placeholder="Add a note about this visit…"
+          aria-label={t('visitFlow.note')}
+          placeholder={t('visitFlow.notePlaceholder')}
           className="w-full rounded-[14px] border-[1.5px] border-neutral-300 bg-white p-3 text-[15px] text-neutral-900 outline-none placeholder:text-neutral-500 focus:border-brand-500 dark:bg-neutral-950"
         />
       </section>
       {visitId && <VisitPhotoStrip visitId={visitId} editable />}
 
-      <section aria-label="Next visit">
-        <GroupLabel text="Next visit" />
-        <div role="radiogroup" aria-label="Next visit" className="flex flex-wrap gap-2">
-          {[...NEXT_VISIT_PRESETS.slice(0, 3).map((p) => ({ key: p.days as number | 'pick', label: p.label })), { key: 'pick' as const, label: 'Pick a date' }].map((o) => {
+      <section aria-label={t('visitFlow.nextVisit')}>
+        <GroupLabel text={t('visitFlow.nextVisit')} />
+        <div role="radiogroup" aria-label={t('visitFlow.nextVisit')} className="flex flex-wrap gap-2">
+          {[...NEXT_VISIT_PRESETS.slice(0, 3).map((p) => ({ key: p.days as number | 'pick', label: t(PRESET_KEY[p.days]) })), { key: 'pick' as const, label: t('visitFlow.pickDate') }].map((o) => {
             const on = nextPreset === o.key
             return (
               <Chip
@@ -821,7 +817,7 @@ function RecordStep({
             type="date"
             value={customDate}
             onChange={(e) => onCustomDate(e.target.value)}
-            aria-label="Next visit date"
+            aria-label={t('visitFlow.nextVisitDate')}
             className="mt-2 h-11 w-full rounded-xl border-[1.5px] border-neutral-300 bg-white px-3 text-[15px] text-neutral-900 dark:bg-neutral-950"
           />
         )}
@@ -829,7 +825,7 @@ function RecordStep({
       </section>
 
       <p className="flex items-center gap-1.5 text-xs text-neutral-500">
-        <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden /> Auto check-out is on — you’re checked out if you move away from here.
+        <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden /> {t('visitFlow.autoCheckout')}
       </p>
     </div>
   )
@@ -859,7 +855,7 @@ function Chip({ on, label, onClick }: { on: boolean; label: string; onClick: () 
 }
 
 function ChipGroup({ label, options, value, onChange }: { label: string; options: VisitOption[]; value: string | null; onChange: (id: string | null) => void }) {
-  const { tValue } = useLanguage()
+  const { t, tValue } = useLanguage()
   return (
     <div role="radiogroup" aria-label={label}>
       <GroupLabel text={label} />
@@ -867,7 +863,7 @@ function ChipGroup({ label, options, value, onChange }: { label: string; options
         {options.map((o) => (
           <Chip key={o.id} on={value === o.id} label={tValue(`visitOption:${o.id}`, o.label)} onClick={() => onChange(value === o.id ? null : o.id)} />
         ))}
-        {options.length === 0 && <p className="text-xs text-neutral-500">No options configured.</p>}
+        {options.length === 0 && <p className="text-xs text-neutral-500">{t('visitFlow.noOptions')}</p>}
       </div>
     </div>
   )

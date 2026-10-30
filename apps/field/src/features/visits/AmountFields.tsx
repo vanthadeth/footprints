@@ -1,3 +1,4 @@
+import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 import { DollarSign } from 'lucide-react'
 import { outcomeFields } from './visitOutcome'
 
@@ -21,12 +22,13 @@ export function AmountFields({
   onOrderAmount: (value: string) => void
   onCollected: (value: string) => void
 }) {
+  const { t } = useLanguage()
   const { showOrderAmount, showCollected } = outcomeFields(orderLabel, paymentLabel)
   if (!showOrderAmount && !showCollected) return null
   return (
     <div className="grid grid-cols-2 gap-3">
-      {showOrderAmount && <AmountInput id="visit-order-amount" label="Order value" value={orderAmount} onChange={onOrderAmount} />}
-      {showCollected && <AmountInput id="visit-collected" label="Collected" value={collected} onChange={onCollected} />}
+      {showOrderAmount && <AmountInput id="visit-order-amount" label={t('visitFlow.orderValue')} value={orderAmount} onChange={onOrderAmount} />}
+      {showCollected && <AmountInput id="visit-collected" label={t('visitFlow.collected')} value={collected} onChange={onCollected} />}
     </div>
   )
 }
