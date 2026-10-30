@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { ChevronDown, ChevronRight, Search, Settings, X } from 'lucide-react'
 import { useRoleGroup } from '@/features/nav/useRoleGroup'
 import { usePendingApprovals } from '@/features/nav/usePendingApprovals'
-import { canApprove, forYou, hubFunctions, hubSearch, shortLabel } from '@/features/nav/navConfig'
+import { canApprove, forYou, hubFunctions, hubSearch, rowLabel, rowShort } from '@/features/nav/navConfig'
 import { AttendanceHubCard } from '@/features/attendanceSummary/AttendanceHubCard'
 import { useFlexCycle } from '@/features/flex/useFlexCycle'
 import { useMessages } from '@/features/conversations/MessagesContext'
@@ -29,7 +29,7 @@ export function MenuPage() {
   const hasAttendanceCard = forYou(group, ctx).some((r) => r.key === 'attendanceAll')
   const shortcuts = forYou(group, ctx, { skip: hasAttendanceCard ? ['attendanceAll'] : [] })
   const functions = hubFunctions(group, ctx)
-  const results = hubSearch(group, ctx, query)
+  const results = hubSearch(group, ctx, query, t)
 
   const [openKey, setOpenKey] = useState<string | null | undefined>(undefined)
   // One function open at a time; the one with something waiting starts open.
@@ -40,19 +40,19 @@ export function MenuPage() {
       key: f.key,
       title: t(f.titleKey),
       icon: f.icon,
-      sub: f.rows.map(shortLabel).join(' · '),
-      rows: f.rows.map((r) => ({ key: r.key, label: r.label, to: r.to })),
+      sub: f.rows.map((r) => rowShort(r, t)).join(' · '),
+      rows: f.rows.map((r) => ({ key: r.key, label: rowLabel(r, t), to: r.to })),
     })),
     {
       key: 'account',
       title: t('nav.account'),
       icon: Settings,
-      sub: 'Language, appearance, help, privacy',
+      sub: t('menu.accountSub'),
       rows: [
-        { key: 'language', label: 'Language', to: '/menu/account' },
-        { key: 'appearance', label: 'Appearance', to: '/menu/account' },
-        { key: 'help', label: 'Help', to: '/menu/account?open=help' },
-        { key: 'privacy', label: 'Privacy', to: '/menu/account?open=privacy' },
+        { key: 'language', label: t('menu.language'), to: '/menu/account' },
+        { key: 'appearance', label: t('menu.appearance'), to: '/menu/account' },
+        { key: 'help', label: t('menu.help'), to: '/menu/account?open=help' },
+        { key: 'privacy', label: t('menu.privacy'), to: '/menu/account?open=privacy' },
       ],
     },
   ]
@@ -66,12 +66,12 @@ export function MenuPage() {
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search the Hub — leave, users, trips…"
-            aria-label="Search the Hub"
+            placeholder={t('menu.searchPlaceholder')}
+            aria-label={t('menu.searchAria')}
             className="min-w-0 flex-1 bg-transparent text-[15px] text-neutral-900 outline-none placeholder:text-neutral-500"
           />
           {query && (
-            <button type="button" aria-label="Clear search" onClick={() => setQuery('')} className="flex h-7 w-7 items-center justify-center rounded-full text-neutral-500">
+            <button type="button" aria-label={t('menu.clearSearch')} onClick={() => setQuery('')} className="flex h-7 w-7 items-center justify-center rounded-full text-neutral-500">
               <X className="h-4 w-4" />
             </button>
           )}
@@ -80,10 +80,10 @@ export function MenuPage() {
         {query ? (
           <section className="space-y-2">
             <h2 className="text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">
-              {results.length} result{results.length === 1 ? '' : 's'} for “{query.trim()}”
+              {t(results.length === 1 ? 'menu.resultOne' : 'menu.resultMany', { n: results.length, q: query.trim() })}
             </h2>
             {results.length === 0 ? (
-              <p className="rounded-2xl border border-neutral-100 bg-white p-4 text-center text-sm text-neutral-500 shadow-card">Nothing matches. Try another word, or browse the functions.</p>
+              <p className="rounded-2xl border border-neutral-100 bg-white p-4 text-center text-sm text-neutral-500 shadow-card">{t('menu.noMatch')}</p>
             ) : (
               <div className="overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-card">
                 {results.map((r, i) => (
@@ -92,7 +92,7 @@ export function MenuPage() {
                       <r.icon className="h-[18px] w-[18px]" aria-hidden />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[15px] font-semibold text-neutral-900">{r.label}</span>
+                      <span className="block truncate text-[15px] font-semibold text-neutral-900">{rowLabel(r, t)}</span>
                       <span className="block truncate text-xs text-neutral-500">{t(r.fn.titleKey)}</span>
                     </span>
                     {badge(r.key) > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-status-danger px-1.5 text-[11px] font-extrabold text-white">{badge(r.key)}</span>}
@@ -105,8 +105,8 @@ export function MenuPage() {
         ) : (
           <>
             {(shortcuts.length > 0 || hasAttendanceCard) && (
-              <section aria-label="For you" className="space-y-2.5">
-                <h2 className="text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">For you</h2>
+              <section aria-label={t('menu.forYou')} className="space-y-2.5">
+                <h2 className="text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">{t('menu.forYou')}</h2>
                 {hasAttendanceCard && <AttendanceHubCard />}
                 {shortcuts.length > 0 && (
                   <div className="grid grid-cols-3 gap-2">
@@ -115,7 +115,7 @@ export function MenuPage() {
                         <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-500">
                           <q.icon className="h-5 w-5" aria-hidden />
                         </span>
-                        <span className="text-center text-[13px] font-semibold leading-4 text-neutral-900">{q.label}</span>
+                        <span className="text-center text-[13px] font-semibold leading-4 text-neutral-900">{rowLabel(q, t)}</span>
                       </Link>
                     ))}
                   </div>
@@ -123,8 +123,8 @@ export function MenuPage() {
               </section>
             )}
 
-            <section aria-label="Everything, by function">
-              <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">Everything, by function</h2>
+            <section aria-label={t('menu.everything')}>
+              <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">{t('menu.everything')}</h2>
               <div className="overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-card">
                 {groups.map((g, i) => {
                   const open = current === g.key
@@ -144,7 +144,7 @@ export function MenuPage() {
                           <span className="block text-[15px] font-bold text-neutral-900">{g.title}</span>
                           <span className="block truncate text-[13px] text-neutral-500">{g.sub}</span>
                         </span>
-                        {waiting > 0 && <span className="inline-flex h-[22px] shrink-0 items-center rounded-full bg-status-warn/10 px-2 text-xs font-bold text-status-warn">{waiting} waiting</span>}
+                        {waiting > 0 && <span className="inline-flex h-[22px] shrink-0 items-center rounded-full bg-status-warn/10 px-2 text-xs font-bold text-status-warn">{t('menu.waiting', { n: waiting })}</span>}
                         <ChevronDown className={`h-4 w-4 shrink-0 text-neutral-500 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />
                       </button>
                       {open && (

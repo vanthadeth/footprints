@@ -1,3 +1,4 @@
+import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { CalendarCheck, Check, ChevronRight } from 'lucide-react'
@@ -11,7 +12,6 @@ import { KIND_STYLE } from './kindStyle'
 import { buildHubSummary, type HubDay } from './hubSummary'
 import { useAttendanceDays } from './useAttendanceDays'
 
-const DOW = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 const MAX_NAMES = 3
 
 type CellKind = 'late' | 'absent' | 'leave'
@@ -36,6 +36,7 @@ function CountCell({ kind, day, n }: { kind: CellKind; day: HubDay; n: number })
  * when there is nobody to show, so the shortcut never disappears.
  */
 export function AttendanceHubCard() {
+  const { t } = useLanguage()
   const today = todayDateString()
   const { team, loading: teamLoading, error: teamError } = useTeam()
   const from = weekStart(today)
@@ -52,7 +53,7 @@ export function AttendanceHubCard() {
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-brand-50 text-brand-500">
           <CalendarCheck className="h-[18px] w-[18px]" aria-hidden />
         </span>
-        <span className="min-w-0 flex-1 text-[15px] font-bold text-neutral-900">All attendance</span>
+        <span className="min-w-0 flex-1 text-[15px] font-bold text-neutral-900">{t('attendanceHub.allAttendance')}</span>
         <ChevronRight className="h-4 w-4 text-neutral-500" aria-hidden />
       </Link>
     )
@@ -71,27 +72,27 @@ export function AttendanceHubCard() {
   const more = summary.todayItems.length - shown.length
 
   return (
-    <Link to="/attendance" aria-label="Attendance this week, open all attendance" className="block space-y-2.5">
+    <Link to="/attendance" aria-label={t('attendanceHub.ariaCard')} className="block space-y-2.5">
       <div className="flex items-center gap-3">
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-brand-50 text-brand-500">
           <CalendarCheck className="h-[18px] w-[18px]" aria-hidden />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-[15px] font-bold text-neutral-900">Attendance</span>
+          <span className="block text-[15px] font-bold text-neutral-900">{t('attendanceHub.title')}</span>
           <span className="block text-xs text-neutral-500">
-            This week · {shortDate(from)} – {shortDate(to)}
+            {t('attendanceHub.thisWeek', { from: shortDate(from), to: shortDate(to) })}
           </span>
         </span>
         <span className="flex items-center gap-0.5 text-[13px] font-bold text-brand-600">
-          Open <ChevronRight className="h-4 w-4" aria-hidden />
+          {t('attendanceHub.open')} <ChevronRight className="h-4 w-4" aria-hidden />
         </span>
       </div>
 
       <div className="grid grid-cols-3 gap-2 md:grid-cols-4">
-        <Kpi label="Attendance" value={formatRate(summary.rate)} sub={`${summary.present} of ${summary.scheduled} days · leave excluded`} className="col-span-3 md:col-span-1" />
-        <Kpi label="Late" value={String(summary.late)} sub={summary.late ? `${summary.lateMinutes} min in total` : 'None'} tone="text-status-warn" />
-        <Kpi label="Absent" value={String(summary.absent)} sub="No clock-in" tone="text-status-danger" />
-        <Kpi label="On leave" value={`${formatDays(summary.leaveDays)} d`} sub="Approved leave" tone="text-brand-600" />
+        <Kpi label={t('attendanceHub.title')} value={formatRate(summary.rate)} sub={t('attendanceHub.rateSub', { present: summary.present, scheduled: summary.scheduled })} className="col-span-3 md:col-span-1" />
+        <Kpi label={t('attendanceHub.late')} value={String(summary.late)} sub={summary.late ? t('attendanceHub.lateSub', { n: summary.lateMinutes }) : t('attendanceHub.none')} tone="text-status-warn" />
+        <Kpi label={t('attendanceHub.absent')} value={String(summary.absent)} sub={t('attendanceHub.absentSub')} tone="text-status-danger" />
+        <Kpi label={t('attendanceHub.onLeave')} value={t('attendanceHub.daysUnit', { n: formatDays(summary.leaveDays) })} sub={t('attendanceHub.leaveSub')} tone="text-brand-600" />
       </div>
 
       <div className="space-y-2.5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-2.5 lg:space-y-0">
@@ -100,7 +101,7 @@ export function AttendanceHubCard() {
             <span />
             {summary.perDay.map((d, i) => (
               <span key={d.day} className={`text-center text-[10.5px] font-bold leading-tight ${d.day === today ? 'text-brand-600' : i >= 5 ? 'text-neutral-300' : 'text-neutral-500'}`}>
-                {DOW[i]}
+                {t(`attendanceHub.dow${i}`)}
                 <br />
                 {Number(d.day.slice(8))}
               </span>
@@ -108,9 +109,9 @@ export function AttendanceHubCard() {
           </div>
           {(
             [
-              ['late', 'Late'],
-              ['absent', 'Absent'],
-              ['leave', 'Leave'],
+              ['late', t('attendanceHub.late')],
+              ['absent', t('attendanceHub.absent')],
+              ['leave', t('attendanceHub.leave')],
             ] as [CellKind, string][]
           ).map(([kind, label]) => (
             <div key={kind} className="grid grid-cols-[52px_repeat(7,minmax(0,1fr))] items-center gap-[3px] px-0.5 py-[2px]">
@@ -121,20 +122,20 @@ export function AttendanceHubCard() {
             </div>
           ))}
           <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 border-t border-neutral-100 px-1 pt-2.5 text-[11px] text-neutral-500 dark:border-neutral-800">
-            <Legend className="border-[1.5px] border-status-warn bg-status-warn/10" label="Late" />
-            <Legend className="border-[1.5px] border-status-danger bg-status-danger/10" label="Absent" />
-            <Legend className="bg-brand-50" label="Leave" />
+            <Legend className="border-[1.5px] border-status-warn bg-status-warn/10" label={t('attendanceHub.late')} />
+            <Legend className="border-[1.5px] border-status-danger bg-status-danger/10" label={t('attendanceHub.absent')} />
+            <Legend className="bg-brand-50" label={t('attendanceHub.leave')} />
           </div>
         </div>
 
         <div className="rounded-2xl bg-white px-3.5 pb-2 pt-3 shadow-card">
           <p className="flex items-center justify-between text-[11px] font-extrabold uppercase tracking-wide text-neutral-500">
-            Needs a look today
-            {summary.todayItems.length > 0 && <span className="font-bold normal-case tracking-normal">{summary.todayItems.length} {summary.todayItems.length === 1 ? 'person' : 'people'}</span>}
+            {t('attendanceHub.needsLook')}
+            {summary.todayItems.length > 0 && <span className="font-bold normal-case tracking-normal">{t(summary.todayItems.length === 1 ? 'attendanceHub.personOne' : 'attendanceHub.personMany', { n: summary.todayItems.length })}</span>}
           </p>
           {shown.length === 0 ? (
             <p className="flex items-center gap-1.5 py-3 text-[13px] font-semibold text-status-working">
-              <Check className="h-4 w-4" aria-hidden /> Everyone is in or on leave today
+              <Check className="h-4 w-4" aria-hidden /> {t('attendanceHub.everyoneIn')}
             </p>
           ) : (
             <ul>
@@ -149,7 +150,7 @@ export function AttendanceHubCard() {
               ))}
             </ul>
           )}
-          {more > 0 && <p className="pb-1 pt-0.5 text-[11.5px] font-semibold text-neutral-500">+{more} more</p>}
+          {more > 0 && <p className="pb-1 pt-0.5 text-[11.5px] font-semibold text-neutral-500">{t('attendanceHub.more', { n: more })}</p>}
         </div>
       </div>
     </Link>

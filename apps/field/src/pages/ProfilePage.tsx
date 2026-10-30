@@ -250,7 +250,7 @@ function NicknameRow({ userId, nickname, onSaved }: { userId: string; nickname: 
             <button
               onClick={handleSave}
               disabled={saving}
-              aria-label="Save nickname"
+              aria-label={t('account.saveNickname')}
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-status-working/10 text-status-working tap-target disabled:opacity-50"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
