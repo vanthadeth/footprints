@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Home, Moon } from 'lucide-react'
+import { Check, Home, Moon, TriangleAlert } from 'lucide-react'
 import { AVATAR_TONES, initials, money, provinceName, roomSplit, roomsFor, strip, type TripCost, type TripPlan } from './trip'
 import type { ProvinceCounts } from './ProvinceSheet'
 import type { TripStatus } from './tripService'
@@ -164,16 +164,11 @@ export function CostCard({ cost, people, special, cap, title = 'Estimated cost �
 /** ✓ / ! lines. */
 export function Checks({ items }: { items: { ok: boolean; text: string }[] }) {
   return (
-    <div className={`${card} space-y-2 p-3.5`}>
-      <p className={kicker}>Checks</p>
+    <div className={`${card} px-3.5 py-1`}>
       {items.map((c, i) => (
-        <p key={i} className="flex items-start gap-2 text-[13.5px] leading-snug text-neutral-900">
-          <span
-            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[12px] font-black ${
-              c.ok ? 'bg-status-working/10 text-status-working' : 'bg-status-warn/10 text-status-warn'
-            }`}
-          >
-            {c.ok ? '✓' : '!'}
+        <p key={i} className={`flex items-center gap-3 py-3 text-[14px] leading-snug text-neutral-900 ${i ? 'border-t border-neutral-100 dark:border-neutral-800' : ''}`}>
+          <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${c.ok ? 'bg-status-working/10 text-status-working' : 'bg-status-warn/10 text-status-warn'}`}>
+            {c.ok ? <Check className="h-4 w-4" strokeWidth={2.6} aria-hidden /> : <TriangleAlert className="h-4 w-4" aria-hidden />}
           </span>
           <span>{c.text}</span>
         </p>
