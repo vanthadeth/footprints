@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Check, CalendarDays, Plus } from 'lucide-react'
 import { EmptyState } from '@/components/EmptyState'
+import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 import { DateTile } from '@/components/DateTile'
 import { todayDateString } from '@/lib/dateRange'
 import { RequestLeaveSheet } from './RequestLeaveSheet'
@@ -10,7 +11,8 @@ import { leaveErrorMessage, leaveService } from './leaveService'
 import { leaveDateRangeLabel } from './leaveDate'
 import { FlexCard } from '@/features/flex/FlexCard'
 import { useFlexCycle } from '@/features/flex/useFlexCycle'
-import { leaveTitle, type LeaveBalanceSummary, type LeaveRequest } from './types'
+import type { LeaveBalanceSummary, LeaveRequest } from './types'
+import { leaveTitleOf } from './leaveText'
 
 export function MyLeaveTab({
   requests,
@@ -24,6 +26,7 @@ export function MyLeaveTab({
   approverName: string | null
   onChanged: () => void
 }) {
+  const { t } = useLanguage()
   const [requestOpen, setRequestOpen] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -63,7 +66,7 @@ export function MyLeaveTab({
           onClick={() => setRequestOpen(true)}
           className="flex h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-brand-500 text-[15px] font-bold text-white tap-target"
         >
-          <Plus className="h-[18px] w-[18px]" strokeWidth={2.4} /> Request leave
+          <Plus className="h-[18px] w-[18px]" strokeWidth={2.4} /> {t('leave.requestLeave')}
         </button>
 
         {error && <p className="rounded-lg bg-status-danger/10 px-3 py-2 text-sm text-status-danger">{error}</p>}
@@ -72,14 +75,14 @@ export function MyLeaveTab({
       <div className="space-y-4">
         {upcoming.length > 0 && (
           <section className="space-y-2">
-            <h2 className="px-0.5 text-[17px] font-bold text-neutral-900">Upcoming</h2>
+            <h2 className="px-0.5 text-[17px] font-bold text-neutral-900">{t('leave.upcoming')}</h2>
             {upcoming.map((r) => (
               <div key={r.id} className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card">
                 <div className="flex items-center gap-3">
                   <DateTile date={r.start_date} accent />
                   <div className="min-w-0 flex-1">
-                    <p className="text-[15px] font-bold text-neutral-900">{leaveTitle(r.leave_type)}</p>
-                    <p className="mt-0.5 text-[12.5px] text-neutral-500">{leaveDateRangeLabel(r.start_date, r.end_date, r.start_period, r.end_period)}</p>
+                    <p className="text-[15px] font-bold text-neutral-900">{leaveTitleOf(r.leave_type, t)}</p>
+                    <p className="mt-0.5 text-[12.5px] text-neutral-500">{leaveDateRangeLabel(r.start_date, r.end_date, r.start_period, r.end_period, t)}</p>
                   </div>
                   <LeaveStatusBadge status={r.status} />
                 </div>
@@ -90,7 +93,7 @@ export function MyLeaveTab({
                     disabled={busyId === r.id}
                     className="rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-semibold text-neutral-600 tap-target disabled:opacity-40"
                   >
-                    {busyId === r.id ? 'Cancelling…' : 'Cancel request'}
+                    {busyId === r.id ? t('leave.cancelling') : t('leave.cancelRequest')}
                   </button>
                 )}
               </div>
@@ -99,12 +102,12 @@ export function MyLeaveTab({
         )}
 
         <section className="space-y-2">
-          <h2 className="px-0.5 text-[17px] font-bold text-neutral-900">History</h2>
+          <h2 className="px-0.5 text-[17px] font-bold text-neutral-900">{t('leave.history')}</h2>
           {history.length === 0 ? (
             upcoming.length === 0 ? (
-              <EmptyState icon={CalendarDays} title="No leave requests yet" body="Tap Request leave to submit your first one." />
+              <EmptyState icon={CalendarDays} title={t('leave.noRequestsTitle')} body={t('leave.noRequestsBody')} />
             ) : (
-              <p className="px-0.5 text-sm text-neutral-500">Nothing in the past yet.</p>
+              <p className="px-0.5 text-sm text-neutral-500">{t('leave.nothingPast')}</p>
             )
           ) : (
             <div className="divide-y divide-neutral-100 overflow-hidden rounded-2xl bg-white shadow-card dark:divide-neutral-800">
@@ -112,9 +115,9 @@ export function MyLeaveTab({
                 <div key={r.id} className="flex items-center gap-3 px-3.5 py-3">
                   <DateTile date={r.start_date} />
                   <div className="min-w-0 flex-1">
-                    <p className="text-[14.5px] font-semibold text-neutral-900">{leaveTitle(r.leave_type)}</p>
-                    <p className="mt-0.5 text-xs text-neutral-500">{leaveDateRangeLabel(r.start_date, r.end_date, r.start_period, r.end_period)}</p>
-                    {r.status !== 'pending' && r.decision_note && <p className="mt-0.5 text-xs text-neutral-400">Note: {r.decision_note}</p>}
+                    <p className="text-[14.5px] font-semibold text-neutral-900">{leaveTitleOf(r.leave_type, t)}</p>
+                    <p className="mt-0.5 text-xs text-neutral-500">{leaveDateRangeLabel(r.start_date, r.end_date, r.start_period, r.end_period, t)}</p>
+                    {r.status !== 'pending' && r.decision_note && <p className="mt-0.5 text-xs text-neutral-400">{t('leave.noteLabel', { note: r.decision_note })}</p>}
                   </div>
                   <LeaveStatusBadge status={r.status} />
                 </div>
@@ -139,13 +142,14 @@ export function MyLeaveTab({
 
 /** Sent → approver → decided, as a three-dot stepper. */
 function ApprovalSteps({ status, approverName }: { status: LeaveRequest['status']; approverName: string | null }) {
+  const { t } = useLanguage()
   const decided = status === 'approved'
   return (
     <div className="flex items-center gap-1.5 text-[11.5px] font-semibold">
       <span className="flex h-5 w-5 items-center justify-center rounded-full bg-status-working text-white">
         <Check className="h-3 w-3" strokeWidth={3.2} aria-hidden />
       </span>
-      <span className="text-neutral-600">Sent</span>
+      <span className="text-neutral-600">{t('leave.stepSent')}</span>
       <span className="h-0.5 flex-1 rounded bg-neutral-100" />
       {decided ? (
         <span className="flex h-5 w-5 items-center justify-center rounded-full bg-status-working text-white">
@@ -156,10 +160,10 @@ function ApprovalSteps({ status, approverName }: { status: LeaveRequest['status'
           <span className="h-1.5 w-1.5 rounded-full bg-status-warn" />
         </span>
       )}
-      <span className="max-w-[110px] truncate text-neutral-600">{approverName ?? 'Manager'}</span>
+      <span className="max-w-[110px] truncate text-neutral-600">{approverName ?? t('leave.stepManager')}</span>
       <span className="h-0.5 flex-1 rounded bg-neutral-100" />
       <span className={`h-5 w-5 rounded-full ${decided ? 'bg-status-working' : 'border-2 border-neutral-200'}`} />
-      <span className={decided ? 'text-neutral-600' : 'text-neutral-400'}>Approved</span>
+      <span className={decided ? 'text-neutral-600' : 'text-neutral-400'}>{t('leave.stepApproved')}</span>
     </div>
   )
 }

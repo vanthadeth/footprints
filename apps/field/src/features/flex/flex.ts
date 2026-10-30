@@ -55,22 +55,24 @@ export function rate(n: number): string {
 }
 
 /** "21 Sep". */
-export function shortDate(s: string): string {
+export function shortDate(s: string, language: 'en' | 'km' = 'en'): string {
   const d = utc(s)
+  if (language === 'km') return `${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}`
   return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`
 }
 
 /** "Tue 20 Oct". */
-export function dayDate(s: string): string {
-  return `${WEEKDAYS[utc(s).getUTCDay()]} ${shortDate(s)}`
+const KM_WEEKDAYS_SHORT = ['អាទិត្យ', 'ច័ន្ទ', 'អង្គារ', 'ពុធ', 'ព្រហស្បតិ៍', 'សុក្រ', 'សៅរ៍']
+export function dayDate(s: string, language: 'en' | 'km' = 'en'): string {
+  return `${language === 'km' ? KM_WEEKDAYS_SHORT[utc(s).getUTCDay()] : WEEKDAYS[utc(s).getUTCDay()]} ${shortDate(s, language)}`
 }
 
 export function addDays(s: string, n: number): string {
   return new Date(utc(s).getTime() + n * 86_400_000).toISOString().slice(0, 10)
 }
 
-export function cycleLabel(c: Pick<FlexCycle, 'cycleStart' | 'cycleEnd'>): string {
-  return `${shortDate(c.cycleStart)} – ${shortDate(c.cycleEnd)}`
+export function cycleLabel(c: Pick<FlexCycle, 'cycleStart' | 'cycleEnd'>, language: 'en' | 'km' = 'en'): string {
+  return `${shortDate(c.cycleStart, language)} – ${shortDate(c.cycleEnd, language)}`
 }
 
 /** Days taken plus planned beyond the allowance (0 when within it). */

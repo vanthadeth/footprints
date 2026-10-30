@@ -8,6 +8,7 @@ import { MyLeaveTab } from '@/features/leave/MyLeaveTab'
 import { BalanceCards } from '@/features/leave/BalanceCards'
 import { AttendanceCalendar } from '@/features/leave/AttendanceCalendar'
 import { SegmentedControl } from '@footprints/shared/components/SegmentedControl'
+import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 import { displayName } from '@footprints/shared/lib/displayName'
 import type { LeaveBalanceSummary, LeaveRequest } from '@/features/leave/types'
 
@@ -21,6 +22,7 @@ const TABS: Tab[] = ['leave', 'balance', 'attendance']
  * same app.can('leave', ...) RLS as before.
  */
 export function LeavePage() {
+  const { t } = useLanguage()
   const { profile } = useProfile()
   const [params, setParams] = useSearchParams()
   const tab: Tab = TABS.includes(params.get('tab') as Tab) ? (params.get('tab') as Tab) : 'leave'
@@ -42,9 +44,9 @@ export function LeavePage() {
         setBalances(b)
         setPeople(p)
       })
-      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load leave data.'))
+      .catch((e) => setError(e instanceof Error ? e.message : t('leave.loadFailed')))
       .finally(() => setLoading(false))
-  }, [year])
+  }, [year, t])
 
   useEffect(() => {
     load()
@@ -62,13 +64,13 @@ export function LeavePage() {
     <div className="mx-auto max-w-lg pb-6 md:max-w-3xl lg:max-w-6xl">
       <div className="space-y-4 px-4 pt-1 md:px-8 md:pt-4 lg:pt-6">
         <SegmentedControl
-          ariaLabel="Leave sections"
+          ariaLabel={t('leave.tabsAria')}
           value={tab}
           onChange={(v) => setParams(v === 'leave' ? {} : { tab: v }, { replace: true })}
           options={[
-            { value: 'leave', label: 'Leave' },
-            { value: 'balance', label: 'Balance' },
-            { value: 'attendance', label: 'Attendance' },
+            { value: 'leave', label: t('leave.tabLeave') },
+            { value: 'balance', label: t('leave.tabBalance') },
+            { value: 'attendance', label: t('leave.tabAttendance') },
           ]}
         />
 
@@ -85,7 +87,7 @@ export function LeavePage() {
             {tab === 'balance' && (
               <div className="space-y-5">
                 <section className="space-y-2">
-                  <h2 className="px-0.5 text-[17px] font-bold text-neutral-900">My allowance · {year}</h2>
+                  <h2 className="px-0.5 text-[17px] font-bold text-neutral-900">{t('leave.allowanceTitle', { year })}</h2>
                   <BalanceCards balances={myBalances} requests={myRequests} layout="stack" />
                 </section>
                 {canManageBalances && (
@@ -94,8 +96,8 @@ export function LeavePage() {
                       <Scale className="h-5 w-5" aria-hidden />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-[15px] font-bold text-neutral-900">Leave allowances</span>
-                      <span className="block text-[13px] text-neutral-500">Company default and each person’s allowance</span>
+                      <span className="block text-[15px] font-bold text-neutral-900">{t('leave.allowancesLink')}</span>
+                      <span className="block text-[13px] text-neutral-500">{t('leave.allowancesSub')}</span>
                     </span>
                     <ChevronRight className="h-4 w-4 text-neutral-400" aria-hidden />
                   </Link>

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 import { LEAVE_TYPE_COLOR, type LeaveBalanceSummary, type LeaveRequest } from './types'
 import { leaveRequestDays } from './leaveMath'
 
@@ -21,6 +22,9 @@ function daysOf(r: LeaveRequest) {
 
 /** Gusto-style balance cards: big "days left", a used/pending bar, and the quota underneath. */
 export function BalanceCards({ balances, requests, layout = 'row', linkTo, flex }: Props) {
+  const { t } = useLanguage()
+  const unitLeft = (n: number) => t(n === 1 ? 'leave.dayLeftOne' : 'leave.dayLeftMany')
+  const unitTaken = (n: number) => t(n === 1 ? 'leave.dayTakenOne' : 'leave.dayTakenMany')
   const year = String(new Date().getFullYear())
   const pendingDays = (type: 'annual' | 'sick') =>
     requests.filter((r) => r.status === 'pending' && r.leave_type === type && r.start_date.startsWith(year)).reduce((a, r) => a + daysOf(r), 0)
@@ -38,35 +42,35 @@ export function BalanceCards({ balances, requests, layout = 'row', linkTo, flex 
     const left = b?.remaining_days ?? 0
     return {
       key: type,
-      name: type === 'annual' ? 'Annual' : 'Sick',
+      name: t(type === 'annual' ? 'leave.typeAnnual' : 'leave.typeSick'),
       big: String(left),
-      unit: left === 1 ? 'day left' : 'days left',
+      unit: unitLeft(left),
       usedPct: quota ? Math.min(100, (used / quota) * 100) : 0,
       pendingPct: quota ? Math.min(100, (pending / quota) * 100) : 0,
-      caption: quota ? `${used} used${pending ? ` · ${pending} pending` : ''} of ${quota}` : 'No allowance set yet',
+      caption: quota ? t(pending ? 'leave.capUsedPending' : 'leave.capUsed', { used, pending, quota }) : t('leave.noAllowance'),
       color: LEAVE_TYPE_COLOR[type],
     }
   })
   if (flex) {
     cards.splice(1, 0, {
       key: 'flex',
-      name: 'Flexible',
+      name: t('leave.balFlexible'),
       big: String(flex.left),
-      unit: flex.left === 1 ? 'day left' : 'days left',
+      unit: unitLeft(flex.left),
       usedPct: flex.allowance ? Math.min(100, ((flex.allowance - flex.left) / flex.allowance) * 100) : 0,
       pendingPct: 0,
-      caption: `of ${flex.allowance} this cycle`,
+      caption: t('leave.capFlex', { n: flex.allowance }),
       color: LEAVE_TYPE_COLOR.flex,
     })
   }
   cards.push({
     key: 'unpaid',
-    name: 'Unpaid',
+    name: t('leave.typeUnpaid'),
     big: String(unpaidTaken),
-    unit: unpaidTaken === 1 ? 'day taken' : 'days taken',
+    unit: unitTaken(unpaidTaken),
     usedPct: 0,
     pendingPct: 0,
-    caption: 'No yearly limit',
+    caption: t('leave.noYearlyLimit'),
     color: LEAVE_TYPE_COLOR.unpaid,
   })
 

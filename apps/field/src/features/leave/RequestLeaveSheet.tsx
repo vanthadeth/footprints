@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react'
 import { Calendar } from 'lucide-react'
 import { BottomSheet } from '@/components/BottomSheet'
+import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 import { MonthCalendar } from '@/components/MonthCalendar'
 import { leaveErrorMessage, leaveService } from './leaveService'
 import { leaveRequestDays } from './leaveMath'
 import { formatLeaveDate } from './leaveDate'
 import { todayDateString } from '@/lib/dateRange'
 import { haptic } from '@footprints/shared/lib/haptic'
-import { LEAVE_DAY_PERIOD_LABEL, type LeaveDayPeriod, type LeaveType } from './types'
+import type { LeaveDayPeriod, LeaveType } from './types'
+import { leaveTypeName, periodName } from './leaveText'
 import { cycleLabel, dayDate, days as fmtDays, leftAfter, rate, type FlexCycle } from '@/features/flex/flex'
 
-const LEAVE_TYPE_LABEL: Record<LeaveType, string> = { annual: 'Annual', sick: 'Sick', unpaid: 'Unpaid', flex: 'Day off' }
 const DAY_PERIODS: LeaveDayPeriod[] = ['full', 'morning', 'afternoon']
 
 export function RequestLeaveSheet({
@@ -25,6 +26,7 @@ export function RequestLeaveSheet({
   /** The person's current cycle when they're on flexible days off: adds "Day off" (the default) with its allowance. */
   flex?: FlexCycle | null
 }) {
+  const { t } = useLanguage()
   const flexible = !!flex?.isFlexible
   const types: LeaveType[] = flexible ? ['flex', 'annual', 'sick', 'unpaid'] : ['annual', 'sick', 'unpaid']
   const [leaveType, setLeaveType] = useState<LeaveType>(flexible ? 'flex' : 'annual')
@@ -76,7 +78,7 @@ export function RequestLeaveSheet({
 
   async function submit() {
     if (endDate < startDate) {
-      setError('End date must be on or after the start date.')
+      setError(t('leave.endBeforeStart'))
       return
     }
     setSubmitting(true)
@@ -103,20 +105,20 @@ export function RequestLeaveSheet({
 
   return (
     <>
-      <BottomSheet open={open} onClose={onClose} title="Request Leave">
+      <BottomSheet open={open} onClose={onClose} title={t('leave.sheetTitle')}>
         <div className="space-y-4 p-4">
           <div>
-            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-neutral-400">Leave Type</p>
+            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-neutral-400">{t('leave.leaveType')}</p>
             <div className="flex gap-2">
-              {types.map((t) => (
+              {types.map((ty) => (
                 <button
-                  key={t}
-                  onClick={() => setLeaveType(t)}
+                  key={ty}
+                  onClick={() => setLeaveType(ty)}
                   className={`flex-1 rounded-xl2 border py-2.5 text-sm font-semibold tap-target ${
-                    leaveType === t ? 'border-brand-500 bg-brand-500 text-white' : 'border-neutral-200 bg-white text-neutral-600'
+                    leaveType === ty ? 'border-brand-500 bg-brand-500 text-white' : 'border-neutral-200 bg-white text-neutral-600'
                   }`}
                 >
-                  {LEAVE_TYPE_LABEL[t]}
+                  {ty === 'flex' ? t('leave.typeDayOff') : leaveTypeName(ty, t)}
                 </button>
               ))}
             </div>
@@ -124,11 +126,11 @@ export function RequestLeaveSheet({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <DateField label="Start Date" value={startDate} onOpen={() => setPickerFor('start')} />
+              <DateField label={t('leave.startDate')} value={startDate} onOpen={() => setPickerFor('start')} />
               <PeriodSelect value={startPeriod} onChange={setStartPeriod} />
             </div>
             <div>
-              <DateField label="End Date" value={endDate} onOpen={() => setPickerFor('end')} />
+              <DateField label={t('leave.endDate')} value={endDate} onOpen={() => setPickerFor('end')} />
               <PeriodSelect value={endPeriod} onChange={setEndPeriod} />
             </div>
           </div>
@@ -136,20 +138,20 @@ export function RequestLeaveSheet({
           {leaveType === 'flex' && flex && <FlexBreakdown cycle={flex} request={days} />}
 
           <div>
-            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-neutral-400">{leaveType === 'flex' ? 'Note for your manager (optional)' : 'Reason (optional)'}</p>
+            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-neutral-400">{leaveType === 'flex' ? t('leave.noteForManager') : t('leave.reasonOptional')}</p>
             <textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               rows={3}
-              placeholder="Anything worth noting about this leave…"
+              placeholder={t('leave.reasonPlaceholder')}
               className="w-full rounded-xl2 border border-neutral-200 p-3 text-sm text-neutral-800 outline-none focus:border-brand-400"
             />
           </div>
 
           <p className="text-sm text-neutral-500">
-            Total:{' '}
+            {t('leave.total')}{' '}
             <span className="font-semibold text-neutral-900">
-              {workingDays === 0 ? 'No working days — all days off or holidays' : days > 0 ? `${days} working day${days === 1 ? '' : 's'}` : '—'}
+              {workingDays === 0 ? t('leave.noWorkingDays') : days > 0 ? t(days === 1 ? 'leave.workingDayOne' : 'leave.workingDayMany', { n: days }) : '—'}
             </span>
           </p>
 
@@ -160,13 +162,13 @@ export function RequestLeaveSheet({
             disabled={submitting || days <= 0}
             className="w-full rounded-xl2 bg-brand-500 py-3.5 text-sm font-semibold text-white tap-target disabled:opacity-40"
           >
-            {submitting ? 'Submitting…' : leaveType === 'flex' ? 'Send for approval' : 'Submit Request'}
+            {submitting ? t('leave.submitting') : leaveType === 'flex' ? t('leave.sendApproval') : t('leave.submitRequest')}
           </button>
-          {leaveType === 'flex' && <p className="text-center text-xs text-neutral-500">Days you don’t clock in without a request also use your allowance automatically.</p>}
+          {leaveType === 'flex' && <p className="text-center text-xs text-neutral-500">{t('leave.flexNote')}</p>}
         </div>
       </BottomSheet>
 
-      <BottomSheet open={pickerFor != null} onClose={() => setPickerFor(null)} title={pickerFor === 'start' ? 'Start Date' : 'End Date'}>
+      <BottomSheet open={pickerFor != null} onClose={() => setPickerFor(null)} title={pickerFor === 'start' ? t('leave.startDate') : t('leave.endDate')}>
         <div className="p-4">
           <MonthCalendar
             value={pickerFor === 'start' ? startDate : endDate}
@@ -194,6 +196,7 @@ function DateField({ label, value, onOpen }: { label: string; value: string; onO
 }
 
 function PeriodSelect({ value, onChange }: { value: LeaveDayPeriod; onChange: (v: LeaveDayPeriod) => void }) {
+  const { t } = useLanguage()
   return (
     <select
       value={value}
@@ -202,7 +205,7 @@ function PeriodSelect({ value, onChange }: { value: LeaveDayPeriod; onChange: (v
     >
       {DAY_PERIODS.map((p) => (
         <option key={p} value={p}>
-          {LEAVE_DAY_PERIOD_LABEL[p]}
+          {periodName(p, t)}
         </option>
       ))}
     </select>
@@ -211,17 +214,18 @@ function PeriodSelect({ value, onChange }: { value: LeaveDayPeriod; onChange: (v
 
 /** This cycle's allowance, what's already used and what this request leaves -- over the allowance is allowed, with a warning. */
 function FlexBreakdown({ cycle, request }: { cycle: FlexCycle; request: number }) {
+  const { t, language } = useLanguage()
   const after = leftAfter(cycle, request)
   const lines: [string, string, string][] = [
-    [`Allowance (${cycle.saturdays} Sat × ${rate(cycle.satRate)} + ${cycle.sundays} Sun × ${rate(cycle.sunRate)})`, fmtDays(cycle.allowance), 'text-neutral-900'],
-    ['Already taken or planned', `−${fmtDays(cycle.taken + cycle.planned)}`, 'text-status-visiting'],
-    ['This request', `−${fmtDays(request)}`, 'text-status-visiting'],
+    [t('leave.allowanceLine', { sat: cycle.saturdays, satRate: rate(cycle.satRate), sun: cycle.sundays, sunRate: rate(cycle.sunRate) }), fmtDays(cycle.allowance), 'text-neutral-900'],
+    [t('leave.alreadyTaken'), `−${fmtDays(cycle.taken + cycle.planned)}`, 'text-status-visiting'],
+    [t('leave.thisRequest'), `−${fmtDays(request)}`, 'text-status-visiting'],
   ]
   return (
     <div className="space-y-2">
       <div className="rounded-xl2 bg-neutral-50 p-3 dark:bg-neutral-900">
         <p className="mb-2 text-xs font-bold text-neutral-500">
-          Cycle {cycleLabel(cycle)} · settles {dayDate(cycle.cycleEnd)}
+          {t('leave.cycleSettles', { cycle: cycleLabel(cycle, language), date: dayDate(cycle.cycleEnd, language) })}
         </p>
         {lines.map(([label, value, tone]) => (
           <p key={label} className="flex justify-between gap-3 py-0.5 text-[13.5px]">
@@ -230,13 +234,13 @@ function FlexBreakdown({ cycle, request }: { cycle: FlexCycle; request: number }
           </p>
         ))}
         <p className="mt-1.5 flex justify-between gap-3 border-t border-neutral-200 pt-2 text-[14px] dark:border-neutral-700">
-          <span className="font-semibold text-neutral-800">{after < 0 ? 'Over the allowance' : 'Left after this'}</span>
+          <span className="font-semibold text-neutral-800">{after < 0 ? t('leave.overAllowance') : t('leave.leftAfterThis')}</span>
           <span className={`font-extrabold tabular-nums ${after < 0 ? 'text-status-danger' : 'text-status-working'}`}>{after < 0 ? `+${fmtDays(-after)}` : fmtDays(after)}</span>
         </p>
       </div>
       {after < 0 && (
         <p role="alert" className="rounded-xl2 bg-status-warn/10 px-3 py-2.5 text-[13px] leading-snug text-status-warn">
-          This goes {fmtDays(-after)} day{-after === 1 ? '' : 's'} over your allowance. You can still send it — unless you work more weekends before {dayDate(cycle.cycleEnd)}, the extra will come from your annual leave.
+          {t(-after === 1 ? 'leave.overWarnOne' : 'leave.overWarnMany', { n: fmtDays(-after), date: dayDate(cycle.cycleEnd, language) })}
         </p>
       )}
     </div>
