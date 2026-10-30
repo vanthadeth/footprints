@@ -2,6 +2,7 @@
  * Flexible days off (0100): pure helpers for the Days off page, the
  * settlement and the request sheet. Dates are "YYYY-MM-DD" strings.
  */
+import { enT, type Tr } from '@/features/customers/book'
 
 export type FlexKind = 'holiday' | 'worked' | 'flex' | 'pend' | 'leave' | 'upcoming' | 'auto'
 
@@ -82,49 +83,49 @@ export function over(c: Pick<FlexCycle, 'left'>): number {
 
 export type CycleStatus = { label: string; tone: 'ok' | 'warn' | 'danger' | 'muted' }
 
-export function cycleStatus(c: FlexCycle): CycleStatus {
-  if (c.settled || c.closed) return { label: 'Settled', tone: 'muted' }
-  if (c.left < 0) return { label: `Over by ${days(-c.left)}`, tone: 'danger' }
-  if (c.left <= 1) return { label: 'Almost used', tone: 'warn' }
-  return { label: 'On track', tone: 'ok' }
+export function cycleStatus(c: FlexCycle, t: Tr = enT): CycleStatus {
+  if (c.settled || c.closed) return { label: t('flex.stSettled'), tone: 'muted' }
+  if (c.left < 0) return { label: t('flex.stOver', { n: days(-c.left) }), tone: 'danger' }
+  if (c.left <= 1) return { label: t('flex.stAlmost'), tone: 'warn' }
+  return { label: t('flex.stOnTrack'), tone: 'ok' }
 }
 
 /** What a day's cell shows: a short tag and the style it uses. */
-export function cellTag(d: FlexDay): string {
+export function cellTag(d: FlexDay, t: Tr = enT): string {
   switch (d.kind) {
     case 'worked':
       return '✓'
     case 'flex':
-      return d.cost < 1 ? '½ Off' : 'Off'
+      return d.cost < 1 ? t('flex.tagHalfOff') : t('flex.tagOff')
     case 'auto':
-      return 'Auto'
+      return t('flex.tagAuto')
     case 'pend':
-      return 'Plan'
+      return t('flex.tagPlan')
     case 'holiday':
-      return 'Hol'
+      return t('flex.tagHol')
     case 'leave':
-      return 'Leave'
+      return t('flex.tagLeave')
     default:
       return ''
   }
 }
 
-export function cellLabel(d: FlexDay): string {
+export function cellLabel(d: FlexDay, t: Tr = enT): string {
   switch (d.kind) {
     case 'worked':
-      return d.weekday >= 6 ? 'Weekend worked' : 'Worked'
+      return d.weekday >= 6 ? t('flex.lblWeekendWorked') : t('flex.lblWorked')
     case 'flex':
-      return d.cost < 1 ? 'Half day off' : 'Day off'
+      return d.cost < 1 ? t('flex.lblHalfOff') : t('flex.lblDayOff')
     case 'auto':
-      return 'No clock-in'
+      return t('flex.lblNoClockIn')
     case 'pend':
-      return 'Planned'
+      return t('flex.lblPlanned')
     case 'holiday':
-      return d.holidayName ?? 'Holiday'
+      return d.holidayName ?? t('flex.lblHoliday')
     case 'leave':
-      return 'On leave'
+      return t('flex.lblOnLeave')
     default:
-      return 'Upcoming'
+      return t('flex.lblUpcoming')
   }
 }
 
@@ -143,12 +144,12 @@ export interface UsedRow {
 }
 
 /** The days that use the allowance, with why. */
-export function usedRows(list: FlexDay[]): UsedRow[] {
+export function usedRows(list: FlexDay[], t: Tr = enT, language: 'en' | 'km' = 'en'): UsedRow[] {
   return list
     .filter((d) => d.cost > 0)
     .map((d) => ({
-      day: dayDate(d.day),
-      note: d.kind === 'auto' ? 'No clock-in' : d.kind === 'pend' ? 'Planned · waiting for approval' : d.cost < 1 ? 'Half day' : 'Requested · approved',
+      day: dayDate(d.day, language),
+      note: d.kind === 'auto' ? t('flex.noteNoClockIn') : d.kind === 'pend' ? t('flex.notePending') : d.cost < 1 ? t('flex.noteHalf') : t('flex.noteRequested'),
       amount: `−${days(d.cost)}`,
       pending: d.kind === 'pend',
     }))
@@ -160,10 +161,10 @@ export function leftAfter(c: Pick<FlexCycle, 'allowance' | 'taken' | 'planned'>,
 }
 
 /** A team row's status pill (Flexible days off, for managers/HR). */
-export function teamStatus(r: { isFlexible: boolean; nextFrom: string | null; settled: boolean; left: number }): CycleStatus {
-  if (!r.isFlexible) return { label: r.nextFrom ? `Starts ${shortDate(r.nextFrom)}` : 'Company schedule', tone: 'muted' }
-  if (r.left < 0) return { label: `Over by ${days(-r.left)}`, tone: 'danger' }
-  if (r.settled) return { label: 'Settled', tone: 'muted' }
-  if (r.left <= 1) return { label: 'Almost used', tone: 'warn' }
-  return { label: 'On track', tone: 'ok' }
+export function teamStatus(r: { isFlexible: boolean; nextFrom: string | null; settled: boolean; left: number }, t: Tr = enT, language: 'en' | 'km' = 'en'): CycleStatus {
+  if (!r.isFlexible) return { label: r.nextFrom ? t('flex.stStarts', { date: shortDate(r.nextFrom, language) }) : t('flex.stCompany'), tone: 'muted' }
+  if (r.left < 0) return { label: t('flex.stOver', { n: days(-r.left) }), tone: 'danger' }
+  if (r.settled) return { label: t('flex.stSettled'), tone: 'muted' }
+  if (r.left <= 1) return { label: t('flex.stAlmost'), tone: 'warn' }
+  return { label: t('flex.stOnTrack'), tone: 'ok' }
 }

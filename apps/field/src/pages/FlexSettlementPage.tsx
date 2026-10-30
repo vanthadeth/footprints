@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useProfile } from '@footprints/shared/features/auth/useProfile'
 import { displayName } from '@footprints/shared/lib/displayName'
+import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 import { flexService } from '@/features/flex/flexService'
 import { addDays, cycleLabel, dayDate, days, rate, usedRows, type FlexCycle, type FlexDay } from '@/features/flex/flex'
 
@@ -12,6 +13,7 @@ import { addDays, cycleLabel, dayDate, days, rate, usedRows, type FlexCycle, typ
  * over the allowance taken from annual leave.
  */
 export function FlexSettlementPage() {
+  const { t, language } = useLanguage()
   const [params] = useSearchParams()
   const end = params.get('end')
   const userId = params.get('user')
@@ -31,11 +33,11 @@ export function FlexSettlementPage() {
         setCycle(c)
         setList(d)
       })
-      .catch((e) => !cancelled && setError(e instanceof Error ? e.message : 'Couldn’t load this cycle.'))
+      .catch((e) => !cancelled && setError(e instanceof Error ? e.message : t('flex.settleLoadFailed')))
     return () => {
       cancelled = true
     }
-  }, [end, userId])
+  }, [end, userId, t])
 
   useEffect(() => {
     if (!userId) return
@@ -65,9 +67,9 @@ export function FlexSettlementPage() {
   const unpaid = cycle.unpaidDays ?? 0
   const name = userId ? (personName ?? '') : profile ? displayName(profile.full_name, profile.nickname) : ''
   const lines: { label: string; sub?: string; value: string; tone: string; strong?: boolean }[] = [
-    { label: 'Allowance earned', sub: `${cycle.saturdays} Saturdays × ${rate(cycle.satRate)} + ${cycle.sundays} Sundays × ${rate(cycle.sunRate)}`, value: days(cycle.allowance), tone: 'text-neutral-900', strong: true },
-    { label: 'Requested days off', value: `−${days(requested)}`, tone: 'text-status-visiting' },
-    { label: 'Days with no clock-in', sub: 'used automatically', value: `−${days(cycle.autoDays)}`, tone: 'text-status-visiting' },
+    { label: t('flex.allowanceEarned'), sub: t('flex.allowanceEarnedSub', { sat: cycle.saturdays, satRate: rate(cycle.satRate), sun: cycle.sundays, sunRate: rate(cycle.sunRate) }), value: days(cycle.allowance), tone: 'text-neutral-900', strong: true },
+    { label: t('flex.requestedDays'), value: `−${days(requested)}`, tone: 'text-status-visiting' },
+    { label: t('flex.noClockInDays'), sub: t('flex.usedAuto'), value: `−${days(cycle.autoDays)}`, tone: 'text-status-visiting' },
   ]
 
   return (
@@ -76,13 +78,13 @@ export function FlexSettlementPage() {
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-500 text-[14px] font-extrabold text-white">{initials(name)}</span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-[15px] font-bold text-neutral-900">{name}</p>
-          <p className="text-[12.5px] text-neutral-500">Flexible days off</p>
+          <p className="text-[12.5px] text-neutral-500">{t('flex.title')}</p>
         </div>
-        <span className={`rounded-full px-2.5 py-1 text-[12px] font-extrabold ${cycle.settled ? 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800' : 'bg-status-warn/10 text-status-warn'}`}>{cycle.settled ? 'Settled' : 'Not settled yet'}</span>
+        <span className={`rounded-full px-2.5 py-1 text-[12px] font-extrabold ${cycle.settled ? 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800' : 'bg-status-warn/10 text-status-warn'}`}>{cycle.settled ? t('flex.settledChip') : t('flex.notSettledYet')}</span>
       </div>
 
       <div className="rounded-2xl bg-white px-4 py-3 shadow-card">
-        <p className="mb-2 text-[13px] font-extrabold text-neutral-900">Cycle {cycleLabel(cycle)}</p>
+        <p className="mb-2 text-[13px] font-extrabold text-neutral-900">{t('flex.cycleTitle', { cycle: cycleLabel(cycle, language) })}</p>
         {lines.map((l) => (
           <div key={l.label} className="flex items-start justify-between gap-3 py-1.5">
             <span>
@@ -93,28 +95,30 @@ export function FlexSettlementPage() {
           </div>
         ))}
         <div className="mt-1 flex items-center justify-between gap-3 border-t border-neutral-100 pt-2.5 dark:border-neutral-800">
-          <span className="text-[14px] font-semibold text-neutral-900">{overdrawn ? 'Taken beyond the allowance' : 'Left at the close'}</span>
+          <span className="text-[14px] font-semibold text-neutral-900">{overdrawn ? t('flex.beyondAllowance') : t('flex.leftAtClose')}</span>
           <span className={`text-[16px] font-extrabold tabular-nums ${overdrawn ? 'text-status-danger' : 'text-status-working'}`}>{overdrawn ? days(cycle.overDays) : days(cycle.unusedDays)}</span>
         </div>
       </div>
 
       <div className={`rounded-2xl p-4 ${overdrawn ? 'bg-status-warn/10 text-status-warn' : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800'}`}>
-        <p className="text-[12px] font-extrabold uppercase tracking-wide opacity-80">Result</p>
+        <p className="text-[12px] font-extrabold uppercase tracking-wide opacity-80">{t('flex.result')}</p>
         <p className="mt-1 text-[17px] font-extrabold">
-          {overdrawn ? `${days(annualTaken)} day${annualTaken === 1 ? '' : 's'} ${cycle.settled ? 'taken' : 'to be taken'} from annual leave` : `${days(cycle.unusedDays)} day${cycle.unusedDays === 1 ? '' : 's'} not used`}
+          {overdrawn
+            ? t(cycle.settled ? (annualTaken === 1 ? 'flex.resultTakenOne' : 'flex.resultTakenMany') : annualTaken === 1 ? 'flex.resultToTakeOne' : 'flex.resultToTakeMany', { n: days(annualTaken) })
+            : t(cycle.unusedDays === 1 ? 'flex.resultUnusedOne' : 'flex.resultUnusedMany', { n: days(cycle.unusedDays) })}
         </p>
         <p className="mt-1 text-[13px] leading-snug">
           {overdrawn
             ? unpaid > 0
-              ? `Annual leave ran out, so ${days(unpaid)} day${unpaid === 1 ? '' : 's'} ${unpaid === 1 ? 'is' : 'are'} unpaid.`
-              : 'Nothing unpaid — it would only be unpaid if annual leave ran out.'
-            : `Unused days aren’t carried over — the next cycle starts with its own allowance.`}
+              ? t(unpaid === 1 ? 'flex.unpaidOne' : 'flex.unpaidMany', { n: days(unpaid) })
+              : t('flex.nothingUnpaid')
+            : t('flex.notCarried')}
         </p>
       </div>
 
       <div className="rounded-2xl bg-white px-4 py-3 shadow-card">
-        <p className="mb-1 text-[13px] font-extrabold text-neutral-900">Days off in this cycle</p>
-        {usedRows(list).map((r) => (
+        <p className="mb-1 text-[13px] font-extrabold text-neutral-900">{t('flex.daysInCycle')}</p>
+        {usedRows(list, t, language).map((r) => (
           <div key={r.day} className="flex items-center justify-between gap-3 border-t border-neutral-100 py-2.5 first:border-t-0 dark:border-neutral-800">
             <span>
               <span className="block text-[14px] font-semibold text-neutral-900">{r.day}</span>
@@ -127,8 +131,8 @@ export function FlexSettlementPage() {
 
       <p className="px-1 text-[12px] leading-snug text-neutral-500">
         {cycle.settled
-          ? `Settled automatically on ${dayDate(addDays(cycle.cycleEnd, 1))}, the day after the cycle closed. Team › Attendance shows the same numbers.`
-          : `Settles automatically on ${dayDate(addDays(cycle.cycleEnd, 1))}, the day after the cycle closes. These numbers can still change until then.`}
+          ? t('flex.settledAuto', { date: dayDate(addDays(cycle.cycleEnd, 1), language) })
+          : t('flex.settlesAuto', { date: dayDate(addDays(cycle.cycleEnd, 1), language) })}
       </p>
     </div>
   )
