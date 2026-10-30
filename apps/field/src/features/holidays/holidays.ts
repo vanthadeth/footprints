@@ -1,3 +1,5 @@
+import { enT, type Tr } from '@/features/customers/book'
+
 /** A public_holidays row in app shape. Dates are "YYYY-MM-DD". */
 export interface Holiday {
   id: string
@@ -11,6 +13,13 @@ export interface Holiday {
 }
 
 export const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+
+/** The fixed Cambodian holidays the app suggests are translated; anything else (typed by HR) shows as stored. */
+export function holidayName(name: string, t: Tr = enT): string {
+  const key = `holidays.sug_${name.replace(/[^A-Za-z]/g, '')}`
+  const out = t(key)
+  return out === key ? name : out
+}
 
 export function holidayDayCount(h: Pick<Holiday, 'startDate' | 'endDate' | 'halfDay'>): number {
   const ms = Date.parse(h.endDate + 'T00:00:00Z') - Date.parse(h.startDate + 'T00:00:00Z')
