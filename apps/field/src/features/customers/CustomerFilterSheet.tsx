@@ -1,8 +1,9 @@
 import { Check, SlidersHorizontal, X } from 'lucide-react'
 import { BottomSheet } from '@/components/BottomSheet'
 import { SegmentedControl } from '@footprints/shared/components/SegmentedControl'
+import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 import type { Bucket, Visitor } from './customerBookService'
-import { EMPTY_FILTER, MONTHS, RANGES, activeCount, filterChips, peopleHint, removeChip, toggle, visitorNames, type CustomerFilter } from './book'
+import { EMPTY_FILTER, MONTHS, RANGES, activeCount, filterChips, monthsText, peopleHint, rangeLabel, removeChip, toggle, visitorNames, type CustomerFilter } from './book'
 
 function initials(name: string): string {
   return name
@@ -15,18 +16,19 @@ function initials(name: string): string {
 
 /** The Filter button with its active-count badge. */
 export function FilterButton({ filter, onClick }: { filter: CustomerFilter; onClick: () => void }) {
+  const { t } = useLanguage()
   const n = activeCount(filter)
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-label={`Filter customers, ${n} active`}
+      aria-label={t('customers.filterAria', { n })}
       className={`flex h-11 shrink-0 items-center gap-1.5 rounded-xl border-[1.5px] px-3 text-sm font-bold tap-target ${
         n ? 'border-brand-500 bg-brand-50 text-brand-600 dark:bg-brand-500/20 dark:text-brand-300' : 'border-neutral-200 bg-white text-neutral-600'
       }`}
     >
       <SlidersHorizontal className="h-4 w-4" />
-      Filter
+      {t('customers.filter')}
       {n > 0 && <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand-500 px-1.5 text-[11px] font-extrabold text-white">{n}</span>}
     </button>
   )
@@ -34,16 +36,17 @@ export function FilterButton({ filter, onClick }: { filter: CustomerFilter; onCl
 
 /** Applied filters as removable chips, plus Clear all. */
 export function FilterChips({ filter, names, onChange }: { filter: CustomerFilter; names: Record<string, string>; onChange: (f: CustomerFilter) => void }) {
-  const chips = filterChips(filter, names)
+  const { t } = useLanguage()
+  const chips = filterChips(filter, names, t)
   if (!chips.length) return null
   return (
-    <div aria-label="Applied filters" className="flex flex-wrap gap-1.5">
+    <div aria-label={t('customers.appliedFilters')} className="flex flex-wrap gap-1.5">
       {chips.map((c) => (
         <button
           key={c.key}
           type="button"
           onClick={() => onChange(removeChip(filter, c.key))}
-          aria-label={`Remove filter ${c.label}`}
+          aria-label={t('customers.removeFilter', { label: c.label })}
           className="flex h-[30px] items-center gap-1.5 rounded-full bg-brand-50 px-2.5 text-[12.5px] font-bold text-brand-600 dark:bg-brand-500/20 dark:text-brand-300"
         >
           {c.label}
@@ -51,7 +54,7 @@ export function FilterChips({ filter, names, onChange }: { filter: CustomerFilte
         </button>
       ))}
       <button type="button" onClick={() => onChange({ ...EMPTY_FILTER })} className="h-[30px] px-1.5 text-[12.5px] font-bold text-brand-500">
-        Clear all
+        {t('customers.clearAll')}
       </button>
     </div>
   )
@@ -69,18 +72,19 @@ export function PeoplePicker({
   onChange: (f: CustomerFilter) => void
   variant?: 'chips' | 'list'
 }) {
+  const { t } = useLanguage()
   const names = visitorNames(visitors)
-  const options = [{ id: null as string | null, name: 'Anyone' }, ...visitors.map((v) => ({ id: v.user_id as string | null, name: names[v.user_id] }))]
+  const options = [{ id: null as string | null, name: t('customers.anyone') }, ...visitors.map((v) => ({ id: v.user_id as string | null, name: names[v.user_id] }))]
   return (
     <div className="flex flex-col gap-2.5">
       <SegmentedControl
         shape="tabs"
-        ariaLabel="Visited or not visited"
+        ariaLabel={t('customers.modeAria')}
         value={filter.mode}
         onChange={(mode) => onChange({ ...filter, mode })}
         options={[
-          { value: 'visited', label: 'Visited' },
-          { value: 'not', label: 'Not visited' },
+          { value: 'visited', label: t('customers.modeVisited') },
+          { value: 'not', label: t('customers.modeNot') },
         ]}
       />
       <div className={variant === 'chips' ? 'flex flex-wrap gap-1.5' : 'flex flex-col'}>
@@ -115,15 +119,15 @@ export function PeoplePicker({
           )
         })}
       </div>
-      <p className="mt-1 text-[12.5px] font-bold text-neutral-600">In the last</p>
+      <p className="mt-1 text-[12.5px] font-bold text-neutral-600">{t('customers.inTheLast')}</p>
       <SegmentedControl
         shape="tabs"
-        ariaLabel="Period"
+        ariaLabel={t('customers.periodAria')}
         value={String(filter.months)}
         onChange={(m) => onChange({ ...filter, months: Number(m) })}
-        options={MONTHS.map((m) => ({ value: String(m), label: `${m} ${m === 1 ? 'month' : 'months'}` }))}
+        options={MONTHS.map((m) => ({ value: String(m), label: monthsText(m, t) }))}
       />
-      <p className="text-xs text-neutral-500">{peopleHint(filter, names)}</p>
+      <p className="text-xs text-neutral-500">{peopleHint(filter, names, t)}</p>
     </div>
   )
 }
@@ -146,12 +150,13 @@ export function CustomerFilterSheet({
   showCount: number
   visitors: Visitor[]
 }) {
+  const { t } = useLanguage()
   return (
-    <BottomSheet open={open} onClose={onClose} title="Filter customers">
+    <BottomSheet open={open} onClose={onClose} title={t('customers.filterTitle')}>
       <div className="flex flex-col gap-5 px-4 py-4">
         <div className="flex flex-col gap-2">
           <p className="text-[13px] font-extrabold text-neutral-900">
-            Last visit <span className="font-semibold text-neutral-500">· pick one or more</span>
+            {t('customers.lastVisit')} <span className="font-semibold text-neutral-500">· {t('customers.pickMore')}</span>
           </p>
           {RANGES.map((r) => {
             const on = filter.ranges.includes(r.key)
@@ -170,23 +175,23 @@ export function CustomerFilterSheet({
                   {on && <Check className="h-3 w-3" strokeWidth={3.5} />}
                 </span>
                 <span className={`h-2 w-2 shrink-0 rounded-full ${r.dot}`} />
-                <span className="flex-1 text-sm font-bold text-neutral-900">{r.label}</span>
+                <span className="flex-1 text-sm font-bold text-neutral-900">{rangeLabel(r.key, t)}</span>
                 <span className="text-[13px] font-bold tabular-nums text-neutral-600">{rangeCounts[r.key].toLocaleString('en-US')}</span>
               </button>
             )
           })}
         </div>
         <div className="flex flex-col gap-2.5">
-          <p className="text-[13px] font-extrabold text-neutral-900">Visited by</p>
+          <p className="text-[13px] font-extrabold text-neutral-900">{t('customers.visitedByTitle')}</p>
           <PeoplePicker filter={filter} visitors={visitors} onChange={onChange} />
         </div>
       </div>
       <div className="sticky bottom-0 flex gap-2 border-t border-neutral-100 bg-white px-4 pb-6 pt-3">
         <button type="button" onClick={() => onChange({ ...EMPTY_FILTER })} className="h-12 rounded-2xl border-[1.5px] border-neutral-200 bg-white px-4 text-[15px] font-bold text-neutral-600">
-          Clear all
+          {t('customers.clearAll')}
         </button>
         <button type="button" onClick={onClose} className="h-12 flex-1 rounded-2xl bg-brand-500 text-[15px] font-extrabold text-white">
-          Show {showCount.toLocaleString('en-US')} {showCount === 1 ? 'customer' : 'customers'}
+          {t(showCount === 1 ? 'customers.showCountOne' : 'customers.showCountMany', { n: showCount.toLocaleString('en-US') })}
         </button>
       </div>
     </BottomSheet>

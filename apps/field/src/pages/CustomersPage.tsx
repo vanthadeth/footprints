@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Construction, FileText, Loader2, Search, Sto
 import { useAuth } from '@footprints/shared/features/auth/AuthContext'
 import { useCan } from '@footprints/shared/features/permissions/PermissionsContext'
 import { SegmentedControl } from '@footprints/shared/components/SegmentedControl'
+import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 import { VisitFlow, type PresetCustomer } from '@/features/visits/VisitFlow'
 import { locationService } from '@/features/location/locationService'
 import { CUSTOMER_MANAGEMENT_ENABLED } from '@/lib/featureFlags'
@@ -12,7 +13,7 @@ import { formatDistance } from '@footprints/shared/lib/geo'
 import type { BookRow, BookScope, Bucket } from '@/features/customers/customerBookService'
 import { useBookGroup, useBookPage, useBookSummary, useDebounced, useVisitors } from '@/features/customers/useCustomerBook'
 import { CustomerFilterSheet, FilterButton, FilterChips } from '@/features/customers/CustomerFilterSheet'
-import { DUE_RANGES, EMPTY_FILTER, PAGE_SIZE, URGENCY, activeCount, lastVisitChip, summarize, urgency, visitorNames, type CustomerFilter, type ProvinceGroup } from '@/features/customers/book'
+import { DUE_RANGES, EMPTY_FILTER, PAGE_SIZE, URGENCY, activeCount, daysText, lastVisitChip, summarize, urgency, visitorNames, type CustomerFilter, type ProvinceGroup } from '@/features/customers/book'
 import { PHNOM_PENH } from '@/features/customers/provinces'
 
 type Tab = 'all' | 'nearby' | 'due'
@@ -27,11 +28,12 @@ const AUTO_OPEN_MAX = 60
  * 2,000 rows on every keystroke) is what made the old list slow.
  */
 export function CustomersPage() {
+  const { t } = useLanguage()
   if (!CUSTOMER_MANAGEMENT_ENABLED) {
     return (
       <div className="mx-auto flex max-w-lg flex-col items-center px-6 pt-16 text-center md:max-w-2xl">
         <Construction className="h-10 w-10 text-neutral-300" />
-        <p className="mt-4 text-sm text-neutral-500">Customer management is temporarily unavailable.</p>
+        <p className="mt-4 text-sm text-neutral-500">{t('customers.unavailable')}</p>
       </div>
     )
   }
@@ -59,6 +61,7 @@ const inPick = (d: number | null, p: VisitPick) =>
   p === null ? true : p === 'b7' ? d != null && d <= 7 : p === 'b15' ? d != null && d > 7 && d <= 15 : p === 'b30' ? d != null && d > 15 && d <= 30 : p === 'green' ? d != null && d <= 45 : d == null || d > 45
 
 function MyCustomers({ me, onView }: { me: string | null; onView: (v: 'all' | 'mine') => void }) {
+  const { t } = useLanguage()
   const canBriefing = useCan('customer_briefing')
   const [pick, setPick] = useState<VisitPick>(null)
   const [position, setPosition] = useState<{ latitude: number; longitude: number } | null>(null)
@@ -80,25 +83,26 @@ function MyCustomers({ me, onView }: { me: string | null; onView: (v: 'all' | 'm
   const green = count('green')
   const list = (position ? near.data : rows).filter((r) => inPick(r.days_since, pick)).slice(0, 12)
   const buckets: { key: VisitPick; label: string }[] = [
-    { key: 'b7', label: 'Within 7 days' },
-    { key: 'b15', label: '8 – 15 days' },
-    { key: 'b30', label: '16 – 30 days' },
+    { key: 'b7', label: t('customers.within7') },
+    { key: 'b15', label: t('customers.d8to15') },
+    { key: 'b30', label: t('customers.d16to30') },
   ]
   const tile = (on: boolean) => `rounded-[14px] text-left ${on ? 'border border-white/60 bg-white/[.16]' : 'border border-transparent bg-white/[.07]'}`
-  const listTitle = pick ? `${{ b7: 'Visited within 7 days', b15: 'Visited 8 – 15 days ago', b30: 'Visited 16 – 30 days ago', green: 'Seen within 45 days', red: 'Not seen for 45+ days' }[pick]}${position ? ' · nearest first' : ''}` : position ? 'Nearby' : 'Longest since a visit'
+  const pickTitle = { b7: 'titleB7', b15: 'titleB15', b30: 'titleB30', green: 'titleGreen', red: 'titleRed' }
+  const listTitle = pick ? `${t(`customers.${pickTitle[pick]}`)}${position ? ` · ${t('customers.nearestFirst')}` : ''}` : position ? t('customers.nearby') : t('customers.longestSince')
 
   return (
     <div className="mx-auto max-w-lg pb-6 md:max-w-2xl lg:max-w-[1440px]">
       <div className="flex flex-col gap-3.5 px-4 pt-1.5 md:px-8 lg:grid lg:grid-cols-[420px_minmax(0,1fr)] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-x-6 lg:pt-6">
-        <section aria-label="My customers" className="rounded-[22px] bg-brand-900 p-4 text-white lg:col-start-1 lg:row-start-1">
+        <section aria-label={t('customers.myCustomers')} className="rounded-[22px] bg-brand-900 p-4 text-white lg:col-start-1 lg:row-start-1">
           <div className="flex items-end justify-between gap-3">
             <div>
-              <p className="text-[13px] font-semibold text-white/60">My customers</p>
+              <p className="text-[13px] font-semibold text-white/60">{t('customers.myCustomers')}</p>
               <p className="text-[44px] font-bold leading-[48px] tracking-tight">{mine.loading ? '…' : total.toLocaleString('en-US')}</p>
             </div>
-            <p className="mb-1.5 text-right text-xs text-white/60">By last visit</p>
+            <p className="mb-1.5 text-right text-xs text-white/60">{t('customers.byLastVisit')}</p>
           </div>
-          <div role="group" aria-label="Last visit" className="mt-3.5 grid grid-cols-3 gap-1.5">
+          <div role="group" aria-label={t('customers.lastVisit')} className="mt-3.5 grid grid-cols-3 gap-1.5">
             {buckets.map((b) => (
               <button key={b.key} type="button" aria-pressed={pick === b.key} onClick={() => setPick(pick === b.key ? null : b.key)} className={`${tile(pick === b.key)} px-2.5 pb-[9px] pt-2.5`}>
                 <span className="block text-[22px] font-bold leading-[26px]">{count(b.key)}</span>
@@ -113,8 +117,8 @@ function MyCustomers({ me, onView }: { me: string | null; onView: (v: 'all' | 'm
           <div className="mt-2.5 grid grid-cols-2 gap-1.5">
             {(
               [
-                ['green', green, 'Visited within 45 days', '#17CB49'],
-                ['red', total - green, 'No visit for 45+ days', '#F74141'],
+                ['green', green, t('customers.visitedWithin45'), '#17CB49'],
+                ['red', total - green, t('customers.noVisit45'), '#F74141'],
               ] as const
             ).map(([k, n, label, dot]) => (
               <button key={k} type="button" aria-pressed={pick === k} onClick={() => setPick(pick === k ? null : k)} className={`${tile(pick === k)} flex items-center gap-2.5 px-3 py-2.5`}>
@@ -130,37 +134,37 @@ function MyCustomers({ me, onView }: { me: string | null; onView: (v: 'all' | 'm
 
         <div className="grid grid-cols-3 gap-2 lg:col-start-1 lg:row-start-2">
           <button type="button" onClick={() => onView('mine')} className="flex h-11 items-center justify-center gap-1.5 rounded-xl bg-brand-500 text-sm font-bold text-white">
-            <UserRound className="h-4 w-4" aria-hidden /> Mine
+            <UserRound className="h-4 w-4" aria-hidden /> {t('customers.mine')}
           </button>
           {canBriefing ? (
             <Link to="/team/customers" className="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-neutral-200 bg-white text-sm font-bold text-neutral-900">
-              <FileText className="h-4 w-4" aria-hidden /> Briefing
+              <FileText className="h-4 w-4" aria-hidden /> {t('customers.briefing')}
             </Link>
           ) : (
             <span />
           )}
           <button type="button" onClick={() => onView('all')} className="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-neutral-200 bg-white text-sm font-bold text-neutral-900">
-            <Store className="h-4 w-4" aria-hidden /> All
+            <Store className="h-4 w-4" aria-hidden /> {t('customers.all')}
           </button>
         </div>
 
-        <section aria-label="Nearby customers" className="lg:col-start-2 lg:row-span-2 lg:row-start-1">
+        <section aria-label={t('customers.nearbyAria')} className="lg:col-start-2 lg:row-span-2 lg:row-start-1">
           <div className="mx-0.5 mb-2 flex items-baseline justify-between">
             <p className="text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">{listTitle}</p>
             {pick && (
               <button type="button" onClick={() => setPick(null)} className="text-[13px] font-bold text-brand-500">
-                Show all
+                {t('customers.showAll')}
               </button>
             )}
           </div>
           <div className="overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-card">
             {(mine.loading || (position && near.loading && near.data.length === 0)) && <div className="m-3.5 h-12 animate-pulse rounded-xl bg-neutral-100" />}
-            {!mine.loading && list.length === 0 && <p className="px-3.5 py-[18px] text-center text-[13px] text-neutral-500">{total === 0 ? 'No customers assigned to you yet' : 'None in this group'}</p>}
+            {!mine.loading && list.length === 0 && <p className="px-3.5 py-[18px] text-center text-[13px] text-neutral-500">{total === 0 ? t('customers.noneAssigned') : t('customers.noneInGroup')}</p>}
             {list.map((r, i) => (
               <HomeRow key={r.customer_id} row={r} first={i === 0} onVisit={setPreset} />
             ))}
           </div>
-          {!position && positionError && <p className="mx-0.5 mt-2 text-xs text-neutral-500">Couldn’t get your location, so these are sorted by last visit.</p>}
+          {!position && positionError && <p className="mx-0.5 mt-2 text-xs text-neutral-500">{t('customers.noLocationSorted')}</p>}
         </section>
       </div>
       <VisitFlow open={!!preset} onClose={() => setPreset(null)} presetCustomer={preset} />
@@ -169,6 +173,7 @@ function MyCustomers({ me, onView }: { me: string | null; onView: (v: 'all' | 'm
 }
 
 function HomeRow({ row, first, onVisit }: { row: BookRow; first: boolean; onVisit: (c: PresetCustomer) => void }) {
+  const { t } = useLanguage()
   const d = row.days_since
   const ok = d != null && d <= 45
   const ini = row.shop_name
@@ -190,7 +195,7 @@ function HomeRow({ row, first, onVisit }: { row: BookRow; first: boolean; onVisi
         </span>
         <span className="shrink-0 text-right">
           {row.distance_m != null && <span className="block text-[13px] font-bold text-neutral-600">{formatDistance(row.distance_m)}</span>}
-          <span className={`block text-[11px] font-bold ${ok ? 'text-status-working' : 'text-status-danger'}`}>{d == null ? 'Never visited' : d === 0 ? 'Today' : `${d} days`}</span>
+          <span className={`block text-[11px] font-bold ${ok ? 'text-status-working' : 'text-status-danger'}`}>{d == null ? t('customers.neverVisited') : daysText(d, t)}</span>
         </span>
       </Link>
       <button
@@ -198,13 +203,14 @@ function HomeRow({ row, first, onVisit }: { row: BookRow; first: boolean; onVisi
         onClick={() => onVisit({ id: row.customer_id, shopName: row.shop_name })}
         className="h-[34px] shrink-0 rounded-[10px] bg-brand-50 px-3 text-[13px] font-bold text-brand-500 tap-target"
       >
-        Visit
+        {t('customers.visit')}
       </button>
     </div>
   )
 }
 
 function CustomersList({ owner = null, onHome }: { owner?: string | null; onHome?: () => void }) {
+  const { t } = useLanguage()
   const [query, setQuery] = useState('')
   const search = useDebounced(query.trim())
   const [tab, setTab] = useState<Tab>('all')
@@ -248,17 +254,21 @@ function CustomersList({ owner = null, onHome }: { owner?: string | null; onHome
   const summaryLine =
     tab === 'nearby'
       ? position
-        ? 'Nearest 20 to you'
+        ? t('customers.nearest20')
         : positionError
-          ? 'Couldn’t get your location'
-          : 'Finding your location…'
+          ? t('customers.noLocation')
+          : t('customers.findingLocation')
       : search || filtering
         ? matching === 0
-          ? 'No matches'
-          : `${matching.toLocaleString('en-US')} ${matching === 1 ? 'match' : 'matches'} in ${groups.length} ${groups.length === 1 ? 'province' : 'provinces'}`
+          ? t('customers.noMatches')
+          : t(matching === 1 ? 'customers.matchOne' : 'customers.matchMany', {
+              n: matching.toLocaleString('en-US'),
+              p: groups.length,
+              provinces: t(groups.length === 1 ? 'customers.provinceOne' : 'customers.provinceMany'),
+            })
         : tab === 'due'
-          ? `${matching.toLocaleString('en-US')} customers due, overdue or never visited`
-          : `${summary.total.toLocaleString('en-US')} customers · ${summary.provinces.filter((p) => p.code !== 'none').length} provinces`
+          ? t('customers.dueSummary', { n: matching.toLocaleString('en-US') })
+          : t('customers.totalSummary', { n: summary.total.toLocaleString('en-US'), p: summary.provinces.filter((p) => p.code !== 'none').length })
 
   function isOpen(g: ProvinceGroup): boolean {
     const set = open[g.code]
@@ -273,7 +283,7 @@ function CustomersList({ owner = null, onHome }: { owner?: string | null; onHome
       <div className="flex flex-col gap-2.5 border-b border-neutral-100 px-4 pb-2.5 pt-3 md:px-8 lg:max-w-3xl lg:border-0 lg:pt-6 dark:border-neutral-800">
         {onHome && (
           <button type="button" onClick={onHome} className="inline-flex items-center gap-1 self-start text-sm font-bold text-brand-500">
-            <ChevronLeft className="h-4 w-4" aria-hidden /> My customers
+            <ChevronLeft className="h-4 w-4" aria-hidden /> {t('customers.myCustomers')}
           </button>
         )}
         <div className="flex gap-2">
@@ -283,27 +293,27 @@ function CustomersList({ owner = null, onHome }: { owner?: string | null; onHome
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search name, code, phone…"
-              aria-label="Search customers"
+              placeholder={t('customers.searchPlaceholder')}
+              aria-label={t('customers.searchAria')}
               className="min-w-0 flex-1 bg-transparent text-[15px] text-neutral-900 outline-none placeholder:text-neutral-400"
             />
           </label>
           <FilterButton filter={filter} onClick={() => setSheetOpen(true)} />
         </div>
         <SegmentedControl
-          ariaLabel="Customer filter"
+          ariaLabel={t('customers.filterGroup')}
           value={tab}
           onChange={setTab}
           options={[
-            { value: 'all', label: 'All' },
-            { value: 'nearby', label: 'Nearby' },
-            { value: 'due', label: 'Due' },
+            { value: 'all', label: t('customers.tabAll') },
+            { value: 'nearby', label: t('customers.tabNearby') },
+            { value: 'due', label: t('customers.tabDue') },
           ]}
         />
         <FilterChips filter={filter} names={names} onChange={setFilter} />
         <p className="flex items-center gap-1.5 text-xs text-neutral-500">
           {summaryLine}
-          {(summaryRes.refreshing || nearby.refreshing) && !summaryRes.loading && <Loader2 className="h-3 w-3 animate-spin" aria-label="Updating" />}
+          {(summaryRes.refreshing || nearby.refreshing) && !summaryRes.loading && <Loader2 className="h-3 w-3 animate-spin" aria-label={t('customers.updating')} />}
         </p>
       </div>
 
@@ -337,7 +347,7 @@ function CustomersList({ owner = null, onHome }: { owner?: string | null; onHome
 
         {tab === 'nearby' && position && nearby.data.length > 0 && (
           <>
-            <p className="mx-0.5 text-xs text-neutral-500 lg:col-span-2">Closest first, across all provinces.</p>
+            <p className="mx-0.5 text-xs text-neutral-500 lg:col-span-2">{t('customers.closestFirst')}</p>
             <div className="overflow-hidden rounded-2xl bg-white shadow-card lg:col-span-2 lg:max-w-3xl">
               {nearby.data.map((c, i) => (
                 <CustomerLine key={c.customer_id} row={c} first={i === 0} extra={c.distance_m != null ? `${formatDistance(c.distance_m)}` : undefined} onVisit={setPreset} />
@@ -348,8 +358,8 @@ function CustomersList({ owner = null, onHome }: { owner?: string | null; onHome
 
         {showEmpty && (
           <div className="rounded-2xl border-[1.5px] border-dashed border-neutral-200 px-4 py-7 text-center lg:col-span-2">
-            <p className="text-[15px] font-bold text-neutral-900">{search ? `No customers match “${search}”` : 'No customers match these filters'}</p>
-            <p className="mt-1 text-[13px] text-neutral-500">Try fewer filters, part of the shop name, the customer code or a phone number.</p>
+            <p className="text-[15px] font-bold text-neutral-900">{search ? t('customers.noMatchFor', { q: search }) : t('customers.noMatchFilters')}</p>
+            <p className="mt-1 text-[13px] text-neutral-500">{t('customers.tryFewer')}</p>
           </div>
         )}
       </div>
@@ -392,6 +402,7 @@ function ProvinceCard({
   onMore: () => void
   onVisit: (c: PresetCustomer) => void
 }) {
+  const { t } = useLanguage()
   const { rows, total, loading, error } = useBookGroup({ ...scope, province: group.code, ranges, sort }, pages, expanded)
   const count = total || group.matching
   const left = count - rows.length
@@ -402,11 +413,11 @@ function ProvinceCard({
           <span className="block text-[15px] font-extrabold text-neutral-900">{group.km}</span>
           <span className="mt-px block text-xs text-neutral-500">
             {group.en ? `${group.en} · ` : ''}
-            {group.matching.toLocaleString('en-US')} {group.matching === 1 ? 'customer' : 'customers'}
+            {group.matching.toLocaleString('en-US')} {t(group.matching === 1 ? 'customers.customerOne' : 'customers.customerMany')}
           </span>
         </span>
         {showBadge && group.late > 0 && (
-          <span className="shrink-0 rounded-full bg-status-danger/10 px-2 py-0.5 text-[11px] font-extrabold text-status-danger">{group.late} to visit</span>
+          <span className="shrink-0 rounded-full bg-status-danger/10 px-2 py-0.5 text-[11px] font-extrabold text-status-danger">{t('customers.toVisit', { n: group.late })}</span>
         )}
         <ChevronRight className={`h-4 w-4 shrink-0 text-neutral-400 transition-transform ${expanded ? 'rotate-90' : ''}`} />
       </button>
@@ -420,7 +431,7 @@ function ProvinceCard({
           {left > 0 && rows.length > 0 && (
             <button type="button" onClick={onMore} disabled={loading} className="flex h-11 w-full items-center justify-center gap-1.5 border-t border-neutral-100 text-[13.5px] font-bold text-brand-500">
               {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              Show {Math.min(PAGE_SIZE, left)} more · {left.toLocaleString('en-US')} left
+              {t('customers.showMore', { n: Math.min(PAGE_SIZE, left), left: left.toLocaleString('en-US') })}
             </button>
           )}
         </>
@@ -430,6 +441,7 @@ function ProvinceCard({
 }
 
 function CustomerLine({ row, first = false, extra, onVisit }: { row: BookRow; first?: boolean; extra?: string; onVisit: (c: PresetCustomer) => void }) {
+  const { t } = useLanguage()
   const u = URGENCY[urgency(row.days_since)]
   const owner = row.owner_name ? displayName(row.owner_name, row.owner_nickname) : null
   const sub = [extra, row.district, owner].filter(Boolean).join(' · ')
@@ -438,14 +450,14 @@ function CustomerLine({ row, first = false, extra, onVisit }: { row: BookRow; fi
       <Link to={`/customers/${row.customer_id}`} className="min-w-0 flex-1">
         <span className="block truncate text-[14.5px] font-bold text-neutral-900">{row.shop_name}</span>
         {sub && <span className="mt-0.5 block truncate text-xs text-neutral-500">{sub}</span>}
-        <span className={`mt-1.5 inline-flex rounded-full px-2 py-0.5 text-[11.5px] font-bold ${u.chip}`}>{lastVisitChip(row)}</span>
+        <span className={`mt-1.5 inline-flex rounded-full px-2 py-0.5 text-[11.5px] font-bold ${u.chip}`}>{lastVisitChip(row, t)}</span>
       </Link>
       <button
         type="button"
         onClick={() => onVisit({ id: row.customer_id, shopName: row.shop_name })}
         className="h-[34px] shrink-0 rounded-[10px] bg-brand-50 px-3 text-[13px] font-bold text-brand-500 tap-target"
       >
-        Visit
+        {t('customers.visit')}
       </button>
     </div>
   )
