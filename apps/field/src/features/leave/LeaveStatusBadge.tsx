@@ -1,4 +1,6 @@
+import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 import type { LeaveStatus } from './types'
+import { statusName } from './leaveText'
 
 const TONE: Record<LeaveStatus, string> = {
   pending: 'bg-status-warn/10 text-status-warn',
@@ -7,14 +9,8 @@ const TONE: Record<LeaveStatus, string> = {
   cancelled: 'bg-neutral-100 text-neutral-500',
 }
 
-const LABEL: Record<LeaveStatus, string> = {
-  pending: 'Pending',
-  approved: 'Approved',
-  rejected: 'Rejected',
-  cancelled: 'Cancelled',
-}
-
 /** Same small-chip convention as FlagBadge/FleetStatusBadge. */
 export function LeaveStatusBadge({ status }: { status: LeaveStatus }) {
-  return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${TONE[status]}`}>{LABEL[status]}</span>
+  const { t } = useLanguage()
+  return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${TONE[status]}`}>{statusName(status, t)}</span>
 }
