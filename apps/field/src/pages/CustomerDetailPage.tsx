@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTab } from '@/hooks/useTab'
+import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Construction, MapPin, Navigation, NotebookPen, Phone, Store } from 'lucide-react'
 import { customersService, type CustomerDirectoryRow } from '@/features/customers/customersService'
@@ -8,6 +9,7 @@ import { TierCard } from '@/features/customers/TierCard'
 import { OrdersTab } from '@/features/customers/detail/OrdersTab'
 import { PaymentsTab } from '@/features/customers/detail/PaymentsTab'
 import { agoText } from '@/features/customers/detail/timeline'
+import { fullDate } from '@/features/customers/detail/dates'
 import { todayDateString } from '@/lib/dateRange'
 import { CustomerVisitActivity } from '@/features/customers/CustomerVisitActivity'
 import { useCustomerActivity } from '@/features/customers/useCustomerBook'
@@ -19,8 +21,8 @@ import { conversationsService } from '@/features/conversations/conversationsServ
 import type { ConversationKind } from '@/features/conversations/conversationMeta'
 
 const usd = (n: number) => (n < 0 ? '-' : '') + '$' + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-const shortDate = (iso: string) => new Date(iso.length === 10 ? iso + 'T00:00:00Z' : iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: iso.length === 10 ? 'UTC' : 'Asia/Phnom_Penh' })
 
+const STATUS_KEYS: Record<string, string> = { active: 'customerDetail.statusActive', inactive: 'customerDetail.statusInactive', banned: 'customerDetail.statusBanned' }
 const STATUS_STYLES: Record<string, string> = {
   active: 'bg-status-working/10 text-status-working',
   inactive: 'bg-neutral-100 text-neutral-500',
@@ -29,11 +31,12 @@ const STATUS_STYLES: Record<string, string> = {
 
 /** A customer's profile: how to reach them, a fast path into a visit, and their recent activity. No sales/outstanding figures yet -- see the redesign plan (Phase 2, once Orders ship). */
 export function CustomerDetailPage() {
+  const { t } = useLanguage()
   if (!CUSTOMER_MANAGEMENT_ENABLED) {
     return (
       <div className="mx-auto flex max-w-lg flex-col items-center px-6 pt-16 text-center md:max-w-2xl">
         <Construction className="h-10 w-10 text-neutral-300" />
-        <p className="mt-4 text-sm text-neutral-500">Customer management is temporarily unavailable.</p>
+        <p className="mt-4 text-sm text-neutral-500">{t('customerDetail.unavailable')}</p>
       </div>
     )
   }
@@ -42,6 +45,7 @@ export function CustomerDetailPage() {
 }
 
 function CustomerDetail() {
+  const { t } = useLanguage()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [customer, setCustomer] = useState<CustomerDirectoryRow | null>(null)
@@ -77,7 +81,7 @@ function CustomerDetail() {
         if (!cancelled) setCustomer(c)
       })
       .catch((e) => {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load customer.')
+        if (!cancelled) setError(e instanceof Error ? e.message : '')
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -101,12 +105,12 @@ function CustomerDetail() {
     return (
       <div className="mx-auto max-w-lg p-4 md:max-w-2xl">
         <BackLink onClick={() => navigate('/customers')} />
-        <p className="mt-3 rounded-lg bg-status-danger/10 px-3 py-2 text-sm text-status-danger">{error ?? 'Customer not found.'}</p>
+        <p className="mt-3 rounded-lg bg-status-danger/10 px-3 py-2 text-sm text-status-danger">{error === null ? t('customerDetail.notFound') : error || t('customerDetail.loadFailed')}</p>
       </div>
     )
   }
 
-  const presetCustomer: PresetCustomer = { id: customer.id!, shopName: customer.shop_name ?? 'Customer' }
+  const presetCustomer: PresetCustomer = { id: customer.id!, shopName: customer.shop_name ?? t('customerDetail.customer') }
   const mapsQuery =
     customer.latitude != null && customer.longitude != null
       ? `${customer.latitude},${customer.longitude}`
@@ -117,7 +121,7 @@ function CustomerDetail() {
   return (
     <div className="mx-auto max-w-lg pb-6 md:max-w-2xl lg:max-w-6xl">
       <div className="flex flex-col gap-3.5 px-4 pt-1.5 md:px-8 lg:pt-6">
-        <section aria-label={customer.shop_name ?? 'Customer'} className="rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card lg:max-w-xl">
+        <section aria-label={customer.shop_name ?? t('customerDetail.customer')} className="rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-card lg:max-w-xl">
           <div className="flex items-start gap-3">
             <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-brand-500 text-white">
               <Store className="h-6 w-6" aria-hidden />
@@ -126,7 +130,7 @@ function CustomerDetail() {
               <span className="block text-lg font-bold leading-6 text-neutral-900">{customer.shop_name}</span>
               {sub && <span className="block truncate text-[13px] text-neutral-500">{sub}</span>}
             </span>
-            {customer.status && <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold capitalize ${STATUS_STYLES[customer.status] ?? ''}`}>{customer.status}</span>}
+            {customer.status && <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold capitalize ${STATUS_STYLES[customer.status] ?? ''}`}>{STATUS_KEYS[customer.status] ? t(STATUS_KEYS[customer.status]) : customer.status}</span>}
           </div>
           <div className="mt-3.5 grid grid-cols-3 gap-2">
             <a
@@ -138,7 +142,7 @@ function CustomerDetail() {
               }}
               className={`flex h-11 items-center justify-center gap-1.5 rounded-xl border border-neutral-200 text-sm font-bold text-neutral-900 tap-target ${!customer.primary_contact_phone ? 'pointer-events-none opacity-40' : ''}`}
             >
-              <Phone className="h-4 w-4" aria-hidden /> Call
+              <Phone className="h-4 w-4" aria-hidden /> {t('customerDetail.call')}
             </a>
             <a
               href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`}
@@ -146,25 +150,25 @@ function CustomerDetail() {
               rel="noopener"
               className="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-neutral-200 text-sm font-bold text-neutral-900 tap-target"
             >
-              <Navigation className="h-4 w-4" aria-hidden /> Navigate
+              <Navigation className="h-4 w-4" aria-hidden /> {t('customerDetail.navigate')}
             </a>
             <button onClick={() => setVisitOpen(true)} className="flex h-11 items-center justify-center gap-1.5 rounded-xl bg-brand-500 text-sm font-bold text-white tap-target">
-              <MapPin className="h-4 w-4" aria-hidden /> Visit
+              <MapPin className="h-4 w-4" aria-hidden /> {t('customerDetail.visit')}
             </button>
           </div>
           <div className="mt-3.5 grid grid-cols-2 gap-3 border-t border-neutral-100 pt-3">
-            <KeyFigure label="Last purchase" date={customer.last_purchase_date} today={today} />
-            <KeyFigure label="Last visit" date={customer.last_visit_date} today={today} />
+            <KeyFigure label={t('customerDetail.lastPurchase')} date={customer.last_purchase_date} today={today} />
+            <KeyFigure label={t('customerDetail.lastVisit')} date={customer.last_visit_date} today={today} />
           </div>
         </section>
 
-        <div role="tablist" aria-label="Customer" className="flex gap-0.5 rounded-xl bg-neutral-100 p-[3px] lg:max-w-xl">
+        <div role="tablist" aria-label={t('customerDetail.customer')} className="flex gap-0.5 rounded-xl bg-neutral-100 p-[3px] lg:max-w-xl">
           {(
             [
-              ['info', 'Info'],
-              ['orders', 'Orders'],
-              ['payments', 'Payments'],
-              ['conv', 'Interactions'],
+              ['info', t('customerDetail.tabInfo')],
+              ['orders', t('customerDetail.tabOrders')],
+              ['payments', t('customerDetail.tabPayments')],
+              ['conv', t('customerDetail.tabInteractions')],
             ] as const
           ).map(([k, label]) => (
             <button
@@ -183,17 +187,17 @@ function CustomerDetail() {
         {tab === 'info' && (
           <div className="flex flex-col gap-3.5 lg:max-w-xl">
             <TierCard customerId={customer.id!} />
-            <InfoGroup title="Contact">
-              <InfoRow label={customer.primary_contact_name ?? 'Contact'} value={customer.primary_contact_phone ?? '—'} />
-              <InfoRow label="Address" value={[customer.street_address, customer.commune_name, customer.district_name, customer.province_name].filter(Boolean).join(', ') || '—'} />
-              {customer.owner_name && <InfoRow label="Salesperson" value={customer.owner_name} />}
+            <InfoGroup title={t('customerDetail.groupContact')}>
+              <InfoRow label={customer.primary_contact_name ?? t('customerDetail.groupContact')} value={customer.primary_contact_phone ?? '—'} />
+              <InfoRow label={t('customerDetail.address')} value={[customer.street_address, customer.commune_name, customer.district_name, customer.province_name].filter(Boolean).join(', ') || '—'} />
+              {customer.owner_name && <InfoRow label={t('customerDetail.salesperson')} value={customer.owner_name} />}
             </InfoGroup>
             {customer.credit_limit_usd != null && (
-              <InfoGroup title="Account">
+              <InfoGroup title={t('customerDetail.groupAccount')}>
                 <InfoRow
-                  label="Credit limit"
+                  label={t('customerDetail.creditLimit')}
                   value={usd(customer.credit_limit_usd)}
-                  note={customer.balance_usd != null ? `${usd(Math.max(0, customer.credit_limit_usd - customer.balance_usd))} left` : undefined}
+                  note={customer.balance_usd != null ? t('customerDetail.creditLeft', { amount: usd(Math.max(0, customer.credit_limit_usd - customer.balance_usd)) }) : undefined}
                 />
               </InfoGroup>
             )}
@@ -209,19 +213,19 @@ function CustomerDetail() {
             {canLog && (
               <div className="grid grid-cols-2 gap-2">
                 <button type="button" onClick={() => setLogKind('note')} className="flex h-11 items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white text-sm font-bold text-neutral-900">
-                  <NotebookPen className="h-4 w-4" aria-hidden /> Add a note
+                  <NotebookPen className="h-4 w-4" aria-hidden /> {t('customerDetail.addNote')}
                 </button>
                 <button type="button" onClick={() => setLogKind('call')} className="flex h-11 items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white text-sm font-bold text-neutral-900">
-                  <Phone className="h-4 w-4" aria-hidden /> Log a call
+                  <Phone className="h-4 w-4" aria-hidden /> {t('customerDetail.logCall')}
                 </button>
               </div>
             )}
-            <div role="radiogroup" aria-label="Filter" className="flex gap-1.5">
+            <div role="radiogroup" aria-label={t('customerDetail.filterAria')} className="flex gap-1.5">
               {(
                 [
-                  ['all', 'All'],
-                  ['visits', 'Visits'],
-                  ['notes', 'Notes & calls'],
+                  ['all', t('customerDetail.fAll')],
+                  ['visits', t('customerDetail.fVisits')],
+                  ['notes', t('customerDetail.fNotes')],
                 ] as const
               ).map(([k, label]) => (
                 <button
@@ -260,7 +264,7 @@ function CustomerDetail() {
         onClose={() => setLogKind(null)}
         kind={logKind ?? 'call'}
         customerId={customer.id!}
-        customerName={customer.shop_name ?? 'Customer'}
+        customerName={customer.shop_name ?? t('customerDetail.customer')}
         customerOwnerId={customer.owner_id ?? null}
         meId={profile?.id ?? null}
         onSaved={() => setConversationKey((k) => k + 1)}
@@ -270,9 +274,10 @@ function CustomerDetail() {
 }
 
 function BackLink({ onClick }: { onClick: () => void }) {
+  const { t } = useLanguage()
   return (
     <button onClick={onClick} className="flex items-center gap-1 text-sm font-medium text-neutral-600 tap-target">
-      <ArrowLeft className="h-4 w-4" /> Customers
+      <ArrowLeft className="h-4 w-4" /> {t('nav.customers')}
     </button>
   )
 }
@@ -290,11 +295,12 @@ function InfoRow({ label, value, note, tone = 'text-neutral-900' }: { label: str
 }
 
 function KeyFigure({ label, date, today }: { label: string; date: string | null | undefined; today: string }) {
+  const { t, language } = useLanguage()
   return (
     <div>
       <p className="text-xs text-neutral-500">{label}</p>
-      <p className="text-[17px] font-extrabold text-neutral-900">{agoText(date ?? null, today)}</p>
-      {date && <p className="text-xs text-neutral-500">{shortDate(date)}</p>}
+      <p className="text-[17px] font-extrabold text-neutral-900">{agoText(date ?? null, today, t)}</p>
+      {date && <p className="text-xs text-neutral-500">{fullDate(date, language)}</p>}
     </div>
   )
 }

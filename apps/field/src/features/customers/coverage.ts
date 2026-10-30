@@ -1,11 +1,12 @@
 import type { CoverageRow, DueState, Tier } from './coverageService'
+import { enT } from './book'
 
 /** How often each tier should be seen -- mirrors app.tier_cadence_days (0087). */
 export const TIER_CADENCE_DAYS: Record<Tier, number> = { A: 7, B: 14, C: 30 }
 
-export function tierCadenceLabel(tier: string): string {
+export function tierCadenceLabel(tier: string, t: (key: string) => string = (k) => enT(k)): string {
   const days = TIER_CADENCE_DAYS[tier as Tier] ?? TIER_CADENCE_DAYS.B
-  return days === 7 ? 'Weekly' : days === 14 ? 'Every 2 weeks' : 'Monthly'
+  return t(days === 7 ? 'customerDetail.tierWeekly' : days === 14 ? 'customerDetail.tierFortnight' : 'customerDetail.tierMonthly')
 }
 
 /** Tailwind classes for the small A/B/C tier badge. */

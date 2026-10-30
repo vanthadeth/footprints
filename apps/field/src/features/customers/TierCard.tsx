@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Check, Loader2, Plus } from 'lucide-react'
 import { SegmentedControl } from '@footprints/shared/components/SegmentedControl'
+import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 import { planService } from '@/features/plan/planService'
 import { todayDateString } from '@/lib/dateRange'
 import { tierCadenceLabel } from './coverage'
@@ -13,6 +14,7 @@ import { coverageService, type Tier } from './coverageService'
  * refused save just rolls back and says so.
  */
 export function TierCard({ customerId }: { customerId: string }) {
+  const { t } = useLanguage()
   const [tier, setTier] = useState<Tier>('B')
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
@@ -46,7 +48,7 @@ export function TierCard({ customerId }: { customerId: string }) {
       await coverageService.setTier(customerId, next)
     } catch {
       setTier(prev)
-      setMessage("You can't change this customer's tier.")
+      setMessage(t('customerDetail.tierDenied'))
     } finally {
       setSaving(false)
     }
@@ -59,7 +61,7 @@ export function TierCard({ customerId }: { customerId: string }) {
       setPlanState('added')
     } catch {
       setPlanState('idle')
-      setMessage('Could not add to today’s plan.')
+      setMessage(t('customerDetail.planFailed'))
     }
   }
 
@@ -67,14 +69,14 @@ export function TierCard({ customerId }: { customerId: string }) {
     <div className="mt-4 rounded-xl2 bg-white p-4 shadow-card">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-bold text-neutral-900">Visit tier</p>
+          <p className="text-sm font-bold text-neutral-900">{t('customerDetail.tierTitle')}</p>
           <p className="text-xs text-neutral-500">
-            {tierCadenceLabel(tier)}
-            {saving && <Loader2 className="ml-1 inline h-3 w-3 animate-spin" aria-label="Saving" />}
+            {tierCadenceLabel(tier, t)}
+            {saving && <Loader2 className="ml-1 inline h-3 w-3 animate-spin" aria-label={t('customerDetail.saving')} />}
           </p>
         </div>
         <SegmentedControl<Tier>
-          ariaLabel="Visit tier"
+          ariaLabel={t('customerDetail.tierTitle')}
           shape="tabs"
           value={tier}
           onChange={(t) => void handleTier(t)}
@@ -94,7 +96,7 @@ export function TierCard({ customerId }: { customerId: string }) {
         }`}
       >
         {planState === 'adding' ? <Loader2 className="h-4 w-4 animate-spin" /> : planState === 'added' ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-        {planState === 'added' ? "On today's plan" : "Add to today's plan"}
+        {planState === 'added' ? t('customerDetail.onPlan') : t('customerDetail.addPlan')}
       </button>
       {message && <p className="mt-2 text-xs text-status-danger">{message}</p>}
     </div>
