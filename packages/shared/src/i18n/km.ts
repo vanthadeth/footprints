@@ -23,7 +23,7 @@ export const km: TranslationKey = {
     geofence: 'តំបន់ភូមិសាស្ត្រ និងច្បាប់',
     dataSync: 'ទិន្នន័យ និងការធ្វើសមកាលកម្ម',
     clockIn: 'ចូលម៉ោង',
-    checkIn: 'ចូល',
+    checkIn: 'ការជួប',
     footprints: 'ស្នាមជើង',
     fleet: 'របាយការណ៍ក្រុម',
     profile: 'ប្រវត្តិរូប',
