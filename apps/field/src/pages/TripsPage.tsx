@@ -1,28 +1,39 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronRight, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { useCan } from '@footprints/shared/features/permissions/PermissionsContext'
-import { lengthLabel, money, planTrip, ppToday, provinceName, dayLabel } from '@/features/trips/trip'
-import { tripDraftStore, tripErrorMessage, tripService, toDays, type TripRow } from '@/features/trips/tripService'
+import { lengthLabel, money, ppToday, provinceName, dayLabel } from '@/features/trips/trip'
+import { tripDraftStore, tripErrorMessage, tripService, type TripRow } from '@/features/trips/tripService'
+import { HISTORY_FILTERS, historyKind, historyYears, monthGroups, splitTrips, type HistoryFilter } from '@/features/trips/tripLists'
 import { AvatarStack, StatusPill } from '@/features/trips/TripParts'
-import { card, kicker } from '@/features/trips/tripStyles'
+import { TripRequestCard } from '@/features/trips/TripRequestCard'
+import { useProvinceCounts } from '@/features/trips/useProvinceCounts'
+import { card } from '@/features/trips/tripStyles'
+
+type Tab = 'approve' | 'upcoming' | 'history'
 
 const title = (t: TripRow) => {
   const provs = [...new Set(t.days.flatMap((d) => d.provinces))]
-  return provs.slice(0, 3).map(provinceName).join(', ') + (provs.length > 3 ? ` +${provs.length - 3}` : '')
+  return provs.slice(0, 2).map(provinceName).join(', ') + (provs.length > 2 ? ` +${provs.length - 2}` : '')
 }
 
 /**
- * Sales trips: today's trip if you're on one, then upcoming trips (waiting,
- * changes asked, approved) and past ones. "+ New trip" picks up an unsent
- * draft kept on this device.
+ * Sales trips. Upcoming: the New trip button and your trips that are waiting,
+ * need changes or are approved. History: past and closed trips by year, month
+ * and outcome. Approvers also get "To approve": requests waiting for them,
+ * opened in full before they decide.
  */
 export function TripsPage() {
   const canRequest = useCan('sales_trip', 'add')
   const [trips, setTrips] = useState<TripRow[] | null>(null)
+  const [team, setTeam] = useState<TripRow[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [tab, setTab] = useState<Tab | null>(null)
+  const [filter, setFilter] = useState<HistoryFilter>('all')
+  const [year, setYear] = useState<string | null>(null)
   const draft = tripDraftStore.load()
   const today = ppToday()
+  const counts = useProvinceCounts()
 
   useEffect(() => {
     tripService
@@ -32,172 +43,152 @@ export function TripsPage() {
         setError(tripErrorMessage(e))
         setTrips([])
       })
+    tripService.team().then(setTeam).catch(() => {
+      // Not an approver, or the list is unavailable: no To approve tab.
+    })
   }, [])
 
-  const list = trips ?? []
-  const current = list.find((t) => t.status === 'approved' && t.start_date <= today && t.end_date >= today)
-  const upcoming = list.filter((t) => t !== current && t.end_date >= today && ['pending', 'changes', 'approved'].includes(t.status)).sort((a, b) => a.start_date.localeCompare(b.start_date))
-  const past = list.filter((t) => t !== current && !upcoming.includes(t))
+  const { upcoming, history } = useMemo(() => splitTrips(trips ?? [], today), [trips, today])
+  const toApprove = useMemo(() => team.filter((t) => t.can_decide).sort((a, b) => a.start_date.localeCompare(b.start_date)), [team])
+  const years = historyYears(history, today)
+  const activeYear = year ?? years[0]
+  const groups = monthGroups(history, activeYear, filter)
+  const showApprove = toApprove.length > 0
+  const active: Tab = tab === 'approve' && !showApprove ? 'upcoming' : (tab ?? (showApprove ? 'approve' : 'upcoming'))
   const draftReady = draft && draft.days.some((d) => d.provinces.length)
+
+  const tabs: { key: Tab; label: string }[] = [
+    ...(showApprove ? [{ key: 'approve' as const, label: `To approve · ${toApprove.length}` }] : []),
+    { key: 'upcoming', label: 'Upcoming' },
+    { key: 'history', label: 'History' },
+  ]
 
   return (
     <div className="mx-auto max-w-lg space-y-3 px-4 pb-8 pt-2 md:max-w-2xl lg:max-w-4xl md:px-8">
-      {current && <OnTrip trip={current} today={today} />}
+      <div role="tablist" aria-label="Trips" className="flex gap-0.5 rounded-xl bg-neutral-100 p-[3px] lg:max-w-xl">
+        {tabs.map((t) => (
+          <button key={t.key} type="button" role="tab" aria-selected={active === t.key} onClick={() => setTab(t.key)} className={`h-10 flex-1 rounded-[9px] text-[13.5px] ${active === t.key ? 'seg-on font-bold text-neutral-900 shadow-sm' : 'font-semibold text-neutral-500'}`}>
+            {t.label}
+          </button>
+        ))}
+      </div>
 
-      {canRequest && (
-        <Link to="/trips/new" className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-brand-500 text-[15px] font-extrabold text-white">
-          <Plus className="h-5 w-5" aria-hidden /> {draftReady ? 'Continue your draft trip' : 'New sales trip'}
-        </Link>
-      )}
-      {canRequest && draftReady && (
-        <p className="px-1 text-[12.5px] text-neutral-500">
-          Draft: {lengthLabel(draft.days.length, Math.max(draft.days.length - 1, 0))} from {dayLabel(draft.start)} · kept on this phone until you send it.
-        </p>
-      )}
-
-      {trips === null && <div className="h-40 animate-pulse rounded-2xl bg-neutral-100" />}
       {error && <p className="rounded-xl bg-status-danger/10 px-3 py-2 text-sm text-status-danger">{error}</p>}
+      {trips === null && <div className="h-40 animate-pulse rounded-2xl bg-neutral-100" />}
 
-      {trips && !current && upcoming.length === 0 && past.length === 0 && (
-        <div className={`${card} p-5 text-center`}>
-          <p className="text-[15px] font-extrabold text-neutral-900">No trips yet</p>
-          <p className="mt-1 text-[13px] leading-snug text-neutral-500">Pick a start date, then where you’ll visit and sleep each day. Your Sales Manager approves it before you go.</p>
-        </div>
+      {active === 'approve' && (
+        <>
+          <p className="px-0.5 pt-1 text-[12px] font-extrabold uppercase tracking-wide text-neutral-500">Waiting for you</p>
+          {toApprove.map((t) => (
+            <TripRequestCard key={t.id} trip={t} counts={counts} />
+          ))}
+        </>
       )}
 
-      {trips && trips.length > 0 && <YearSoFar trips={trips} today={today} />}
-
-      {upcoming.length > 0 && <p className="px-0.5 pt-1 text-[17px] font-extrabold text-neutral-900">Upcoming</p>}
-      {upcoming.map((t) => (
-        <TripCard key={t.id} trip={t} />
-      ))}
-
-      {past.length > 0 && <p className="px-0.5 pt-1 text-[17px] font-extrabold text-neutral-900">Past and closed</p>}
-      {past.length > 0 && (
-        <div className={`${card} px-3.5 py-0.5`}>
-          {past.map((t, i) => (
-            <Link key={t.id} to={`/trips/${t.id}`} className={`flex items-center gap-2.5 py-2.5 ${i ? 'border-t border-neutral-100 dark:border-neutral-800' : ''}`}>
-              <DateTile day={t.start_date} />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-bold text-neutral-900">{title(t)}</span>
-                <span className="block truncate text-[12px] text-neutral-500">
-                  {dayLabel(t.start_date)} – {dayLabel(t.end_date)} · {t.people_count === 1 ? 'just you' : `${t.people_count} people`} · {money(t.est_total)}
-                </span>
-              </span>
-              <StatusPill status={t.status} />
+      {active === 'upcoming' && trips && (
+        <>
+          {canRequest && (
+            <Link to="/trips/new" className="flex h-[52px] items-center justify-center gap-2 rounded-2xl bg-brand-500 text-[16px] font-bold text-white">
+              <Plus className="h-5 w-5" aria-hidden /> {draftReady ? 'Continue your draft trip' : 'New trip'}
             </Link>
+          )}
+          {canRequest && draftReady && (
+            <p className="px-1 text-[12.5px] text-neutral-500">
+              Draft: {lengthLabel(draft.days.length, Math.max(draft.days.length - 1, 0))} from {dayLabel(draft.start)} · kept on this phone until you send it.
+            </p>
+          )}
+          {upcoming.length === 0 ? (
+            <div className={`${card} p-5 text-center`}>
+              <p className="text-[15px] font-extrabold text-neutral-900">{history.length ? 'Nothing coming up' : 'No trips yet'}</p>
+              <p className="mt-1 text-[13px] leading-snug text-neutral-500">Pick a start date, then where you’ll visit and sleep each day. Your Sales Manager approves it before you go.</p>
+            </div>
+          ) : (
+            <>
+              <p className="px-0.5 pt-1 text-[12px] font-extrabold uppercase tracking-wide text-neutral-500">Upcoming · {upcoming.length}</p>
+              <div className={`${card} px-3.5 py-0.5`}>
+                {upcoming.map((t, i) => (
+                  <TripRowItem key={t.id} trip={t} first={i === 0} />
+                ))}
+              </div>
+            </>
+          )}
+        </>
+      )}
+
+      {active === 'history' && trips && (
+        <>
+          <div role="group" aria-label="Year" className="flex gap-1 rounded-xl bg-neutral-100 p-1">
+            {years.map((y) => (
+              <button key={y} type="button" aria-pressed={activeYear === y} onClick={() => setYear(y)} className={`h-[34px] flex-1 rounded-[10px] text-[13.5px] ${activeYear === y ? 'seg-on font-bold text-neutral-900 shadow-sm' : 'font-semibold text-neutral-500'}`}>
+                {y}
+              </button>
+            ))}
+          </div>
+          <div role="group" aria-label="Show" className="-mx-4 flex gap-2 overflow-x-auto px-4">
+            {HISTORY_FILTERS.map((f) => (
+              <button key={f.key} type="button" aria-pressed={filter === f.key} onClick={() => setFilter(f.key)} className={`h-9 shrink-0 rounded-full border-[1.5px] px-3.5 text-[13.5px] ${filter === f.key ? 'border-brand-500 bg-brand-500 font-bold text-white' : 'border-neutral-300 font-semibold text-neutral-900 dark:border-neutral-600'}`}>
+                {f.label}
+              </button>
+            ))}
+          </div>
+          {groups.length === 0 && (
+            <div className={`${card} p-5 text-center`}>
+              <p className="text-[15px] font-extrabold text-neutral-900">No trips here</p>
+              <p className="mt-1 text-[13px] text-neutral-500">{filter === 'all' ? `You have no past trips in ${activeYear}.` : `No ${filter} trips in ${activeYear}.`}</p>
+            </div>
+          )}
+          {groups.map((g) => (
+            <section key={g.key} aria-label={g.label}>
+              <p className="px-0.5 pb-1.5 pt-2 text-[12px] font-extrabold uppercase tracking-wide text-neutral-500">{g.label}</p>
+              <div className={`${card} px-3.5 py-0.5`}>
+                {g.trips.map((t, i) => (
+                  <TripRowItem key={t.id} trip={t} first={i === 0} faded={historyKind(t) !== 'done'} done />
+                ))}
+              </div>
+            </section>
           ))}
-        </div>
+        </>
       )}
     </div>
   )
 }
 
-function TripCard({ trip }: { trip: TripRow }) {
+/** One trip: date tile, where, dates and length, who is with you and the total, and its status. */
+function TripRowItem({ trip, first, faded = false, done = false }: { trip: TripRow; first: boolean; faded?: boolean; done?: boolean }) {
   const nights = trip.days.filter((d) => d.night).length
-  const others = trip.people.slice(1).map((p) => p.name)
+  const label = done && trip.status === 'approved' ? 'Done' : undefined
   return (
-    <Link to={`/trips/${trip.id}`} className={`${card} block space-y-1.5 p-3.5`}>
-      <span className="flex items-center gap-3">
-        <DateTile day={trip.start_date} />
-        <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-2">
-            <span className="min-w-0 flex-1 truncate text-[15px] font-extrabold text-neutral-900">{title(trip)}</span>
-            <StatusPill status={trip.status} />
+    <Link to={`/trips/${trip.id}`} className={`flex gap-3 py-3.5 ${first ? '' : 'border-t border-neutral-100 dark:border-neutral-800'} ${faded ? 'opacity-60' : ''}`}>
+      <DateTile day={trip.start_date} />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[16px] font-extrabold leading-[21px] text-neutral-900">{title(trip)}</span>
+        <span className="block text-[12.5px] text-neutral-500">
+          {dayLabel(trip.start_date)} – {dayLabel(trip.end_date)} · {lengthLabel(trip.days.length, nights)}
+        </span>
+        <span className="mt-1.5 flex items-center gap-2 text-[12.5px] text-neutral-500">
+          <AvatarStack names={trip.people.map((p) => p.full_name)} />
+          <span className="min-w-0 flex-1 truncate">
+            {trip.room_nights ? `${trip.room_nights} room${trip.room_nights === 1 ? '' : 's'}` : 'No room'} · {money(trip.est_total)}
           </span>
-          <span className="block text-[13px] text-neutral-600">
-            {dayLabel(trip.start_date)} – {dayLabel(trip.end_date)} · {lengthLabel(trip.days.length, nights)}
+          {label ? <span className="shrink-0 rounded-full bg-status-working/10 px-2 py-0.5 text-[11px] font-extrabold text-status-working">{label}</span> : <StatusPill status={trip.status} />}
+        </span>
+        {trip.status === 'changes' && trip.decision_note && (
+          <span className="mt-2 block rounded-xl bg-status-warn/10 px-2.5 py-2 text-[12.5px] leading-snug text-neutral-900">
+            <b className="text-status-warn">{trip.decided_by ?? 'Manager'} asks:</b> {trip.decision_note}
           </span>
-        </span>
+        )}
       </span>
-      <span className="flex items-center gap-2 text-[12.5px] text-neutral-500">
-        <AvatarStack names={trip.people.map((p) => p.full_name)} />
-        <span className="min-w-0 flex-1 truncate">
-          {others.length ? `With ${others.join(', ')}` : 'Just you'} · {trip.room_nights} room-nights · est. {money(trip.est_total)}
-        </span>
-        <ChevronRight className="h-4 w-4 shrink-0 text-neutral-400" aria-hidden />
-      </span>
-      {trip.status === 'changes' && trip.decision_note && (
-        <span className="mt-1 block rounded-xl bg-status-warn/10 px-2.5 py-2 text-[12.5px] leading-snug text-neutral-900">
-          {trip.decided_by ?? 'Manager'}: “{trip.decision_note}”
-        </span>
-      )}
     </Link>
   )
 }
 
-/** On a trip today: which day, where, tonight, who -- and the way to today's Check In. */
-function OnTrip({ trip, today }: { trip: TripRow; today: string }) {
-  const plan = planTrip(trip.start_date, toDays(trip))
-  const d = plan.days.find((x) => x.date === today) ?? plan.days[0]
-  const others = trip.people.slice(1).map((p) => p.name)
-  return (
-    <div className="space-y-3 rounded-[20px] bg-brand-900 p-4 text-white">
-      <span className="inline-flex rounded-full bg-[#FF9F2D]/20 px-2.5 py-1 text-[12px] font-extrabold text-[#FFB257]">
-        On a trip · Day {d.n} of {plan.days.length}
-      </span>
-      <div>
-        <p className="text-[26px] font-extrabold leading-tight">{d.provinces.map(provinceName).join(' → ')}</p>
-        <p className="mt-1 text-[13.5px] leading-snug text-white/80">
-          {others.length ? `With ${others.join(' and ')} · ` : ''}
-          {d.back ? 'back to Phnom Penh this evening' : `tonight ${provinceName(d.night!)}${d.rooms ? `, ${d.rooms} room${d.rooms === 1 ? '' : 's'}` : ''}`}
-          {d.back ? '' : ` · back in Phnom Penh ${dayLabel(plan.end)}`}
-        </p>
-      </div>
-      <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${plan.days.length}, minmax(0, 1fr))` }}>
-        {plan.days.map((x) => (
-          <span key={x.n} className="min-w-0">
-            <span className={`block h-1.5 rounded-full ${x.n < d.n ? 'bg-[#17CB49]' : x.n === d.n ? 'bg-[#FFB257]' : 'bg-white/15'}`} />
-            <span className={`mt-1 block text-[11px] ${x.n === d.n ? 'font-extrabold text-white' : 'text-white/70'}`}>{x.label.slice(0, 3)}</span>
-          </span>
-        ))}
-      </div>
-      <Link to="/check-in" className="flex h-11 items-center justify-center rounded-xl bg-[#ffffff] text-sm font-extrabold text-[#006ACC]">
-        Open today’s Check In
-      </Link>
-      <Link to={`/trips/${trip.id}`} className={`${kicker} block text-center !text-white/70`}>
-        Trip details ›
-      </Link>
-    </div>
-  )
-}
-
-/** "MON / 21" date tile, as on the canvas's trip list. */
+/** "NOV / 10" date tile, as on the canvas's trip list. */
 function DateTile({ day }: { day: string }) {
   const d = new Date(`${day}T00:00:00Z`)
   return (
-    <span className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-xl bg-brand-50 text-brand-700 dark:bg-brand-500/20 dark:text-brand-100">
-      <span className="text-[10px] font-extrabold uppercase leading-none">{d.toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' }).slice(0, 3)}</span>
-      <span className="text-[17px] font-extrabold leading-5">{d.getUTCDate()}</span>
+    <span className="flex h-[54px] w-12 shrink-0 flex-col items-center justify-center rounded-[14px] bg-neutral-100 text-neutral-900 dark:bg-neutral-800">
+      <span className="text-[19px] font-extrabold leading-[21px]">{d.getUTCDate()}</span>
+      <span className="text-[11px] font-bold uppercase leading-none text-neutral-500">{d.toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' }).slice(0, 3)}</span>
     </span>
-  )
-}
-
-/** "2026 so far": trips taken this year, days away and the estimated total. */
-function YearSoFar({ trips, today }: { trips: TripRow[]; today: string }) {
-  const year = today.slice(0, 4)
-  const taken = trips.filter((t) => t.status === 'approved' && t.start_date.startsWith(year) && t.start_date <= today)
-  const days = taken.reduce((n, t) => n + t.days.length, 0)
-  const total = taken.reduce((n, t) => n + (t.est_total ?? 0), 0)
-  const month = new Date(`${today}T00:00:00Z`).toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' })
-  return (
-    <section aria-label={`${year} so far`} className={`${card} p-3.5`}>
-      <div className="flex items-baseline justify-between">
-        <p className="text-[15px] font-extrabold text-neutral-900">{year} so far</p>
-        <p className="text-xs text-neutral-500">Jan – {month}</p>
-      </div>
-      <div className="mt-2.5 grid grid-cols-3">
-        {[
-          [String(taken.length), taken.length === 1 ? 'trip' : 'trips'],
-          [String(days), days === 1 ? 'day away' : 'days away'],
-          [money(total), 'estimated'],
-        ].map(([v, l], i) => (
-          <div key={l} className={`min-w-0 px-2 ${i ? 'border-l border-neutral-100 dark:border-neutral-800' : 'pl-0'}`}>
-            <p className="truncate text-lg font-extrabold text-neutral-900">{v}</p>
-            <p className="text-[11px] text-neutral-500">{l}</p>
-          </div>
-        ))}
-      </div>
-    </section>
   )
 }

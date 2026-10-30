@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Check } from 'lucide-react'
+import { Check, ChevronDown } from 'lucide-react'
 import { useProfile } from '@footprints/shared/features/auth/useProfile'
 import { DEFAULT_RATES, costOf, planTrip, ppToday, type TripRates } from '@/features/trips/trip'
 import { tripErrorMessage, tripRates, tripService, toDays, type TripRow } from '@/features/trips/tripService'
-import { TripApprovalCard } from '@/features/trips/TripApprovalCard'
+import { TripReview } from '@/features/trips/TripReview'
 import { TripTransferCard } from '@/features/trips/TripTransferCard'
-import { AvatarStack, CostCard, DayList, RoomsCard, RouteStrip, StatusPill } from '@/features/trips/TripParts'
+import { CostCard, DayPills, HeroStats, PeoplePills, RouteLine } from '@/features/trips/TripParts'
+import { useProvinceCounts } from '@/features/trips/useProvinceCounts'
 import { card } from '@/features/trips/tripStyles'
 
 /**
@@ -19,6 +20,8 @@ export function TripDetailPage() {
   const navigate = useNavigate()
   const { profile } = useProfile()
   const [trip, setTrip] = useState<TripRow | null>(null)
+  const [all, setAll] = useState<TripRow[]>([])
+  const counts = useProvinceCounts()
   const [rates, setRates] = useState<TripRates>(DEFAULT_RATES)
   const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -27,6 +30,7 @@ export function TripDetailPage() {
   const load = useCallback(async () => {
     const [mine, team, r] = await Promise.all([tripService.mine(), tripService.team().catch(() => [] as TripRow[]), tripService.rates().catch(() => DEFAULT_RATES)])
     setRates(r)
+    setAll([...mine, ...team])
     setTrip([...mine, ...team].find((t) => t.id === id) ?? null)
     setLoaded(true)
   }, [id])
@@ -44,7 +48,7 @@ export function TripDetailPage() {
   if (trip.can_decide) {
     return (
       <div className="mx-auto max-w-lg space-y-3 px-4 pb-8 pt-2 md:max-w-2xl lg:max-w-4xl md:px-8">
-        <TripApprovalCard trip={trip} rates={rates} onDecided={() => load()} />
+        <TripReview trip={trip} rates={rates} history={all} onDecided={() => navigate('/trips')} />
       </div>
     )
   }
@@ -74,12 +78,17 @@ export function TripDetailPage() {
       <div className="space-y-3 rounded-[20px] bg-brand-900 p-4 text-white">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <p className="text-[12px] font-extrabold uppercase tracking-wide text-white/60">Sales trip · {plan.range}</p>
-            <p className="mt-1 text-[24px] font-extrabold">{plan.length}</p>
+            <p className="text-[12px] font-extrabold uppercase tracking-wide text-white/60">Sales trip</p>
+            <p className="mt-1 text-[24px] font-extrabold leading-tight">{plan.range}</p>
+            <p className="text-[13px] text-white/80">Sent by {mine ? 'you' : trip.requester} on {new Date(trip.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</p>
           </div>
-          <StatusPill status={trip.status} />
+          <HeroChip status={trip.status} />
         </div>
-        <RouteStrip plan={plan} dark />
+        <HeroStats days={plan.days.length} provinces={plan.provinces.length} total={cost.total} />
+        <RouteLine plan={plan} />
+        <div className="border-t border-white/15 pt-3">
+          <PeoplePills names={trip.people.map((p) => p.name)} dark />
+        </div>
       </div>
 
       {trip.status === 'changes' && trip.decision_note && (
@@ -94,7 +103,7 @@ export function TripDetailPage() {
           )}
         </div>
       )}
-      {trip.status === 'pending' && mine && <WaitingCard trip={trip} range={plan.range} />}
+      {trip.status === 'pending' && mine && <StatusRow trip={trip} range={plan.range} />}
       {trip.status !== 'changes' && trip.decided_by && (
         <p className="px-1 text-[13px] text-neutral-600">
           {trip.status === 'approved' ? 'Approved' : trip.status === 'rejected' ? 'Rejected' : 'Decided'} by {trip.decided_by}
@@ -102,21 +111,11 @@ export function TripDetailPage() {
         </p>
       )}
 
-      <div className={`${card} flex items-center gap-3 p-3.5`}>
-        <AvatarStack names={trip.people.map((p) => p.full_name)} />
-        <span className="min-w-0 flex-1">
-          <span className="block text-[14.5px] font-extrabold text-neutral-900">
-            {n} {n === 1 ? 'person' : 'people'} · sent by {mine ? 'you' : trip.requester}
-          </span>
-          <span className="block truncate text-[12.5px] text-neutral-500">{trip.people.map((p) => p.name).join(', ')}</span>
-        </span>
-      </div>
-
       <TripTransferCard trip={trip} onDone={() => load()} />
 
-      <DayList plan={plan} people={n} perRoom={rates.perRoom} />
-      <RoomsCard plan={plan} people={n} perRoom={rates.perRoom} roomNights={trip.room_nights} />
-      <CostCard cost={cost} people={n} special={special} cap={rates.specialCap} title="Estimated cost · rates when sent" />
+      <p className="px-0.5 pt-1 text-[12px] font-extrabold uppercase tracking-wide text-neutral-500">Day by day · {plan.days.length} {plan.days.length === 1 ? 'day' : 'days'}</p>
+      <DayPills plan={plan} people={n} perRoom={rates.perRoom} counts={counts} />
+      <CostCard cost={cost} people={n} special={special} cap={rates.specialCap} title="Cost · rates when sent" />
       {trip.note && (
         <div className={`${card} p-3.5`}>
           <p className="text-[12px] font-extrabold uppercase tracking-wide text-neutral-500">Purpose</p>
@@ -136,36 +135,61 @@ export function TripDetailPage() {
   )
 }
 
-/** A trip waiting for its approver: who has it, when it went, and what happens next. */
-function WaitingCard({ trip, range }: { trip: TripRow; range: string }) {
+const CHIP: Record<TripRow['status'], { label: string; tone: string }> = {
+  pending: { label: 'Waiting for approval', tone: 'bg-[#FF9F2D] text-[#3b2100]' },
+  approved: { label: 'Approved', tone: 'bg-status-working text-white' },
+  changes: { label: 'Changes asked', tone: 'bg-[#FF9F2D] text-[#3b2100]' },
+  rejected: { label: 'Rejected', tone: 'bg-status-danger text-white' },
+  cancelled: { label: 'Cancelled', tone: 'bg-white/20 text-white' },
+}
+
+/** Status chip that reads on the dark hero card. */
+function HeroChip({ status }: { status: TripRow['status'] }) {
+  return <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11.5px] font-extrabold ${CHIP[status].tone}`}>{CHIP[status].label}</span>
+}
+
+/** A trip waiting for its approver: one row with the step, opening the four steps on tap. */
+function StatusRow({ trip, range }: { trip: TripRow; range: string }) {
+  const [open, setOpen] = useState(false)
   const sent = new Date(trip.created_at)
-  const sentText = `${sent.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} ${sent.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`
+  const sentText = `${sent.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}, ${sent.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`
   const steps: { label: string; sub: string; done: boolean }[] = [
     { label: 'Sent', sub: sentText, done: true },
-    { label: 'Your manager decides', sub: 'Usually within a day · you get a notice', done: false },
-    { label: 'The trip', sub: `${range} · clock in from the route`, done: false },
-    { label: 'Back and done', sub: 'It moves to your past trips', done: false },
+    { label: 'Your Sales Manager decides', sub: 'Any Sales Manager or Super Admin · usually within a day', done: false },
+    { label: 'The trip', sub: `${range} · clock in anywhere on trip days`, done: false },
+    { label: 'Back and done', sub: 'The accountant transfers the allowance', done: false },
   ]
   return (
-    <section aria-label="Waiting for approval" className={`${card} p-3.5`}>
-      <p className="text-xs font-bold uppercase tracking-wide text-status-warn">Waiting for approval</p>
-      <p className="mt-0.5 text-[15px] font-extrabold text-neutral-900">Your manager is reviewing it</p>
-      <p className="text-xs text-neutral-500">Sent {sentText} · you can cancel until it starts</p>
-      <p className="mt-3 text-xs font-bold uppercase tracking-wide text-neutral-500">What happens next</p>
-      <ol className="mt-1.5">
-        {steps.map((st, i) => (
-          <li key={st.label} className="relative flex gap-3 pb-2.5 last:pb-0">
-            {i < steps.length - 1 && <span aria-hidden className="absolute left-[9px] top-5 h-[calc(100%-12px)] w-px bg-neutral-200 dark:bg-neutral-700" />}
-            <span className={`relative z-[1] mt-0.5 flex h-[19px] w-[19px] shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${st.done ? 'bg-status-working text-white' : 'border-[1.5px] border-neutral-300 bg-white text-neutral-500 dark:bg-neutral-900'}`}>
-              {st.done ? <Check className="h-3 w-3" strokeWidth={3} aria-hidden /> : i + 1}
-            </span>
-            <span className="min-w-0">
-              <span className="block text-[13.5px] font-bold text-neutral-900">{st.label}</span>
-              <span className="block text-xs text-neutral-500">{st.sub}</span>
-            </span>
-          </li>
-        ))}
-      </ol>
+    <section aria-label="Where this request is" className={card}>
+      <button type="button" aria-expanded={open} onClick={() => setOpen((v) => !v)} className="flex min-h-16 w-full items-center gap-3 px-4 py-3 text-left">
+        <span aria-hidden className="flex w-11 shrink-0 gap-[3px]">
+          <i className="h-1.5 flex-1 rounded-full bg-status-working" />
+          <i className="h-1.5 flex-1 rounded-full bg-status-warn" />
+          <i className="h-1.5 flex-1 rounded-full bg-neutral-200 dark:bg-neutral-700" />
+          <i className="h-1.5 flex-1 rounded-full bg-neutral-200 dark:bg-neutral-700" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[14.5px] font-extrabold text-neutral-900">Waiting for your Sales Manager</span>
+          <span className="block text-[12.5px] text-neutral-500">Step 2 of 4 · sent {sentText}</span>
+        </span>
+        <ChevronDown className={`h-5 w-5 shrink-0 text-neutral-500 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />
+      </button>
+      {open && (
+        <ol className="border-t border-neutral-100 px-4 pb-4 pt-3.5 dark:border-neutral-800">
+          {steps.map((st, i) => (
+            <li key={st.label} className="relative flex gap-3 pb-3.5 last:pb-0">
+              {i < steps.length - 1 && <span aria-hidden className="absolute left-3 top-6 h-[calc(100%-12px)] w-0.5 bg-neutral-200 dark:bg-neutral-700" />}
+              <span className={`relative z-[1] flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-extrabold ${st.done ? 'bg-status-working text-white' : i === 1 ? 'bg-status-warn text-white' : 'bg-neutral-100 text-neutral-500 dark:bg-neutral-800'}`}>
+                {st.done ? <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden /> : i + 1}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[14px] font-extrabold text-neutral-900">{st.label}</span>
+                <span className="block text-[12.5px] text-neutral-500">{st.sub}</span>
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
     </section>
   )
 }

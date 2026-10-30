@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Home, Moon } from 'lucide-react'
 import { AVATAR_TONES, initials, money, provinceName, roomSplit, roomsFor, strip, type TripCost, type TripPlan } from './trip'
+import type { ProvinceCounts } from './ProvinceSheet'
 import type { TripStatus } from './tripService'
 import { STATUS, card, kicker } from './tripStyles'
 
@@ -176,6 +177,99 @@ export function Checks({ items }: { items: { ok: boolean; text: string }[] }) {
           </span>
           <span>{c.text}</span>
         </p>
+      ))}
+    </div>
+  )
+}
+
+/** Days with more than this many km are flagged. */
+export const LONG_DAY_KM = 250
+
+/** A province you visit (blue, with how many customers are there), where you sleep (amber, with rooms) or home. */
+export function ProvincePill({ kind, name, count }: { kind: 'visit' | 'sleep' | 'home'; name: string; count?: string | number }) {
+  const tone = kind === 'visit' ? 'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-100' : kind === 'sleep' ? 'bg-earth-50 text-earth-500' : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800'
+  return (
+    <span className={`inline-flex h-7 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-[12.5px] font-bold ${tone}`}>
+      {kind === 'sleep' && <Moon className="h-3 w-3" aria-hidden />}
+      {kind === 'home' && <Home className="h-3 w-3" aria-hidden />}
+      {name}
+      {count !== undefined && count !== '' &&
+        (kind === 'visit' ? (
+          <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand-500 px-1 text-[11px] font-extrabold text-white">{count}</span>
+        ) : (
+          <span className="text-[11.5px] font-medium text-neutral-500">{count}</span>
+        ))}
+    </span>
+  )
+}
+
+/** Day by day, always open: the date, the provinces to visit (with customer counts), the overnight and a long-day flag. */
+export function DayPills({ plan, people, perRoom, counts }: { plan: TripPlan; people: number; perRoom: number; counts: ProvinceCounts }) {
+  return (
+    <div className={`${card} px-3.5 py-1`}>
+      {plan.days.map((d, i) => {
+        const rooms = roomsFor(d, people, perRoom)
+        return (
+          <div key={d.n} className={`py-3 ${i ? 'border-t border-neutral-100 dark:border-neutral-800' : ''}`}>
+            <div className="flex items-center gap-3">
+              <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[10px] bg-brand-50 text-[13px] font-extrabold text-brand-700 dark:bg-brand-500/15 dark:text-brand-100">{d.n}</span>
+              <span className="text-[15px] font-extrabold text-neutral-900">{d.label}</span>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1.5 pl-[42px]">
+              {d.provinces.map((c) => (
+                <ProvincePill key={c} kind="visit" name={provinceName(c)} count={counts[c]?.total} />
+              ))}
+              {d.back ? <ProvincePill kind="home" name="Phnom Penh" count="home" /> : <ProvincePill kind="sleep" name={provinceName(d.night!)} count={`${rooms} room${rooms === 1 ? '' : 's'}`} />}
+              {d.km > LONG_DAY_KM && <span className="inline-flex h-7 items-center rounded-full bg-status-warn/10 px-2.5 text-[12px] font-extrabold text-status-warn">Long day</span>}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+/** Who is on the trip, as pills with initials. `dark` for the hero card. */
+export function PeoplePills({ names, dark = false }: { names: string[]; dark?: boolean }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {names.map((n) => (
+        <span key={n} className={`inline-flex h-[30px] items-center gap-1.5 rounded-full pl-1 pr-3 text-[13px] font-bold ${dark ? 'bg-white/15 text-white' : 'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-100'}`}>
+          <span className={`flex h-[22px] w-[22px] items-center justify-center rounded-full text-[10px] font-extrabold ${dark ? 'bg-white text-brand-900' : 'bg-brand-500 text-white'}`}>{initials(n)}</span>
+          {n}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+/** The route as one wrapping line with chevrons: Kampong Chhnang › Pursat › … */
+export function RouteLine({ plan }: { plan: TripPlan }) {
+  return (
+    <p className="flex flex-wrap text-[13.5px] leading-[21px] text-white">
+      {plan.provinces.map((c, i) => (
+        <span key={c} className="whitespace-nowrap">
+          {provinceName(c)}
+          {i < plan.provinces.length - 1 && <span className="px-1.5 text-white/50">›</span>}
+        </span>
+      ))}
+    </p>
+  )
+}
+
+/** Days, provinces and total spending in one strip, for the hero card. */
+export function HeroStats({ days, provinces, total }: { days: number; provinces: number; total: number }) {
+  return (
+    <div className="grid grid-cols-3 gap-px overflow-hidden rounded-[14px] bg-white/15">
+      {[
+        [String(days), days === 1 ? 'day' : 'days'],
+        [String(provinces), provinces === 1 ? 'province' : 'provinces'],
+        [money(total), 'total spending'],
+      ].map(([v, l]) => (
+        <div key={l} className="min-w-0 bg-white/[0.07] px-3 py-2.5">
+          <p className="truncate text-[19px] font-extrabold leading-6">{v}</p>
+          <p className="text-[11.5px] text-white/75">{l}</p>
+        </div>
       ))}
     </div>
   )
