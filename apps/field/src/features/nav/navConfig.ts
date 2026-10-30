@@ -281,10 +281,11 @@ export function fnForPath(pathname: string): FnKey | undefined {
 }
 
 /** Hub search: screens whose name or description matches, with the function they live in. */
-export function hubSearch(group: RoleGroup, ctx: NavContext, query: string): (RowDef & { fn: FnDef })[] {
+export function hubSearch(group: RoleGroup, ctx: NavContext, query: string, t?: Tr): (RowDef & { fn: FnDef })[] {
   const q = query.trim().toLowerCase()
   if (!q) return []
-  return hubFunctions(group, ctx).flatMap((f) => f.rows.filter((r) => r.label.toLowerCase().includes(q) || r.sub.toLowerCase().includes(q)).map((r) => ({ ...r, fn: FN[f.key] })))
+  const has = (text: string) => text.toLowerCase().includes(q)
+  return hubFunctions(group, ctx).flatMap((f) => f.rows.filter((r) => has(r.label) || has(r.sub) || (!!t && (has(rowLabel(r, t)) || has(rowSub(r, t))))).map((r) => ({ ...r, fn: FN[f.key] })))
 }
 
 /** Admin tab: the Administration rows the person can use. */
@@ -325,6 +326,13 @@ const SHORT: Partial<Record<RowKey, string>> = {
   tripset: 'Trip settings',
 }
 export const shortLabel = (r: RowDef) => SHORT[r.key] ?? r.label
+
+type Tr = (key: string, vars?: Record<string, string | number>) => string
+/** A Hub row's name, description and short name, and a part's title, in the person's language (the English above stays as the source and the search fallback). */
+export const rowLabel = (r: RowDef, t: Tr) => t(`hubRow.${r.key}`)
+export const rowSub = (r: RowDef, t: Tr) => t(`hubRowSub.${r.key}`)
+export const rowShort = (r: RowDef, t: Tr) => (SHORT[r.key] ? t(`hubShort.${r.key}`) : rowLabel(r, t))
+export const partTitle = (p: PartKey, t: Tr) => t(`hubPart.${p}`)
 
 /** Every Admin-tab row the person can use. */
 export function adminRows(ctx: NavContext): RowDef[] {
