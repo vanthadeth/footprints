@@ -31,6 +31,10 @@ describe('formatLongDate', () => {
     // 2026-01-01T20:00:00Z is 2026-01-02 03:00 in Asia/Phnom_Penh (UTC+7) -- a Friday.
     expect(formatLongDate('2026-01-01T20:00:00Z')).toBe('Friday, 2 January')
   })
+
+  it('renders the Khmer weekday and dd/mm/yyyy in Khmer', () => {
+    expect(formatLongDate('2026-01-01T20:00:00Z', undefined, 'km')).toBe('ថ្ងៃសុក្រ 02/01/2026')
+  })
 })
 
 describe('formatDate', () => {

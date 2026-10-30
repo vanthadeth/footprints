@@ -11,21 +11,6 @@ const KM_WEEKDAYS: Record<string, string> = {
   Sunday: 'ថ្ងៃអាទិត្យ',
 }
 
-const KM_MONTHS: Record<string, string> = {
-  January: 'មករា',
-  February: 'កុម្ភៈ',
-  March: 'មីនា',
-  April: 'មេសា',
-  May: 'ឧសភា',
-  June: 'មិថុនា',
-  July: 'កក្កដា',
-  August: 'សីហា',
-  September: 'កញ្ញា',
-  October: 'តុលា',
-  November: 'វិច្ឆិកា',
-  December: 'ធ្នូ',
-}
-
 /**
  * All "today"/"this week"/business-day boundaries use APP_TIMEZONE
  * (Asia/Phnom_Penh), never the browser's local timezone and never UTC --
@@ -121,7 +106,10 @@ export function formatDate(iso: string | null, timezone: string = APP_TIMEZONE):
   return `${d}/${m}/${y}`
 }
 
-/** "Monday, 14 September" -- Home's greeting header. Always this shape, regardless of browser locale (same reasoning as formatDate). */
+/**
+ * "Monday, 14 September" -- Home's greeting header. Always this shape, regardless of browser locale
+ * (same reasoning as formatDate). In Khmer it is the weekday and the numeric date: "ថ្ងៃច័ន្ទ 14/09/2026".
+ */
 export function formatLongDate(iso: string = new Date().toISOString(), timezone: string = APP_TIMEZONE, language: Language = 'en'): string {
   const parts = new Intl.DateTimeFormat('en-GB', {
     timeZone: timezone,
@@ -132,9 +120,7 @@ export function formatLongDate(iso: string = new Date().toISOString(), timezone:
   const weekday = parts.find((p) => p.type === 'weekday')!.value
   const day = parts.find((p) => p.type === 'day')!.value
   const month = parts.find((p) => p.type === 'month')!.value
-  if (language === 'km') {
-    return `${KM_WEEKDAYS[weekday] ?? weekday}, ${day} ${KM_MONTHS[month] ?? month}`
-  }
+  if (language === 'km') return `${KM_WEEKDAYS[weekday] ?? weekday} ${formatDate(iso, timezone)}`
   return `${weekday}, ${day} ${month}`
 }
 
