@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, Construction, FileText, Loader2, Search, Store, UserRound } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Construction, Loader2, Search } from 'lucide-react'
 import { useAuth } from '@footprints/shared/features/auth/AuthContext'
-import { useCan } from '@footprints/shared/features/permissions/PermissionsContext'
 import { SegmentedControl } from '@footprints/shared/components/SegmentedControl'
 import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 import { VisitFlow, type PresetCustomer } from '@/features/visits/VisitFlow'
@@ -13,8 +12,9 @@ import { formatDistance } from '@footprints/shared/lib/geo'
 import type { BookRow, BookScope, Bucket } from '@/features/customers/customerBookService'
 import { useBookGroup, useBookPage, useBookSummary, useDebounced, useVisitors } from '@/features/customers/useCustomerBook'
 import { CustomerFilterSheet, FilterButton, FilterChips } from '@/features/customers/CustomerFilterSheet'
-import { DUE_RANGES, EMPTY_FILTER, PAGE_SIZE, URGENCY, activeCount, daysText, lastVisitChip, summarize, urgency, visitorNames, type CustomerFilter, type ProvinceGroup } from '@/features/customers/book'
+import { DUE_RANGES, EMPTY_FILTER, PAGE_SIZE, URGENCY, activeCount, lastVisitChip, summarize, urgency, visitorNames, type CustomerFilter, type ProvinceGroup } from '@/features/customers/book'
 import { PHNOM_PENH } from '@/features/customers/provinces'
+import { MyCustomersHome } from '@/features/customers/MyCustomersHome'
 
 type Tab = 'all' | 'nearby' | 'due'
 
@@ -53,160 +53,7 @@ function CustomersHome() {
   const me = session?.user.id ?? null
   const view = params.get('view')
   if (view === 'all' || view === 'mine') return <CustomersList owner={view === 'mine' ? me : null} onHome={() => setParams({})} />
-  return <MyCustomers me={me} onView={(v) => setParams({ view: v })} />
-}
-
-type VisitPick = 'b7' | 'b15' | 'b30' | 'green' | 'red' | null
-const inPick = (d: number | null, p: VisitPick) =>
-  p === null ? true : p === 'b7' ? d != null && d <= 7 : p === 'b15' ? d != null && d > 7 && d <= 15 : p === 'b30' ? d != null && d > 15 && d <= 30 : p === 'green' ? d != null && d <= 45 : d == null || d > 45
-
-function MyCustomers({ me, onView }: { me: string | null; onView: (v: 'all' | 'mine') => void }) {
-  const { t } = useLanguage()
-  const canBriefing = useCan('customer_briefing')
-  const [pick, setPick] = useState<VisitPick>(null)
-  const [position, setPosition] = useState<{ latitude: number; longitude: number } | null>(null)
-  const [positionError, setPositionError] = useState(false)
-  const [preset, setPreset] = useState<PresetCustomer | null>(null)
-  const mine = useBookPage({ owner: me, sort: 'last', limit: 1000 }, !!me)
-  const near = useBookPage({ owner: me, sort: 'distance', lat: position?.latitude, lng: position?.longitude, limit: 1000 }, !!me && !!position)
-
-  useEffect(() => {
-    locationService
-      .getCurrentPosition()
-      .then((r) => setPosition({ latitude: r.latitude, longitude: r.longitude }))
-      .catch(() => setPositionError(true))
-  }, [])
-
-  const rows = mine.data
-  const count = (p: VisitPick) => rows.filter((r) => inPick(r.days_since, p)).length
-  const total = rows.length
-  const green = count('green')
-  const list = (position ? near.data : rows).filter((r) => inPick(r.days_since, pick)).slice(0, 12)
-  const buckets: { key: VisitPick; label: string }[] = [
-    { key: 'b7', label: t('customers.within7') },
-    { key: 'b15', label: t('customers.d8to15') },
-    { key: 'b30', label: t('customers.d16to30') },
-  ]
-  const tile = (on: boolean) => `rounded-[14px] text-left ${on ? 'border border-white/60 bg-white/[.16]' : 'border border-transparent bg-white/[.07]'}`
-  const pickTitle = { b7: 'titleB7', b15: 'titleB15', b30: 'titleB30', green: 'titleGreen', red: 'titleRed' }
-  const listTitle = pick ? `${t(`customers.${pickTitle[pick]}`)}${position ? ` · ${t('customers.nearestFirst')}` : ''}` : position ? t('customers.nearby') : t('customers.longestSince')
-
-  return (
-    <div className="mx-auto max-w-lg pb-6 md:max-w-2xl lg:max-w-[1440px]">
-      <div className="flex flex-col gap-3.5 px-4 pt-1.5 md:px-8 lg:grid lg:grid-cols-[420px_minmax(0,1fr)] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-x-6 lg:pt-6">
-        <section aria-label={t('customers.myCustomers')} className="rounded-[22px] bg-brand-900 p-4 text-white lg:col-start-1 lg:row-start-1">
-          <div className="flex items-end justify-between gap-3">
-            <div>
-              <p className="text-[13px] font-semibold text-white/60">{t('customers.myCustomers')}</p>
-              <p className="text-[44px] font-bold leading-[48px] tracking-tight">{mine.loading ? '…' : total.toLocaleString('en-US')}</p>
-            </div>
-            <p className="mb-1.5 text-right text-xs text-white/60">{t('customers.byLastVisit')}</p>
-          </div>
-          <div role="group" aria-label={t('customers.lastVisit')} className="mt-3.5 grid grid-cols-3 gap-1.5">
-            {buckets.map((b) => (
-              <button key={b.key} type="button" aria-pressed={pick === b.key} onClick={() => setPick(pick === b.key ? null : b.key)} className={`${tile(pick === b.key)} px-2.5 pb-[9px] pt-2.5`}>
-                <span className="block text-[22px] font-bold leading-[26px]">{count(b.key)}</span>
-                <span className="mt-0.5 block text-[11px] leading-[14px] text-white/60">{b.label}</span>
-              </button>
-            ))}
-          </div>
-          <div aria-hidden className="mt-3.5 flex h-2 gap-[3px] overflow-hidden rounded-full">
-            <span className="bg-[#17CB49]" style={{ width: total ? `${(green / total) * 100}%` : '0%' }} />
-            <span className="flex-1 bg-[#F74141]" />
-          </div>
-          <div className="mt-2.5 grid grid-cols-2 gap-1.5">
-            {(
-              [
-                ['green', green, t('customers.visitedWithin45'), '#17CB49'],
-                ['red', total - green, t('customers.noVisit45'), '#F74141'],
-              ] as const
-            ).map(([k, n, label, dot]) => (
-              <button key={k} type="button" aria-pressed={pick === k} onClick={() => setPick(pick === k ? null : k)} className={`${tile(pick === k)} flex items-center gap-2.5 px-3 py-2.5`}>
-                <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: dot }} />
-                <span className="min-w-0">
-                  <span className="block text-lg font-bold leading-[22px]">{n}</span>
-                  <span className="block text-[11px] leading-[14px] text-white/60">{label}</span>
-                </span>
-              </button>
-            ))}
-          </div>
-        </section>
-
-        <div className="grid grid-cols-3 gap-2 lg:col-start-1 lg:row-start-2">
-          <button type="button" onClick={() => onView('mine')} className="flex h-11 items-center justify-center gap-1.5 rounded-xl bg-brand-500 text-sm font-bold text-white">
-            <UserRound className="h-4 w-4" aria-hidden /> {t('customers.mine')}
-          </button>
-          {canBriefing ? (
-            <Link to="/team/customers" className="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-neutral-200 bg-white text-sm font-bold text-neutral-900">
-              <FileText className="h-4 w-4" aria-hidden /> {t('customers.briefing')}
-            </Link>
-          ) : (
-            <span />
-          )}
-          <button type="button" onClick={() => onView('all')} className="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-neutral-200 bg-white text-sm font-bold text-neutral-900">
-            <Store className="h-4 w-4" aria-hidden /> {t('customers.all')}
-          </button>
-        </div>
-
-        <section aria-label={t('customers.nearbyAria')} className="lg:col-start-2 lg:row-span-2 lg:row-start-1">
-          <div className="mx-0.5 mb-2 flex items-baseline justify-between">
-            <p className="text-xs font-bold uppercase tracking-[0.06em] text-neutral-500">{listTitle}</p>
-            {pick && (
-              <button type="button" onClick={() => setPick(null)} className="text-[13px] font-bold text-brand-500">
-                {t('customers.showAll')}
-              </button>
-            )}
-          </div>
-          <div className="overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-card">
-            {(mine.loading || (position && near.loading && near.data.length === 0)) && <div className="m-3.5 h-12 animate-pulse rounded-xl bg-neutral-100" />}
-            {!mine.loading && list.length === 0 && <p className="px-3.5 py-[18px] text-center text-[13px] text-neutral-500">{total === 0 ? t('customers.noneAssigned') : t('customers.noneInGroup')}</p>}
-            {list.map((r, i) => (
-              <HomeRow key={r.customer_id} row={r} first={i === 0} onVisit={setPreset} />
-            ))}
-          </div>
-          {!position && positionError && <p className="mx-0.5 mt-2 text-xs text-neutral-500">{t('customers.noLocationSorted')}</p>}
-        </section>
-      </div>
-      <VisitFlow open={!!preset} onClose={() => setPreset(null)} presetCustomer={preset} />
-    </div>
-  )
-}
-
-function HomeRow({ row, first, onVisit }: { row: BookRow; first: boolean; onVisit: (c: PresetCustomer) => void }) {
-  const { t } = useLanguage()
-  const d = row.days_since
-  const ok = d != null && d <= 45
-  const ini = row.shop_name
-    .split(/\s+/)
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase()
-  return (
-    <div className={`flex items-center gap-3 px-3.5 py-[11px] ${first ? '' : 'border-t border-neutral-100'}`}>
-      <Link to={`/customers/${row.customer_id}`} className="flex min-w-0 flex-1 items-center gap-3">
-        <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-[13px] font-bold text-neutral-600">
-          {ini}
-          <span className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full ring-2 ring-white dark:ring-neutral-900 ${ok ? 'bg-[#17CB49]' : 'bg-[#F74141]'}`} />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-[15px] font-semibold text-neutral-900">{row.shop_name}</span>
-          <span className="block truncate text-xs text-neutral-500">{[row.district, row.province_name].filter(Boolean).join(' · ')}</span>
-        </span>
-        <span className="shrink-0 text-right">
-          {row.distance_m != null && <span className="block text-[13px] font-bold text-neutral-600">{formatDistance(row.distance_m)}</span>}
-          <span className={`block text-[11px] font-bold ${ok ? 'text-status-working' : 'text-status-danger'}`}>{d == null ? t('customers.neverVisited') : daysText(d, t)}</span>
-        </span>
-      </Link>
-      <button
-        type="button"
-        onClick={() => onVisit({ id: row.customer_id, shopName: row.shop_name })}
-        className="h-[34px] shrink-0 rounded-[10px] bg-brand-50 px-3 text-[13px] font-bold text-brand-500 tap-target"
-      >
-        {t('customers.visit')}
-      </button>
-    </div>
-  )
+  return <MyCustomersHome me={me} onView={(v) => setParams({ view: v })} />
 }
 
 function CustomersList({ owner = null, onHome }: { owner?: string | null; onHome?: () => void }) {
