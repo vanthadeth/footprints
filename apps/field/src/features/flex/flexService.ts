@@ -1,5 +1,7 @@
 import { callRpc } from '@footprints/shared/lib/rpc'
 import { displayName } from '@footprints/shared/lib/displayName'
+import { supabase } from '@footprints/shared/lib/supabase'
+import type { FlexSettlementRow } from '@/features/leave/leaveLedger'
 import type { FlexCycle, FlexDay, FlexKind } from './flex'
 import type { FlexProgress, ProgressDay, ProgressKind, TeamProgressRow } from './progress'
 
@@ -171,6 +173,26 @@ export const flexService = {
       unpaidDays: r.unpaid_days == null ? null : num(r.unpaid_days),
       legacy: r.settled && r.min_days == null,
     }
+  },
+
+  /** The signed-in person's settled cycles for a year (RLS: own rows), for the Leave balance history. */
+  async settlements(userId: string, year: number): Promise<FlexSettlementRow[]> {
+    const { data, error } = await supabase
+      .from('flex_settlements')
+      .select('cycle_start, cycle_end, min_days, worked_days, credited_days, annual_days, unpaid_days')
+      .eq('user_id', userId)
+      .gte('cycle_end', `${year}-01-01`)
+      .lte('cycle_end', `${year}-12-31`)
+    if (error) throw error
+    return (data ?? []).map((r) => ({
+      cycleStart: r.cycle_start,
+      cycleEnd: r.cycle_end,
+      minDays: r.min_days == null ? null : num(r.min_days),
+      workedDays: r.worked_days == null ? null : num(r.worked_days),
+      creditedDays: r.credited_days == null ? null : num(r.credited_days),
+      annualDays: num(r.annual_days),
+      unpaidDays: num(r.unpaid_days),
+    }))
   },
 
   async progressDays(userId: string | null, from: string, to: string): Promise<ProgressDay[]> {

@@ -60,3 +60,19 @@ describe('buildAttendanceMonth', () => {
     expect(sick).toMatchObject({ kind: 'leave', leaveType: 'sick', half: true, alsoPresent: true })
   })
 })
+
+describe('buildAttendanceMonth holidays and missed days', () => {
+  it('marks a full-day holiday, counts it, and does not count it as missed', () => {
+    const m = buildAttendanceMonth(2026, 10, new Set(), [], '2026-10-30', new Map([['2026-10-15', 'King Father']]))
+    const c = m.weeks.flat().find((x) => x?.date === '2026-10-15')!
+    expect(c.kind).toBe('holiday')
+    expect(c.holidayName).toBe('King Father')
+    expect(m.holidayDays).toBe(1)
+  })
+  it('counts past working days with nothing as missed, but not today', () => {
+    const m = buildAttendanceMonth(2026, 10, new Set(['2026-10-01']), [], '2026-10-02')
+    expect(m.missedDays).toBe(0) // the 1st is present, the 2nd is today
+    const m2 = buildAttendanceMonth(2026, 10, new Set(), [], '2026-10-03')
+    expect(m2.missedDays).toBe(2) // Thu 1 and Fri 2
+  })
+})
