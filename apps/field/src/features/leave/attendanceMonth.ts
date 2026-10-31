@@ -1,6 +1,6 @@
 import type { LeaveRequest, LeaveType } from './types'
 
-export type AttendanceCellKind = 'present' | 'leave' | 'weekend' | 'future' | 'none'
+export type AttendanceCellKind = 'present' | 'leave' | 'holiday' | 'weekend' | 'future' | 'none'
 
 export interface AttendanceCell {
   /** "YYYY-MM-DD" */
@@ -13,6 +13,8 @@ export interface AttendanceCell {
   /** Present on a day that was also half-day leave. */
   alsoPresent?: boolean
   isToday: boolean
+  /** Set on a holiday cell. */
+  holidayName?: string
 }
 
 export interface AttendanceMonth {
@@ -20,6 +22,10 @@ export interface AttendanceMonth {
   weeks: (AttendanceCell | null)[][]
   presentDays: number
   leaveDays: Record<LeaveType, number>
+  /** Full-day holidays on a working day of the month. */
+  holidayDays: number
+  /** Past working days with no clock-in, leave or holiday. */
+  missedDays: number
 }
 
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -36,7 +42,8 @@ export function buildAttendanceMonth(
   month: number, // 1-12
   presentDates: Set<string>,
   requests: LeaveRequest[],
-  today: string
+  today: string,
+  holidays: Map<string, string> = new Map()
 ): AttendanceMonth {
   const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate()
   const firstWeekday = (new Date(Date.UTC(year, month - 1, 1)).getUTCDay() + 6) % 7 // Mon=0
@@ -44,11 +51,14 @@ export function buildAttendanceMonth(
 
   const leaveDays: Record<LeaveType, number> = { annual: 0, sick: 0, unpaid: 0, flex: 0 }
   let presentDays = 0
+  let holidayDays = 0
+  let missedDays = 0
   const cells: (AttendanceCell | null)[] = Array.from({ length: firstWeekday }, () => null)
 
   for (let d = 1; d <= daysInMonth; d++) {
     const date = `${year}-${pad(month)}-${pad(d)}`
     const sunday = new Date(Date.UTC(year, month - 1, d)).getUTCDay() === 0
+    const saturday = new Date(Date.UTC(year, month - 1, d)).getUTCDay() === 6
     const present = presentDates.has(date)
     const req = approved.find((r) => r.start_date <= date && date <= r.end_date)
     let half = false
@@ -57,19 +67,25 @@ export function buildAttendanceMonth(
       if (date === req.end_date && req.end_period !== 'full') half = true
     }
 
+    const holiday = holidays.get(date)
     let cell: AttendanceCell
-    if (req && !sunday) {
+    if (holiday && !present && !sunday) {
+      holidayDays += 1
+      cell = { date, day: d, kind: 'holiday', holidayName: holiday, isToday: date === today }
+    } else if (req && !sunday) {
       leaveDays[req.leave_type] += half ? 0.5 : 1
       if (present) presentDays += half ? 0.5 : 0
       cell = { date, day: d, kind: 'leave', leaveType: req.leave_type, half, alsoPresent: present, isToday: date === today }
     } else if (present) {
       presentDays += 1
       cell = { date, day: d, kind: 'present', isToday: date === today }
-    } else if (sunday) {
+    } else if (sunday || saturday) {
+      // Weekend (a Saturday only when nothing was recorded, since some companies work it): never flagged as missed.
       cell = { date, day: d, kind: 'weekend', isToday: date === today }
     } else if (date > today) {
       cell = { date, day: d, kind: 'future', isToday: false }
     } else {
+      if (date < today) missedDays += 1
       cell = { date, day: d, kind: 'none', isToday: date === today }
     }
     cells.push(cell)
@@ -78,5 +94,5 @@ export function buildAttendanceMonth(
 
   const weeks: (AttendanceCell | null)[][] = []
   for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7))
-  return { weeks, presentDays, leaveDays }
+  return { weeks, presentDays, leaveDays, holidayDays, missedDays }
 }

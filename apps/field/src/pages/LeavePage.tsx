@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
-import { ChevronRight, Scale } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
 import { useProfile } from '@footprints/shared/features/auth/useProfile'
 import { usersService, type ManagedUser } from '@footprints/shared/features/users/usersService'
 import { leaveService } from '@/features/leave/leaveService'
 import { MyLeaveTab } from '@/features/leave/MyLeaveTab'
-import { BalanceCards } from '@/features/leave/BalanceCards'
+import { BalanceTab } from '@/features/leave/BalanceTab'
 import { AttendanceCalendar } from '@/features/leave/AttendanceCalendar'
 import { SegmentedControl } from '@footprints/shared/components/SegmentedControl'
 import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
@@ -84,26 +83,7 @@ export function LeavePage() {
         ) : (
           <>
             {tab === 'leave' && <MyLeaveTab requests={myRequests} balances={myBalances} approverName={approverName} onChanged={load} />}
-            {tab === 'balance' && (
-              <div className="space-y-5">
-                <section className="space-y-2">
-                  <h2 className="px-0.5 text-[17px] font-bold text-neutral-900">{t('leave.allowanceTitle', { year })}</h2>
-                  <BalanceCards balances={myBalances} requests={myRequests} layout="stack" />
-                </section>
-                {canManageBalances && (
-                  <Link to="/leave/allowances" className="flex items-center gap-3 rounded-2xl bg-white p-4 shadow-card">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
-                      <Scale className="h-5 w-5" aria-hidden />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[15px] font-bold text-neutral-900">{t('leave.allowancesLink')}</span>
-                      <span className="block text-[13px] text-neutral-500">{t('leave.allowancesSub')}</span>
-                    </span>
-                    <ChevronRight className="h-4 w-4 text-neutral-400" aria-hidden />
-                  </Link>
-                )}
-              </div>
-            )}
+            {tab === 'balance' && profile && <BalanceTab userId={profile.id} requests={myRequests} canManage={canManageBalances} year={year} />}
             {tab === 'attendance' && profile && <AttendanceCalendar userId={profile.id} requests={myRequests} />}
           </>
         )}
