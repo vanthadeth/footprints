@@ -8,7 +8,7 @@ import { visitSpan } from '@/features/attendance/flagRules'
 import type { FleetMemberSnapshot } from '@/features/fleet/types'
 import type { LeaveType } from '@/features/leave/types'
 import { orderSummary, orderedVisitCount, teamOrderSummary, type OrderList } from '@/features/attendance/effectivenessScore'
-import { sumSales, type UserSales } from '@/features/orders/useSalesByUser'
+import { sumPending, sumSales, type UserSales } from '@/features/orders/useSalesByUser'
 import { WORKING_STATUS } from '@/features/orders/orderTargets'
 import type { OrderState } from '@/features/orders/orderReconcile'
 
@@ -195,6 +195,7 @@ export function buildPerformance(f: PerformanceFacts): Performance {
   const salesTarget = ids.reduce((n, id) => n + (has(id) ? f.dailyTargets[id] : 0), 0)
   return performance({
     sales: f.salesToday ? sumSales(f.salesToday, f.overview.people.map((p) => p.id)) : teamOrderSummary(targeted(f.visits, has), f.orderStates, f.orderTotals, f.orderLists).valueUsd,
+    salesPending: f.salesToday ? sumPending(f.salesToday, f.overview.people.map((p) => p.id)) : undefined,
     salesTarget: salesTarget > 0 ? salesTarget : null,
     visits: f.visits.length,
     visitTarget: ids.length && f.dailyVisitTarget > 0 ? ids.length * f.dailyVisitTarget : null,

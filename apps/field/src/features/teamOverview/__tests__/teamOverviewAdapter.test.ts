@@ -129,9 +129,15 @@ describe('buildPerformance', () => {
     expect(none.sales).toMatchObject({ value: 0, target: null })
   })
   it("totals the team's sales as the sale orders assigned to its salespeople today, whatever the visits say", () => {
-    const p = buildPerformance({ ...facts, salesToday: { a: { orders: 2, totalUsd: 500 }, b: { orders: 1, totalUsd: 120 }, c: { orders: 1, totalUsd: 80 }, outsider: { orders: 1, totalUsd: 999 } } })
+    const p = buildPerformance({ ...facts, salesToday: { a: { orders: 2, totalUsd: 500, pendingUsd: 0 }, b: { orders: 1, totalUsd: 120, pendingUsd: 0 }, c: { orders: 1, totalUsd: 80, pendingUsd: 0 }, outsider: { orders: 1, totalUsd: 999, pendingUsd: 0 } } })
     // a, b and c are the team; the order assigned to someone outside it is not counted
     expect(p.sales.value).toBe(700)
+    expect(p.salesPending).toBeUndefined()
+  })
+  it("shows how much of the team's sales today is still waiting for approval (already inside the total)", () => {
+    const p = buildPerformance({ ...facts, salesToday: { a: { orders: 3, totalUsd: 600, pendingUsd: 100 }, b: { orders: 1, totalUsd: 120, pendingUsd: 20.5 }, outsider: { orders: 1, totalUsd: 999, pendingUsd: 999 } } })
+    expect(p.sales.value).toBe(720)
+    expect(p.salesPending).toBe(120.5)
   })
   it('has no sales target when nobody is expected to work', () => {
     const noone = buildOverview(base({ snapshots: [snap('c', 'C')], leave: { c: 'annual' } }))
@@ -147,7 +153,7 @@ describe('buildOverview sales', () => {
     const input = base({
       snapshots: [snap('a', 'A', [['08:00', null]], visits)],
       orderStates: { v1: 'confirmed', v2: 'pending', v3: 'none' },
-      salesToday: { a: { orders: 3, totalUsd: 640 } },
+      salesToday: { a: { orders: 3, totalUsd: 640, pendingUsd: 0 } },
     })
     const a = buildOverview(input).people[0]
     expect(a.info).toMatchObject({ orders: 2, amountUsd: 640 })
@@ -193,7 +199,7 @@ describe('buildMonth', () => {
     expect(two.sales).toBe(400)
   })
   it("totals the month's sales as the sale orders assigned to the team's salespeople", () => {
-    const m = buildMonth(facts({ salesMonth: { a: { orders: 5, totalUsd: 2100 }, b: { orders: 2, totalUsd: 400 }, outsider: { orders: 1, totalUsd: 77 } } }))!
+    const m = buildMonth(facts({ salesMonth: { a: { orders: 5, totalUsd: 2100, pendingUsd: 0 }, b: { orders: 2, totalUsd: 400, pendingUsd: 0 }, outsider: { orders: 1, totalUsd: 77, pendingUsd: 0 } } }))!
     expect(m.sales).toBe(2500)
   })
   it("adds the month's sales once per order, counts visits and takes the new customers", () => {

@@ -519,8 +519,8 @@ export interface OrderRow {
   value: number | null
 }
 
-/** A valid order: ORDER_STATUS = 1 and APPROVED = TRUE. */
-export const isValidOrder = (r: Pick<OrderRow, 'order_status' | 'approved'>) => r.order_status === 1 && r.approved
+/** A valid order: ORDER_STATUS = 1. An order still waiting for approval (APPROVED = FALSE) is valid and counts as pending. */
+export const isValidOrder = (r: Pick<OrderRow, 'order_status'>) => r.order_status === 1
 
 /**
  * Map the sale order tab's CSV rows (header first). Missing required headers
