@@ -153,6 +153,20 @@ describe('buildMonth', () => {
     newCustomers: 7,
     ...over,
   })
+  it('totals the month per transaction: two people at one customer on one day count once, two synced orders both count', () => {
+    const shared = [{ ...tv('s1', 'a'), customer_id: 'c1', order_amount_usd: 300 }, { ...tv('s2', 'b'), customer_id: 'c1', order_amount_usd: 300 }]
+    const same = buildMonth(facts({ visits: shared, orderStates: { s1: 'pending', s2: 'pending' }, orderTotals: {} }))!
+    expect(same.sales).toBe(300)
+    const two = buildMonth(
+      facts({
+        visits: shared,
+        orderStates: { s1: 'synced', s2: 'synced' },
+        orderTotals: { s1: { orderNo: 'SO-1', totalUsd: 320 }, s2: { orderNo: 'SO-1', totalUsd: 320 } },
+        orderLists: { s1: [{ orderNo: 'SO-1', totalUsd: 320 }, { orderNo: 'SO-2', totalUsd: 80 }], s2: [{ orderNo: 'SO-1', totalUsd: 320 }, { orderNo: 'SO-2', totalUsd: 80 }] },
+      })
+    )!
+    expect(two.sales).toBe(400)
+  })
   it("adds the month's sales once per order, counts visits and takes the new customers", () => {
     const m = buildMonth(facts())!
     expect(m.sales).toBe(540)

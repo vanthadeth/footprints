@@ -1,3 +1,4 @@
+import { localDateKey } from '@/lib/dateRange'
 import { INEFFECTIVE_VISIT_WEIGHT, LATE_FIRST_VISIT_SCORE_FACTOR, SCORE_GOAL_ACTIVE, SCORE_GOAL_VISITS } from '@footprints/shared/lib/config'
 import { countsAsOrdered, type OrderState } from '@/features/orders/orderReconcile'
 import { distanceInMeters } from '@footprints/shared/lib/geo'
@@ -237,6 +238,7 @@ interface SessionLike {
 
 interface VisitLike {
   id?: string
+  customer_id?: string | null
   order_amount_usd?: number | null
   checked_in_at: string
   checked_out_at: string | null
@@ -333,6 +335,51 @@ export function orderSummary(
       count++
       sum += v.order_amount_usd ?? 0
     }
+  }
+  return { count, valueUsd: sum }
+}
+
+/** Every synced order in a visit's window (public.visit_orders_all): order number and total. */
+export type OrderList = { orderNo: string; totalUsd: number | null }[]
+
+/**
+ * The team's orders and their value in USD, one per transaction. Every distinct synced order reachable from the visits
+ * that count as ordered is added once by its order number, however many people visited. A visit with no synced order
+ * adds the amount its person entered, but only once per customer per day (the larger amount: two people at one shop the
+ * same day are one sale) and only when that customer has no synced order among these visits. Per-person cards keep
+ * using orderSummary, which gives each person the full amount of the orders they visited for.
+ */
+export function teamOrderSummary(
+  visits: VisitLike[],
+  orders: Record<string, OrderState> | undefined,
+  totals: Record<string, { orderNo: string; totalUsd: number | null }> | undefined,
+  lists?: Record<string, OrderList>
+): { count: number; valueUsd: number } {
+  const synced = new Map<string, number>()
+  const syncedCustomers = new Set<string>()
+  const entered = new Map<string, { customer: string | null; amount: number }>()
+  for (const v of visits) {
+    if (v.cancelled_at) continue
+    const state = orders ? (v.id ? orders[v.id] : undefined) : (v.order_amount_usd ?? 0) > 0 ? 'pending' : 'none'
+    if (!countsAsOrdered(state)) continue
+    const own = v.id ? totals?.[v.id] : undefined
+    const list = (v.id ? lists?.[v.id] : undefined) ?? (own ? [own] : [])
+    if (list.length) {
+      for (const o of list) if (!synced.has(o.orderNo)) synced.set(o.orderNo, o.totalUsd ?? v.order_amount_usd ?? 0)
+      if (v.customer_id) syncedCustomers.add(v.customer_id)
+      continue
+    }
+    const amount = v.order_amount_usd ?? 0
+    const key = v.customer_id ? `${v.customer_id}|${localDateKey(v.checked_in_at)}` : `visit|${v.id ?? v.checked_in_at}`
+    const prev = entered.get(key)
+    if (!prev || amount > prev.amount) entered.set(key, { customer: v.customer_id ?? null, amount })
+  }
+  let count = synced.size
+  let sum = [...synced.values()].reduce((a, b) => a + b, 0)
+  for (const e of entered.values()) {
+    if (e.customer && syncedCustomers.has(e.customer)) continue
+    count++
+    sum += e.amount
   }
   return { count, valueUsd: sum }
 }

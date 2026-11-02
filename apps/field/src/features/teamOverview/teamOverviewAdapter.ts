@@ -7,7 +7,7 @@ import { firstClockIn, lastClockOut } from '@/features/attendance/sessions'
 import { visitSpan } from '@/features/attendance/flagRules'
 import type { FleetMemberSnapshot } from '@/features/fleet/types'
 import type { LeaveType } from '@/features/leave/types'
-import { orderSummary, orderValueUsd } from '@/features/attendance/effectivenessScore'
+import { orderSummary, teamOrderSummary, type OrderList } from '@/features/attendance/effectivenessScore'
 import { WORKING_STATUS } from '@/features/orders/orderTargets'
 import type { OrderState } from '@/features/orders/orderReconcile'
 
@@ -104,6 +104,7 @@ export function buildOverview(i: OverviewInput): Overview {
 export interface TeamVisit {
   id: string
   user_id: string
+  customer_id?: string | null
   cancelled_at?: string | null
   order_amount_usd?: number | null
   checked_in_at: string
@@ -119,6 +120,8 @@ export interface MonthFacts {
   visits: TeamVisit[]
   orderStates: Record<string, OrderState>
   orderTotals: Record<string, { orderNo: string; totalUsd: number | null }>
+  /** Every synced order in each visit's window, when the lookup has answered: the team's sales total each transaction once. */
+  orderLists?: Record<string, OrderList>
   /** Each person's monthly sales target; null or missing: they have none (switched off, or none set). */
   monthlyTargets: Record<string, number | null>
   dailyVisitTarget: number
@@ -142,7 +145,7 @@ export function buildMonth(f: MonthFacts): MonthInput | null {
   const days = new Set(expected.map((r) => r.day))
   const done = [...days].filter((d) => d <= f.today).length
   return {
-    sales: orderSummary(targeted(f.visits, has), f.orderStates, f.orderTotals).valueUsd,
+    sales: teamOrderSummary(targeted(f.visits, has), f.orderStates, f.orderTotals, f.orderLists).valueUsd,
     salesTarget: salesTarget > 0 ? salesTarget : null,
     visits: f.visits.filter((v) => !v.cancelled_at).length,
     visitTarget: f.dailyVisitTarget > 0 ? expected.length * f.dailyVisitTarget : null,
@@ -160,6 +163,7 @@ export interface PerformanceFacts {
   orderStates: Record<string, OrderState>
   /** The synced sale order's total per visit. */
   orderTotals: Record<string, { orderNo: string; totalUsd: number | null }>
+  orderLists?: Record<string, OrderList>
   /** Each person's daily share of their monthly sales target; 0 or missing: they have none. */
   dailyTargets: Record<string, number>
   dailyVisitTarget: number
@@ -169,8 +173,8 @@ export interface PerformanceFacts {
 }
 
 /**
- * The team's day against its targets. Sales are counted as the score counts them (a synced sale order once, however many
- * visits matched it, else the amount entered on a visit marked ordered) and only for people who have a sales target; the
+ * The team's day against its targets. Sales are counted per transaction (each synced sale order once, however many
+ * people visited for it; else one entered amount per customer per day) and only for people who have a sales target; the
  * target adds up their daily shares over the people expected to work today.
  */
 export function buildPerformance(f: PerformanceFacts): Performance {
@@ -178,7 +182,7 @@ export function buildPerformance(f: PerformanceFacts): Performance {
   const has = (id: string) => (f.dailyTargets[id] ?? 0) > 0
   const salesTarget = ids.reduce((n, id) => n + (has(id) ? f.dailyTargets[id] : 0), 0)
   return performance({
-    sales: orderValueUsd(targeted(f.visits, has), f.orderStates, f.orderTotals),
+    sales: teamOrderSummary(targeted(f.visits, has), f.orderStates, f.orderTotals, f.orderLists).valueUsd,
     salesTarget: salesTarget > 0 ? salesTarget : null,
     visits: f.visits.length,
     visitTarget: ids.length && f.dailyVisitTarget > 0 ? ids.length * f.dailyVisitTarget : null,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { BAND_LABEL, BAND_STYLE, computeScore, formatScore, inputsOf, lateFirstVisit, meanScore, nextBand, nextSteps, orderSummary, orderValueUsd, scoreBand, scoreDay, scoreTextClass, travelDeductionMs, travelMeters } from '../effectivenessScore'
+import { BAND_LABEL, BAND_STYLE, computeScore, formatScore, inputsOf, lateFirstVisit, meanScore, nextBand, nextSteps, orderSummary, orderValueUsd, teamOrderSummary, scoreBand, scoreDay, scoreTextClass, travelDeductionMs, travelMeters } from '../effectivenessScore'
 import { DEFAULT_FLAG_RULES } from '../flagRules'
 
 const HOUR = 3_600_000
@@ -331,5 +331,42 @@ describe('nextBand and nextSteps', () => {
   it('rebuilds a day score\'s inputs so the suggestions match what was shown', () => {
     const d = computeScore({ ...day4, lateFirstVisit: true })
     expect(computeScore(inputsOf(d)).score).toBe(d.score)
+  })
+})
+
+describe('teamOrderSummary', () => {
+  const visit = (id: string, user: string, customer: string, amount: number | null, at = '2026-10-30T03:00:00Z') => ({ id, user_id: user, customer_id: customer, order_amount_usd: amount, checked_in_at: at, checked_out_at: null })
+  const ordered = (...ids: string[]) => Object.fromEntries(ids.map((i) => [i, 'pending' as const]))
+
+  it('counts one transaction once when two people at one customer the same day both entered it', () => {
+    const v = [visit('a', 'u1', 'c1', 300), visit('b', 'u2', 'c1', 300)]
+    expect(teamOrderSummary(v, ordered('a', 'b'), {})).toEqual({ count: 1, valueUsd: 300 })
+    // Per-person cards keep the full amount.
+    expect(orderSummary([v[0]], ordered('a'), {}).valueUsd).toBe(300)
+  })
+  it('keeps the larger entered amount, and adds different customers and different days', () => {
+    const v = [visit('a', 'u1', 'c1', 300), visit('b', 'u2', 'c1', 320), visit('c', 'u1', 'c2', 100), visit('d', 'u1', 'c1', 50, '2026-10-31T03:00:00Z')]
+    expect(teamOrderSummary(v, ordered('a', 'b', 'c', 'd'), {})).toEqual({ count: 3, valueUsd: 320 + 100 + 50 })
+  })
+  it('counts a synced order once by number and drops the entered amounts for that customer', () => {
+    const v = [visit('a', 'u1', 'c1', 300), visit('b', 'u2', 'c1', 300)]
+    const states = { a: 'confirmed', b: 'confirmed' } as const
+    const lists = { a: [{ orderNo: 'SO-1', totalUsd: 320 }], b: [{ orderNo: 'SO-1', totalUsd: 320 }] }
+    expect(teamOrderSummary(v, states, {}, lists)).toEqual({ count: 1, valueUsd: 320 })
+  })
+  it('counts every distinct synced order for the customer', () => {
+    const v = [visit('a', 'u1', 'c1', null), visit('b', 'u2', 'c1', null)]
+    const states = { a: 'synced', b: 'synced' } as const
+    const lists = { a: [{ orderNo: 'SO-1', totalUsd: 320 }, { orderNo: 'SO-2', totalUsd: 80 }], b: [{ orderNo: 'SO-1', totalUsd: 320 }, { orderNo: 'SO-2', totalUsd: 80 }] }
+    expect(teamOrderSummary(v, states, {}, lists)).toEqual({ count: 2, valueUsd: 400 })
+  })
+  it('falls back to the single matched order when the lists are not available', () => {
+    const v = [visit('a', 'u1', 'c1', 300), visit('b', 'u2', 'c1', 300)]
+    const states = { a: 'confirmed', b: 'confirmed' } as const
+    const totals = { a: { orderNo: 'SO-1', totalUsd: 320 }, b: { orderNo: 'SO-1', totalUsd: 320 } }
+    expect(teamOrderSummary(v, states, totals)).toEqual({ count: 1, valueUsd: 320 })
+  })
+  it('ignores visits that do not count as ordered', () => {
+    expect(teamOrderSummary([visit('a', 'u1', 'c1', 300)], { a: 'unmatched' }, {})).toEqual({ count: 0, valueUsd: 0 })
   })
 })
