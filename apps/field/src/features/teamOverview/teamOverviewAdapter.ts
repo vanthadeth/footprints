@@ -7,7 +7,8 @@ import { firstClockIn, lastClockOut } from '@/features/attendance/sessions'
 import { visitSpan } from '@/features/attendance/flagRules'
 import type { FleetMemberSnapshot } from '@/features/fleet/types'
 import type { LeaveType } from '@/features/leave/types'
-import { orderSummary, teamOrderSummary, type OrderList } from '@/features/attendance/effectivenessScore'
+import { orderSummary, orderedVisitCount, teamOrderSummary, type OrderList } from '@/features/attendance/effectivenessScore'
+import { sumSales, type UserSales } from '@/features/orders/useSalesByUser'
 import { WORKING_STATUS } from '@/features/orders/orderTargets'
 import type { OrderState } from '@/features/orders/orderReconcile'
 
@@ -35,6 +36,8 @@ export interface OverviewInput {
   /** The order state and synced sale order of each visit, for each person's orders and amount. */
   orderStates?: Record<string, OrderState>
   orderTotals?: Record<string, { orderNo: string; totalUsd: number | null }>
+  /** Each person's sale orders assigned to them with today's order date (sales_by_user); null: not available, the visit-based amounts are used. */
+  salesToday?: Record<string, UserSales> | null
 }
 
 export interface Overview {
@@ -87,7 +90,12 @@ export function buildOverview(i: OverviewInput): Overview {
         }),
       }
       const orders = orderSummary(visits, i.orderStates, i.orderTotals)
-      const info = { uniqueVisits: new Set(visits.map((v) => v.customer_id ?? v.id)).size, orders: orders.count, amountUsd: orders.valueUsd }
+      // Orders are the visits marked ordered; the amount is the sale orders assigned to the person today.
+      const info = {
+        uniqueVisits: new Set(visits.map((v) => v.customer_id ?? v.id)).size,
+        orders: orderedVisitCount(visits, i.orderStates),
+        amountUsd: i.salesToday ? (i.salesToday[id]?.totalUsd ?? 0) : orders.valueUsd,
+      }
       return { id, name, department, state: 'in', lateMinutes: behind > i.graceMin ? behind : 0, clockIn: formatTime(firstIn), strip, visits: visits.length, info }
     }
     const leave = i.leave[id]
@@ -122,6 +130,8 @@ export interface MonthFacts {
   orderTotals: Record<string, { orderNo: string; totalUsd: number | null }>
   /** Every synced order in each visit's window, when the lookup has answered: the team's sales total each transaction once. */
   orderLists?: Record<string, OrderList>
+  /** Sale orders assigned to each person with an order date in the month (sales_by_user); null: the visit-based total is used. */
+  salesMonth?: Record<string, UserSales> | null
   /** Each person's monthly sales target; null or missing: they have none (switched off, or none set). */
   monthlyTargets: Record<string, number | null>
   dailyVisitTarget: number
@@ -145,7 +155,7 @@ export function buildMonth(f: MonthFacts): MonthInput | null {
   const days = new Set(expected.map((r) => r.day))
   const done = [...days].filter((d) => d <= f.today).length
   return {
-    sales: teamOrderSummary(targeted(f.visits, has), f.orderStates, f.orderTotals, f.orderLists).valueUsd,
+    sales: f.salesMonth ? sumSales(f.salesMonth, people) : teamOrderSummary(targeted(f.visits, has), f.orderStates, f.orderTotals, f.orderLists).valueUsd,
     salesTarget: salesTarget > 0 ? salesTarget : null,
     visits: f.visits.filter((v) => !v.cancelled_at).length,
     visitTarget: f.dailyVisitTarget > 0 ? expected.length * f.dailyVisitTarget : null,
@@ -164,6 +174,8 @@ export interface PerformanceFacts {
   /** The synced sale order's total per visit. */
   orderTotals: Record<string, { orderNo: string; totalUsd: number | null }>
   orderLists?: Record<string, OrderList>
+  /** Sale orders assigned to each person with today's order date (sales_by_user); null: the visit-based total is used. */
+  salesToday?: Record<string, UserSales> | null
   /** Each person's daily share of their monthly sales target; 0 or missing: they have none. */
   dailyTargets: Record<string, number>
   dailyVisitTarget: number
@@ -182,7 +194,7 @@ export function buildPerformance(f: PerformanceFacts): Performance {
   const has = (id: string) => (f.dailyTargets[id] ?? 0) > 0
   const salesTarget = ids.reduce((n, id) => n + (has(id) ? f.dailyTargets[id] : 0), 0)
   return performance({
-    sales: teamOrderSummary(targeted(f.visits, has), f.orderStates, f.orderTotals, f.orderLists).valueUsd,
+    sales: f.salesToday ? sumSales(f.salesToday, f.overview.people.map((p) => p.id)) : teamOrderSummary(targeted(f.visits, has), f.orderStates, f.orderTotals, f.orderLists).valueUsd,
     salesTarget: salesTarget > 0 ? salesTarget : null,
     visits: f.visits.length,
     visitTarget: ids.length && f.dailyVisitTarget > 0 ? ids.length * f.dailyVisitTarget : null,

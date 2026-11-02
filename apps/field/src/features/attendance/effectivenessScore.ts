@@ -384,6 +384,17 @@ export function teamOrderSummary(
   return { count, valueUsd: sum }
 }
 
+/** How many of these visits count as an order: each visit marked ordered (and not unmatched) is one, whoever else visited. */
+export function orderedVisitCount(visits: VisitLike[], orders: Record<string, OrderState> | undefined): number {
+  let n = 0
+  for (const v of visits) {
+    if (v.cancelled_at) continue
+    const state = orders ? (v.id ? orders[v.id] : undefined) : (v.order_amount_usd ?? 0) > 0 ? 'pending' : 'none'
+    if (countsAsOrdered(state)) n++
+  }
+  return n
+}
+
 /** The value in USD of the visits that count as ordered (see orderSummary). */
 export function orderValueUsd(
   visits: VisitLike[],

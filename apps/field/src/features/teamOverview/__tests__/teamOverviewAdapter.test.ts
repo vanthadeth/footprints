@@ -74,7 +74,7 @@ describe('buildOverview', () => {
     const o = buildOverview(base({ snapshots: [withDept, snap('b', 'B')] }))
     expect(o.people.map((p) => p.department)).toEqual(['Sales', 'No department'])
   })
-  it("gives each person's unique customers, orders and amount, and counts a shared order on both cards", () => {
+  it("gives each person's unique customers, the visits marked ordered as orders, and the visit-based amount when sales are not available", () => {
     const cv = (id: string, customer: string | null, a: string, b: string, amount: number | null = null) => ({ id, checked_in_at: at(a), checked_out_at: at(b), cancelled_at: null, flags: null, customer_id: customer, order_amount_usd: amount }) as never
     const one = snap('a', 'A', [['08:00', null]], [cv('v1', 'c1', '09:00', '09:30'), cv('v2', 'c1', '10:00', '10:30'), cv('v3', 'c2', '11:00', '11:30', 80)])
     const two = snap('b', 'B', [['08:00', null]], [cv('v4', 'c1', '09:00', '09:30')])
@@ -85,7 +85,7 @@ describe('buildOverview', () => {
         orderTotals: { v1: { orderNo: 'SO-1', totalUsd: 300 }, v2: { orderNo: 'SO-1', totalUsd: 300 }, v4: { orderNo: 'SO-1', totalUsd: 300 } },
       }),
     )
-    expect(o.people[0].info).toEqual({ uniqueVisits: 2, orders: 2, amountUsd: 380 })
+    expect(o.people[0].info).toEqual({ uniqueVisits: 2, orders: 3, amountUsd: 380 })
     expect(o.people[1].info).toEqual({ uniqueVisits: 1, orders: 1, amountUsd: 300 })
   })
 })
@@ -128,11 +128,36 @@ describe('buildPerformance', () => {
     const none = buildPerformance({ ...facts, dailyTargets: {} })
     expect(none.sales).toMatchObject({ value: 0, target: null })
   })
+  it("totals the team's sales as the sale orders assigned to its salespeople today, whatever the visits say", () => {
+    const p = buildPerformance({ ...facts, salesToday: { a: { orders: 2, totalUsd: 500 }, b: { orders: 1, totalUsd: 120 }, c: { orders: 1, totalUsd: 80 }, outsider: { orders: 1, totalUsd: 999 } } })
+    // a, b and c are the team; the order assigned to someone outside it is not counted
+    expect(p.sales.value).toBe(700)
+  })
   it('has no sales target when nobody is expected to work', () => {
     const noone = buildOverview(base({ snapshots: [snap('c', 'C')], leave: { c: 'annual' } }))
     const p = buildPerformance({ ...facts, overview: noone })
     expect(p.sales.target).toBeNull()
     expect(p.visits.target).toBeNull()
+  })
+})
+
+describe('buildOverview sales', () => {
+  it("shows a person's orders as the visits marked ordered and their amount as the sale orders assigned to them today", () => {
+    const visits = [visit('v1', '09:00', '09:30'), visit('v2', '10:00', '10:30'), visit('v3', '11:00', '11:30')]
+    const input = base({
+      snapshots: [snap('a', 'A', [['08:00', null]], visits)],
+      orderStates: { v1: 'confirmed', v2: 'pending', v3: 'none' },
+      salesToday: { a: { orders: 3, totalUsd: 640 } },
+    })
+    const a = buildOverview(input).people[0]
+    expect(a.info).toMatchObject({ orders: 2, amountUsd: 640 })
+  })
+  it('shows $0 for a person with no assigned orders today, and falls back to the visit amounts without the lookup', () => {
+    const visits = [{ ...(visit('v1', '09:00', '09:30') as object), order_amount_usd: 90 } as never]
+    const withSales = buildOverview(base({ snapshots: [snap('a', 'A', [['08:00', null]], visits)], orderStates: { v1: 'pending' }, salesToday: {} })).people[0]
+    expect(withSales.info).toMatchObject({ orders: 1, amountUsd: 0 })
+    const without = buildOverview(base({ snapshots: [snap('a', 'A', [['08:00', null]], visits)], orderStates: { v1: 'pending' } })).people[0]
+    expect(without.info).toMatchObject({ orders: 1, amountUsd: 90 })
   })
 })
 
@@ -166,6 +191,10 @@ describe('buildMonth', () => {
       })
     )!
     expect(two.sales).toBe(400)
+  })
+  it("totals the month's sales as the sale orders assigned to the team's salespeople", () => {
+    const m = buildMonth(facts({ salesMonth: { a: { orders: 5, totalUsd: 2100 }, b: { orders: 2, totalUsd: 400 }, outsider: { orders: 1, totalUsd: 77 } } }))!
+    expect(m.sales).toBe(2500)
   })
   it("adds the month's sales once per order, counts visits and takes the new customers", () => {
     const m = buildMonth(facts())!
