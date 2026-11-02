@@ -70,6 +70,7 @@ export function TeamPerformance({ performance: p, period = 'Today', className = 
         <span className="tpf-n">{money(s.value)}</span>
         {s.percent != null && <span className="tpf-pc">{s.percent}% of target</span>}
       </div>
+      {p.salesPending ? <p className="tpf-s">incl. {money(p.salesPending)} pending approval</p> : null}
       {s.target != null && (
         <div className="tpf-bar" role="img" aria-label={`Team sales ${s.percent} percent of target`}>
           <div className="tpf-fill" style={{ width: `${s.fill}%` }} />

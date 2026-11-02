@@ -62,7 +62,9 @@ describe('sale order parsing', () => {
     })
     expect(isValidOrder(a)).toBe(true)
     expect(b.is_khr).toBe(true)
-    expect(isValidOrder(b)).toBe(false)
+    // Waiting for approval (APPROVED = FALSE) is still a valid order; ORDER_STATUS 0 is not.
+    expect(isValidOrder(b)).toBe(true)
+    expect(b.approved).toBe(false)
     expect(isValidOrder(c)).toBe(false)
   })
 

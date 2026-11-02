@@ -5,6 +5,8 @@ import { callRpc } from '@footprints/shared/lib/rpc'
 export interface UserSales {
   orders: number
   totalUsd: number
+  /** The part of the total still waiting for approval. */
+  pendingUsd: number
 }
 
 /**
@@ -20,11 +22,11 @@ export function useSalesByUser(userIds: string[], from: string, to: string): Rec
   useEffect(() => {
     if (!idsKey) return
     let cancelled = false
-    callRpc<{ user_id: string; orders: number; total_usd: number | string | null }[]>('sales_by_user', { p_from: from, p_to: to, p_users: idsKey.split(',') })
+    callRpc<{ user_id: string; orders: number; total_usd: number | string | null; pending_usd?: number | string | null }[]>('sales_by_user', { p_from: from, p_to: to, p_users: idsKey.split(',') })
       .then((rows) => {
         if (cancelled) return
         const sales: Record<string, UserSales> = {}
-        for (const r of rows ?? []) sales[r.user_id] = { orders: Number(r.orders), totalUsd: Number(r.total_usd ?? 0) }
+        for (const r of rows ?? []) sales[r.user_id] = { orders: Number(r.orders), totalUsd: Number(r.total_usd ?? 0), pendingUsd: Number(r.pending_usd ?? 0) }
         setState({ key, sales })
       })
       .catch(() => !cancelled && setState({ key, sales: null }))
@@ -40,5 +42,12 @@ export function useSalesByUser(userIds: string[], from: string, to: string): Rec
 export const sumSales = (sales: Record<string, UserSales>, ids: Iterable<string>): number => {
   let n = 0
   for (const id of ids) n += sales[id]?.totalUsd ?? 0
+  return n
+}
+
+/** The part of the listed people's totals still waiting for approval. */
+export const sumPending = (sales: Record<string, UserSales>, ids: Iterable<string>): number => {
+  let n = 0
+  for (const id of ids) n += sales[id]?.pendingUsd ?? 0
   return n
 }

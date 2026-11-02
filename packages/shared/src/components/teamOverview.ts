@@ -152,7 +152,11 @@ export interface MonthInput extends DayInput {
   totalDays: number
 }
 
-export type PerformanceInput = DayInput & { month?: MonthInput }
+export type PerformanceInput = DayInput & {
+  month?: MonthInput
+  /** The part of today's sales still waiting for approval (already inside `sales`). */
+  salesPending?: number
+}
 
 export interface MonthPerformance {
   sales: Measure & {
@@ -173,6 +177,8 @@ export interface MonthPerformance {
 export interface Performance {
   /** Today. Pace is left to the month. */
   sales: Measure
+  /** The part of today's sales still waiting for approval; 0 or missing: none. */
+  salesPending?: number
   visits: Measure
   newCustomers: Measure
   month: MonthPerformance | null
@@ -216,6 +222,7 @@ function monthPerformance(m: MonthInput): MonthPerformance {
 export function performance(i: PerformanceInput): Performance {
   return {
     sales: measure(i.sales, i.salesTarget),
+    salesPending: i.salesPending && i.salesPending > 0 ? i.salesPending : undefined,
     visits: measure(i.visits, i.visitTarget),
     newCustomers: measure(i.newCustomers, i.newTarget),
     month: i.month ? monthPerformance(i.month) : null,
