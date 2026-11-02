@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { BAND_LABEL, BAND_STYLE, computeScore, formatScore, inputsOf, lateFirstVisit, meanScore, nextBand, nextSteps, orderSummary, orderValueUsd, teamOrderSummary, scoreBand, scoreDay, scoreTextClass, travelDeductionMs, travelMeters } from '../effectivenessScore'
+import { BAND_LABEL, BAND_STYLE, computeScore, formatScore, inputsOf, lateFirstVisit, meanScore, nextBand, nextSteps, orderSummary, orderValueUsd, teamOrderSummary, orderedVisitCount, scoreBand, scoreDay, scoreTextClass, travelDeductionMs, travelMeters } from '../effectivenessScore'
 import { DEFAULT_FLAG_RULES } from '../flagRules'
 
 const HOUR = 3_600_000
@@ -368,5 +368,16 @@ describe('teamOrderSummary', () => {
   })
   it('ignores visits that do not count as ordered', () => {
     expect(teamOrderSummary([visit('a', 'u1', 'c1', 300)], { a: 'unmatched' }, {})).toEqual({ count: 0, valueUsd: 0 })
+  })
+})
+
+describe('orderedVisitCount', () => {
+  it('counts each visit marked ordered, even when two people visited the same customer', () => {
+    const v = [{ id: 'a', checked_in_at: '2026-11-02T03:00:00Z', checked_out_at: null }, { id: 'b', checked_in_at: '2026-11-02T04:00:00Z', checked_out_at: null }, { id: 'c', checked_in_at: '2026-11-02T05:00:00Z', checked_out_at: null }]
+    expect(orderedVisitCount(v, { a: 'confirmed', b: 'pending', c: 'unmatched' })).toBe(2)
+    expect(orderedVisitCount(v, { a: 'none', b: 'none', c: 'none' })).toBe(0)
+  })
+  it('skips cancelled visits', () => {
+    expect(orderedVisitCount([{ id: 'a', checked_in_at: '2026-11-02T03:00:00Z', checked_out_at: null, cancelled_at: '2026-11-02T03:10:00Z' }], { a: 'confirmed' })).toBe(0)
   })
 })

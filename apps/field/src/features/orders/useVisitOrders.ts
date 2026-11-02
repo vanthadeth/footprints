@@ -26,9 +26,12 @@ function lookupMatches(key: string): Promise<Record<string, OrderMatch>> {
   const ids = key.split(',')
   const chunks: string[][] = []
   for (let i = 0; i < ids.length; i += CHUNK) chunks.push(ids.slice(i, i + CHUNK))
-  const promise = Promise.all(chunks.map((c) => callRpc<{ visit_id: string; order_no: string; order_date: string; total_usd: number | null }[]>('visit_orders', { p_visit_ids: c, p_days: ORDER_RECONCILE_DAYS }))).then((parts) => {
+  type Row = { visit_id: string; order_no: string; order_date: string; total_usd: number | null }
+  // The pairing the sync stored (0125); an older database without it falls back to the lookup by customer and date.
+  const fetchChunk = (c: string[]) => callRpc<Row[]>('visit_order_links', { p_visit_ids: c }).catch(() => callRpc<Row[]>('visit_orders', { p_visit_ids: c, p_days: ORDER_RECONCILE_DAYS }))
+  const promise = Promise.all(chunks.map(fetchChunk)).then((parts) => {
     const next: Record<string, OrderMatch> = {}
-    for (const r of parts.flat()) next[r.visit_id] = { orderNo: r.order_no, orderDate: r.order_date, totalUsd: r.total_usd }
+    for (const r of parts.flat()) if (!next[r.visit_id]) next[r.visit_id] = { orderNo: r.order_no, orderDate: r.order_date, totalUsd: r.total_usd }
     return next
   })
   lookups.set(key, { at: Date.now(), promise })
