@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { callRpc } from '@footprints/shared/lib/rpc'
 import { ORDER_RECONCILE_DAYS } from '@footprints/shared/lib/config'
 import { useVisitOptions } from '@/features/visits/useVisitOptions'
+import type { OrderList } from '@/features/attendance/effectivenessScore'
 import { isMarkedOrdered, orderState, type OrderMatch, type OrderState } from './orderReconcile'
 
 interface VisitLike {
@@ -103,3 +104,45 @@ export function useVisitOrderTotals(visits: VisitLike[]): Record<string, { order
     return out
   }, [matches, known])
 }
+
+const listLookups = new Map<string, { at: number; promise: Promise<Record<string, OrderList>> }>()
+
+function lookupLists(key: string): Promise<Record<string, OrderList>> {
+  const hit = listLookups.get(key)
+  if (hit && Date.now() - hit.at < SHARE_MS) return hit.promise
+  const ids = key.split(',')
+  const chunks: string[][] = []
+  for (let i = 0; i < ids.length; i += CHUNK) chunks.push(ids.slice(i, i + CHUNK))
+  const promise = Promise.all(chunks.map((c) => callRpc<{ visit_id: string; order_no: string; total_usd: number | null }[]>('visit_orders_all', { p_visit_ids: c, p_days: ORDER_RECONCILE_DAYS }))).then((parts) => {
+    const next: Record<string, OrderList> = {}
+    for (const r of parts.flat()) (next[r.visit_id] ??= []).push({ orderNo: r.order_no, totalUsd: r.total_usd })
+    return next
+  })
+  listLookups.set(key, { at: Date.now(), promise })
+  promise.catch(() => listLookups.delete(key))
+  return promise
+}
+
+/**
+ * Every synced sale order in each visit's window (public.visit_orders_all), for totalling the team's sales per
+ * transaction. Empty until the lookup answers, and when the function is not there yet (an older database) -- the
+ * totals then fall back to the single order matched to each visit (useVisitOrderTotals).
+ */
+export function useVisitOrderLists(visits: VisitLike[]): Record<string, OrderList> {
+  const live = useMemo(() => visits.filter((v) => !v.cancelled_at), [visits])
+  const key = live.filter((v) => v.customer_id).map((v) => v.id).sort().join(',')
+  const [state, setState] = useState<{ key: string; lists: Record<string, OrderList> }>({ key: '', lists: {} })
+  useEffect(() => {
+    if (!key) return
+    let cancelled = false
+    lookupLists(key)
+      .then((lists) => !cancelled && setState({ key, lists }))
+      .catch(() => !cancelled && setState({ key, lists: {} }))
+    return () => {
+      cancelled = true
+    }
+  }, [key])
+  return state.key === key ? state.lists : EMPTY_LISTS
+}
+
+const EMPTY_LISTS: Record<string, OrderList> = {}

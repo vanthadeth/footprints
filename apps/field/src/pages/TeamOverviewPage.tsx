@@ -5,7 +5,7 @@ import { TeamPerformance } from '@footprints/shared/components/TeamPerformance'
 import { useFleet } from '@/features/fleet/useFleet'
 import { useTeamWorkDays } from '@/features/schedule/useTeamWorkDays'
 import { useApprovedLeaveOnDate } from '@/features/leave/useApprovedLeaveOnDate'
-import { useVisitOrders, useVisitOrderTotals } from '@/features/orders/useVisitOrders'
+import { useVisitOrderLists, useVisitOrders, useVisitOrderTotals } from '@/features/orders/useVisitOrders'
 import { useOrderTargetDetails } from '@/features/orders/useOrderTargets'
 import { addDays } from '@/features/attendanceSummary/attendanceCycle'
 import { useAttendanceDays } from '@/features/attendanceSummary/useAttendanceDays'
@@ -42,6 +42,7 @@ export function TeamOverviewPage() {
   const { visits: monthVisits } = useMonthVisits(ids, monthRange.startIso, monthRange.endIso)
   const monthOrderStates = useVisitOrders(monthVisits)
   const monthOrderTotals = useVisitOrderTotals(monthVisits)
+  const monthOrderLists = useVisitOrderLists(monthVisits)
   // The strips and "absent" move with the clock.
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
@@ -52,6 +53,7 @@ export function TeamOverviewPage() {
   const visits = useMemo(() => field.flatMap((s) => s.visitsToday.filter((v) => !v.cancelled_at)), [field])
   const orderStates = useVisitOrders(visits)
   const orderTotals = useVisitOrderTotals(visits)
+  const orderLists = useVisitOrderLists(visits)
   const overview = useMemo(
     () => buildOverview({ snapshots: field, leave, workDays, defaults: { start: settings.workStartTime, end: settings.workEndTime }, graceMin: settings.flagRules.lateGraceMin, forgottenCapMin: settings.flagRules.forgottenCapMin, now, orderStates, orderTotals }),
     [field, leave, workDays, settings.workStartTime, settings.workEndTime, settings.flagRules.lateGraceMin, settings.flagRules.forgottenCapMin, now, orderStates, orderTotals],
@@ -60,12 +62,12 @@ export function TeamOverviewPage() {
     () =>
       monthDays.loading
         ? null
-        : buildMonth({ rows: monthDays.rows, today, visits: monthVisits, orderStates: monthOrderStates, orderTotals: monthOrderTotals, monthlyTargets, dailyVisitTarget: settings.dailyVisitTarget, newCustomers: newCustomersMonth }),
-    [monthDays.loading, monthDays.rows, today, monthVisits, monthOrderStates, monthOrderTotals, monthlyTargets, settings.dailyVisitTarget, newCustomersMonth],
+        : buildMonth({ rows: monthDays.rows, today, visits: monthVisits, orderStates: monthOrderStates, orderTotals: monthOrderTotals, orderLists: monthOrderLists, monthlyTargets, dailyVisitTarget: settings.dailyVisitTarget, newCustomers: newCustomersMonth }),
+    [monthDays.loading, monthDays.rows, today, monthVisits, monthOrderStates, monthOrderTotals, monthOrderLists, monthlyTargets, settings.dailyVisitTarget, newCustomersMonth],
   )
   const performance = useMemo(
-    () => buildPerformance({ overview, visits, orderStates, orderTotals, dailyTargets, dailyVisitTarget: settings.dailyVisitTarget, newCustomers, month }),
-    [overview, visits, orderStates, orderTotals, dailyTargets, settings.dailyVisitTarget, newCustomers, month],
+    () => buildPerformance({ overview, visits, orderStates, orderTotals, orderLists, dailyTargets, dailyVisitTarget: settings.dailyVisitTarget, newCustomers, month }),
+    [overview, visits, orderStates, orderTotals, orderLists, dailyTargets, settings.dailyVisitTarget, newCustomers, month],
   )
 
   return (

@@ -79,6 +79,7 @@ what it does and why:
 | `0121_footprints_monthly_sales_target` | The sales target is monthly (`users.monthly_order_target_usd`, `app_settings.monthly_order_target_usd`), with a per-person `sales_target_required` switch; `team_order_targets()` returns them |
 | `0122_footprints_invoices_sync` | Invoices and payment terms: `invoices`, `payment_terms`, a read view, the `sync_targets` rows and `sync_sources.date_order` for the invoice sync |
 | `0123_footprints_min_working_days` | Flexible days off by a minimum number of working days a cycle (`users.min_working_days`, `app_settings.min_working_days`, default 20): worked days (clock-ins) plus approved leave and holidays count; a short cycle settles as absent days taken from annual leave, then unpaid (`flex_progress`, `flex_progress_days`, `flex_team_progress`, `flex_rule_settings`, `set_min_working_days`; `app.settle_flex_cycles` replaced). The weekend-allowance functions of 0100 / 0101 stay but are no longer used by the app |
+| `0124_footprints_visit_orders_all` | Every synced sale order in a visit's window (`public.visit_orders_all`, `app.sale_orders_for`), so the Team page can total sales per transaction instead of only the first order matched to a visit |
 
 All migrations are additive: no existing table, column, row, or function
 signature was removed or narrowed. **All are applied to the live
