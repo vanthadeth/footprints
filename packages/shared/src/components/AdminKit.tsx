@@ -77,11 +77,13 @@ export interface AdminRowProps {
   /** A control on the right (switch, stepper…) instead of a value. */
   control?: ReactNode
   to?: string
+  /** `to` is another site: a plain link that opens in a new tab. */
+  external?: boolean
   onClick?: () => void
   disabled?: boolean
 }
 
-export function AdminRow({ icon: Icon, avatar, label, sub, value, valueTone, pill, control, to, onClick, disabled }: AdminRowProps) {
+export function AdminRow({ icon: Icon, avatar, label, sub, value, valueTone, pill, control, to, external, onClick, disabled }: AdminRowProps) {
   const inner = (
     <>
       {Icon && (
@@ -113,6 +115,12 @@ export function AdminRow({ icon: Icon, avatar, label, sub, value, valueTone, pil
     </>
   )
   const cls = `flex min-h-[58px] w-full items-center gap-3 border-t border-neutral-100 py-1.5 text-left dark:border-neutral-800 ${disabled ? 'opacity-50' : ''}`
+  if (to && external)
+    return (
+      <a href={to} target="_blank" rel="noopener noreferrer" className={cls}>
+        {inner}
+      </a>
+    )
   if (to)
     return (
       <Link to={to} className={cls}>

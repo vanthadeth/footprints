@@ -100,19 +100,31 @@ export function MenuPage() {
               <p className="rounded-2xl border border-neutral-100 bg-white p-4 text-center text-sm text-neutral-500 shadow-card">{t('menu.noMatch')}</p>
             ) : (
               <div className="overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-card">
-                {results.map((r, i) => (
-                  <Link key={r.key} to={r.to} className={`flex min-h-[52px] items-center gap-3 px-3.5 py-2 ${i ? 'border-t border-neutral-100' : ''}`}>
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-brand-50 text-brand-500">
-                      <r.icon className="h-[18px] w-[18px]" aria-hidden />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[15px] font-semibold text-neutral-900">{rowLabel(r, t)}</span>
-                      <span className="block truncate text-xs text-neutral-500">{t(r.fn.titleKey)}</span>
-                    </span>
-                    {badge(r.key) > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-status-danger px-1.5 text-[11px] font-extrabold text-white">{badge(r.key)}</span>}
-                    <ChevronRight className="h-4 w-4 text-neutral-500" aria-hidden />
-                  </Link>
-                ))}
+                {results.map((r, i) => {
+                  const rowCls = `flex min-h-[52px] items-center gap-3 px-3.5 py-2 ${i ? 'border-t border-neutral-100' : ''}`
+                  const body = (
+                    <>
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-brand-50 text-brand-500">
+                        <r.icon className="h-[18px] w-[18px]" aria-hidden />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[15px] font-semibold text-neutral-900">{rowLabel(r, t)}</span>
+                        <span className="block truncate text-xs text-neutral-500">{t(r.fn.titleKey)}</span>
+                      </span>
+                      {badge(r.key) > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-status-danger px-1.5 text-[11px] font-extrabold text-white">{badge(r.key)}</span>}
+                      <ChevronRight className="h-4 w-4 text-neutral-500" aria-hidden />
+                    </>
+                  )
+                  return r.external ? (
+                    <a key={r.key} href={r.to} target="_blank" rel="noopener noreferrer" className={rowCls}>
+                      {body}
+                    </a>
+                  ) : (
+                    <Link key={r.key} to={r.to} className={rowCls}>
+                      {body}
+                    </Link>
+                  )
+                })}
               </div>
             )}
           </section>

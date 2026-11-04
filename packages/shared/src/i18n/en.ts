@@ -451,6 +451,7 @@ export const en = {
     removePhoto: 'Remove {{kind}} photo',
   },
   hubRow: {
+    surveysetup: 'Survey setup',
     surveys: 'Surveys',
     trips: 'Sales trips',
     tripset: 'Sales trip settings',
@@ -487,6 +488,7 @@ export const en = {
     sheetsync: 'Data & sync',
   },
   hubRowSub: {
+    surveysetup: 'Build survey templates and see reports (opens the admin app)',
     surveys: 'Product and category surveys from customers',
     trips: 'Province trips, day by day',
     tripset: 'Standard rates, rooms, notice, special allowance',

@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { adminRows, canApprove, fnForPath, forYou, homeFor, hubFunctions, hubSearch, roleGroup, tabsFor, type NavContext } from '../navConfig'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { adminAppUrl, adminRows, canApprove, fnForPath, forYou, homeFor, hubFunctions, hubSearch, roleGroup, tabsFor, type NavContext } from '../navConfig'
 import type { Scope } from '@footprints/shared/features/permissions/catalog'
 
 /** A context from "module.action=scope" strings, like the role_permissions rows. */
@@ -13,6 +13,46 @@ const MANAGER = ['team_map.view=sub', 'leave.edit=sub', 'leave.view=sub', 'leave
 const HR = ['team_map.view=any', 'leave.view=any', 'leave.edit=any', 'leave_balance.view=any', 'leave_balance.edit=any', 'attendance.view=any']
 const ACCOUNTING = ['team_map.view=any', 'attendance.view=any', 'customer.view=any', 'leave.view=own', 'leave.edit=own', 'sales_trip.view=any', 'sales_trip_transfer.edit=any']
 const WAREHOUSE = ['plan.view=own', 'footprints.view=own', 'customer.view=any', 'leave.view=own']
+
+describe('survey setup row', () => {
+  afterEach(() => vi.unstubAllEnvs())
+  const setupKeys = (perms: string[], isSuperAdmin = false) => hubFunctions('admin', ctx(perms, isSuperAdmin)).flatMap((f) => f.rows.filter((r) => r.key === 'surveysetup'))
+
+  it('is hidden everywhere until VITE_ADMIN_URL is set', () => {
+    vi.stubEnv('VITE_ADMIN_URL', '')
+    expect(adminAppUrl()).toBe('')
+    expect(setupKeys(['survey.edit=any'])).toHaveLength(0)
+    expect(adminRows(ctx([], true)).some((r) => r.key === 'surveysetup')).toBe(false)
+  })
+
+  it('ignores an address that is not http(s)', () => {
+    vi.stubEnv('VITE_ADMIN_URL', 'javascript:alert(1)')
+    expect(adminAppUrl()).toBe('')
+  })
+
+  it('links to the admin app Surveys section in a new tab, for template builders and Super Admins only', () => {
+    vi.stubEnv('VITE_ADMIN_URL', 'https://admin.example.com/')
+    expect(adminAppUrl()).toBe('https://admin.example.com')
+    const [row] = setupKeys(['survey.edit=any'])
+    expect(row.to).toBe('https://admin.example.com/surveys')
+    expect(row.external).toBe(true)
+    expect(setupKeys([], true)).toHaveLength(1)
+    // Team-scope supervisors, salespeople and people with no survey grant never see it.
+    expect(setupKeys(['survey.edit=sub'])).toHaveLength(0)
+    expect(setupKeys(['survey.view=any', 'survey.add=own'])).toHaveLength(0)
+    expect(setupKeys(SALES)).toHaveLength(0)
+  })
+
+  it('also shows in the Admin tab and is found by Hub search', () => {
+    vi.stubEnv('VITE_ADMIN_URL', 'https://admin.example.com')
+    expect(adminRows(ctx([], true)).some((r) => r.key === 'surveysetup')).toBe(true)
+    expect(hubSearch('admin', ctx([], true), 'survey setup').map((r) => r.key)).toContain('surveysetup')
+  })
+
+  it('lives under Company setup, not under an in-app path', () => {
+    expect(fnForPath('/surveys')).toBe('sell')
+  })
+})
 
 describe('surveys', () => {
   const rowKeys = (perms: string[]) => hubFunctions('field', ctx(perms)).flatMap((f) => f.rows.map((r) => r.key))

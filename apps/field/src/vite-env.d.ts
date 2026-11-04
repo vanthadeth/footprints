@@ -5,6 +5,8 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_ANON_KEY: string
   readonly VITE_MAP_PROVIDER?: string
   readonly VITE_MAP_API_KEY?: string
+  /** Address of the separate admin app (no trailing slash). Shows the Survey setup row when set. */
+  readonly VITE_ADMIN_URL?: string
 }
 
 interface ImportMeta {

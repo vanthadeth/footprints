@@ -131,7 +131,12 @@ function DesktopSidebar() {
             </button>
             {isOpen && (
               <div className="pb-1.5 pl-[42px]">
-                {f.rows.map((row) => (
+                {f.rows.map((row) =>
+                  row.external ? (
+                    <a key={row.key} href={row.to} target="_blank" rel="noopener noreferrer" className="flex items-center rounded-md px-2 py-1.5 text-[13px] text-neutral-600 hover:bg-neutral-100">
+                      <span className="flex-1">{row.label}</span>
+                    </a>
+                  ) : (
                   <NavLink
                     key={row.key}
                     to={row.to}
@@ -141,7 +146,8 @@ function DesktopSidebar() {
                     <span className="flex-1">{row.label}</span>
                     {row.key === 'approvals' && badges.approvals ? <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-status-danger px-1 text-[10.5px] font-bold text-white">{badges.approvals}</span> : null}
                   </NavLink>
-                ))}
+                  )
+                )}
               </div>
             )}
           </div>

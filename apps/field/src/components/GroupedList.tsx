@@ -23,13 +23,15 @@ interface RowProps {
   /** Red count pill, hidden at 0. */
   badge?: number
   to?: string
+  /** `to` is another site: a plain link that opens in a new tab. */
+  external?: boolean
   onClick?: () => void
   /** Replaces the chevron (e.g. a segmented control or switch). */
   trailing?: ReactNode
 }
 
 /** One row in a GroupedList -- a Link when `to` is set, a button when `onClick` is, otherwise static (for rows that host their own control). */
-export function ListRow({ icon: Icon, label, sublabel, value, badge, to, onClick, trailing }: RowProps) {
+export function ListRow({ icon: Icon, label, sublabel, value, badge, to, external, onClick, trailing }: RowProps) {
   const body = (
     <>
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] border-[1.5px] border-neutral-200 text-neutral-900">
@@ -47,6 +49,13 @@ export function ListRow({ icon: Icon, label, sublabel, value, badge, to, onClick
     </>
   )
   const cls = 'flex min-h-[58px] w-full items-center gap-3 px-3.5 py-2 text-left'
+  if (to && external) {
+    return (
+      <a href={to} target="_blank" rel="noopener noreferrer" className={cls}>
+        {body}
+      </a>
+    )
+  }
   if (to) {
     return (
       <Link to={to} className={cls}>

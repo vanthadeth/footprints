@@ -239,6 +239,7 @@ VITE_SUPABASE_ANON_KEY=
 VITE_MAP_PROVIDER=
 VITE_MAP_API_KEY=
 VITE_VAPID_PUBLIC_KEY=
+VITE_ADMIN_URL=
 ```
 
 `VITE_MAP_PROVIDER` defaults to OpenStreetMap (no key required) if unset;
@@ -248,6 +249,11 @@ switch tile providers with no code change.
 `VITE_VAPID_PUBLIC_KEY` is the public half of the Web Push keypair (see
 "Push notifications" above) — safe to expose, unlike its private half,
 which only ever lives as an Edge Function secret.
+
+`VITE_ADMIN_URL` (field app only) is where the admin app is deployed, with
+no trailing slash. It shows a "Survey setup" row in the menu, for people
+who can build survey templates, that opens the admin app's Surveys section
+in a new tab. Leave it unset to hide the row.
 
 Never commit real values for these. `SUPABASE_SERVICE_ROLE_KEY` must never be
 used in frontend code, and does not appear anywhere in this repository.
