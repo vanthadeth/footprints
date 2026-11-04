@@ -354,7 +354,7 @@ declare
   v_i        integer := 0;
 begin
   if not app.can_manage_survey_templates() then
-    raise exception 'insufficient_privilege' using detail = 'You can''t build survey templates.';
+    raise exception 'insufficient_privilege' using detail = 'You cannot build survey templates.';
   end if;
   if jsonb_typeof(coalesce(p_questions, 'null'::jsonb)) <> 'array' or jsonb_array_length(p_questions) = 0 then
     raise exception 'invalid_input' using detail = 'A template needs at least one question.';
@@ -462,7 +462,7 @@ declare
 begin
   if p_survey_id is null then
     if not app.can('survey', 'add', v_me) then
-      raise exception 'insufficient_privilege' using detail = 'You can''t fill in surveys.';
+      raise exception 'insufficient_privilege' using detail = 'You cannot fill in surveys.';
     end if;
     if not exists (select 1 from public.customers where id = p_customer_id) then
       raise exception 'not_found';
@@ -470,12 +470,12 @@ begin
     select t.current_version_id into v_version
       from public.survey_templates t where t.id = p_template_id and t.active;
     if v_version is null then
-      raise exception 'invalid_input' using detail = 'That template isn''t published.';
+      raise exception 'invalid_input' using detail = 'That template is not published.';
     end if;
     if p_visit_id is not null and not exists (
       select 1 from public.visits v where v.id = p_visit_id and v.user_id = v_me and v.customer_id = p_customer_id
     ) then
-      raise exception 'invalid_input' using detail = 'That visit isn''t yours, or isn''t at this customer.';
+      raise exception 'invalid_input' using detail = 'That visit is not yours, or not at this customer.';
     end if;
     insert into public.surveys (template_id, version_id, user_id, customer_id, visit_id, remarks)
     values (p_template_id, v_version, v_me, p_customer_id, p_visit_id, nullif(btrim(coalesce(p_remarks, '')), ''))
@@ -731,6 +731,7 @@ as $function$ select app.can_manage_survey_templates(); $function$;
 -- ---------------------------------------------------------------- grants
 
 revoke execute on function app.survey_version_is_published(uuid) from public;
+revoke execute on function app.survey_questions_freeze() from public;
 revoke execute on function app.can_manage_survey_templates() from public;
 revoke execute on function app.can_use_surveys() from public;
 revoke execute on function app.can_view_survey(uuid) from public;
