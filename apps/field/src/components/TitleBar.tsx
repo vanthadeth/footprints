@@ -36,6 +36,8 @@ const TITLE_KEYS: Record<string, string> = {
   '/visits': 'nav.visits',
   '/notifications': 'nav.notifications',
   '/messages': 'nav.messages',
+  '/surveys': 'nav.surveys',
+  '/surveys/start': 'nav.newSurvey',
   '/locations': 'nav.locations',
   '/translations': 'nav.translations',
   '/today': 'nav.today',
@@ -69,6 +71,8 @@ export function useScreenTitle(): string {
         ? t('nav.customer')
         : pathname.startsWith('/messages/')
           ? t('nav.messageThread')
+          : pathname.startsWith('/surveys/') && !TITLE_KEYS[pathname]
+            ? t('nav.survey')
           : pathname.startsWith('/menu/') && Object.prototype.hasOwnProperty.call(FN, pathname.slice(6))
             ? t(FN[pathname.slice(6) as FnKey].titleKey)
           : pathname.startsWith('/team/footprints/')

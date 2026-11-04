@@ -8,6 +8,7 @@ import {
   CalendarDays,
   CalendarRange,
   CheckSquare,
+  ClipboardList,
   Clock,
   FileSpreadsheet,
   Footprints as FootprintsIcon,
@@ -134,7 +135,7 @@ export function homeFor(group: RoleGroup, ctx: NavContext): string {
 }
 
 export type RowKey =
-  | 'trips' | 'tripset' | 'plan' | 'calendar' | 'journey' | 'report' | 'messages' | 'customers' | 'leave' | 'daysoff'
+  | 'trips' | 'tripset' | 'plan' | 'calendar' | 'journey' | 'report' | 'messages' | 'surveys' | 'customers' | 'leave' | 'daysoff'
   | 'team' | 'attendance' | 'attendanceAll' | 'reports' | 'logs' | 'briefing' | 'flexteam' | 'approvals'
   | 'allowances' | 'holidays' | 'users' | 'permissions' | 'org' | 'hours' | 'adminatt' | 'locations' | 'notifications' | 'translations' | 'settings' | 'sheetsync' | 'components' | 'attendanceRoster'
 
@@ -156,6 +157,7 @@ export const ROW: Record<RowKey, RowDef> = {
   calendar: { key: 'calendar', label: 'Calendar', sub: 'Tasks, appointments and follow-ups', to: '/calendar', icon: CalendarIcon, tone: 'bg-status-visiting' },
   journey: { key: 'journey', label: 'Journey history', sub: 'Past days’ routes and time on the road', to: '/footprints', icon: FootprintsIcon, tone: 'bg-earth-500', needs: can('footprints') },
   report: { key: 'report', label: 'My numbers', sub: 'Visits, orders and collections', to: '/report', icon: BarChart3, tone: 'bg-status-working' },
+  surveys: { key: 'surveys', label: 'Surveys', sub: 'Product and category surveys from customers', to: '/surveys', icon: ClipboardList, tone: 'bg-status-working', needs: can('survey') },
   messages: { key: 'messages', label: 'Messages', sub: 'Mentions, replies and your customers', to: '/messages', icon: MessagesSquare, tone: 'bg-brand-700' },
   customers: { key: 'customers', label: 'Customers', sub: 'Calls, notes and visits by customer', to: '/customers', icon: Store, tone: 'bg-status-working', needs: can('customer') },
   leave: { key: 'leave', label: 'My leave', sub: 'Requests, balance and attendance', to: '/leave', icon: CalendarDays, tone: 'bg-brand-500' },
@@ -232,7 +234,7 @@ export const PART_TITLE: Record<PartKey, string> = { mine: 'Mine', team: 'Your t
 
 /** Where each screen lives: function, then part. Order here is the order inside a function. */
 const ROW_FN: [RowKey, FnKey, PartKey][] = [
-  ['customers', 'sell', 'mine'], ['plan', 'sell', 'mine'], ['trips', 'sell', 'mine'], ['briefing', 'sell', 'team'],
+  ['customers', 'sell', 'mine'], ['surveys', 'sell', 'mine'], ['plan', 'sell', 'mine'], ['trips', 'sell', 'mine'], ['briefing', 'sell', 'team'],
   ['calendar', 'day', 'mine'], ['messages', 'day', 'mine'], ['journey', 'day', 'mine'], ['report', 'day', 'mine'],
   ['leave', 'time', 'mine'], ['daysoff', 'time', 'mine'], ['approvals', 'time', 'team'], ['flexteam', 'time', 'team'], ['allowances', 'time', 'company'], ['holidays', 'time', 'company'],
   ['team', 'team', 'team'], ['attendance', 'team', 'team'], ['attendanceAll', 'team', 'team'], ['reports', 'team', 'team'], ['logs', 'team', 'team'],

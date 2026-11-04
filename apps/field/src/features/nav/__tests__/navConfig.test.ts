@@ -14,6 +14,16 @@ const HR = ['team_map.view=any', 'leave.view=any', 'leave.edit=any', 'leave_bala
 const ACCOUNTING = ['team_map.view=any', 'attendance.view=any', 'customer.view=any', 'leave.view=own', 'leave.edit=own', 'sales_trip.view=any', 'sales_trip_transfer.edit=any']
 const WAREHOUSE = ['plan.view=own', 'footprints.view=own', 'customer.view=any', 'leave.view=own']
 
+describe('surveys', () => {
+  const rowKeys = (perms: string[]) => hubFunctions('field', ctx(perms)).flatMap((f) => f.rows.map((r) => r.key))
+
+  it('shows the Surveys row only to people with a survey permission, under Customers & sales', () => {
+    expect(rowKeys(SALES)).not.toContain('surveys')
+    expect(rowKeys([...SALES, 'survey.view=own', 'survey.add=own'])).toContain('surveys')
+    expect(fnForPath('/surveys')).toBe('sell')
+  })
+})
+
 describe('roleGroup', () => {
   it('puts each live role in its group', () => {
     expect(roleGroup(ctx(SALES))).toBe('field')

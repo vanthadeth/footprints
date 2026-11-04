@@ -9,6 +9,8 @@ import { AdminLayout } from '@/layouts/AdminLayout'
 import { SectionPage } from '@/pages/SectionPage'
 import { UsersPage } from '@/pages/UsersPage'
 import { DataSyncPage } from '@/pages/DataSyncPage'
+import { SurveysPage } from '@/pages/SurveysPage'
+import { SurveyTemplatePage } from '@/pages/SurveyTemplatePage'
 import { ComponentsPreviewPage } from '@footprints/shared/pages/ComponentsPreviewPage'
 import { SECTIONS } from '@/sections'
 
@@ -32,8 +34,10 @@ export const router = createBrowserRouter([
       { path: '/', element: <Navigate to="/users" replace /> },
       { path: '/users', element: <UsersPage /> },
       { path: '/sync', element: <DataSyncPage /> },
+      { path: '/surveys', element: <SurveysPage /> },
+      { path: '/surveys/templates/:id', element: <SurveyTemplatePage /> },
       { path: '/components', element: <ComponentsPreviewPage /> },
-      ...SECTIONS.filter((s) => s.path !== '/users' && s.path !== '/sync' && s.path !== '/components').map((s) => ({ path: s.path, element: <SectionPage section={s} /> })),
+      ...SECTIONS.filter((s) => s.path !== '/users' && s.path !== '/sync' && s.path !== '/surveys' && s.path !== '/components').map((s) => ({ path: s.path, element: <SectionPage section={s} /> })),
       { path: '*', element: <Navigate to="/users" replace /> },
     ],
   },

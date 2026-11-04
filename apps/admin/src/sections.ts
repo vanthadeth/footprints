@@ -1,4 +1,4 @@
-import { Building2, LayoutGrid, RefreshCw, Settings, Users, type LucideIcon } from 'lucide-react'
+import { Building2, ClipboardList, LayoutGrid, RefreshCw, Settings, Users, type LucideIcon } from 'lucide-react'
 
 export interface Section {
   path: string
@@ -23,6 +23,13 @@ export const SECTIONS: Section[] = [
     description: 'Sheet syncs feeding the app',
     icon: RefreshCw,
     planned: ['Sync list with last-run counts', 'Preview and Sync now', 'Run history and sync setup'],
+  },
+  {
+    path: '/surveys',
+    label: 'Surveys',
+    description: 'Survey templates and reports',
+    icon: ClipboardList,
+    planned: [],
   },
   {
     path: '/company',
