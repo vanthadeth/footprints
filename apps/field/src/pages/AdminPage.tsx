@@ -23,7 +23,7 @@ export function AdminPage() {
       {groups.map(([title, list]) => (
         <AdminGroup key={title} title={title}>
           {list.map((r) => (
-            <AdminRow key={r.key} icon={r.icon} label={rowLabel(r, t)} sub={rowSub(r, t)} to={r.to} />
+            <AdminRow key={r.key} icon={r.icon} label={rowLabel(r, t)} sub={rowSub(r, t)} to={r.to} external={r.external} />
           ))}
         </AdminGroup>
       ))}

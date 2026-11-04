@@ -135,7 +135,7 @@ export function homeFor(group: RoleGroup, ctx: NavContext): string {
 }
 
 export type RowKey =
-  | 'trips' | 'tripset' | 'plan' | 'calendar' | 'journey' | 'report' | 'messages' | 'surveys' | 'customers' | 'leave' | 'daysoff'
+  | 'trips' | 'tripset' | 'plan' | 'calendar' | 'journey' | 'report' | 'messages' | 'surveys' | 'surveysetup' | 'customers' | 'leave' | 'daysoff'
   | 'team' | 'attendance' | 'attendanceAll' | 'reports' | 'logs' | 'briefing' | 'flexteam' | 'approvals'
   | 'allowances' | 'holidays' | 'users' | 'permissions' | 'org' | 'hours' | 'adminatt' | 'locations' | 'notifications' | 'translations' | 'settings' | 'sheetsync' | 'components' | 'attendanceRoster'
 
@@ -144,11 +144,26 @@ export interface RowDef {
   label: string
   sub: string
   to: string
+  /** `to` is another site (the admin app): open it in a new tab with a plain link, not the in-app router. */
+  external?: boolean
   icon: LucideIcon
   /** Tailwind background for the icon tile. */
   tone: string
   needs?: Need
 }
+
+/**
+ * Where the separate admin app lives (README: its own Vercel project), from
+ * VITE_ADMIN_URL, without a trailing slash. '' when it isn't set or isn't an
+ * http(s) address, which hides every row that links there.
+ */
+export function adminAppUrl(): string {
+  const raw = ((import.meta.env.VITE_ADMIN_URL as string | undefined) ?? '').trim().replace(/\/+$/, '')
+  return /^https?:\/\//i.test(raw) ? raw : ''
+}
+
+/** Can build and publish survey templates: Super Admin, or survey edit at All scope (what the server's template rules require). */
+const buildsSurveys: Need = (ctx) => ctx.isSuperAdmin || ctx.scope('survey', 'edit') === 'any'
 
 export const ROW: Record<RowKey, RowDef> = {
   trips: { key: 'trips', label: 'Sales trips', sub: 'Province trips, day by day', to: '/trips', icon: MapIcon, tone: 'bg-earth-500', needs: can('sales_trip') },
@@ -158,6 +173,19 @@ export const ROW: Record<RowKey, RowDef> = {
   journey: { key: 'journey', label: 'Journey history', sub: 'Past days’ routes and time on the road', to: '/footprints', icon: FootprintsIcon, tone: 'bg-earth-500', needs: can('footprints') },
   report: { key: 'report', label: 'My numbers', sub: 'Visits, orders and collections', to: '/report', icon: BarChart3, tone: 'bg-status-working' },
   surveys: { key: 'surveys', label: 'Surveys', sub: 'Product and category surveys from customers', to: '/surveys', icon: ClipboardList, tone: 'bg-status-working', needs: can('survey') },
+  surveysetup: {
+    key: 'surveysetup',
+    label: 'Survey setup',
+    sub: 'Build survey templates and see reports',
+    // A getter: the address is read when the row is used, so it is whatever VITE_ADMIN_URL says now.
+    get to() {
+      return `${adminAppUrl()}/surveys`
+    },
+    external: true,
+    icon: ClipboardList,
+    tone: 'bg-status-working',
+    needs: (ctx) => adminAppUrl() !== '' && buildsSurveys(ctx),
+  },
   messages: { key: 'messages', label: 'Messages', sub: 'Mentions, replies and your customers', to: '/messages', icon: MessagesSquare, tone: 'bg-brand-700' },
   customers: { key: 'customers', label: 'Customers', sub: 'Calls, notes and visits by customer', to: '/customers', icon: Store, tone: 'bg-status-working', needs: can('customer') },
   leave: { key: 'leave', label: 'My leave', sub: 'Requests, balance and attendance', to: '/leave', icon: CalendarDays, tone: 'bg-brand-500' },
@@ -239,7 +267,7 @@ const ROW_FN: [RowKey, FnKey, PartKey][] = [
   ['leave', 'time', 'mine'], ['daysoff', 'time', 'mine'], ['approvals', 'time', 'team'], ['flexteam', 'time', 'team'], ['allowances', 'time', 'company'], ['holidays', 'time', 'company'],
   ['team', 'team', 'team'], ['attendance', 'team', 'team'], ['attendanceAll', 'team', 'team'], ['reports', 'team', 'team'], ['logs', 'team', 'team'],
   ['users', 'company', 'people'], ['permissions', 'company', 'people'], ['org', 'company', 'people'],
-  ['hours', 'company', 'rules'], ['adminatt', 'company', 'rules'], ['locations', 'company', 'rules'], ['tripset', 'company', 'rules'],
+  ['surveysetup', 'company', 'rules'], ['hours', 'company', 'rules'], ['adminatt', 'company', 'rules'], ['locations', 'company', 'rules'], ['tripset', 'company', 'rules'],
   ['notifications', 'company', 'system'], ['translations', 'company', 'system'], ['settings', 'company', 'system'], ['sheetsync', 'company', 'system'], ['components', 'company', 'system'],
   ['attendanceRoster', 'new', 'preview'],
 ]
@@ -289,7 +317,7 @@ export function hubSearch(group: RoleGroup, ctx: NavContext, query: string, t?: 
 }
 
 /** Admin tab: the Administration rows the person can use. */
-export const ADMIN_ROWS: RowKey[] = ['users', 'permissions', 'hours', 'adminatt', 'locations', 'sheetsync', 'tripset', 'translations', 'settings', 'notifications', 'components']
+export const ADMIN_ROWS: RowKey[] = ['users', 'permissions', 'hours', 'adminatt', 'locations', 'sheetsync', 'surveysetup', 'tripset', 'translations', 'settings', 'notifications', 'components']
 
 /** Hub "For you": up to four shortcuts for the group. */
 export function forYou(group: RoleGroup, ctx: NavContext, opts: { skip?: RowKey[] } = {}): RowDef[] {

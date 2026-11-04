@@ -44,7 +44,7 @@ export function HubFunctionPage() {
       {f.parts.map((p) => (
         <GroupedList key={p.key} title={f.parts.length > 1 ? partTitle(p.key, t) : undefined}>
           {p.rows.map((r) => (
-            <ListRow key={r.key} icon={r.icon} iconBg={r.tone} label={rowLabel(r, t)} sublabel={rowSub(r, t)} to={r.to} badge={badge(r.key)} />
+            <ListRow key={r.key} icon={r.icon} iconBg={r.tone} label={rowLabel(r, t)} sublabel={rowSub(r, t)} to={r.to} external={r.external} badge={badge(r.key)} />
           ))}
         </GroupedList>
       ))}

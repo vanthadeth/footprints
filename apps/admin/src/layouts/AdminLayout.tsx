@@ -1,13 +1,20 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { Navigate, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { LogOut } from 'lucide-react'
 import { LogoIcon } from '@footprints/shared/components/Logo'
 import { useAuth } from '@footprints/shared/features/auth/AuthContext'
 import { useProfile } from '@footprints/shared/features/auth/useProfile'
 import { SECTIONS } from '@/sections'
+import { surveysOnlyAllows } from '@/features/auth/adminAccess'
+import { useAdminAccess } from '@/features/auth/useAdminAccess'
 
 export function AdminLayout() {
   const { signOut } = useAuth()
   const { profile } = useProfile()
+  const { pathname } = useLocation()
+  const { access } = useAdminAccess(!!profile?.is_super_admin)
+  // Someone who only sets up surveys sees the Surveys section and nothing else.
+  if (access === 'surveysOnly' && !surveysOnlyAllows(pathname)) return <Navigate to="/surveys" replace />
+  const sections = access === 'surveysOnly' ? SECTIONS.filter((s) => s.path === '/surveys') : SECTIONS
   return (
     <div className="flex h-full">
       <aside className="flex w-64 shrink-0 flex-col border-r border-neutral-200 bg-white px-3 py-4 dark:border-neutral-800 dark:bg-neutral-900">
@@ -19,7 +26,7 @@ export function AdminLayout() {
           </div>
         </div>
         <nav className="flex flex-1 flex-col gap-1">
-          {SECTIONS.map(({ path, label, icon: Icon }) => (
+          {sections.map(({ path, label, icon: Icon }) => (
             <NavLink
               key={path}
               to={path}
