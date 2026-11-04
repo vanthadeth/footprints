@@ -21,8 +21,11 @@
 --     helpers (the 0093 ones for customers and users) because the base
 --     tables' RLS would hide them from own/sub scoped roles.
 --
--- Assumes app.can(module, action, owner_id) treats a null owner as "no
--- owner": true only for scope 'any'. Template management relies on that.
+-- Note: app.can(module, action, null) is true at ANY non-null scope (own, sub
+-- or any), so it can't tell a template builder from a supervisor. Template
+-- management therefore checks app.effective_scope(...) = 'any' directly, and
+-- coalesces to false: with no grant at all the comparison is NULL, and
+-- `if not NULL` would not raise.
 
 -- ---------------------------------------------------------------- module
 
@@ -34,9 +37,11 @@ select r.id, 'survey', v.action::public.permission_action, v.scope::public.permi
 from public.roles r
 join (values
   ('sales', 'view', 'own'), ('sales', 'add', 'own'),
+  ('salesperson_province', 'view', 'own'), ('salesperson_province', 'add', 'own'),
   ('remote_sales', 'view', 'own'), ('remote_sales', 'add', 'own'),
   ('sale_admin', 'view', 'any'), ('sale_admin', 'add', 'own'),
   ('sales_supervisor', 'view', 'sub'), ('sales_supervisor', 'add', 'own'), ('sales_supervisor', 'edit', 'sub'),
+  ('sale_supervisor_province', 'view', 'sub'), ('sale_supervisor_province', 'add', 'own'), ('sale_supervisor_province', 'edit', 'sub'),
   ('sales_manager', 'view', 'any'), ('sales_manager', 'add', 'own'), ('sales_manager', 'edit', 'any'),
   ('system_admin', 'view', 'any'), ('system_admin', 'add', 'any'), ('system_admin', 'edit', 'any'), ('system_admin', 'delete', 'any')
 ) as v(role_key, action, scope) on v.role_key = r.key;
@@ -190,10 +195,10 @@ language sql
 stable
 security definer
 set search_path to ''
-as $function$ select app.can('survey', 'edit', null); $function$;
+as $function$ select coalesce(app.effective_scope(auth.uid(), 'survey', 'edit') = 'any', false); $function$;
 
 comment on function app.can_manage_survey_templates is
-  'True when the caller may build and publish survey templates: survey edit at scope any.';
+  'True when the caller may build and publish survey templates: survey edit at scope any (not Team or Own; app.can with a null owner would let those through).';
 
 create function app.can_use_surveys()
 returns boolean
@@ -204,7 +209,7 @@ set search_path to ''
 as $function$
   select app.can('survey', 'add', auth.uid())
       or app.can('survey', 'view', auth.uid())
-      or app.can('survey', 'edit', null);
+      or app.can_manage_survey_templates();
 $function$;
 
 comment on function app.can_use_surveys is
