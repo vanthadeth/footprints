@@ -33,6 +33,9 @@ export type FnKey =
   | 'customer_view'
   | 'conversation_view'
   | 'customer_call'
+  | 'survey_view'
+  | 'survey_fill'
+  | 'survey_manage'
   | 'customer_edit'
   | 'customer_briefing'
   | 'att_view'
@@ -79,6 +82,9 @@ export const GROUPS: { name: string; fns: FnMeta[] }[] = [
       { key: 'customer_view', label: 'View customers', help: 'Customer list, map and details', scopes: ['own', 'sub', 'any'] },
       { key: 'conversation_view', label: 'Read & reply to conversations', help: 'See calls and notes on customers, reply and react', scopes: ['any'] },
       { key: 'customer_call', label: 'Call customers & log calls', help: 'Outgoing and incoming calls with purpose and notes', scopes: ['own', 'sub', 'any'] },
+      { key: 'survey_view', label: 'View surveys', help: 'Read the product and category surveys salespeople collected', scopes: ['own', 'sub', 'any'] },
+      { key: 'survey_fill', label: 'Fill in surveys', help: 'Collect a survey from a customer about a product or category', scopes: ['own', 'any'] },
+      { key: 'survey_manage', label: 'Correct surveys & build templates', help: 'Team: correct a team member’s survey. All: also build and publish survey templates', scopes: ['sub', 'any'] },
       { key: 'customer_edit', label: 'Add / edit customers', help: 'Create customers and change their details', scopes: ['own', 'sub', 'any'] },
       { key: 'customer_briefing', label: 'Customer briefing', help: 'Customers by province with visit history (Hub › Team)', scopes: null },
     ],
@@ -138,6 +144,9 @@ const OWNED: { m: string; a: Action; from: FnKey[]; value: (s: FnState, current:
   { m: 'customer_briefing', a: 'view', from: ['customer_briefing'], value: (s) => (s.customer_briefing ? 'any' : null) },
   { m: 'customer_conversation', a: 'view', from: ['conversation_view'], value: (s) => s.conversation_view?.scope ?? null },
   { m: 'customer_conversation', a: 'add', from: ['customer_call'], value: (s) => s.customer_call?.scope ?? null },
+  { m: 'survey', a: 'view', from: ['survey_view'], value: (s) => s.survey_view?.scope ?? null },
+  { m: 'survey', a: 'add', from: ['survey_fill'], value: (s) => s.survey_fill?.scope ?? null },
+  { m: 'survey', a: 'edit', from: ['survey_manage'], value: (s) => s.survey_manage?.scope ?? null },
   { m: 'team_map', a: 'view', from: ['team_map'], value: (s) => s.team_map?.scope ?? null },
   // Requesting leave needs your own requests: add to ask, view/edit to see and cancel them.
   { m: 'leave', a: 'add', from: ['leave_request'], value: (s, c) => (s.leave_request ? (c ?? 'own') : null) },
@@ -188,6 +197,9 @@ export function deriveState(rows: PermRow[]): FnState {
     customer_view: scoped(get('customer', 'view')),
     conversation_view: scoped(get('customer_conversation', 'view')),
     customer_call: scoped(get('customer_conversation', 'add')),
+    survey_view: scoped(get('survey', 'view')),
+    survey_fill: scoped(get('survey', 'add')),
+    survey_manage: scoped(get('survey', 'edit')),
     customer_edit: scoped(get('customer', 'edit')),
     customer_briefing: onOff(get('customer_briefing', 'view')),
     att_view: scoped(get('attendance', 'view')),

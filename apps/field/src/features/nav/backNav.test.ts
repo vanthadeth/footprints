@@ -24,6 +24,12 @@ describe('appBack', () => {
     expect(appBack('/customers/abc', '', nav)).toBe(parentPath('/customers/abc'))
   })
 
+  it('sends a survey, and the new-survey picker, back to the survey list, which goes back to its Hub function', () => {
+    expect(appBack('/surveys/abc', '', nav)).toBe('/surveys')
+    expect(appBack('/surveys/start', '', nav)).toBe('/surveys')
+    expect(appBack('/surveys', '', nav)).toBe('/menu/sell')
+  })
+
   it('sends the password screens back to sign-in', () => {
     expect(appBack('/forgot-password', '', null)).toBe('/login')
     expect(appBack('/reset-password', '', null)).toBe('/login')

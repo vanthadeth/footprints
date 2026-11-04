@@ -16,6 +16,7 @@ export function parentPath(pathname: string, search = ''): string {
   if (/^\/customers\/[^/]+\/orders$/.test(pathname)) return pathname.slice(0, -'/orders'.length)
   if (pathname.startsWith('/customers/')) return '/customers'
   if (pathname.startsWith('/messages/')) return '/messages'
+  if (pathname.startsWith('/surveys/')) return '/surveys'
   if (pathname.startsWith('/menu/')) return '/menu'
   // A Hub screen goes back to its function page (Leave & days off, Company setup…).
   const fn = fnForPath(pathname)

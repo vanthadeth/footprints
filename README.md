@@ -82,6 +82,7 @@ what it does and why:
 | `0124_footprints_visit_orders_all` | Every synced sale order in a visit's window (`public.visit_orders_all`, `app.sale_orders_for`), so the Team page can total sales per transaction instead of only the first order matched to a visit |
 | `0125_footprints_sales_by_user` | Sales per salesperson from the synced sale orders (`public.sales_by_user`: valid orders assigned to each user by order date) and a stored order-to-visit link (`public.sale_order_visits`, kept by a trigger on `sale_orders` and a nightly job; read with `public.visit_order_links`) |
 | `0126_footprints_pending_orders_count` | Orders waiting for approval count as valid sale orders (sync rule: ORDER_STATUS = 1 only); `public.sales_by_user` also returns `pending_orders` / `pending_usd` and skips $0 orders |
+| `0128_footprints_surveys` | Surveys: versioned admin-built templates that target one item or category (`survey_templates`, `survey_template_versions`, `survey_questions`), a salesperson's `surveys` with answers, brand + price lines and photos, the `survey` permission module with role grants, a private `surveys` storage bucket, `save_survey` / `save_survey_template` RPCs, the `survey_feed` view and `survey_report` |
 
 All migrations are additive: no existing table, column, row, or function
 signature was removed or narrowed. **All are applied to the live

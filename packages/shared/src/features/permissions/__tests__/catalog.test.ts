@@ -76,8 +76,8 @@ describe('deriveState', () => {
     expect(deriveState(rows('footprints:view:deny')).footprints).toBeNull()
   })
 
-  it('has a label for all 20 functions', () => {
-    expect(FNS).toHaveLength(20)
+  it('has a label for all 23 functions', () => {
+    expect(FNS).toHaveLength(23)
   })
 })
 

@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { useTab } from '@/hooks/useTab'
 import { useLanguage } from '@footprints/shared/i18n/LanguageContext'
 import { useNavigate, useParams } from 'react-router-dom'
-import { AlertTriangle, ArrowLeft, Check, ChevronRight, Construction, Eye, MapPin, MoreHorizontal, Navigation, NotebookPen, Phone, PlusCircle, Share2, Store, UserRound } from 'lucide-react'
+import { usePermissions } from '@footprints/shared/features/permissions/PermissionsContext'
+import { AlertTriangle, ArrowLeft, Check, ChevronRight, ClipboardList, Construction, Eye, MapPin, MoreHorizontal, Navigation, NotebookPen, Phone, PlusCircle, Share2, Store, UserRound } from 'lucide-react'
 import { customersService, type CustomerDirectoryRow } from '@/features/customers/customersService'
 import { VisitFlow, type PresetCustomer } from '@/features/visits/VisitFlow'
 import { TierCard } from '@/features/customers/TierCard'
@@ -53,6 +54,7 @@ function CustomerDetail() {
   const { t, language } = useLanguage()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { can: canDo } = usePermissions()
   const [customer, setCustomer] = useState<CustomerDirectoryRow | null>(null)
   const [activityKey, setActivityKey] = useState(0)
   const activity = useCustomerActivity(id, activityKey)
@@ -383,6 +385,11 @@ function CustomerDetail() {
                 <Phone className="h-5 w-5" aria-hidden /> {t('customerDetail.logCall')}
               </button>
             </>
+          )}
+          {canDo('survey', 'add') && (
+            <button type="button" onClick={() => { setMoreOpen(false); navigate(`/surveys/start?customer=${customer.id}`) }} className="flex h-14 items-center gap-3.5 border-t border-neutral-100 text-left text-[15.5px] font-semibold text-neutral-900 first:border-t-0 dark:border-neutral-800">
+              <ClipboardList className="h-5 w-5" aria-hidden /> {t('survey.newSurvey')}
+            </button>
           )}
           <button type="button" onClick={shareLocation} className="flex h-14 items-center gap-3.5 border-t border-neutral-100 text-left text-[15.5px] font-semibold text-neutral-900 first:border-t-0 dark:border-neutral-800">
             <Share2 className="h-5 w-5" aria-hidden /> {t('custPage.shareLocation')}

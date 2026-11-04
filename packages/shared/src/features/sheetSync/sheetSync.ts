@@ -18,7 +18,7 @@ export interface OrderCounts {
   skipped: number
 }
 
-export type Schedule = 'off' | 'hourly' | 'every6h' | 'daily' | 'weekly'
+export type Schedule = 'off' | 'every5min' | 'hourly' | 'every6h' | 'daily' | 'weekly'
 export type DateOrder = 'dmy' | 'mdy'
 
 export interface SheetSyncSettings {
@@ -72,6 +72,7 @@ export interface SheetCheck {
 
 export const SCHEDULES: { value: Schedule; label: string }[] = [
   { value: 'off', label: 'Off' },
+  { value: 'every5min', label: '5 min' },
   { value: 'hourly', label: 'Hourly' },
   { value: 'every6h', label: '6 h' },
   { value: 'daily', label: 'Daily' },
@@ -99,6 +100,8 @@ export function newContact(n: number): ContactSlot {
 export function scheduleText(s: Pick<SheetSyncSettings, 'schedule' | 'at_time' | 'weekday'>): string {
   const at = s.at_time.slice(0, 5)
   switch (s.schedule) {
+    case 'every5min':
+      return 'Every 5 minutes'
     case 'hourly':
       return 'Every hour, on the hour'
     case 'every6h':

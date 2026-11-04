@@ -37,6 +37,9 @@ const WorkingHoursPage = lazyPage(() => import('@/pages/WorkingHoursPage').then(
 const PlanPage = lazyPage(() => import('@/pages/PlanPage').then((m) => ({ default: m.PlanPage })))
 const MessagesPage = lazyPage(() => import('@/pages/MessagesPage').then((m) => ({ default: m.MessagesPage })))
 const MessageThreadPage = lazyPage(() => import('@/pages/MessageThreadPage').then((m) => ({ default: m.MessageThreadPage })))
+const SurveysPage = lazyPage(() => import('@/pages/SurveysPage').then((m) => ({ default: m.SurveysPage })))
+const SurveyStartPage = lazyPage(() => import('@/pages/SurveyStartPage').then((m) => ({ default: m.SurveyStartPage })))
+const SurveyFormPage = lazyPage(() => import('@/pages/SurveyFormPage').then((m) => ({ default: m.SurveyFormPage })))
 const NotificationsPage = lazyPage(() => import('@/pages/NotificationsPage').then((m) => ({ default: m.NotificationsPage })))
 const TranslationsPage = lazyPage(() => import('@/pages/TranslationsPage').then((m) => ({ default: m.TranslationsPage })))
 const PermissionsPage = lazyPage(() => import('@footprints/shared/pages/PermissionsPage').then((m) => ({ default: m.PermissionsPage })))
@@ -463,6 +466,36 @@ export const router = createBrowserRouter([
           <Suspense fallback={<PageFallback />}>
             <MessagesPage />
           </Suspense>
+        ),
+      },
+      {
+        path: '/surveys',
+        element: (
+          <RequirePermission module="survey">
+            <Suspense fallback={<PageFallback />}>
+              <SurveysPage />
+            </Suspense>
+          </RequirePermission>
+        ),
+      },
+      {
+        path: '/surveys/start',
+        element: (
+          <RequirePermission module="survey" action="add">
+            <Suspense fallback={<PageFallback />}>
+              <SurveyStartPage />
+            </Suspense>
+          </RequirePermission>
+        ),
+      },
+      {
+        path: '/surveys/:id',
+        element: (
+          <RequirePermission module="survey">
+            <Suspense fallback={<PageFallback />}>
+              <SurveyFormPage />
+            </Suspense>
+          </RequirePermission>
         ),
       },
       {
