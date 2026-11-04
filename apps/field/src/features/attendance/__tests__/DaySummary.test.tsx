@@ -16,13 +16,13 @@ describe('DaySummary', () => {
     return renderToStaticMarkup(<DaySummary stats={stats} rules={rules} firstVisit={{ kind: 'ok' }} paidVisits={0} appointments={0} language="en" />)
   }
 
-  it('shows visits made, effective and not credited, and the three breakdown rows', () => {
+  it('shows visits made, effective and short, and the three breakdown rows', () => {
     const html = render([
       visit({ checked_in_at: '2026-01-01T02:00:00Z', checked_out_at: '2026-01-01T02:03:00Z' }),
       visit({ customer_id: 'c2', checked_in_at: '2026-01-01T03:00:00Z', checked_out_at: '2026-01-01T03:30:00Z', order_amount_usd: 50 }),
     ])
     expect(html).toContain('1 effective')
-    expect(html).toContain('1 not credited')
+    expect(html).toContain('1 short')
     expect(html).toContain('Visits')
     expect(html).toContain('/ 10') // the score
     expect(html).toContain('What makes up the score')
@@ -60,15 +60,15 @@ describe('DaySummary', () => {
     expect(html).toContain('Order not found')
   })
 
-  it('shows the counted visits behind the visits ring: 3 effective + 5 not credited of 8 is 4.25 / 8, 53%', () => {
+  it('shows the counted visits behind the visits ring: 3 effective + 5 short of 8 is 8 / 8, 100%', () => {
     const attendance = [{ clock_in_at: '2026-01-01T01:00:00Z', clock_out_at: '2026-01-01T10:00:00Z' }] as AttendanceRow[]
     const long = [0, 1, 2].map((i) => visit({ id: `l${i}`, customer_id: `l${i}`, checked_in_at: `2026-01-01T0${2 + i}:00:00Z`, checked_out_at: `2026-01-01T0${2 + i}:30:00Z` }))
     const short = [0, 1, 2, 3, 4].map((i) => visit({ id: `s${i}`, customer_id: `s${i}`, checked_in_at: `2026-01-01T0${5 + (i % 4)}:${i < 4 ? '00' : '40'}:00Z`, checked_out_at: `2026-01-01T0${5 + (i % 4)}:${i < 4 ? '02' : '42'}:00Z` }))
     const stats = computeJourneyStats([{ date: '2026-01-01', attendance, visits: [...long, ...short] }], 0, null, { ...rules, visitTarget: 8 })
     const html = renderToStaticMarkup(<DaySummary stats={stats} rules={{ ...rules, visitTarget: 8 }} firstVisit={{ kind: 'ok' }} paidVisits={0} appointments={0} language="en" />)
-    expect(html).toContain('4.25 of 8 visits')
-    expect(html).toContain('53%')
-    expect(html).toContain('3 effective + 5 × ¼')
+    expect(html).toContain('8 of 8 visits')
+    expect(html).toContain('100%')
+    expect(html).toContain('3 effective + 5 short')
   })
 
   it('says there is no target, and that the score is visits and active time, when the person has none', () => {

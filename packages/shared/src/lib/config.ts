@@ -89,8 +89,6 @@ export const DEFAULT_DAILY_VISIT_TARGET = 8
 export const DEFAULT_MONTHLY_ORDER_TARGET_USD = 0
 /** Working days in a month, for screens that do not know a person's actual working days. */
 export const TARGET_WORKING_DAYS_PER_MONTH = 22
-/** The effectiveness score: a visit that doesn't count (under the short-visit limit) earns this share of a counted one. */
-export const INEFFECTIVE_VISIT_WEIGHT = 0.25
 /** The score takes the day's late first visit off by this factor (a late first visit, after the far window, costs 10%). */
 export const LATE_FIRST_VISIT_SCORE_FACTOR = 0.9
 /**

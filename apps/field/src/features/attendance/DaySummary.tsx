@@ -5,7 +5,7 @@ import type { JourneyStats } from '@/features/attendance/journeyStats'
 import { BAND_LABEL, BAND_STYLE, formatScore, inputsOf, nextSteps, scoreBand, type NextStep, type ScoreBand } from '@/features/attendance/effectivenessScore'
 import type { FirstVisit, FlagRules } from '@/features/attendance/flagRules'
 import { formatDistance } from '@footprints/shared/lib/geo'
-import { INEFFECTIVE_VISIT_WEIGHT, ORDER_RECONCILE_DAYS, SCORE_GOAL_ACTIVE, SCORE_GOAL_VISITS } from '@footprints/shared/lib/config'
+import { ORDER_RECONCILE_DAYS, SCORE_GOAL_ACTIVE, SCORE_GOAL_VISITS } from '@footprints/shared/lib/config'
 import { formatDuration, formatTime } from '@footprints/shared/lib/datetime'
 
 const money = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`
@@ -138,15 +138,15 @@ export function DaySummary({
 }) {
   const fmt = (ms: number) => formatDuration(ms, language as Parameters<typeof formatDuration>[1])
   const day = stats.dayScores[0]
-  // What the visits part counts: each effective visit in full, each ineffective one a quarter (so 3 + 5 × ¼ = 4.25 of 8 is 53%).
-  const countedVisits = day ? Number((day.effectiveVisits + INEFFECTIVE_VISIT_WEIGHT * day.ineffectiveVisits).toFixed(2)) : 0
+  // What the visits part counts: every visit in full, short ones included.
+  const countedVisits = day ? day.effectiveVisits + day.ineffectiveVisits : 0
   const score = stats.score
   const band = day?.band ?? null
   const [infoOpen, setInfoOpen] = useState(false)
   const hint = day ? nextSteps(inputsOf(day)) : null
   const visitTarget = day?.visitTarget ?? rules.visitTarget
   const pct = (n: number) => `${Math.round(n * 100)}%`
-  const notCredited = stats.totalVisits - stats.creditedVisits
+  const shortVisits = stats.totalVisits - stats.creditedVisits
   const outsideMs = Math.max(0, stats.totalPaidMs - stats.scheduledPaidMs)
   const deadline = rules.firstVisitDeadline.slice(0, 5)
   // An order the person marked counts for now; it is confirmed when the sale order shows up in the sync.
@@ -162,9 +162,9 @@ export function DaySummary({
         <p className="text-xs text-neutral-500">
           <b className="text-status-working">{stats.creditedVisits} effective</b>
           {' · '}
-          <b className={notCredited > 0 ? 'text-status-warn' : 'text-neutral-900'}>{notCredited} not credited</b>
+          <b className={shortVisits > 0 ? 'text-status-warn' : 'text-neutral-900'}>{shortVisits} short</b>
         </p>
-        {notCredited > 0 && <p className="mt-1 text-[11px] text-neutral-500">A visit under {rules.shortVisitMin} min is not credited: it earns a quarter of an effective visit.</p>}
+        {shortVisits > 0 && <p className="mt-1 text-[11px] text-neutral-500">A visit under {rules.shortVisitMin} min is short: it counts as a visit but adds no active time.</p>}
         {stats.uniqueCustomers > 0 && <p className="mt-1 text-[11px] text-neutral-500">{stats.uniqueCustomers} different customers (expected {stats.uniqueCustomerTarget}).</p>}
         {(paidVisits > 0 || appointments > 0) && (
           <div className="mt-2.5 space-y-1 border-t border-neutral-100 pt-2.5 text-xs">
@@ -242,7 +242,7 @@ export function DaySummary({
               label="Visits"
               share={day ? day.visitShare : null}
               figure={`${countedVisits} of ${visitTarget} visits`}
-              detail={day ? `${day.effectiveVisits} effective${day.ineffectiveVisits > 0 ? ` + ${day.ineffectiveVisits} × ¼` : ''}` : ''}
+              detail={day ? `${day.effectiveVisits} effective${day.ineffectiveVisits > 0 ? ` + ${day.ineffectiveVisits} short` : ''}` : ''}
             />
             <Contributor
               label="Active time"
@@ -267,7 +267,7 @@ export function DaySummary({
           and orders {pct(1)} of the day's share of your monthly sales target{day && day.orderTargetUsd > 0 ? ` (${money(day.orderTargetUsd)} today)` : ''}. Without a sales target the score is visits and active time only. A big order counts for more than a small one.
         </p>
         <ul className="list-disc space-y-1.5 pl-5">
-          <li>A visit under {rules.shortVisitMin} min is not credited and earns a quarter of an effective visit.</li>
+          <li>A visit under {rules.shortVisitMin} min is short: it counts as a visit but adds no active time.</li>
           <li>
             {rules.travel.enabled
               ? `On a day with more than ${rules.travel.minKm} km of travel and a visit outside Phnom Penh, every full ${rules.travel.stepKm} km takes ${rules.travel.minutes} min off your working time. `
