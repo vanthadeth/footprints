@@ -7,14 +7,14 @@ const base = { effectiveVisits: 0, ineffectiveVisits: 0, visitTarget: 10, ordere
 
 describe('computeScore', () => {
   it('scores each part against its own goal: visits 100% of target, active time 50% of working hours, orders 100% of the order target', () => {
-    // 5 effective + 2 ineffective of 10 -> 55%; 3 h of 9 h = 33.3% of the 50% goal = 66.7%; $186 of the $300 order target = 62%
+    // 5 effective + 2 short of 10 -> 70% (short visits count in full); 3 h of 9 h = 33.3% of the 50% goal = 66.7%; $186 of the $300 order target = 62%
     const d = computeScore({ ...base, effectiveVisits: 5, ineffectiveVisits: 2, totalVisits: 7, orderedVisits: 2, orderValueUsd: 186, activeMs: 3 * HOUR })
-    expect(d.visitShare).toBeCloseTo(0.55, 5)
+    expect(d.visitShare).toBeCloseTo(0.7, 5)
     expect(d.activeRatio).toBeCloseTo(1 / 3, 5)
     expect(d.hoursShare).toBeCloseTo(2 / 3, 5)
     expect(d.orderRatio).toBeCloseTo(2 / 7, 5) // shown, no longer scored
     expect(d.orderShare).toBeCloseTo(0.62, 5)
-    expect(d.score).toBe(6.1) // (0.55 + 0.6667 + 0.62) / 3 x 10 = 6.12
+    expect(d.score).toBe(6.6) // (0.7 + 0.6667 + 0.62) / 3 x 10 = 6.62
   })
 
   it('gives 10.0 when every goal is met, and caps each part at its goal', () => {
@@ -183,7 +183,7 @@ describe('scoreDay', () => {
     expect(d.effectiveVisits).toBe(2)
     expect(d.ineffectiveVisits).toBe(2)
     expect(d.visitTarget).toBe(10)
-    expect(d.visitShare).toBeCloseTo((2 + 0.5) / 10, 5)
+    expect(d.visitShare).toBeCloseTo((2 + 2) / 10, 5)
     expect(d.workingMs).toBe(9 * HOUR)
   })
 

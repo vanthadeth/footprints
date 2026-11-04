@@ -1,5 +1,5 @@
 import { localDateKey } from '@/lib/dateRange'
-import { INEFFECTIVE_VISIT_WEIGHT, LATE_FIRST_VISIT_SCORE_FACTOR, SCORE_GOAL_ACTIVE, SCORE_GOAL_VISITS } from '@footprints/shared/lib/config'
+import { LATE_FIRST_VISIT_SCORE_FACTOR, SCORE_GOAL_ACTIVE, SCORE_GOAL_VISITS } from '@footprints/shared/lib/config'
 import { countsAsOrdered, type OrderState } from '@/features/orders/orderReconcile'
 import { distanceInMeters } from '@footprints/shared/lib/geo'
 import { creditedVisitMs, dayEffectiveness, isLateClockIn, scaledDailyAmount, scaledDailyTarget, scheduledSoFarMs, type BreakRule } from './efficiency'
@@ -9,8 +9,8 @@ import { firstVisitDeadlineMs, type FlagRules, type TravelRule } from './flagRul
  * The effectiveness score, 0 to 10, for one person-day: the average of three
  * parts, each scored against its own goal and capped at 100% of it.
  *
- * - Visits: effective visits (completed and long enough to count) plus a quarter
- *   of the ineffective ones, over the day's visit target. Goal: 100% of target.
+ * - Visits: every visit counts in full (short ones too; they only add no active time),
+ *   over the day's visit target. Goal: 100% of target.
  * - Active hours: active time over working time in the person's hours. On a day that
  *   travels more than 25 km with a visit outside the home city, every full 10 km takes
  *   10 minutes off the working time (the travel isn't held against the person).
@@ -61,6 +61,7 @@ const round1 = (n: number) => Math.round(n * 10) / 10
 
 export interface ScoreInputs {
   effectiveVisits: number
+  /** Short visits (under the short-visit limit): they count as visits but earn no active time. */
   ineffectiveVisits: number
   visitTarget: number
   /** Visits that count as ordered (confirmed, found in the sync, or marked and still pending), and all visits. */
@@ -115,7 +116,7 @@ export interface DayScore {
 }
 
 export function computeScore(i: ScoreInputs): DayScore {
-  const visitRatio = i.visitTarget > 0 ? (i.effectiveVisits + INEFFECTIVE_VISIT_WEIGHT * i.ineffectiveVisits) / i.visitTarget : 0
+  const visitRatio = i.visitTarget > 0 ? (i.effectiveVisits + i.ineffectiveVisits) / i.visitTarget : 0
   const travelDeductionMs = Math.min(i.workingMs, i.travelDeductionMs)
   const workingAfterTravel = i.workingMs - travelDeductionMs
   const activeRatio = workingAfterTravel > 0 ? i.activeMs / workingAfterTravel : i.activeMs > 0 ? 1 : 0
