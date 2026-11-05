@@ -23,6 +23,9 @@ describe('DaySummary', () => {
     ])
     expect(html).toContain('1 effective')
     expect(html).toContain('1 short')
+    expect(html).toContain('Day KPIs') // clock in/out, working hours, customers, gaps, long gaps, short visits
+    expect(html).toContain('Gaps between visits')
+    expect(html).toContain('Long gaps')
     expect(html).toContain('Visits')
     expect(html).toContain('/ 10') // the score
     expect(html).toContain('What makes up the score')

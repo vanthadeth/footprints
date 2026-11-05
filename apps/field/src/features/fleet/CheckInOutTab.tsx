@@ -227,7 +227,7 @@ function MemberCheckInOutCard({
         <div className="mt-3 grid grid-cols-5 gap-2 border-t border-neutral-100 pt-3">
           <SummaryStat label="Working" value={formatDuration(stats.totalWorkingMs)} />
           <SummaryStat label="Active" value={formatDuration(stats.totalVisitingMs)} />
-          <SummaryStat label="Idle" value={formatDuration(stats.totalGapMs)} />
+          <SummaryStat label="Gaps" value={formatDuration(stats.totalGapMs)} />
           <SummaryStat label="Score" value={formatScore(stats.score)} />
           <SummaryStat label="Customers" value={`${stats.uniqueCustomers}/${stats.uniqueCustomerTarget}`} />
         </div>
