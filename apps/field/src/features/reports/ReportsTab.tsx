@@ -207,7 +207,7 @@ function UserCard({ row, onFootprints }: { row: UserReportRow; onFootprints: () 
         <Mini label="Visits" value={String(row.visitCount)} />
         <Mini label="Visit time" value={formatDuration(row.totalVisitMs)} />
         <Mini label="Avg visit" value={row.visitCount ? formatDuration(row.avgVisitMs) : '—'} />
-        <Mini label="Idle" value={formatDuration(row.totalGapMs)} />
+        <Mini label="Gaps" value={formatDuration(row.totalGapMs)} />
       </div>
       <div className="grid grid-cols-4 gap-1.5">
         <Mini label="Customers" value={row.uniqueCustomerTarget > 0 ? `${row.uniqueCustomerDays} / ${row.uniqueCustomerTarget}` : String(row.uniqueCustomerDays)} />

@@ -247,5 +247,39 @@ describe('computeJourneyStats effectiveness inputs', () => {
     expect(stats.ordersPending).toBe(1)
     expect(stats.ordersUnmatched).toBe(1)
   })
-})
 
+  describe('day KPIs', () => {
+    // Phnom Penh is UTC+7: 02:00Z is 09:00 local; the lunch window is 11:00-14:00 local (04:00Z-07:00Z).
+    const day: DayJourney[] = [
+      {
+        date: '2026-01-01',
+        attendance: [attendance('2026-01-01T01:00:00Z', '2026-01-01T08:30:00Z')],
+        visits: [
+          visit({ customer_id: 'a', checked_in_at: '2026-01-01T02:00:00Z', checked_out_at: '2026-01-01T02:30:00Z' }),
+          visit({ customer_id: 'b', checked_in_at: '2026-01-01T03:20:00Z', checked_out_at: '2026-01-01T03:50:00Z' }), // 50 min gap: long
+          visit({ customer_id: 'a', checked_in_at: '2026-01-01T05:00:00Z', checked_out_at: '2026-01-01T05:01:00Z' }), // 70 min gap over lunch (limit 90): not long; 1 min visit: short
+        ],
+      },
+    ]
+    const stats = computeJourneyStats(day, new Date('2026-01-02T00:00:00Z').getTime())
+    const MIN = 60_000
+
+    it('keeps gaps between visits apart from the time before the first visit and after the last', () => {
+      expect(stats.totalGapMs).toBe(120 * MIN)
+      expect(stats.longGaps).toBe(1)
+      expect(stats.longGapMs).toBe(50 * MIN)
+      expect(stats.longestGapMs).toBe(70 * MIN)
+      expect(stats.trailingIdleMs).toBe(3 * 60 * MIN + 29 * MIN)
+      expect(stats.flaggedGaps).toBe(2) // the long gap and the time after the last visit
+    })
+
+    it('reports clock in, clock out, the span between them, unique customers and short visits', () => {
+      expect(stats.firstClockIn).toBe(Date.parse('2026-01-01T01:00:00Z'))
+      expect(stats.lastClockOut).toBe(Date.parse('2026-01-01T08:30:00Z'))
+      expect(stats.stillClockedIn).toBe(false)
+      expect(stats.spanMs).toBe(7.5 * 60 * MIN)
+      expect(stats.uniqueCustomers).toBe(2)
+      expect(stats.shortVisits).toBe(1)
+    })
+  })
+})

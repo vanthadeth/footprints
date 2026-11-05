@@ -1,4 +1,4 @@
-import { creditedVisitMs, dayEffectiveness, paidWorkMs, uniqueCustomerTarget, type BreakRule } from './efficiency'
+import { creditedVisitMs, dayEffectiveness, paidWorkMs, sessionBounds, uniqueCustomerTarget, type BreakRule } from './efficiency'
 import { DEFAULT_FLAG_RULES, FORGOTTEN_VISIT_FLAGS, isFlaggedGap, visitSpan, type FlagRules } from './flagRules'
 import { geoPoints, gapDistanceM } from './gapDistance'
 import { meanScore, scoreDay, type DayScore } from './effectivenessScore'
@@ -42,6 +42,22 @@ export interface JourneyStats {
   /** Idle time under the flag rules: gaps after a visit longer than the idle limit, including the time after the last check-out to clock-out (or now). */
   flaggedGapMs: number
   flaggedGaps: number
+  /** Visits under the short-visit limit: they count as visits but add no active time. */
+  shortVisits: number
+  /** Earliest first clock-in and latest last clock-out (ms); null with no attendance. An open session runs to now (capped like paid time). */
+  firstClockIn: number | null
+  lastClockOut: number | null
+  /** Still clocked in: the last clock-out is not a real one yet. */
+  stillClockedIn: boolean
+  /** First clock-in to last clock-out, summed over days (time off the clock between sessions included). */
+  spanMs: number
+  /** Long gaps between visits only (the idle rule, see isFlaggedGap): count and total time. Before the first visit and after the last are left out. */
+  longGaps: number
+  longGapMs: number
+  /** The longest single gap between two visits. */
+  longestGapMs: number
+  /** Time from the last check-out to clock-out (or now), summed over days: not part of totalGapMs. */
+  trailingIdleMs: number
   unassignedVisits: number
   autoCheckouts: number
   flaggedVisits: number
@@ -84,6 +100,15 @@ export function computeJourneyStats(
   let totalGapMs = 0
   let flaggedGapMs = 0
   let flaggedGaps = 0
+  let shortVisits = 0
+  let firstClockIn: number | null = null
+  let lastClockOut: number | null = null
+  let stillClockedIn = false
+  let spanMs = 0
+  let longGaps = 0
+  let longGapMs = 0
+  let longestGapMs = 0
+  let trailingIdleMs = 0
   let unassignedVisits = 0
   let autoCheckouts = 0
   let flaggedVisits = 0
@@ -99,6 +124,13 @@ export function computeJourneyStats(
       const ctx = dayContext?.(day.date)
       dayScores.push(scoreDay(day.attendance, day.visits, day.date, ctx?.rule ?? rule, now, flags, ctx?.paidMs, orders, { leaveFraction: ctx?.leaveFraction, late: ctx?.late, breakRule: ctx?.breakRule, orderTargetUsd: scoring?.orderTargetUsd, orderTotals: scoring?.orderTotals }))
       forgottenClockOuts += day.attendance.filter((s) => s.auto_clocked_out).length
+      const bounds = sessionBounds(day.attendance, now)
+      if (bounds) {
+        firstClockIn = firstClockIn == null ? bounds.first : Math.min(firstClockIn, bounds.first)
+        lastClockOut = lastClockOut == null ? bounds.last : Math.max(lastClockOut, bounds.last)
+        spanMs += Math.max(0, bounds.last - bounds.first)
+      }
+      if (day.attendance.some((s) => !s.clock_out_at)) stillClockedIn = true
       // A day can have more than one clock-in/clock-out session -- sum
       // working time across all of them, not just the first.
       for (const session of day.attendance) {
@@ -124,12 +156,17 @@ export function computeJourneyStats(
     forgottenCheckouts += sorted.filter((v) => v.flags?.some((f) => FORGOTTEN_VISIT_FLAGS.includes(f))).length
     uniqueCustomers += new Set(sorted.map((v) => v.customer_id).filter((id): id is string => !!id)).size
     const points = geoPoints(day.attendance, sorted, now, flags.forgottenCapMin)
-    const noteFlaggedGap = (from: number, to: number) => {
+    const noteFlaggedGap = (from: number, to: number, betweenVisits: boolean) => {
       if (isFlaggedGap(from, to, flags.idle, gapDistanceM(points, from, to))) {
         flaggedGapMs += to - from
         flaggedGaps += 1
+        if (betweenVisits) {
+          longGapMs += to - from
+          longGaps += 1
+        }
       }
     }
+    shortVisits += sorted.filter((v) => creditedVisitMs(v, now, flags) === 0).length
     for (let i = 0; i < sorted.length; i++) {
       const visit = sorted[i]
       totalVisits += 1
@@ -147,7 +184,8 @@ export function computeJourneyStats(
         const gap = visitStart - prevEnd
         if (gap > 0) {
           totalGapMs += gap
-          noteFlaggedGap(prevEnd, visitStart)
+          longestGapMs = Math.max(longestGapMs, gap)
+          noteFlaggedGap(prevEnd, visitStart, true)
         }
       }
     }
@@ -156,7 +194,10 @@ export function computeJourneyStats(
     if (last?.checked_out_at && day.attendance.length > 0) {
       const lastEnd = visitSpan(last, now, flags.forgottenCapMin)[1]
       const dayEnd = day.attendance.some((s) => !s.clock_out_at) ? now : Math.max(...day.attendance.map((s) => new Date(s.clock_out_at!).getTime()))
-      if (dayEnd > lastEnd) noteFlaggedGap(lastEnd, dayEnd)
+      if (dayEnd > lastEnd) {
+        trailingIdleMs += dayEnd - lastEnd
+        noteFlaggedGap(lastEnd, dayEnd, false)
+      }
     }
   }
 
@@ -183,6 +224,15 @@ export function computeJourneyStats(
     totalGapMs,
     flaggedGapMs,
     flaggedGaps,
+    shortVisits,
+    firstClockIn,
+    lastClockOut,
+    stillClockedIn,
+    spanMs,
+    longGaps,
+    longGapMs,
+    longestGapMs,
+    trailingIdleMs,
     unassignedVisits,
     autoCheckouts,
     flaggedVisits,

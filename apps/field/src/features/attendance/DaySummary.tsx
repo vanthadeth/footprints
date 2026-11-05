@@ -117,6 +117,15 @@ function Warning({ title, children }: { title: string; children?: ReactNode }) {
  * counted time against working time, order value against the day's target), and warnings for
  * anything forgotten.
  */
+function Kpi({ label, value, warn }: { label: string; value: string; warn?: boolean }) {
+  return (
+    <div className="flex justify-between gap-2">
+      <span className="text-neutral-500">{label}</span>
+      <span className={`font-bold ${warn ? 'text-status-warn' : 'text-neutral-900'}`}>{value}</span>
+    </div>
+  )
+}
+
 export function DaySummary({
   stats,
   rules,
@@ -146,7 +155,7 @@ export function DaySummary({
   const hint = day ? nextSteps(inputsOf(day)) : null
   const visitTarget = day?.visitTarget ?? rules.visitTarget
   const pct = (n: number) => `${Math.round(n * 100)}%`
-  const shortVisits = stats.totalVisits - stats.creditedVisits
+  const shortVisits = stats.shortVisits
   const outsideMs = Math.max(0, stats.totalPaidMs - stats.scheduledPaidMs)
   const deadline = rules.firstVisitDeadline.slice(0, 5)
   // An order the person marked counts for now; it is confirmed when the sale order shows up in the sync.
@@ -178,6 +187,19 @@ export function DaySummary({
             </div>
           </div>
         )}
+      </div>
+
+      <div className={card} aria-label="Day KPIs">
+        <p className="mb-2 text-[13px] font-semibold text-neutral-500">Day KPIs</p>
+        <div className="space-y-1 text-xs">
+          <Kpi label="Clock in / out" value={stats.firstClockIn == null ? '—' : `${formatTime(new Date(stats.firstClockIn).toISOString())} / ${stats.stillClockedIn || stats.lastClockOut == null ? 'still in' : formatTime(new Date(stats.lastClockOut).toISOString())}`} />
+          <Kpi label="Working hours" value={fmt(stats.spanMs)} />
+          <Kpi label="Customers" value={`${stats.uniqueCustomers} of ${stats.uniqueCustomerTarget}`} />
+          <Kpi label="Gaps between visits" value={fmt(stats.totalGapMs)} />
+          <Kpi label="Long gaps" value={stats.longGaps > 0 ? `${stats.longGaps} · ${fmt(stats.longGapMs)}` : 'None'} warn={stats.longGaps > 0} />
+          <Kpi label="Short visits" value={String(shortVisits)} warn={shortVisits > 0} />
+        </div>
+        <p className="mt-2 text-[11px] text-neutral-500">Gaps leave out the time before the first visit and after the last.</p>
       </div>
 
       <div className={card}>
